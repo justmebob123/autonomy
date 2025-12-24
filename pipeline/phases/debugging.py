@@ -104,6 +104,43 @@ class DebuggingPhase(BasePhase):
                 message=f"Debug failed: {response['error']}"
             )
         
+        # CRITICAL: Check for empty response
+        if not response or not response.get('content'):
+            self.logger.error("  AI returned empty response - possible timeout or model issue")
+            self.logger.error(f"  Response object: {response}")
+            
+            # Try with a different model if available
+            self.logger.warning("  Attempting retry with alternative model...")
+            
+            # Force use of any available 14b model
+            alternative_models = ["phi4", "deepseek-coder-v2", "qwen2.5:14b"]
+            for alt_model in alternative_models:
+                for host, models in self.client.available_models.items():
+                    for model in models:
+                        if alt_model.lower() in model.lower():
+                            self.logger.info(f"  Retrying with {model} on {host}")
+                            # Retry with this model
+                            retry_response = self.client.chat(
+                                host, model, messages, tools, 
+                                temperature=0.3, timeout=180
+                            )
+                            if retry_response and retry_response.get('content'):
+                                response = retry_response
+                                self.logger.info("  Retry successful!")
+                                break
+                    if response and response.get('content'):
+                        break
+                if response and response.get('content'):
+                    break
+            
+            # If still empty, return error
+            if not response or not response.get('content'):
+                return PhaseResult(
+                    success=False,
+                    phase=self.phase_name,
+                    message="AI returned empty response after retries - possible model timeout or availability issue"
+                )
+        
         # Parse response
         tool_calls, _ = self.parser.parse_response(response)
         

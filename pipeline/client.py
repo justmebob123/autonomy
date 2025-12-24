@@ -60,17 +60,21 @@ class OllamaClient:
             model, preferred_host = self.config.model_assignments[task_type]
             selection_log.append(f"Preferred: {model} on {preferred_host}")
             
-            if preferred_host in self.available_models:
+            # CRITICAL FIX: Check if preferred host is actually available
+            if preferred_host in self.available_models and self.available_models[preferred_host]:
                 for avail in self.available_models[preferred_host]:
                     if self._model_matches(avail, model):
                         self.logger.debug(f"  Model selection: Using preferred {avail} on {preferred_host}")
                         return (preferred_host, avail)
                 selection_log.append(f"Preferred model not found on {preferred_host}")
             else:
-                selection_log.append(f"Preferred host {preferred_host} not available")
+                selection_log.append(f"Preferred host {preferred_host} not available or has no models")
+                self.logger.warning(f"  Preferred host {preferred_host} is not available!")
             
-            # Try other hosts
+            # Try other hosts for the same model
             for host, models in self.available_models.items():
+                if not models:  # Skip hosts with no models
+                    continue
                 for avail in models:
                     if self._model_matches(avail, model):
                         self.logger.info(f"  Model selection: Using {avail} on {host} (preferred host unavailable)")

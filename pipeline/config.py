@@ -51,7 +51,7 @@ class PipelineConfig:
     planning_timeout: Optional[int] = None
     coding_timeout: Optional[int] = None
     qa_timeout: Optional[int] = None
-    debug_timeout: Optional[int] = None
+    debug_timeout: Optional[int] = 180  # 3 minutes for complex debugging
     request_timeout: Optional[int] = None
     
     # State management
@@ -87,7 +87,7 @@ class PipelineConfig:
         "planning":  ["llama3.1:70b", "mixtral:8x7b", "phi3:medium", "qwen2.5:7b"],
         "coding":    ["deepseek-coder-v2:16b", "codellama:13b", "qwen2.5-coder:7b", "granite-code:8b"],
         "qa":        ["llama3.1:70b", "mixtral:8x7b", "phi3:medium", "qwen2.5:7b"],
-        "debugging": ["deepseek-coder-v2:16b", "codellama:13b", "qwen2.5-coder:7b"],
+        "debugging": ["deepseek-coder-v2", "phi4", "qwen2.5-coder:14b", "qwen2.5:14b", "llama3.1", "qwen2.5-coder:7b"],
         "debug":     ["deepseek-coder-v2:16b", "codellama:13b", "qwen2.5-coder:7b"],
         "routing":   ["phi3:mini", "llama3.2:3b", "qwen2.5:7b"],
         "tool_formatting": ["phi3:mini", "llama3.2:3b"],
