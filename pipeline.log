@@ -1,0 +1,48 @@
+2025-12-23 10:09:33,711 [[0;32mINFO[0m] ══════════════════════════════════════════════════════════════════════
+2025-12-23 10:09:33,711 [[0;32mINFO[0m]   AI DEVELOPMENT PIPELINE - Tool Calling Architecture
+2025-12-23 10:09:33,711 [[0;32mINFO[0m] ══════════════════════════════════════════════════════════════════════
+2025-12-23 10:09:33,711 [[0;32mINFO[0m] 
+  Project: /home/logan/code/AI/autonomy
+2025-12-23 10:09:33,711 [[0;32mINFO[0m]   Max retries: 3
+2025-12-23 10:09:33,711 [[0;32mINFO[0m]   Max iterations: ∞
+2025-12-23 10:09:33,711 [[0;32mINFO[0m] ══════════════════════════════════════════════════════════════════════
+2025-12-23 10:09:33,711 [[0;32mINFO[0m] 🔍 Discovering Ollama servers...
+2025-12-23 10:09:33,718 [[0;32mINFO[0m]   ✓ ollama01 (ollama01.clacorp.com): 16 models
+2025-12-23 10:09:33,718 [DEBUG]     Models: ['deepseek-coder:6.7b', 'granite-code:8b', 'starcoder2:7b', 'mistral:7b', 'llama3.2:3b', 'phi3:medium', 'mixtral:8x7b', 'qwen2.5-coder:14b', 'qwen2.5:14b', 'qwen2.5:7b', 'llama3.1:70b', 'codellama:13b', 'codellama:7b', 'deepseek-coder-v2:16b', 'qwen2.5-coder:7b', 'llama3.2:latest']
+2025-12-23 10:09:33,721 [[0;32mINFO[0m]   ✓ ollama02 (ollama02.clacorp.com): 5 models
+2025-12-23 10:09:33,721 [DEBUG]     Models: ['qwen2.5-coder:7b', 'functiongemma:latest', 'phi3:mini', 'llama3.2:3b', 'llama3.1:latest']
+2025-12-23 10:09:33,733 [[0;32mINFO[0m] 
+📋 Loaded MASTER_PLAN.md (21201 bytes)
+2025-12-23 10:09:33,734 [[0;32mINFO[0m] 
+📋 PLANNING PHASE
+2025-12-23 10:09:33,734 [DEBUG]   Found primary: qwen2.5:14b on ollama01.clacorp.com
+2025-12-23 10:09:33,734 [[0;32mINFO[0m]   Using: qwen2.5:14b on ollama01.clacorp.com
+2025-12-23 10:09:33,735 [DEBUG] Request to ollama01.clacorp.com/qwen2.5:14b
+2025-12-23 10:09:33,735 [DEBUG]   Messages: 2, Tools: 1
+2025-12-23 10:09:37,747 [[0;32mINFO[0m] 
+⏹️ Pipeline interrupted by user
+2025-12-23 10:09:37,748 [[0;32mINFO[0m] 
+2025-12-23 10:09:37,749 [[0;32mINFO[0m] 📁 PROJECT: /home/logan/code/AI/autonomy
+2025-12-23 10:09:37,749 [[0;32mINFO[0m] ──────────────────────────────────────────────────
+2025-12-23 10:09:37,749 [[0;32mINFO[0m]    DEBUG_STEPS.md (923 bytes)
+2025-12-23 10:09:37,749 [[0;32mINFO[0m]    MASTER_PLAN.md (21631 bytes)
+2025-12-23 10:09:37,749 [[0;32mINFO[0m]    NEXT_STEPS.md (3263 bytes)
+2025-12-23 10:09:37,749 [[0;32mINFO[0m]    QA_STEPS.md (768 bytes)
+2025-12-23 10:09:37,749 [[0;32mINFO[0m]    README.md (10968 bytes)
+2025-12-23 10:09:37,749 [[0;32mINFO[0m]    config.yaml (2591 bytes)
+2025-12-23 10:09:37,749 [[0;32mINFO[0m]    example.py (238 bytes)
+2025-12-23 10:09:37,749 [[0;32mINFO[0m]    pipeline/__init__.py (467 bytes)
+2025-12-23 10:09:37,749 [[0;32mINFO[0m]    pipeline/__main__.py (3330 bytes)
+2025-12-23 10:09:37,750 [[0;32mINFO[0m]    pipeline/agents.py (10310 bytes)
+2025-12-23 10:09:37,750 [[0;32mINFO[0m]    pipeline/client.py (11657 bytes)
+2025-12-23 10:09:37,750 [[0;32mINFO[0m]    pipeline/config.py (2954 bytes)
+2025-12-23 10:09:37,750 [[0;32mINFO[0m]    pipeline/handlers.py (6094 bytes)
+2025-12-23 10:09:37,750 [[0;32mINFO[0m]    pipeline/logging_setup.py (2035 bytes)
+2025-12-23 10:09:37,750 [[0;32mINFO[0m]    pipeline/pipeline.py (7469 bytes)
+2025-12-23 10:09:37,750 [[0;32mINFO[0m]    pipeline/project.py (3143 bytes)
+2025-12-23 10:09:37,750 [[0;32mINFO[0m]    pipeline/prompts.py (2906 bytes)
+2025-12-23 10:09:37,750 [[0;32mINFO[0m]    pipeline/tools.py (4492 bytes)
+2025-12-23 10:09:37,750 [[0;32mINFO[0m]    pipeline/tracker.py (2748 bytes)
+2025-12-23 10:09:37,751 [[0;32mINFO[0m]    pipeline/utils.py (669 bytes)
+2025-12-23 10:09:37,751 [[0;32mINFO[0m]    ... and 1 more
+2025-12-23 10:09:37,751 [[0;32mINFO[0m] ──────────────────────────────────────────────────

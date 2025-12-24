@@ -1,0 +1,493 @@
+"""
+Tool Definitions for LLM Tool Calling
+
+Contains all tool definitions used by pipeline phases:
+- Planning tools: create_task_plan
+- Coding tools: create_python_file, modify_python_file
+- QA tools: report_issue, approve_code
+- Project Planning tools: analyze_project_status, propose_expansion_tasks, update_architecture
+- Documentation tools: analyze_documentation_needs, update_readme_section, add_readme_section
+"""
+
+from typing import List, Dict
+
+
+# =============================================================================
+# Core Pipeline Tools
+# =============================================================================
+
+TOOLS_PLANNING = [
+    {
+        "type": "function",
+        "function": {
+            "name": "create_task_plan",
+            "description": "Create a prioritized list of development tasks for the project.",
+            "parameters": {
+                "type": "object",
+                "required": ["tasks"],
+                "properties": {
+                    "tasks": {
+                        "type": "array",
+                        "description": "List of tasks to implement",
+                        "items": {
+                            "type": "object",
+                            "required": ["description", "target_file", "priority"],
+                            "properties": {
+                                "description": {
+                                    "type": "string",
+                                    "description": "What to implement"
+                                },
+                                "target_file": {
+                                    "type": "string",
+                                    "description": "File path to create/modify"
+                                },
+                                "priority": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 100,
+                                    "description": "Priority (1=highest)"
+                                },
+                                "dependencies": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                    "description": "Files that must exist first"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+]
+
+TOOLS_CODING = [
+    {
+        "type": "function",
+        "function": {
+            "name": "create_python_file",
+            "description": "Create a new Python file with complete, working code. The code must be syntactically valid Python with all imports included.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath", "code"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Relative path from project root (e.g., 'core/config.py')"
+                    },
+                    "code": {
+                        "type": "string",
+                        "description": "Complete Python source code with imports, classes, and functions"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Brief description of what this file does"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "modify_python_file",
+            "description": "Modify an existing Python file by replacing specific code.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath", "original_code", "new_code"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to the file to modify"
+                    },
+                    "original_code": {
+                        "type": "string",
+                        "description": "Exact code to find and replace"
+                    },
+                    "new_code": {
+                        "type": "string",
+                        "description": "New code to replace original with"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "Why this change is being made"
+                    }
+                }
+            }
+        }
+    }
+]
+
+TOOLS_QA = [
+    {
+        "type": "function",
+        "function": {
+            "name": "report_issue",
+            "description": "Report a code issue found during review.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath", "issue_type", "description"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "File with the issue"
+                    },
+                    "issue_type": {
+                        "type": "string",
+                        "enum": ["syntax_error", "logic_error", "missing_import", 
+                                "type_error", "incomplete", "security", "performance"],
+                        "description": "Category of issue"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Detailed description of the issue"
+                    },
+                    "line_number": {
+                        "type": "integer",
+                        "description": "Approximate line number"
+                    },
+                    "suggested_fix": {
+                        "type": "string",
+                        "description": "How to fix this issue"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "approve_code",
+            "description": "Approve code that passes all quality checks.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "File being approved"
+                    },
+                    "notes": {
+                        "type": "string",
+                        "description": "Any notes about the approval"
+                    }
+                }
+            }
+        }
+    }
+]
+
+TOOLS_DEBUGGING = [
+    {
+        "type": "function",
+        "function": {
+            "name": "modify_python_file",
+            "description": "Modify an existing Python file by replacing specific code to fix an issue.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath", "original_code", "new_code"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to the file to modify"
+                    },
+                    "original_code": {
+                        "type": "string",
+                        "description": "Exact code to find and replace"
+                    },
+                    "new_code": {
+                        "type": "string",
+                        "description": "New code to replace original with"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "Why this change is being made"
+                    }
+                }
+            }
+        }
+    }
+]
+
+
+# =============================================================================
+# Project Planning Tools (NEW)
+# =============================================================================
+
+TOOLS_PROJECT_PLANNING = [
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_project_status",
+            "description": "Report on current project status relative to MASTER_PLAN objectives. Call this FIRST before proposing tasks.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "objectives_completed": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of MASTER_PLAN objectives that are fully implemented"
+                    },
+                    "objectives_in_progress": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of objectives that are partially implemented"
+                    },
+                    "objectives_pending": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of objectives not yet started"
+                    },
+                    "code_quality_notes": {
+                        "type": "string",
+                        "description": "Notes on code quality, patterns, and consistency"
+                    },
+                    "recommended_focus": {
+                        "type": "string",
+                        "description": "Recommended area to focus on for next expansion"
+                    }
+                },
+                "required": ["objectives_completed", "objectives_in_progress", "objectives_pending", "recommended_focus"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "propose_expansion_tasks",
+            "description": "Propose new tasks for project expansion. Each task should be small and focused.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "tasks": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "description": {
+                                    "type": "string",
+                                    "description": "Clear description of what to implement"
+                                },
+                                "target_file": {
+                                    "type": "string",
+                                    "description": "Path to the file to create or modify"
+                                },
+                                "priority": {
+                                    "type": "integer",
+                                    "description": "Priority 1-100, lower is higher priority"
+                                },
+                                "category": {
+                                    "type": "string",
+                                    "enum": ["feature", "refactor", "test", "documentation", "bugfix", "integration"],
+                                    "description": "Type of task"
+                                },
+                                "rationale": {
+                                    "type": "string",
+                                    "description": "Why this task is needed, referencing MASTER_PLAN"
+                                },
+                                "dependencies": {
+                                    "type": "array",
+                                    "items": {"type": "string"},
+                                    "description": "Files this task depends on"
+                                }
+                            },
+                            "required": ["description", "target_file", "priority", "category", "rationale"]
+                        },
+                        "description": "List of tasks to create (max 5 per planning cycle)"
+                    },
+                    "expansion_focus": {
+                        "type": "string",
+                        "description": "High-level description of what this expansion cycle focuses on"
+                    }
+                },
+                "required": ["tasks", "expansion_focus"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_architecture",
+            "description": "Propose updates to ARCHITECTURE.md based on implementation patterns observed",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sections_to_add": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "heading": {"type": "string"},
+                                "content": {"type": "string"}
+                            },
+                            "required": ["heading", "content"]
+                        },
+                        "description": "New sections to add to ARCHITECTURE.md"
+                    },
+                    "sections_to_update": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "heading": {"type": "string"},
+                                "new_content": {"type": "string"}
+                            },
+                            "required": ["heading", "new_content"]
+                        },
+                        "description": "Existing sections to update"
+                    }
+                },
+                "required": []
+            }
+        }
+    }
+]
+
+
+# =============================================================================
+# Documentation Tools (NEW)
+# =============================================================================
+
+TOOLS_DOCUMENTATION = [
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_documentation_needs",
+            "description": "Analyze what documentation needs to be updated based on recent changes",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "readme_needs_update": {
+                        "type": "boolean",
+                        "description": "Whether README.md needs updates"
+                    },
+                    "readme_sections_outdated": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of README sections that need updating"
+                    },
+                    "architecture_needs_update": {
+                        "type": "boolean",
+                        "description": "Whether ARCHITECTURE.md needs updates"
+                    },
+                    "new_features_to_document": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "New features that should be documented"
+                    },
+                    "documentation_quality_notes": {
+                        "type": "string",
+                        "description": "Notes on overall documentation quality"
+                    }
+                },
+                "required": ["readme_needs_update", "architecture_needs_update"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_readme_section",
+            "description": "Update a specific section of README.md",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "section_heading": {
+                        "type": "string",
+                        "description": "The heading of the section to update (e.g., 'Features', 'Installation')"
+                    },
+                    "new_content": {
+                        "type": "string",
+                        "description": "The new content for this section"
+                    },
+                    "action": {
+                        "type": "string",
+                        "enum": ["replace", "append", "prepend"],
+                        "description": "How to apply the update"
+                    }
+                },
+                "required": ["section_heading", "new_content", "action"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "add_readme_section",
+            "description": "Add a new section to README.md",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "section_heading": {
+                        "type": "string",
+                        "description": "The heading for the new section"
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "The content for the new section"
+                    },
+                    "after_section": {
+                        "type": "string",
+                        "description": "Insert after this section heading (optional)"
+                    }
+                },
+                "required": ["section_heading", "content"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "confirm_documentation_current",
+            "description": "Confirm that documentation is up-to-date and no changes are needed",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "notes": {
+                        "type": "string",
+                        "description": "Notes about why documentation is current"
+                    }
+                },
+                "required": []
+            }
+        }
+    }
+]
+
+
+# =============================================================================
+# Combined Tools List (for backward compatibility)
+# =============================================================================
+
+PIPELINE_TOOLS: List[Dict] = (
+    TOOLS_PLANNING + 
+    TOOLS_CODING + 
+    TOOLS_QA
+)
+
+
+# =============================================================================
+# Tool Getter Function
+# =============================================================================
+
+def get_tools_for_phase(phase: str) -> List[Dict]:
+    """
+    Get tools appropriate for a pipeline phase.
+    
+    Args:
+        phase: Name of the phase
+        
+    Returns:
+        List of tool definitions for that phase
+    """
+    phase_tools = {
+        "planning": TOOLS_PLANNING,
+        "coding": TOOLS_CODING,
+        "qa": TOOLS_QA,
+        "debugging": TOOLS_DEBUGGING,
+        "debug": TOOLS_DEBUGGING,  # Alias
+        "project_planning": TOOLS_PROJECT_PLANNING,
+        "documentation": TOOLS_DOCUMENTATION,
+    }
+    
+    return phase_tools.get(phase, PIPELINE_TOOLS)

@@ -1,0 +1,130 @@
+# AI Development Pipeline Configuration
+# =====================================
+#
+# This file contains advanced configuration options for the pipeline.
+# Copy to your project directory and modify as needed.
+
+# Ollama Server Configuration
+ollama:
+  servers:
+    - name: ollama01
+      host: ollama01.thiscluster.net
+      port: 11434
+      priority: 1  # Lower = higher priority for model selection
+    
+    - name: ollama02
+      host: ollama02.thiscluster.net
+      port: 11434
+      priority: 2
+  
+  # Timeout for model requests (seconds)
+  timeout: 600
+  
+  # Default model for initial reasoning tasks
+  default_model: llama3.1:latest
+  default_server: ollama02.thiscluster.net
+
+# Git Configuration
+git:
+  remote: git@git.thiscluster.net
+  branch: main
+  auto_push: true
+  
+  # Commit message format
+  commit_prefix: "[AI Pipeline]"
+
+# Pipeline Settings
+pipeline:
+  # Maximum iterations for each stage
+  max_dev_iterations: 10
+  max_qa_iterations: 5
+  max_debug_iterations: 5
+  
+  # Sleep between iterations (seconds)
+  iteration_delay: 2
+  
+  # Auto-continue on warnings
+  continue_on_warnings: true
+  
+  # Stop on first error
+  stop_on_error: false
+
+# Model Selection Preferences
+model_selection:
+  # Prefer speed over capability for simple tasks
+  prefer_speed_for:
+    - documentation
+    - simple_fixes
+  
+  # Require best model for complex tasks
+  require_best_for:
+    - development
+    - debugging
+    - qa_review
+  
+  # Model capability overrides (1-10 scale)
+  # Uncomment and modify to override default ratings
+  # overrides:
+  #   llama3.1:
+  #     reasoning: 9
+  #     coding: 9
+  #   phi3:
+  #     coding: 8
+  #     speed: 9
+
+# Code Analysis Settings
+analysis:
+  # File extensions to analyze
+  extensions:
+    - .py
+    - .js
+    - .ts
+    - .go
+    - .rs
+    - .java
+    - .c
+    - .cpp
+    - .h
+  
+  # Directories to exclude
+  exclude_dirs:
+    - .git
+    - .venv
+    - venv
+    - node_modules
+    - __pycache__
+    - .pipeline
+    - build
+    - dist
+  
+  # Maximum file size to analyze (bytes)
+  max_file_size: 1048576  # 1MB
+  
+  # Python-specific settings
+  python:
+    use_ruff: true
+    use_flake8: true
+    check_types: false  # mypy
+
+# Logging
+logging:
+  level: INFO  # DEBUG, INFO, WARNING, ERROR
+  file: pipeline.log
+  max_size_mb: 10
+  backup_count: 3
+
+# Step Files
+step_files:
+  development: NEXT_STEPS.md
+  qa: QA_STEPS.md
+  debug: DEBUG_STEPS.md
+  
+  # Auto-cleanup completed step files
+  cleanup_on_success: false
+
+# Notifications (optional)
+# notifications:
+#   enabled: false
+#   webhook_url: https://hooks.slack.com/services/xxx
+#   on_success: true
+#   on_failure: true

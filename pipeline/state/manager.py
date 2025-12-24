@@ -1,0 +1,533 @@
+"""
+State Manager
+
+Handles persistence and loading of pipeline state across all phases.
+Enables crash recovery and phase coordination.
+"""
+
+import json
+import hashlib
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Any
+from dataclasses import dataclass, field, asdict
+from enum import Enum
+
+from ..logging_setup import get_logger
+
+
+class TaskStatus(str, Enum):
+    """Status of a task in the pipeline"""
+    NEW = "NEW"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    SKIPPED = "SKIPPED"
+    QA_PENDING = "QA_PENDING"
+    QA_FAILED = "QA_FAILED"
+    DEBUG_PENDING = "DEBUG_PENDING"
+    NEEDS_FIXES = "NEEDS_FIXES"  # Alias for compatibility
+
+
+class FileStatus(str, Enum):
+    """QA status of a file"""
+    UNKNOWN = "UNKNOWN"
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
+@dataclass
+class TaskError:
+    """Record of an error that occurred during task execution"""
+    attempt: int
+    error_type: str
+    message: str
+    timestamp: str
+    line_number: Optional[int] = None
+    code_snippet: Optional[str] = None
+    phase: str = "coding"
+    
+    def to_dict(self) -> Dict:
+        return asdict(self)
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> "TaskError":
+        return cls(**data)
+
+
+@dataclass
+class TaskState:
+    """State of a single task"""
+    task_id: str
+    description: str
+    target_file: str
+    priority: int
+    status: TaskStatus
+    attempts: int = 0
+    created: str = ""
+    completed: Optional[str] = None
+    dependencies: List[str] = field(default_factory=list)
+    errors: List[TaskError] = field(default_factory=list)
+    issues: List[Dict] = field(default_factory=list)  # QA issues
+    created_at: str = ""  # Alias for compatibility
+    updated_at: str = ""  # For tracking updates
+    
+    def __post_init__(self):
+        if not self.created:
+            self.created = datetime.now().isoformat()
+        if not self.created_at:
+            self.created_at = self.created
+        if not self.updated_at:
+            self.updated_at = self.created
+        if isinstance(self.status, str):
+            # Handle both uppercase and lowercase status values
+            status_upper = self.status.upper()
+            # Map NEEDS_FIXES to QA_FAILED for compatibility
+            if status_upper == "NEEDS_FIXES":
+                self.status = TaskStatus.QA_FAILED
+            else:
+                self.status = TaskStatus(status_upper)
+        self.errors = [
+            TaskError.from_dict(e) if isinstance(e, dict) else e 
+            for e in self.errors
+        ]
+    
+    def to_dict(self) -> Dict:
+        d = asdict(self)
+        d["status"] = self.status.value
+        d["errors"] = [e.to_dict() if hasattr(e, 'to_dict') else e for e in self.errors]
+        return d
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> "TaskState":
+        return cls(**data)
+    
+    def add_error(self, error_type: str, message: str, 
+                  line_number: int = None, code_snippet: str = None,
+                  phase: str = "coding"):
+        """Add an error to this task's history"""
+        self.errors.append(TaskError(
+            attempt=self.attempts,
+            error_type=error_type,
+            message=message,
+            timestamp=datetime.now().isoformat(),
+            line_number=line_number,
+            code_snippet=code_snippet,
+            phase=phase
+        ))
+        self.updated_at = datetime.now().isoformat()
+    
+    def get_error_context(self, max_errors: int = 5) -> str:
+        """Get formatted error context for LLM"""
+        if not self.errors:
+            return ""
+        
+        lines = ["Previous errors for this task:"]
+        for err in self.errors[-max_errors:]:
+            lines.append(f"- Attempt {err.attempt} [{err.error_type}]: {err.message}")
+            if err.line_number:
+                lines.append(f"  Line: {err.line_number}")
+            if err.code_snippet:
+                lines.append(f"  Code: {err.code_snippet[:100]}")
+        
+        return "\n".join(lines)
+
+
+@dataclass
+class FileState:
+    """State of a tracked file"""
+    filepath: str
+    hash: str
+    created: str
+    last_modified: str
+    last_qa: Optional[str] = None
+    qa_status: FileStatus = FileStatus.UNKNOWN
+    size: int = 0
+    issues: List[Dict] = field(default_factory=list)
+    
+    def __post_init__(self):
+        if isinstance(self.qa_status, str):
+            self.qa_status = FileStatus(self.qa_status)
+    
+    def to_dict(self) -> Dict:
+        d = asdict(self)
+        d["qa_status"] = self.qa_status.value
+        return d
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> "FileState":
+        return cls(**data)
+
+
+@dataclass
+class PhaseState:
+    """State of a pipeline phase"""
+    last_run: Optional[str] = None
+    runs: int = 0
+    successes: int = 0
+    failures: int = 0
+    
+    # Aliases for compatibility
+    @property
+    def run_count(self) -> int:
+        return self.runs
+    
+    @property
+    def success_count(self) -> int:
+        return self.successes
+    
+    @property
+    def failure_count(self) -> int:
+        return self.failures
+    
+    def to_dict(self) -> Dict:
+        return asdict(self)
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> "PhaseState":
+        return cls(**data)
+    
+    def record_run(self, success: bool):
+        """Record a phase run"""
+        self.last_run = datetime.now().isoformat()
+        self.runs += 1
+        if success:
+            self.successes += 1
+        else:
+            self.failures += 1
+
+
+@dataclass
+class PipelineState:
+    """Complete pipeline state"""
+    version: int = 2
+    updated: str = ""
+    pipeline_run_id: str = ""
+    tasks: Dict[str, TaskState] = field(default_factory=dict)
+    files: Dict[str, FileState] = field(default_factory=dict)
+    phases: Dict[str, PhaseState] = field(default_factory=dict)
+    queue: List[Dict] = field(default_factory=list)
+    
+    # Expansion tracking fields (for continuous operation)
+    expansion_count: int = 0
+    last_doc_update_count: int = 0
+    project_maturity: str = "initial"  # initial, developing, mature
+    last_planning_iteration: int = 0
+    
+    def __post_init__(self):
+        if not self.updated:
+            self.updated = datetime.now().isoformat()
+        if not self.pipeline_run_id:
+            self.pipeline_run_id = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        # Initialize phase states (including new phases)
+        for phase in ["planning", "coding", "qa", "debug", "project_planning", "documentation"]:
+            if phase not in self.phases:
+                self.phases[phase] = PhaseState()
+        
+        # Convert dicts to proper objects
+        self.tasks = {
+            k: TaskState.from_dict(v) if isinstance(v, dict) else v
+            for k, v in self.tasks.items()
+        }
+        self.files = {
+            k: FileState.from_dict(v) if isinstance(v, dict) else v
+            for k, v in self.files.items()
+        }
+        self.phases = {
+            k: PhaseState.from_dict(v) if isinstance(v, dict) else v
+            for k, v in self.phases.items()
+        }
+    
+    # Compatibility property aliases
+    @property
+    def run_id(self) -> str:
+        return self.pipeline_run_id
+    
+    @property
+    def needs_planning(self) -> bool:
+        """Check if initial planning is needed"""
+        return len(self.tasks) == 0
+    
+    @property
+    def needs_project_planning(self) -> bool:
+        """Check if all tasks are complete and ready for expansion planning"""
+        if not self.tasks:
+            return False
+        return all(
+            t.status in [TaskStatus.COMPLETED, TaskStatus.SKIPPED]
+            for t in self.tasks.values()
+        )
+    
+    @property
+    def needs_documentation_update(self) -> bool:
+        """Check if documentation needs updating after task completion"""
+        completed_count = sum(
+            1 for t in self.tasks.values()
+            if t.status == TaskStatus.COMPLETED
+        )
+        return completed_count > self.last_doc_update_count
+    
+    def to_dict(self) -> Dict:
+        return {
+            "version": self.version,
+            "updated": self.updated,
+            "pipeline_run_id": self.pipeline_run_id,
+            "tasks": {k: v.to_dict() for k, v in self.tasks.items()},
+            "files": {k: v.to_dict() for k, v in self.files.items()},
+            "phases": {k: v.to_dict() for k, v in self.phases.items()},
+            "queue": self.queue,
+            # Expansion tracking
+            "expansion_count": self.expansion_count,
+            "last_doc_update_count": self.last_doc_update_count,
+            "project_maturity": self.project_maturity,
+            "last_planning_iteration": self.last_planning_iteration,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> "PipelineState":
+        return cls(**data)
+    
+    def get_task(self, task_id: str) -> Optional[TaskState]:
+        """Get a task by ID"""
+        return self.tasks.get(task_id)
+    
+    def add_task(self, description: str, target_file: str, 
+                 priority: int = 5, dependencies: List[str] = None) -> TaskState:
+        """Add a new task"""
+        task_id = hashlib.sha256(
+            f"{description}:{target_file}:{datetime.now().isoformat()}".encode()
+        ).hexdigest()[:12]
+        
+        task = TaskState(
+            task_id=task_id,
+            description=description,
+            target_file=target_file,
+            priority=priority,
+            status=TaskStatus.NEW,
+            dependencies=dependencies or []
+        )
+        
+        self.tasks[task_id] = task
+        self.queue.append({"task_id": task_id, "priority": priority})
+        self._sort_queue()
+        self.updated = datetime.now().isoformat()
+        
+        return task
+    
+    def update_task(self, task_id: str, **kwargs):
+        """Update task properties"""
+        if task_id in self.tasks:
+            task = self.tasks[task_id]
+            for key, value in kwargs.items():
+                if hasattr(task, key):
+                    setattr(task, key, value)
+            task.updated_at = datetime.now().isoformat()
+            self.updated = datetime.now().isoformat()
+    
+    def update_task_status(self, task_id: str, status: TaskStatus) -> None:
+        """Update a task's status (compatibility method)"""
+        if task_id in self.tasks:
+            self.tasks[task_id].status = status
+            self.tasks[task_id].updated_at = datetime.now().isoformat()
+            self.updated = datetime.now().isoformat()
+    
+    def get_next_task(self) -> Optional[TaskState]:
+        """Get the highest priority incomplete task"""
+        for item in self.queue:
+            task = self.tasks.get(item["task_id"])
+            if task and task.status in [TaskStatus.NEW, TaskStatus.QA_FAILED, 
+                                         TaskStatus.DEBUG_PENDING, TaskStatus.IN_PROGRESS]:
+                return task
+        return None
+    
+    def get_tasks_by_status(self, status: TaskStatus) -> List[TaskState]:
+        """Get all tasks with a specific status"""
+        return [t for t in self.tasks.values() if t.status == status]
+    
+    def get_tasks_by_priority(self, priority: int) -> List[TaskState]:
+        """Get all tasks with a specific priority"""
+        return [t for t in self.tasks.values() if t.priority == priority]
+    
+    def get_next_priority_task(self, status: TaskStatus) -> Optional[TaskState]:
+        """Get the highest priority task with given status"""
+        tasks = self.get_tasks_by_status(status)
+        if not tasks:
+            return None
+        return min(tasks, key=lambda t: t.priority)
+    
+    def _sort_queue(self):
+        """Sort queue by priority (lower number = higher priority)"""
+        self.queue.sort(key=lambda x: x["priority"])
+    
+    def rebuild_queue(self):
+        """Rebuild the task queue from current task states"""
+        self.queue = []
+        for task_id, task in self.tasks.items():
+            if task.status not in [TaskStatus.COMPLETED, TaskStatus.SKIPPED]:
+                # Adjust priority based on status
+                priority = task.priority
+                if task.status == TaskStatus.QA_FAILED:
+                    priority = 2  # QA failures are high priority
+                elif task.status == TaskStatus.DEBUG_PENDING:
+                    priority = 3
+                elif task.status == TaskStatus.IN_PROGRESS:
+                    priority = 4
+                
+                self.queue.append({"task_id": task_id, "priority": priority})
+        
+        self._sort_queue()
+    
+    def update_file(self, filepath: str, hash: str, size: int):
+        """Update or create file state"""
+        now = datetime.now().isoformat()
+        
+        if filepath in self.files:
+            old_hash = self.files[filepath].hash
+            self.files[filepath].hash = hash
+            self.files[filepath].last_modified = now
+            self.files[filepath].size = size
+            # Reset QA status if file changed
+            if old_hash != hash:
+                self.files[filepath].qa_status = FileStatus.PENDING
+        else:
+            self.files[filepath] = FileState(
+                filepath=filepath,
+                hash=hash,
+                created=now,
+                last_modified=now,
+                size=size,
+                qa_status=FileStatus.PENDING
+            )
+        
+        self.updated = now
+    
+    def get_files_needing_qa(self) -> List[str]:
+        """Get files that need QA review"""
+        return [
+            f.filepath for f in self.files.values()
+            if f.qa_status in [FileStatus.UNKNOWN, FileStatus.PENDING]
+        ]
+    
+    def mark_file_reviewed(self, filepath: str, approved: bool, 
+                           issues: List[Dict] = None):
+        """Mark a file as reviewed by QA"""
+        if filepath in self.files:
+            self.files[filepath].last_qa = datetime.now().isoformat()
+            self.files[filepath].qa_status = (
+                FileStatus.APPROVED if approved else FileStatus.REJECTED
+            )
+            if issues:
+                self.files[filepath].issues = issues
+
+
+class StateManager:
+    """Manages pipeline state persistence"""
+    
+    STATE_FILE = ".pipeline/state.json"
+    
+    def __init__(self, project_dir: Path):
+        self.project_dir = Path(project_dir)
+        self.state_dir = self.project_dir / ".pipeline"
+        self.state_file = self.project_dir / self.STATE_FILE
+        self.logger = get_logger()
+        
+        # Ensure state directory exists
+        self.state_dir.mkdir(parents=True, exist_ok=True)
+    
+    def load(self) -> PipelineState:
+        """Load state from disk, or create new state"""
+        if self.state_file.exists():
+            try:
+                data = json.loads(self.state_file.read_text())
+                self.logger.debug(f"Loaded state from {self.state_file}")
+                return PipelineState.from_dict(data)
+            except (json.JSONDecodeError, KeyError) as e:
+                self.logger.warning(f"Failed to load state: {e}")
+                self.logger.warning("Creating new state")
+        
+        return PipelineState()
+    
+    def save(self, state: PipelineState):
+        """Save state to disk"""
+        state.updated = datetime.now().isoformat()
+        
+        try:
+            self.state_file.write_text(
+                json.dumps(state.to_dict(), indent=2)
+            )
+            self.logger.debug(f"Saved state to {self.state_file}")
+        except Exception as e:
+            self.logger.error(f"Failed to save state: {e}")
+            raise
+    
+    def write_phase_state(self, phase: str, content: str):
+        """Write a phase-specific state file (markdown)"""
+        filename = f"{phase.upper()}_STATE.md"
+        filepath = self.state_dir / filename
+        
+        try:
+            filepath.write_text(content)
+            self.logger.debug(f"Wrote {filename}")
+        except Exception as e:
+            self.logger.error(f"Failed to write {filename}: {e}")
+    
+    def read_phase_state(self, phase: str) -> Optional[str]:
+        """Read a phase-specific state file"""
+        filename = f"{phase.upper()}_STATE.md"
+        filepath = self.state_dir / filename
+        
+        if filepath.exists():
+            return filepath.read_text()
+        return None
+    
+    def get_all_phase_states(self) -> Dict[str, str]:
+        """Get all phase state files"""
+        states = {}
+        for phase in ["planning", "coding", "qa", "debug", "project_planning", "documentation"]:
+            content = self.read_phase_state(phase)
+            if content:
+                states[phase] = content
+        return states
+    
+    def backup_state(self) -> Optional[Path]:
+        """Create a backup of current state"""
+        if not self.state_file.exists():
+            return None
+        
+        backup_dir = self.state_dir / "backups"
+        backup_dir.mkdir(exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_file = backup_dir / f"state_{timestamp}.json"
+        
+        import shutil
+        shutil.copy(self.state_file, backup_file)
+        
+        return backup_file
+    
+    def get_state_summary(self) -> Dict:
+        """Get a summary of current state"""
+        state = self.load()
+        
+        status_counts = {}
+        for task in state.tasks.values():
+            status = task.status.value
+            status_counts[status] = status_counts.get(status, 0) + 1
+        
+        return {
+            "run_id": state.pipeline_run_id,
+            "total_tasks": len(state.tasks),
+            "status_counts": status_counts,
+            "expansion_count": state.expansion_count,
+            "project_maturity": state.project_maturity,
+            "phases": {
+                name: {
+                    "runs": p.runs,
+                    "successes": p.successes,
+                    "failures": p.failures,
+                }
+                for name, p in state.phases.items()
+            }
+        }
