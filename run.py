@@ -422,19 +422,22 @@ def run_debug_qa_mode(args) -> int:
                         print("\n📋 Runtime Errors:")
                         for i, error in enumerate(runtime_errors_found[:5], 1):  # Show first 5
                             print(f"\n{i}. {error['type'].upper()}")
-                            print(f"   {error['line']}")
                             if error.get('context'):
-                                print(f"   Context has {len(error['context'])} lines:")
-                                for ctx_line in error['context'][:5]:  # Show first 5 context lines
+                                # Show full traceback
+                                print(f"   Traceback ({len(error['context'])} lines):")
+                                for ctx_line in error['context']:
                                     print(f"   {ctx_line}")
+                            else:
+                                print(f"   {error['line']}")
                         
                         # Convert runtime errors to format expected by error processing
                         # Extract file and line info from traceback
                         import re
                         for error in runtime_errors_found:
                             error_type = error.get('type', 'error')
-                            error_msg = error.get('line', '')
                             context = error.get('context', [])
+                            # Get the actual error message (last line of context, or the line field)
+                            error_msg = context[-1] if context else error.get('line', '')
                             
                             # Skip ERROR types - they don't have tracebacks
                             # Only process EXCEPTION types which have full context
