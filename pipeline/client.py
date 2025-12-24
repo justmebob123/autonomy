@@ -366,10 +366,13 @@ class ResponseParser:
     
     def _try_standard_json(self, text: str) -> Optional[Dict]:
         """Try to parse standard tool call JSON format"""
-        json_match = re.search(r'\{[\s\S]*"name"[\s\S]*"arguments"[\s\S]*\}', text)
+        # CRITICAL FIX: Strip markdown code blocks FIRST
+        cleaned_text = self._clean_json(text)
+        
+        json_match = re.search(r'\{[\s\S]*"name"[\s\S]*"arguments"[\s\S]*\}', cleaned_text)
         if json_match:
             try:
-                json_str = self._clean_json(json_match.group(0))
+                json_str = json_match.group(0)
                 data = json.loads(json_str)
                 
                 if "name" in data and "arguments" in data:

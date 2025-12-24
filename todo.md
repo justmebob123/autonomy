@@ -1,148 +1,59 @@
-# Debug/QA Mode Runtime Testing Fix
+# Setup Verification and Testing Plan
 
-## Problem Analysis
-The runtime testing code has a critical control flow bug:
-1. When runtime errors are found, it prints "Will attempt to fix runtime errors..." and breaks from the while loop
-2. However, after the break, the code structure causes it to exit without processing the errors
-3. The issue is in the if/else structure around lines 386-439
+## ✅ Completed Tasks
 
-## Root Cause
-```python
-if runtime_errors_found:  # line 386
-    # ... process errors ...
-    break  # line 425 - breaks from while loop
-else:  # line 426 - else for "if runtime_errors_found"
-    return 0  # line 429 - exits if NO errors found
-# After break, execution continues here but hits the outer else block
-else:  # line 430 - else for "if args.test_command"
-    return 0  # line 439
-```
+### Configuration
+- [x] Verified optimal model assignments (qwen2.5-coder:32b for coding/debugging)
+- [x] Confirmed generous timeouts for CPU systems (600s for debug/coding)
+- [x] Validated fallback model priorities
+- [x] Checked temperature settings
 
-The problem: After `break`, there's no code path to reach the error processing section at line 441.
+### Documentation
+- [x] Created model verification script (verify_models.py)
+- [x] Created comprehensive setup guide (SETUP_VERIFICATION.md)
+- [x] Documented expected behavior and troubleshooting
 
-## Solution
-Restructure the control flow so that:
-1. After finding runtime errors and breaking from the while loop, execution continues to error processing
-2. Only return 0 when explicitly no errors are found
-3. Ensure runtime_errors list is properly populated before error processing
+## 📋 User Action Items
 
-## Tasks
-- [x] Analyze the control flow bug
-- [x] Fix the if/else structure to allow error processing after break
-- [x] Commit the fix (commit 80aab4e)
-- [x] Create comprehensive documentation
-- [x] Push to GitHub (multiple commits)
-- [x] Add debug output to diagnose file location extraction
-- [x] Add grep fallback for finding error locations
-- [x] Add comprehensive .gitignore for pycache files
-- [x] Test with the user's test-automation project
-- [x] Verify errors are properly processed by AI pipeline
-- [x] Implement comprehensive debug context gathering
-- [x] Enhance prompts for runtime errors
-- [x] Add call chain extraction and analysis
-- [x] Add class definition lookup and method search
+### Immediate (User is currently doing)
+- [ ] Wait for model installations to complete on ollama02:
+  - qwen2.5-coder:32b (~20GB download)
+  - qwen2.5:14b (~8GB download)
+  - functiongemma (~2GB download)
+  - qwen2.5-coder:7b (~4GB download, optional)
 
-## Status: ✅ ENHANCED!
+### After Installation
+- [ ] Run verification script: `python autonomy/verify_models.py`
+- [ ] Verify all required models are installed
+- [ ] Test the debug system: `python run.py --debug --verbose 2`
+- [ ] Monitor ai_activity.log for tool calls and fix attempts
+- [ ] Report back results
 
-### What's Working
-- Runtime errors are detected (34 total)
-- File locations ARE being extracted (17 errors with locations)
-- AI pipeline processes errors with QA + Debugging phases
+## 🎯 Success Criteria
 
-### Major Enhancement (commit f0f754d)
-Implemented comprehensive debug context gathering:
+The system will be working correctly when:
+1. ✅ AI makes tool calls (read_file, str_replace, etc.) in first iteration
+2. ✅ No "empty response" errors occur
+3. ✅ Actual code modifications are attempted
+4. ✅ Detailed logging shows decision-making process
+5. ✅ System attempts to fix the curses error
 
-1. **New Module**: `pipeline/debug_context.py`
-   - Extracts call chains from tracebacks
-   - Gathers all related files in error chain
-   - Finds class definitions and available methods
-   - Searches for similar method names
-   - Builds comprehensive context for AI
+## 📊 Current Status
 
-2. **Enhanced Prompts**:
-   - Split into syntax vs runtime error prompts
-   - Runtime prompts include:
-     * Full call chain with code snippets
-     * Object type and available methods
-     * Similar method names (for renamed methods)
-     * Related files from call chain
-     * Comprehensive analysis instructions
+**Configuration:** ✅ Optimal (qwen2.5-coder:32b on ollama02)
+**Timeouts:** ✅ Generous (600s for CPU systems)
+**Fallbacks:** ✅ Properly prioritized
+**Models:** ⏳ Installing (user is doing this now)
+**Testing:** ⏳ Waiting for installation to complete
 
-3. **AI Decision Making**:
-   - AI can now decide: fix call, create method, or refactor
-   - Full context enables intelligent decisions
-   - No more blind fixes - AI understands the full picture
+## 🔄 Next Steps
 
-### The Error Being Fixed
-```
-AttributeError: 'PipelineCoordinator' object has no attribute 'start_phase'
-```
+Once user confirms models are installed:
+1. They will run verify_models.py to confirm
+2. They will test with: `python run.py --debug --verbose 2`
+3. They will report back with results
+4. We can adjust configuration if needed based on actual performance
 
-The AI will now:
-1. See the call chain
-2. Find PipelineCoordinator class definition
-3. List all available methods
-4. Find similar methods (e.g., 'begin_phase', 'init_phase')
-5. Decide whether to rename calls or create the method
-6. Apply the fix intelligently
+---
 
-## Latest Enhancement (commit bdd544f)
-Implemented error deduplication:
-
-**Problem**: System was trying to fix the same error 17 times
-**Solution**: Deduplicate errors and fix all occurrences in one operation
-
-**Benefits**:
-- 17 identical errors → 1 AI call (17x faster!)
-- Consistent fixes across all locations
-- Massive cost savings
-- Clear scope understanding
-
-**Example Output**:
-```
-Found 34 total errors
-🔄 Deduplicating errors...
-   Reduced to 2 unique error(s)
-
-🔧 Fixing: AttributeError: 'PipelineCoordinator' object has no attribute 'start_phase'
-   📍 17 occurrence(s) in job_executor.py
-   📊 Gathering context...
-   🤖 Analyzing with AI...
-   ✅ Fixed all 17 occurrences
-```
-
-## CRITICAL ISSUES - System Not Working!
-
-### Problem 1: AI Not Applying Fixes ❌
-- AI receives context but returns "No fix was applied"
-- Happens every single iteration
-- Need to check: prompt clarity, tool calling, response parsing
-
-### Problem 2: System Exits After 3 Attempts ❌
-- Should continue trying, not give up
-- "Unable to make progress after multiple attempts" - exits
-- Need to remove or increase this limit
-
-### Problem 3: Half Errors Marked "Unknown" ❌
-- Errors with clear tracebacks marked as "unknown file location"
-- Example: Traceback shows line 3010 in job_executor.py but marked unknown
-- Bug in error extraction logic
-
-### Problem 4: Not Using Refactoring Context ❌
-- Refactoring detection runs but AI doesn't seem to use it
-- Need to verify it's in the prompt
-
-## Immediate Actions Needed
-- [ ] Fix error extraction - ALL tracebacks should be parsed
-- [ ] Remove 3-attempt limit or make it much higher
-- [ ] Add --verbose flag to see AI responses
-- [ ] Check what the AI is actually receiving and responding
-- [ ] Simplify prompt if needed
-- [ ] Test tool calling is working
-
-## Fix Applied
-1. Removed the `break` statement on line 425 that was breaking out of the main iteration loop
-2. Added recalculation of `all_errors` after runtime errors are found
-3. This ensures runtime errors are included in the error processing pipeline
-
-The key insight: `all_errors` was calculated BEFORE runtime testing, so runtime errors weren't included!
+**Note:** All configuration work is complete. System is ready to test once models finish installing.

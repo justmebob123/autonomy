@@ -82,16 +82,17 @@ class PipelineConfig:
         "quick_fix":       ("qwen2.5-coder:7b", "ollama02.thiscluster.net"),
     })
     
+       # NOTE: Removed phi4, deepseek-coder-v2 - they do not support native tool calling (HTTP 400 errors)
     # Fallback models when primary not available
     model_fallbacks: Dict[str, List[str]] = field(default_factory=lambda: {
         "planning":  ["llama3.1:70b", "mixtral:8x7b", "phi3:medium", "qwen2.5:7b"],
-        "coding":    ["deepseek-coder-v2:16b", "codellama:13b", "qwen2.5-coder:7b", "granite-code:8b"],
+        "coding":    ["qwen2.5-coder:14b", "codellama:13b", "qwen2.5-coder:7b", "granite-code:8b"],
         "qa":        ["llama3.1:70b", "mixtral:8x7b", "phi3:medium", "qwen2.5:7b"],
-        "debugging": ["qwen2.5-coder:32b", "qwen2.5-coder:14b", "deepseek-coder-v2", "phi4", "qwen2.5:14b", "llama3.1"],
-        "debug":     ["deepseek-coder-v2:16b", "codellama:13b", "qwen2.5-coder:7b"],
+        "debugging": ["qwen2.5-coder:32b", "qwen2.5-coder:14b", "qwen2.5:14b", "llama3.1:70b", "llama3.1"],
+        "debug":     ["qwen2.5-coder:14b", "codellama:13b", "qwen2.5-coder:7b"],
         "routing":   ["phi3:mini", "llama3.2:3b", "qwen2.5:7b"],
         "tool_formatting": ["phi3:mini", "llama3.2:3b"],
-        "quick_fix": ["codellama:7b", "deepseek-coder:6.7b", "starcoder2:7b"],
+        "quick_fix": ["codellama:7b", "qwen2.5-coder:7b", "starcoder2:7b"],
     })
     
     # Temperature settings by task type

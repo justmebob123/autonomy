@@ -112,17 +112,17 @@ class DebuggingPhase(BasePhase):
             # Try with a different model if available
             self.logger.warning("  Attempting retry with alternative model...")
             
-            # Force use of any available 14b model
-            alternative_models = ["phi4", "deepseek-coder-v2", "qwen2.5:14b"]
+            # Force use of any available 14b model (excluding models that don't support tools)
+            alternative_models = ["qwen2.5:14b", "qwen2.5-coder:14b", "llama3.1:70b"]
             for alt_model in alternative_models:
                 for host, models in self.client.available_models.items():
                     for model in models:
                         if alt_model.lower() in model.lower():
                             self.logger.info(f"  Retrying with {model} on {host}")
-                            # Retry with this model
+                            # Retry with this model (increased timeout for CPU inference)
                             retry_response = self.client.chat(
                                 host, model, messages, tools, 
-                                temperature=0.3, timeout=180
+                                temperature=0.3, timeout=600
                             )
                             if retry_response and retry_response.get('content'):
                                 response = retry_response
