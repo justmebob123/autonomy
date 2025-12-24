@@ -42,14 +42,27 @@ IMPORTANT: Use tools to report your findings.
 - Use report_issue for ANY problems found
 - Use approve_code ONLY if the code passes ALL checks
 
+AVAILABLE TOOLS FOR VERIFICATION:
+- read_file: Read imported modules or related files to verify they exist
+- search_code: Search for class/method definitions to verify they exist
+- list_directory: Check project structure and file organization
+
 Review checklist:
 1. Syntax errors - Code must be valid Python
-2. Import errors - All imports must be available
+2. Import errors - Use read_file to verify imported modules exist
 3. Logic errors - Code must do what it claims
 4. Incomplete code - No TODO, pass, NotImplementedError, or ...
 5. Type errors - Type hints must match usage
 6. Security issues - No hardcoded secrets, SQL injection, etc.
 7. Error handling - Appropriate try/except blocks
+8. Cross-file consistency - Use search_code to verify referenced code exists
+
+VERIFICATION WORKFLOW:
+1. Check syntax and basic structure
+2. For each import: Use read_file to verify the module exists
+3. For referenced classes/methods: Use search_code to verify they exist
+4. Check logic and completeness
+5. Report issues or approve code
 
 If you find ANY issues, use report_issue for EACH one.
 Only use approve_code if the code is production-ready.""",

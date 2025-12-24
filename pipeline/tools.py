@@ -174,6 +174,62 @@ TOOLS_QA = [
                 }
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_file",
+            "description": "Read a file to check imports, dependencies, or related code. Use this to verify that imported modules exist, check how other files implement similar functionality, or understand the broader context.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to the file to read (relative to project root)"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_code",
+            "description": "Search for code patterns across the project to verify consistency, find where methods/classes are defined, or check architectural patterns. Use this to validate that referenced code actually exists.",
+            "parameters": {
+                "type": "object",
+                "required": ["pattern"],
+                "properties": {
+                    "pattern": {
+                        "type": "string",
+                        "description": "Pattern to search for (supports regex)"
+                    },
+                    "file_pattern": {
+                        "type": "string",
+                        "description": "File pattern to search in (default: *.py)",
+                        "default": "*.py"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_directory",
+            "description": "List directory contents to verify project structure, check if expected files exist, or explore the codebase organization.",
+            "parameters": {
+                "type": "object",
+                "required": ["path"],
+                "properties": {
+                    "path": {
+                        "type": "string",
+                        "description": "Directory path to list (relative to project root, use '.' for root)"
+                    }
+                }
+            }
+        }
     }
 ]
 
