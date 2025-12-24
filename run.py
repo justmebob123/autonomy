@@ -87,11 +87,22 @@ def run_pipeline(config: PipelineConfig, resume: bool = True) -> bool:
 
 
 def run_debug_qa_mode(args) -> int:
-    """Run continuous debug/QA mode using the AI pipeline to fix errors."""
+    """
+    Run continuous debug/QA mode using the full AI pipeline.
+    
+    This mode:
+    1. Scans all Python files for syntax/import errors
+    2. Optionally follows a log file for runtime errors
+    3. Uses the full pipeline (QA + Debugging phases) to fix issues
+    4. Examines related files and dependencies
+    5. Continues until all errors are resolved
+    """
     import ast
-    import py_compile
+    import subprocess
     import time
+    import threading
     from pathlib import Path
+    from collections import defaultdict
     
     project_dir = Path(args.project_dir).resolve()
     
@@ -100,13 +111,19 @@ def run_debug_qa_mode(args) -> int:
         return 1
     
     print("\n" + "="*70)
-    print("🔍 DEBUG/QA MODE - AI-Powered Continuous Debugging")
+    print("🔍 DEBUG/QA MODE - Continuous AI-Powered Debugging & QA")
     print("="*70)
     print(f"\nProject: {project_dir}")
     print("\nThis mode will:")
-    print("  • Detect syntax errors in Python files")
-    print("  • Use AI to automatically fix the errors")
+    print("  • Scan all Python files for syntax and import errors")
+    print("  • Use AI pipeline (QA + Debugging) to fix issues")
+    print("  • Examine related files and dependencies")
+    print("  • Track runtime errors from log files (if --follow specified)")
     print("  • Continue until all errors are resolved")
+    
+    if hasattr(args, 'follow_log') and args.follow_log:
+        print(f"  • Following log file: {args.follow_log}")
+    
     print("\nPress Ctrl+C to exit at any time.\n")
     
     # Build configuration for the pipeline
@@ -126,140 +143,292 @@ def run_debug_qa_mode(args) -> int:
             for i, host in enumerate(args.servers)
         ]
     
+    # Initialize pipeline components
+    from pipeline.phases.qa import QAPhase
+    from pipeline.phases.debugging import DebuggingPhase
+    from pipeline.state.manager import StateManager, TaskState, TaskStatus
+    from pipeline.state.priority import TaskPriority
+    from pipeline.client import OllamaClient
+    
+    # Discover Ollama servers
+    print("🔍 Discovering Ollama servers...")
+    client = OllamaClient(config)
+    client.discover_servers()
+    print()
+    
+    # Initialize state manager
+    state_manager = StateManager(project_dir)
+    state = state_manager.load()
+    
+    # Initialize phases
+    qa_phase = QAPhase(config, client)
+    debug_phase = DebuggingPhase(config, client)
+    
+    # Log file monitoring
+    log_errors = []
+    log_monitor_active = False
+    
+    if hasattr(args, 'follow_log') and args.follow_log:
+        log_file = Path(args.follow_log)
+        if log_file.exists():
+            log_monitor_active = True
+            print(f"📋 Monitoring log file: {log_file}\n")
+            
+            def monitor_log():
+                """Monitor log file for errors in background thread"""
+                try:
+                    with open(log_file, 'r') as f:
+                        # Seek to end
+                        f.seek(0, 2)
+                        while log_monitor_active:
+                            line = f.readline()
+                            if line:
+                                # Check for error patterns
+                                if any(pattern in line.lower() for pattern in 
+                                      ['error', 'exception', 'traceback', 'failed', 'critical']):
+                                    log_errors.append({
+                                        'timestamp': time.strftime('%H:%M:%S'),
+                                        'line': line.strip()
+                                    })
+                            else:
+                                time.sleep(0.1)
+                except Exception as e:
+                    print(f"⚠️  Log monitoring error: {e}")
+            
+            # Start log monitoring thread
+            log_thread = threading.Thread(target=monitor_log, daemon=True)
+            log_thread.start()
+        else:
+            print(f"⚠️  Log file not found: {log_file}\n")
+    
     iteration = 0
+    consecutive_no_progress = 0
+    max_no_progress = 3
     
     try:
         while True:
             iteration += 1
-            print(f"\n{'─'*70}")
-            print(f"🔄 Iteration {iteration} - {time.strftime('%H:%M:%S')}")
-            print(f"{'─'*70}\n")
+            print(f"\n{'='*70}")
+            print(f"🔄 ITERATION {iteration} - {time.strftime('%H:%M:%S')}")
+            print(f"{'='*70}\n")
             
-            # Find all Python files
+            # Phase 1: Scan for syntax errors
+            print("📁 Phase 1: Scanning Python files for syntax errors...")
             py_files = list(project_dir.rglob("*.py"))
-            if not py_files:
-                print("⚠️  No Python files found in project directory")
-                break
             
-            print(f"📁 Found {len(py_files)} Python files to check\n")
+            # Filter out excluded directories
+            py_files = [f for f in py_files if not any(
+                excluded in str(f) for excluded in 
+                ['__pycache__', 'venv', '.venv', '.git', 'node_modules']
+            )]
             
-            errors_found = []
+            print(f"   Found {len(py_files)} Python files to check\n")
             
-            # Check each Python file for syntax errors
+            syntax_errors = []
+            import_errors = []
+            
+            # Check syntax
             for py_file in sorted(py_files):
                 rel_path = py_file.relative_to(project_dir)
                 
-                # Skip __pycache__ and virtual environments
-                if '__pycache__' in str(rel_path) or 'venv' in str(rel_path) or '.venv' in str(rel_path):
-                    continue
-                
-                # Syntax check using AST parsing
                 try:
                     with open(py_file, 'r', encoding='utf-8') as f:
                         content = f.read()
                     ast.parse(content, filename=str(py_file))
                 except SyntaxError as e:
-                    errors_found.append({
+                    syntax_errors.append({
                         'file': str(rel_path),
-                        'full_path': str(py_file),
                         'type': 'SyntaxError',
                         'message': e.msg,
                         'line': e.lineno,
                         'offset': e.offset,
-                        'text': e.text.strip() if e.text else None
+                        'text': e.text.strip() if e.text else None,
+                        'full_path': str(py_file)
                     })
                 except Exception as e:
-                    errors_found.append({
+                    syntax_errors.append({
                         'file': str(rel_path),
-                        'full_path': str(py_file),
                         'type': type(e).__name__,
                         'message': str(e),
-                        'line': None
+                        'line': None,
+                        'full_path': str(py_file)
                     })
             
+            # Phase 2: Check imports (only if no syntax errors)
+            if not syntax_errors:
+                print("📦 Phase 2: Checking imports...")
+                
+                # Try importing main module if it exists
+                main_modules = ['__init__.py', '__main__.py', 'main.py']
+                for main_mod in main_modules:
+                    if (project_dir / main_mod).exists():
+                        try:
+                            result = subprocess.run(
+                                [sys.executable, "-c", f"import sys; sys.path.insert(0, '{project_dir}'); import {project_dir.name}"],
+                                capture_output=True,
+                                text=True,
+                                timeout=10,
+                                cwd=str(project_dir.parent)
+                            )
+                            if result.returncode != 0 and result.stderr:
+                                # Parse import error
+                                if "ModuleNotFoundError" in result.stderr or "ImportError" in result.stderr:
+                                    import_errors.append({
+                                        'file': main_mod,
+                                        'type': 'ImportError',
+                                        'message': result.stderr.strip(),
+                                        'line': None
+                                    })
+                        except subprocess.TimeoutExpired:
+                            print("   ⚠️  Import check timed out")
+                        except Exception as e:
+                            print(f"   ⚠️  Import check error: {e}")
+                        break
+                print()
+            
+            # Phase 3: Check log errors
+            runtime_errors = []
+            if log_errors:
+                print(f"📋 Phase 3: Processing {len(log_errors)} log errors...")
+                runtime_errors = log_errors.copy()
+                log_errors.clear()
+                print()
+            
+            # Combine all errors
+            all_errors = syntax_errors + import_errors + runtime_errors
+            
             # Display results
-            print("\n" + "="*70)
-            print("📊 RESULTS")
+            print("="*70)
+            print("📊 SCAN RESULTS")
             print("="*70 + "\n")
             
-            if not errors_found:
+            if not all_errors:
                 print("✅ SUCCESS! No errors found.")
-                print("\n🎉 All checks passed! The application is error-free.")
+                
+                if iteration == 1:
+                    print("\n🎉 All checks passed! The application is error-free.")
+                else:
+                    print(f"\n🎉 All errors resolved after {iteration} iterations!")
+                
                 print("\nYou can now run the application normally.")
                 return 0
             
-            # Display errors
-            print(f"❌ ERRORS FOUND: {len(errors_found)}\n")
-            for i, error in enumerate(errors_found, 1):
-                print(f"{i}. {error['type']} in {error['file']}")
+            # Display error summary
+            print(f"Found {len(all_errors)} total errors:")
+            print(f"  • Syntax errors: {len(syntax_errors)}")
+            print(f"  • Import errors: {len(import_errors)}")
+            print(f"  • Runtime errors: {len(runtime_errors)}")
+            print()
+            
+            # Display detailed errors
+            for i, error in enumerate(all_errors[:10], 1):  # Show first 10
+                print(f"{i}. {error['type']} in {error.get('file', 'unknown')}")
                 if error.get('line'):
                     print(f"   Line {error['line']}: {error['message']}")
                     if error.get('text'):
                         print(f"   Code: {error['text']}")
-                    if error.get('offset'):
-                        print(f"   Position: column {error['offset']}")
                 else:
-                    print(f"   {error['message']}")
+                    msg = error['message'][:100]
+                    print(f"   {msg}...")
                 print()
             
-            # Use AI to fix the errors
-            print("\n" + "─"*70)
-            print("🤖 Using AI to fix errors...")
-            print("─"*70 + "\n")
+            if len(all_errors) > 10:
+                print(f"... and {len(all_errors) - 10} more errors\n")
             
-            # Import debugging phase
-            from pipeline.phases.debugging import DebuggingPhase
-            from pipeline.state.manager import StateManager
+            # Phase 4: Use AI Pipeline to fix errors
+            print("="*70)
+            print("🤖 AI PIPELINE - Fixing Errors")
+            print("="*70 + "\n")
             
-            # Load or create state
-            state_manager = StateManager(project_dir)
-            state = state_manager.load()
-            
-            # Create debugging phase
-            debug_phase = DebuggingPhase(config)
-            
-            # Process each error
             fixes_applied = 0
-            for error in errors_found:
-                print(f"🔧 Fixing {error['file']}...")
+            fixes_attempted = 0
+            
+            # Group errors by file for efficient processing
+            errors_by_file = defaultdict(list)
+            for error in all_errors:
+                file_path = error.get('file', 'unknown')
+                errors_by_file[file_path].append(error)
+            
+            # Process each file
+            for file_path, file_errors in errors_by_file.items():
+                print(f"📄 Processing {file_path} ({len(file_errors)} errors)...")
+                fixes_attempted += len(file_errors)
                 
-                # Create issue dict for the debugging phase
-                issue = {
-                    'file': error['file'],
-                    'type': error['type'],
-                    'message': error['message'],
-                    'line': error.get('line'),
-                    'description': f"{error['type']} at line {error.get('line', 'unknown')}: {error['message']}"
-                }
-                
+                # Run QA phase first to identify all issues
+                print("   🔍 Running QA analysis...")
                 try:
-                    # Execute debugging phase
-                    result = debug_phase.execute(state, issue=issue)
+                    qa_result = qa_phase.execute(state, filepath=file_path)
                     
-                    if result.success:
-                        print(f"   ✅ Fixed successfully")
-                        fixes_applied += 1
+                    if qa_result.success:
+                        print("   ✅ QA passed")
                     else:
-                        print(f"   ⚠️  Could not fix: {result.message}")
+                        print(f"   ⚠️  QA found issues: {qa_result.message}")
                 except Exception as e:
-                    print(f"   ❌ Error during fix: {e}")
+                    print(f"   ❌ QA error: {e}")
+                
+                # Run debugging phase for each error
+                for error in file_errors:
+                    print(f"   🔧 Fixing: {error['type']} at line {error.get('line', '?')}")
+                    
+                    # Create issue dict
+                    issue = {
+                        'filepath': file_path,
+                        'type': error['type'],
+                        'message': error['message'],
+                        'line': error.get('line'),
+                        'description': f"{error['type']}: {error['message']}"
+                    }
+                    
+                    try:
+                        debug_result = debug_phase.execute(state, issue=issue)
+                        
+                        if debug_result.success:
+                            print("      ✅ Fixed successfully")
+                            fixes_applied += 1
+                        else:
+                            print(f"      ⚠️  Could not fix: {debug_result.message}")
+                    except Exception as e:
+                        print(f"      ❌ Debug error: {e}")
+                        if config.verbose:
+                            import traceback
+                            print(traceback.format_exc())
+                
+                print()
             
             # Save state
             state_manager.save(state)
             
-            print(f"\n📊 Applied {fixes_applied}/{len(errors_found)} fixes")
+            # Summary
+            print("="*70)
+            print("📊 ITERATION SUMMARY")
+            print("="*70)
+            print(f"  Errors found: {len(all_errors)}")
+            print(f"  Fixes attempted: {fixes_attempted}")
+            print(f"  Fixes applied: {fixes_applied}")
+            print(f"  Success rate: {fixes_applied}/{fixes_attempted} ({100*fixes_applied//max(fixes_attempted,1)}%)")
+            print("="*70 + "\n")
             
+            # Check for progress
             if fixes_applied == 0:
-                print("\n⚠️  No fixes could be applied automatically.")
-                print("You may need to fix these errors manually.")
-                return 1
+                consecutive_no_progress += 1
+                print(f"⚠️  No progress made ({consecutive_no_progress}/{max_no_progress})")
+                
+                if consecutive_no_progress >= max_no_progress:
+                    print("\n❌ Unable to make progress after multiple attempts.")
+                    print("Some errors may require manual intervention.")
+                    return 1
+            else:
+                consecutive_no_progress = 0
             
-            print("\n🔄 Re-checking for errors...\n")
-            time.sleep(1)  # Brief pause before next iteration
+            print("🔄 Re-scanning for errors...\n")
+            time.sleep(2)  # Brief pause before next iteration
             
     except KeyboardInterrupt:
         print("\n\n👋 Exiting debug/QA mode...")
+        log_monitor_active = False
         return 0
+    finally:
+        log_monitor_active = False
 
 
 def main() -> int:
@@ -324,6 +493,12 @@ Examples:
         "--debug-qa",
         action="store_true",
         help="Debug/QA mode - continuously check for errors and warnings until resolved"
+    )
+    parser.add_argument(
+        "--follow",
+        dest="follow_log",
+        metavar="LOGFILE",
+        help="Follow a log file for runtime errors (use with --debug-qa)"
     )
     
     # Server configuration
