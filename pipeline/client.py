@@ -324,13 +324,19 @@ class ResponseParser:
     def _extract_tool_call_from_text(self, text: str) -> Optional[Dict]:
         """Try to extract a tool call from text content"""
         
-        # 1. Try standard JSON format first
+        # 1. Try to find ALL JSON blocks with "name" and "arguments" (handles embedded JSON)
+        self.logger.debug("    Trying: find all JSON blocks with name/arguments")
+        result = self._extract_all_json_blocks(text)
+        if result:
+            return result
+        
+        # 2. Try standard JSON format
         self.logger.debug("    Trying: standard tool call format {name, arguments}")
         result = self._try_standard_json(text)
         if result:
             return result
         
-        # 2. Try to extract file creation with code block (handles malformed JSON)
+        # 3. Try to extract file creation with code block (handles malformed JSON)
         self.logger.debug("    Trying: code block extraction")
         result = self._extract_file_from_codeblock(text)
         if result:
@@ -362,6 +368,72 @@ class ResponseParser:
             return result
         
         self.logger.debug("    ✗ All extraction methods failed")
+        return None
+    
+    def _extract_all_json_blocks(self, text: str) -> Optional[Dict]:
+        """
+        Find ALL JSON blocks in text and extract the first valid tool call.
+        Handles cases where JSON is embedded in explanatory text.
+        """
+        # First, try to extract from markdown code blocks
+        code_blocks = re.findall(r'```(?:json)?\s*\n([\s\S]*?)\n```', text)
+        for block in code_blocks:
+            # CRITICAL: Convert Python triple-quoted strings to JSON-compatible format
+            # AI models often use """...""" which is Python syntax, not valid JSON
+            cleaned_block = self._convert_python_strings_to_json(block.strip())
+            
+            try:
+                data = json.loads(cleaned_block)
+                if isinstance(data, dict) and "name" in data and "arguments" in data:
+                    self.logger.debug(f"    ✓ Found tool call in code block: {data['name']}")
+                    return {
+                        "function": {
+                            "name": data["name"],
+                            "arguments": data["arguments"]
+                        }
+                    }
+            except json.JSONDecodeError as e:
+                self.logger.debug(f"    ✗ JSON parse failed for block: {str(e)[:100]}")
+                continue
+        
+        # If no code blocks, find all potential JSON blocks (anything between { and })
+        json_blocks = []
+        i = 0
+        while i < len(text):
+            if text[i] == '{':
+                # Found start of potential JSON
+                depth = 0
+                start = i
+                for j in range(i, len(text)):
+                    if text[j] == '{':
+                        depth += 1
+                    elif text[j] == '}':
+                        depth -= 1
+                        if depth == 0:
+                            # Found complete JSON block
+                            json_blocks.append(text[start:j+1])
+                            i = j + 1
+                            break
+                else:
+                    i += 1
+            else:
+                i += 1
+        
+        # Try to parse each block and find one with "name" and "arguments"
+        for block in json_blocks:
+            try:
+                data = json.loads(block)
+                if isinstance(data, dict) and "name" in data and "arguments" in data:
+                    self.logger.debug(f"    ✓ Found embedded JSON with tool call: {data['name']}")
+                    return {
+                        "function": {
+                            "name": data["name"],
+                            "arguments": data["arguments"]
+                        }
+                    }
+            except json.JSONDecodeError:
+                continue
+        
         return None
     
     def _try_standard_json(self, text: str) -> Optional[Dict]:
@@ -584,6 +656,30 @@ class ResponseParser:
                 normalized.append(norm)
         
         return normalized
+    
+    def _convert_python_strings_to_json(self, text: str) -> str:
+        """
+        Convert Python-style triple-quoted strings to JSON-compatible format.
+        AI models often use """...""" which is valid Python but not valid JSON.
+        """
+        # Replace triple-quoted strings with properly escaped JSON strings
+        # Pattern: """content""" -> "content" (with proper escaping)
+        
+        def replace_triple_quotes(match):
+            content = match.group(1)
+            # Escape backslashes and quotes for JSON
+            content = content.replace('\\', '\\\\')
+            content = content.replace('"', '\&quot;')
+            content = content.replace('\n', '\\n')
+            content = content.replace('\r', '\\r')
+            content = content.replace('\t', '\\t')
+            return f'"{content}"'
+        
+        # Match triple-quoted strings (both """ and ''')
+        text = re.sub(r'"""([\s\S]*?)"""', replace_triple_quotes, text)
+        text = re.sub(r"'''([\s\S]*?)'''", replace_triple_quotes, text)
+        
+        return text
     
     def _clean_json(self, text: str) -> str:
         """Clean up JSON text for parsing"""
