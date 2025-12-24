@@ -66,8 +66,34 @@ def apply_fix(line: str, fix_type: str, error_msg: str) -> Optional[str]:
     
     # Fix 1: Unmatched closing bracket ]
     if 'unmatched' in error_lower and ']' in error_lower:
-        # Check if line ends with a quote and is missing ]
         stripped = line.rstrip()
+        
+        # Special case: raw string with mixed quotes - needs triple quotes
+        # e.g., r"pattern['&quot;]" or r"pattern['"]"]" 
+        if 'r"' in stripped and "['" in stripped:
+            import re
+            
+            # First, remove extra ] if present (e.g., ['"]"] -> ['"])
+            if stripped.endswith(']"]') or stripped.endswith('"]"'):
+                stripped = stripped[:-2] + '"'
+            
+            # Now convert to triple-quoted raw string
+            # Find the closing quote position BEFORE modification
+            original_closing_pos = stripped.rfind('"')
+            
+            # Replace r" with r"""
+            fixed = re.sub(r'(r)"', r'\1"""', stripped, count=1)
+            
+            # The closing position shifted by 2 (we added two quotes)
+            new_closing_pos = original_closing_pos + 2
+            
+            # Replace the closing quote with """
+            if new_closing_pos < len(fixed):
+                fixed = fixed[:new_closing_pos] + '"""' + fixed[new_closing_pos+1:]
+            
+            return fixed + '\n'
+        
+        # Check if line ends with a quote and is missing ]
         if '"' in stripped and not stripped.endswith(']'):
             # Add ] before the newline
             return stripped + ']\n'
