@@ -442,7 +442,7 @@ def run_debug_qa_mode(args) -> int:
                         import traceback
                         print(traceback.format_exc())
                 
-                # Run debugging phase for each error
+                # Run debugging phase for each error  
                 for error in file_errors:
                     print(f"   🔧 Fixing: {error['type']} at line {error.get('line', '?')}")
                     
@@ -451,7 +451,7 @@ def run_debug_qa_mode(args) -> int:
                         file_full_path = project_dir / file_path
                         with open(file_full_path, 'r', encoding='utf-8') as f:
                             file_content = f.read()
-                            file_lines = file_content.split('\n')
+                            file_lines = file_content.splitlines()
                     except Exception as e:
                         print(f"      ❌ Could not read file: {e}")
                         continue
