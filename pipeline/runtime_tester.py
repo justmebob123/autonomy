@@ -59,6 +59,15 @@ class ProgramRunner:
         self.stdout_lines = []
         self.stderr_lines = []
         
+        # Block SIGTERM in this thread to prevent it from being killed
+        # when we send SIGTERM to child process groups
+        try:
+            signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGTERM})
+            self.logger.debug("Blocked SIGTERM in monitoring process")
+        except AttributeError:
+            # pthread_sigmask not available on all platforms
+            self.logger.debug("pthread_sigmask not available, skipping signal blocking")
+        
         self.thread = threading.Thread(target=self._run, daemon=True)
         self.thread.start()
         
@@ -149,6 +158,24 @@ class ProgramRunner:
                     if self.process_manager.safe_kill(pid, signal.SIGTERM):
                         self.logger.info("Killed specific process only")
                     return
+                
+                # Double-check: Verify the process group doesn't contain our PID
+                try:
+                    import subprocess
+                    result = subprocess.run(
+                        ['ps', '-g', str(pgid), '-o', 'pid', '--no-headers'],
+                        capture_output=True,
+                        text=True,
+                        timeout=2
+                    )
+                    if result.returncode == 0:
+                        pids_in_group = [int(p.strip()) for p in result.stdout.strip().split('\n') if p.strip()]
+                        if self.baseline.own_pid in pids_in_group:
+                            self.logger.error(f"CRITICAL: Our own PID {self.baseline.own_pid} is in target group {pgid}!")
+                            self.logger.error("  Refusing to kill this group!")
+                            return
+                except Exception as e:
+                    self.logger.warning(f"Could not verify process group membership: {e}")
                 
                 # Show process tree before killing
                 self.logger.info("Process tree before kill:")

@@ -40,8 +40,11 @@ def cleanup_handler(signum=None, frame=None):
         sys.exit(130)  # Standard exit code for SIGINT
 
 # Register signal handlers
+# CRITICAL: Only handle SIGINT (Ctrl+C), not SIGTERM
+# SIGTERM might be sent to process groups we're managing
 signal.signal(signal.SIGINT, cleanup_handler)
-signal.signal(signal.SIGTERM, cleanup_handler)
+# DO NOT handle SIGTERM - it might come from our own killpg calls
+# signal.signal(signal.SIGTERM, cleanup_handler)
 atexit.register(cleanup_handler)
 
 
