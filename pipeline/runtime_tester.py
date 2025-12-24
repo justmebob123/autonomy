@@ -229,7 +229,8 @@ class ProgramRunner:
                         self.logger.warning(f"Some processes still running:\n{result.stdout}")
                         # Try pkill as fallback
                         self.logger.info("Using pkill as fallback...")
-                        subprocess.run(['pkill', '-9', '-f', self.command], timeout=2)
+                        # CRITICAL: pkill removed - it was killing the monitoring process!
+                           # Instead, processes should be killed by the process group kill above
                     else:
                         self.logger.info("All processes in group terminated successfully")
                 except Exception as e:
@@ -246,7 +247,8 @@ class ProgramRunner:
                 # Fallback: try pkill
                 self.logger.info("Attempting pkill fallback...")
                 try:
-                    subprocess.run(['pkill', '-9', '-f', self.command], timeout=2)
+                    # CRITICAL: pkill removed - it was killing the monitoring process!
+                           # Instead, processes should be killed by the process group kill above
                     self.logger.info("pkill fallback completed")
                 except Exception as e2:
                     self.logger.error(f"pkill fallback failed: {e2}")
