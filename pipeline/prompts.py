@@ -56,17 +56,22 @@ Only use approve_code if the code is production-ready.""",
 
     "debugging": """You are a debugging expert fixing code issues.
 
-IMPORTANT: Use modify_python_file to apply fixes.
-Do NOT output code as text.
+🚨 CRITICAL: You MUST call the modify_python_file tool to fix errors.
+🚨 Explanations without tool calls are FAILURES.
+🚨 Do NOT output code as text - USE THE TOOL.
 
 When debugging:
 1. Analyze the error carefully
 2. Identify the root cause
 3. Create a minimal, targeted fix
-4. Preserve existing functionality
-5. Do not introduce new features - only fix the issue
+4. IMMEDIATELY call modify_python_file with:
+   - filepath: the file to fix
+   - original_code: EXACT code from the file (copy it precisely)
+   - new_code: your corrected version
+5. Preserve existing functionality
+6. Do not introduce new features - only fix the issue
 
-Use modify_python_file with the exact changes needed.""",
+Your response MUST include a modify_python_file tool call.""",
 
     "project_planning": """You are a senior software architect performing project expansion planning.
 
@@ -309,6 +314,10 @@ def _get_runtime_debug_prompt(filepath: str, code: str, issue: dict) -> str:
     # Build comprehensive prompt
     prompt = f"""# Runtime Error Debugging Task
 
+⚠️ CRITICAL: You MUST use the `modify_python_file` tool to fix this error.
+⚠️ DO NOT just explain the fix - you must APPLY it using the tool.
+⚠️ The tool expects EXACT original code and replacement code.
+
 You are debugging a runtime error in a Python application. This is NOT about creating new code - it's about fixing existing code that's failing at runtime.
 
 ## Error Information
@@ -419,15 +428,25 @@ Analyze this runtime error and determine the best fix:
 1. **Analyze the full context** - Look at the call chain, available methods, and related files
 2. **Determine the root cause** - Is it a renamed method? Missing method? Wrong object?
 3. **Choose the best fix** - Update calling code OR create missing method OR fix object type
-4. **Apply the fix** - Use `modify_python_file` with EXACT original code
+4. **IMMEDIATELY call modify_python_file** - Use EXACT original code from the file above
 5. **Explain your reasoning** - Why did you choose this fix?
 
-### Important:
-- This is EXISTING code that's failing - understand what it's trying to do
-- Look for clues in similar method names
-- Consider the call chain to understand the context
+### CRITICAL REQUIREMENTS:
+- You MUST call the `modify_python_file` tool - explanations alone are NOT sufficient
+- Copy the EXACT original code from the file content above (including whitespace)
+- Provide the corrected replacement code
 - Make minimal changes - don't refactor unnecessarily
+- This is EXISTING code that's failing - understand what it's trying to do
 
-Fix the error now."""
+### Tool Call Format:
+```
+modify_python_file(
+    filepath="path/to/file.py",
+    original_code="<exact code from file above>",
+    new_code="<your fixed version>"
+)
+```
+
+Fix the error NOW by calling the tool."""
     
     return prompt
