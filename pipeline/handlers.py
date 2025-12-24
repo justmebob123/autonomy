@@ -378,6 +378,34 @@ class ToolCallHandler:
                     "error_type": "syntax_error"
                 }
         
+        # Generate and save patch before applying changes
+        try:
+            from .patch_manager import PatchManager
+            patch_manager = PatchManager()
+            
+            # Create a unified diff patch
+            import difflib
+            diff = difflib.unified_diff(
+                content.splitlines(keepends=True),
+                new_content.splitlines(keepends=True),
+                fromfile=str(filepath),
+                tofile=str(filepath)
+            )
+            patch_content = ''.join(diff)
+            
+            if patch_content:
+                # Save the patch
+                from datetime import datetime
+                change_num = patch_manager._get_next_change_number()
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = full_path.name.replace('.py', '').replace('.', '_')
+                patch_filename = f"change_{change_num:04d}_{timestamp}_{filename}.patch"
+                patch_path = patch_manager.patches_dir / patch_filename
+                patch_path.write_text(patch_content)
+                self.logger.info(f"  💾 Saved patch: {patch_filename}")
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Could not save patch: {e}")
+        
         full_path.write_text(new_content)
         self.files_modified.append(filepath)
         self.logger.info(f"  ✏️ Modified: {filepath}")
