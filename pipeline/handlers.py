@@ -29,6 +29,9 @@ class ToolCallHandler:
         # Detailed error info for debugging
         self.errors: List[Dict] = []
         
+        # Activity logging
+        self.activity_log: List[Dict] = []
+        
         # Tool handlers
         self._handlers: Dict[str, Callable] = {
             "create_python_file": self._handle_create_file,
@@ -51,6 +54,66 @@ class ToolCallHandler:
         self.approved = []
         self.tasks = []
         self.errors = []
+        self.activity_log = []
+    
+    def _log_tool_activity(self, tool_name: str, args: Dict):
+        """Log AI tool activity with formatted output"""
+        import datetime
+        
+        # Create activity entry
+        activity = {
+            'timestamp': datetime.datetime.now().isoformat(),
+            'tool': tool_name,
+            'args': args
+        }
+        self.activity_log.append(activity)
+        
+        # Format output based on tool type
+        if tool_name == 'modify_python_file':
+            file_path = args.get('file_path', 'unknown')
+            operation = args.get('operation', 'unknown')
+            self.logger.info(f"🔧 [AI Activity] Modifying file: {file_path}")
+            self.logger.info(f"   └─ Operation: {operation}")
+            
+            if operation == 'str_replace':
+                old_str = args.get('old_str', '')
+                new_str = args.get('new_str', '')
+                self.logger.info(f"   └─ Replacing: {old_str[:60]}...")
+                self.logger.info(f"   └─ With: {new_str[:60]}...")
+            elif operation == 'insert_after':
+                marker = args.get('marker', '')
+                self.logger.info(f"   └─ Inserting after: {marker[:60]}...")
+            elif operation == 'append':
+                self.logger.info(f"   └─ Appending content to end of file")
+                
+        elif tool_name == 'read_file':
+            file_path = args.get('file_path', 'unknown')
+            self.logger.info(f"📖 [AI Activity] Reading file: {file_path}")
+            
+        elif tool_name == 'search_code':
+            pattern = args.get('pattern', 'unknown')
+            file_pattern = args.get('file_pattern', '*')
+            self.logger.info(f"🔍 [AI Activity] Searching code")
+            self.logger.info(f"   └─ Pattern: {pattern}")
+            self.logger.info(f"   └─ Files: {file_pattern}")
+            
+        elif tool_name == 'list_directory':
+            directory = args.get('directory', '.')
+            self.logger.info(f"📁 [AI Activity] Listing directory: {directory}")
+            
+        elif tool_name == 'create_python_file' or tool_name == 'create_file':
+            file_path = args.get('file_path', 'unknown')
+            self.logger.info(f"✨ [AI Activity] Creating file: {file_path}")
+            
+        else:
+            # Generic logging for other tools
+            self.logger.info(f"🤖 [AI Activity] Calling tool: {tool_name}")
+            # Show key arguments
+            for key, value in args.items():
+                if isinstance(value, str) and len(value) > 100:
+                    self.logger.info(f"   └─ {key}: {value[:100]}...")
+                else:
+                    self.logger.info(f"   └─ {key}: {value}")
     
     def process_tool_calls(self, tool_calls: List[Dict]) -> List[Dict]:
         """Process a list of tool calls and return results"""
@@ -87,6 +150,9 @@ class ToolCallHandler:
                     "success": False, 
                     "error": f"Invalid arguments JSON: {e}"
                 }
+        
+        # Log AI activity with details
+        self._log_tool_activity(name, args)
         
         self.logger.debug(f"Executing tool: {name}")
         
@@ -502,4 +568,24 @@ class ToolCallHandler:
         lines = ["Errors encountered:"]
         for err in self.errors:
             lines.append(f"  - [{err.get('tool')}] {err.get('filepath', '')}: {err.get('error', '')}")
+        return "\n".join(lines)
+    
+    def get_activity_summary(self) -> str:
+        """Get a summary of all AI activities"""
+        if not self.activity_log:
+            return "No AI activities recorded"
+        
+        lines = [f"\n📊 AI Activity Summary ({len(self.activity_log)} actions):"]
+        lines.append("=" * 60)
+        
+        # Count by tool type
+        tool_counts = {}
+        for activity in self.activity_log:
+            tool = activity['tool']
+            tool_counts[tool] = tool_counts.get(tool, 0) + 1
+        
+        for tool, count in sorted(tool_counts.items()):
+            lines.append(f"  {tool}: {count} call(s)")
+        
+        lines.append("=" * 60)
         return "\n".join(lines)

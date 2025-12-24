@@ -127,6 +127,9 @@ class DebuggingPhase(BasePhase):
         handler = ToolCallHandler(self.project_dir)
         results = handler.process_tool_calls(tool_calls)
         
+        # Show activity summary
+        self.logger.info(handler.get_activity_summary())
+        
         if not handler.files_modified:
             # Check for errors
             for result in results:
