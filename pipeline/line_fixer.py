@@ -25,7 +25,14 @@ def fix_line_directly(filepath: Path, line_num: int, fix_type: str, error_msg: s
     """
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
+            content = f.read()
+        
+        # Handle files without final newline
+        lines = content.splitlines(keepends=True)
+        if content and not content.endswith('\n'):
+            # Last line doesn't have newline, add it
+            if lines:
+                lines[-1] = lines[-1] + '\n'
         
         if line_num < 1 or line_num > len(lines):
             return False
