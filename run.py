@@ -422,7 +422,9 @@ def run_debug_qa_mode(args) -> int:
                         
                         # Don't return here - let it fall through to error processing
                         print("\n🔄 Will attempt to fix runtime errors...")
-                        break  # Break out of runtime testing to process errors
+                        # Recalculate all_errors to include runtime errors
+                        all_errors = syntax_errors + import_errors + runtime_errors
+                        # Don't break - we want to continue to error processing below
                     else:
                         print(f"\n✅ No runtime errors detected in {int(time.time() - start_time)} seconds")
                         print("\n🎉 All tests passed!")
