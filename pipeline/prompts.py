@@ -193,21 +193,52 @@ Use approve_code ONLY if the code passes ALL checks."""
 
 def get_debug_prompt(filepath: str, code: str, issue: dict) -> str:
     """Generate the user prompt for debugging phase"""
-    return f"""Fix this issue in the code:
+    
+    # Extract line number and context
+    line_num = issue.get('line', 'unknown')
+    error_text = issue.get('text', '')
+    offset = issue.get('offset', '')
+    
+    context_info = ""
+    if line_num != 'unknown' and error_text:
+        context_info = f"""
+ERROR LOCATION:
+Line {line_num}: {error_text}
+Column: {offset if offset else 'unknown'}
+"""
+    
+    return f"""Fix this syntax error in the code:
 
 FILE: {filepath}
 ISSUE TYPE: {issue.get('type', 'unknown')}
-DESCRIPTION: {issue.get('description', 'No description')}
-LINE: {issue.get('line', 'unknown')}
-SUGGESTED FIX: {issue.get('fix', 'None provided')}
+ERROR MESSAGE: {issue.get('message', 'No message')}
+{context_info}
 
-CURRENT CODE:
+FULL FILE CONTENT:
 ```python
 {code}
 ```
 
-Analyze the issue and use modify_python_file to apply a targeted fix.
-Only fix the specific issue - do not refactor or change other code."""
+INSTRUCTIONS:
+1. Locate the exact line with the error (line {line_num})
+2. Identify the syntax problem (e.g., missing bracket, parenthesis, colon)
+3. Use modify_python_file to fix ONLY the problematic line
+4. When using modify_python_file:
+   - Use the EXACT original code including all whitespace
+   - Make the minimal change needed to fix the syntax error
+   - Do not refactor or change other code
+   
+IMPORTANT: Copy the original_code EXACTLY as it appears in the file, including:
+- All leading/trailing whitespace
+- Exact indentation
+- Line breaks
+- Special characters
+
+Example for missing closing bracket:
+If line is: execute_pattern = r"self\.tool_executor\.execute\(\s*['"]([^'"]+)['"]"
+Fix to: execute_pattern = r"self\.tool_executor\.execute\(\s*['"]([^'"]+)['&quot;]"
+
+Fix the error now."""
 
 
 def get_project_planning_prompt(context: str, expansion_count: int, 

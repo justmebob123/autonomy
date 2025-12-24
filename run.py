@@ -86,6 +86,57 @@ def run_pipeline(config: PipelineConfig, resume: bool = True) -> bool:
     return coordinator.run(resume=resume)
 
 
+def attempt_line_based_fix(file_path: Path, error_line: int, error: dict) -> bool:
+    """
+    Attempt a simple line-based fix for common syntax errors.
+    
+    This is a fallback when AI-based fixing fails.
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        
+        if error_line < 1 or error_line > len(lines):
+            return False
+        
+        line_idx = error_line - 1
+        line = lines[line_idx]
+        error_type = error.get('type', '')
+        error_msg = error.get('message', '').lower()
+        
+        fixed = False
+        
+        # Common fixes
+        if 'unmatched' in error_msg and ']' in error_msg:
+            # Missing closing bracket
+            if line.rstrip().endswith('"'):
+                lines[line_idx] = line.rstrip() + ']\n'
+                fixed = True
+        elif 'unmatched' in error_msg and ')' in error_msg:
+            # Missing closing parenthesis
+            if not line.rstrip().endswith(')'):
+                lines[line_idx] = line.rstrip() + ')\n'
+                fixed = True
+        elif 'invalid syntax' in error_msg and '</' in line:
+            # XML/HTML tag in Python code - comment it out
+            lines[line_idx] = '# ' + line
+            fixed = True
+        elif 'invalid syntax' in error_msg and '```' in line:
+            # Markdown code block in Python - remove it
+            lines[line_idx] = '\n'
+            fixed = True
+        
+        if fixed:
+            # Write back
+            with open(file_path, 'w', encoding='utf-8') as f:
+                f.writelines(lines)
+            return True
+        
+        return False
+    except Exception:
+        return False
+
+
 def run_debug_qa_mode(args) -> int:
     """
     Run continuous debug/QA mode using the full AI pipeline.
@@ -370,13 +421,36 @@ def run_debug_qa_mode(args) -> int:
                 for error in file_errors:
                     print(f"   🔧 Fixing: {error['type']} at line {error.get('line', '?')}")
                     
-                    # Create issue dict
+                    # Read the file to get context
+                    try:
+                        file_full_path = project_dir / file_path
+                        with open(file_full_path, 'r', encoding='utf-8') as f:
+                            file_content = f.read()
+                            file_lines = file_content.split('\n')
+                    except Exception as e:
+                        print(f"      ❌ Could not read file: {e}")
+                        continue
+                    
+                    # Get context around the error line
+                    error_line = error.get('line')
+                    context_lines = []
+                    if error_line:
+                        start_line = max(0, error_line - 3)
+                        end_line = min(len(file_lines), error_line + 2)
+                        context_lines = file_lines[start_line:end_line]
+                        context = '\n'.join(f"{start_line + i + 1}: {line}" for i, line in enumerate(context_lines))
+                    else:
+                        context = "No line number available"
+                    
+                    # Create detailed issue dict with context
                     issue = {
                         'filepath': file_path,
                         'type': error['type'],
                         'message': error['message'],
-                        'line': error.get('line'),
-                        'description': f"{error['type']}: {error['message']}"
+                        'line': error_line,
+                        'offset': error.get('offset'),
+                        'text': error.get('text'),
+                        'description': f"{error['type']} at line {error_line}: {error['message']}\n\nContext:\n{context}"
                     }
                     
                     try:
@@ -387,6 +461,15 @@ def run_debug_qa_mode(args) -> int:
                             fixes_applied += 1
                         else:
                             print(f"      ⚠️  Could not fix: {debug_result.message}")
+                            
+                            # If the fix failed due to string matching, try a simpler approach
+                            if "Original code not found" in debug_result.message and error_line:
+                                print("      🔄 Attempting line-based fix...")
+                                if attempt_line_based_fix(file_full_path, error_line, error):
+                                    print("      ✅ Fixed with line-based approach")
+                                    fixes_applied += 1
+                                else:
+                                    print("      ❌ Line-based fix also failed")
                     except Exception as e:
                         print(f"      ❌ Debug error: {e}")
                         if config.verbose:
