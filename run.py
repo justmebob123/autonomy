@@ -612,20 +612,29 @@ def run_debug_qa_mode(args) -> int:
                     print(f"   Full path checked: {file_full_path}")
                     continue
                 
-                # Run QA phase first to identify all issues
-                print("   🔍 Running QA analysis...")
-                try:
-                    qa_result = qa_phase.execute(state, filepath=file_path)
-                    
-                    if qa_result.success:
-                        print("   ✅ QA passed")
-                    else:
-                        print(f"   ⚠️  QA found issues: {qa_result.message}")
-                except Exception as e:
-                    print(f"   ❌ QA error: {e}")
-                    if config.verbose:
-                        import traceback
-                        print(traceback.format_exc())
+                # Check if all errors are runtime errors
+                all_runtime_errors = all(
+                    error_group.get('type') == 'RuntimeError' 
+                    for error_group in error_groups
+                )
+                
+                # Skip QA phase for runtime errors (it reports style issues, not helpful)
+                if not all_runtime_errors:
+                    print("   🔍 Running QA analysis...")
+                    try:
+                        qa_result = qa_phase.execute(state, filepath=file_path)
+                        
+                        if qa_result.success:
+                            print("   ✅ QA passed")
+                        else:
+                            print(f"   ⚠️  QA found issues: {qa_result.message}")
+                    except Exception as e:
+                        print(f"   ❌ QA error: {e}")
+                        if config.verbose:
+                            import traceback
+                            print(traceback.format_exc())
+                else:
+                    print("   ⏭️  Skipping QA phase (runtime errors only)")
                 
                 # Run debugging phase for each error group
                 for error_group in error_groups:
