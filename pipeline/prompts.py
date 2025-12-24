@@ -194,52 +194,15 @@ Use approve_code ONLY if the code passes ALL checks."""
 def get_debug_prompt(filepath: str, code: str, issue: dict) -> str:
     """Generate the user prompt for debugging phase"""
     
-    # Extract line number and context
-    line_num = issue.get('line', 'unknown')
-    error_text = issue.get('text', '')
-    offset = issue.get('offset', '')
+    # Check if this is a runtime error with rich context
+    is_runtime_error = issue.get('type') == 'RuntimeError' and issue.get('call_chain')
     
-    context_info = ""
-    if line_num != 'unknown' and error_text:
-        context_info = f"""
-ERROR LOCATION:
-Line {line_num}: {error_text}
-Column: {offset if offset else 'unknown'}
-"""
-    
-    return f"""Fix this syntax error in the code:
-
-FILE: {filepath}
-ISSUE TYPE: {issue.get('type', 'unknown')}
-ERROR MESSAGE: {issue.get('message', 'No message')}
-{context_info}
-
-FULL FILE CONTENT:
-```python
-{code}
-```
-
-INSTRUCTIONS:
-1. Locate the exact line with the error (line {line_num})
-2. Identify the syntax problem (e.g., missing bracket, parenthesis, colon)
-3. Use modify_python_file to fix ONLY the problematic line
-4. When using modify_python_file:
-   - Use the EXACT original code including all whitespace
-   - Make the minimal change needed to fix the syntax error
-   - Do not refactor or change other code
-   
-IMPORTANT: Copy the original_code EXACTLY as it appears in the file, including:
-- All leading/trailing whitespace
-- Exact indentation
-- Line breaks
-- Special characters
-
-Example for missing closing bracket:
-If line is: execute_pattern = r"self\\.tool_executor\\.execute\\(\\s*['"]([^'"]+)['"]"
-Fix to: execute_pattern = r"self\\.tool_executor\\.execute\\(\\s*['"]([^'"]+)['&quot;]"
-
-Fix the error now."""
-
+    if is_runtime_error:
+        # Use enhanced prompt for runtime errors
+        return _get_runtime_debug_prompt(filepath, code, issue)
+    else:
+        # Use original prompt for syntax errors
+        return _get_syntax_debug_prompt(filepath, code, issue)
 
 def get_project_planning_prompt(context: str, expansion_count: int, 
                                  completed_count: int, total_tasks: int) -> str:
@@ -289,3 +252,167 @@ Focus on:
 - Keeping the README concise and accurate
 
 Make updates now, or confirm documentation is current."""
+
+
+def _get_syntax_debug_prompt(filepath: str, code: str, issue: dict) -> str:
+    """Generate prompt for syntax errors"""
+    
+    # Extract line number and context
+    line_num = issue.get('line', 'unknown')
+    error_text = issue.get('text', '')
+    offset = issue.get('offset', '')
+    
+    context_info = ""
+    if line_num != 'unknown' and error_text:
+        context_info = f"""
+ERROR LOCATION:
+Line {line_num}: {error_text}
+Column: {offset if offset else 'unknown'}
+"""
+    
+    return f"""Fix this syntax error in the code:
+
+FILE: {filepath}
+ISSUE TYPE: {issue.get('type', 'unknown')}
+ERROR MESSAGE: {issue.get('message', 'No message')}
+{context_info}
+
+FULL FILE CONTENT:
+```python
+{code}
+```
+
+INSTRUCTIONS:
+1. Locate the exact line with the error (line {line_num})
+2. Identify the syntax problem (e.g., missing bracket, parenthesis, colon)
+3. Use modify_python_file to fix ONLY the problematic line
+4. When using modify_python_file:
+   - Use the EXACT original code including all whitespace
+   - Make the minimal change needed to fix the syntax error
+   - Do not refactor or change other code
+
+IMPORTANT: Copy the original_code EXACTLY as it appears in the file, including:
+- All leading/trailing whitespace
+- Exact indentation
+- Line breaks
+- Special characters
+
+Fix the error now."""
+
+
+def _get_runtime_debug_prompt(filepath: str, code: str, issue: dict) -> str:
+    """Generate enhanced prompt for runtime errors with full context"""
+    
+    line_num = issue.get('line', 'unknown')
+    error_msg = issue.get('message', 'No message')
+    
+    # Build comprehensive prompt
+    prompt = f"""# Runtime Error Debugging Task
+
+You are debugging a runtime error in a Python application. This is NOT about creating new code - it's about fixing existing code that's failing at runtime.
+
+## Error Information
+- **File**: {filepath}
+- **Line**: {line_num}
+- **Error**: {error_msg}
+
+"""
+    
+    # Add call chain if available
+    if issue.get('call_chain'):
+        prompt += "## Call Chain (How we got here)\n"
+        for i, frame in enumerate(issue['call_chain'], 1):
+            prompt += f"{i}. `{frame.get('file', '?')}:{frame.get('line', '?')}` in `{frame.get('function', '?')}`\n"
+            if frame.get('code'):
+                prompt += f"   Code: `{frame['code']}`\n"
+        prompt += "\n"
+    
+    # Add object type and class info
+    if issue.get('object_type'):
+        prompt += f"## Object Type: `{issue['object_type']}`\n\n"
+        
+        class_def = issue.get('class_definition', {})
+        if class_def.get('found'):
+            prompt += f"- **Defined in**: `{class_def['file']}:{class_def['line']}`\n"
+            methods = class_def.get('methods', [])
+            if methods:
+                prompt += f"- **Available methods**: {', '.join(f'`{m}`' for m in methods[:10])}\n"
+                if len(methods) > 10:
+                    prompt += f"  ... and {len(methods) - 10} more\n"
+        else:
+            prompt += "- **Class definition not found** in project\n"
+        prompt += "\n"
+    
+    # Add missing attribute and similar methods
+    if issue.get('missing_attribute'):
+        prompt += f"## Missing Attribute: `{issue['missing_attribute']}`\n\n"
+        
+        similar = issue.get('similar_methods', [])
+        if similar:
+            prompt += "**Similar methods found** (possible alternatives):\n"
+            for method in similar:
+                prompt += f"- `{method}`\n"
+            prompt += "\n"
+    
+    # Add the problematic file content
+    prompt += f"""## File Content: {filepath}
+
+```python
+{code}
+```
+
+"""
+    
+    # Add related files if available (limit to key files)
+    related_files = issue.get('related_files', {})
+    if related_files:
+        prompt += "## Related Files in Call Chain\n\n"
+        for file_path, content in list(related_files.items())[:2]:  # Limit to 2 files
+            if file_path != filepath:  # Don't duplicate the main file
+                lines = content.split('\n')[:30]  # First 30 lines
+                snippet = '\n'.join(lines)
+                prompt += f"### {file_path}\n```python\n{snippet}\n```\n\n"
+    
+    # Add instructions
+    prompt += """## Your Task
+
+Analyze this runtime error and determine the best fix:
+
+### Possible Scenarios:
+
+1. **Method was renamed or doesn't exist**
+   - Check if a similar method exists (see "Similar methods" above)
+   - Update the calling code to use the correct method name
+   - Use `modify_python_file` to fix the call
+
+2. **Method is missing and needs to be created**
+   - Determine what the method should do based on usage
+   - Create the method in the target class
+   - Use `modify_python_file` to add the method
+
+3. **Wrong object type**
+   - The object might be the wrong type
+   - Check where the object is created/assigned
+   - Fix the object creation or type
+
+4. **Import or initialization issue**
+   - The class might not be imported correctly
+   - Check imports and fix if needed
+
+### Instructions:
+
+1. **Analyze the full context** - Look at the call chain, available methods, and related files
+2. **Determine the root cause** - Is it a renamed method? Missing method? Wrong object?
+3. **Choose the best fix** - Update calling code OR create missing method OR fix object type
+4. **Apply the fix** - Use `modify_python_file` with EXACT original code
+5. **Explain your reasoning** - Why did you choose this fix?
+
+### Important:
+- This is EXISTING code that's failing - understand what it's trying to do
+- Look for clues in similar method names
+- Consider the call chain to understand the context
+- Make minimal changes - don't refactor unnecessarily
+
+Fix the error now."""
+    
+    return prompt

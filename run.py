@@ -580,27 +580,39 @@ def run_debug_qa_mode(args) -> int:
                 for error in file_errors:
                     print(f"   🔧 Fixing: {error['type']} at line {error.get('line', '?')}")
                     
-                    # Read the file to get context
-                    try:
-                        file_full_path = project_dir / file_path
-                        with open(file_full_path, 'r', encoding='utf-8') as f:
-                            file_content = f.read()
-                            file_lines = file_content.splitlines()
-                    except Exception as e:
-                        print(f"      ❌ Could not read file: {e}")
-                        continue
+                    # Build comprehensive debug context
+                    from pipeline.debug_context import build_comprehensive_context, format_context_for_prompt
                     
-                    # Get context around the error line
+                    print("      📊 Gathering debug context...")
+                    debug_context = build_comprehensive_context(error, project_dir)
+                    
+                    if config.verbose:
+                        print(f"      - Call chain: {len(debug_context.get('call_chain', []))} frames")
+                        print(f"      - Related files: {len(debug_context.get('related_files', {}))}")
+                        if debug_context.get('object_type'):
+                            print(f"      - Object type: {debug_context['object_type']}")
+                        if debug_context.get('class_definition', {}).get('found'):
+                            print(f"      - Class found with {len(debug_context['class_definition'].get('methods', []))} methods")
+                        if debug_context.get('similar_methods'):
+                            print(f"      - Similar methods: {', '.join(debug_context['similar_methods'][:3])}")
+                    
+                    # Format context for prompt
+                    context_text = format_context_for_prompt(debug_context)
+                    
+                    # Get local context around error line
                     from pipeline.line_fixer import get_line_context
-                    
                     error_line = error.get('line')
                     if error_line:
-                        context_list = get_line_context(file_full_path, error_line, context_lines=3)
-                        context = '\n'.join(context_list)
+                        try:
+                            file_full_path = project_dir / file_path if not Path(file_path).is_absolute() else Path(file_path)
+                            context_list = get_line_context(file_full_path, error_line, context_lines=5)
+                            local_context = '\n'.join(context_list)
+                        except:
+                            local_context = "Could not read local context"
                     else:
-                        context = "No line number available"
+                        local_context = "No line number available"
                     
-                    # Create detailed issue dict with context
+                    # Create comprehensive issue dict
                     issue = {
                         'filepath': file_path,
                         'type': error['type'],
@@ -608,7 +620,14 @@ def run_debug_qa_mode(args) -> int:
                         'line': error_line,
                         'offset': error.get('offset'),
                         'text': error.get('text'),
-                        'description': f"{error['type']} at line {error_line}: {error['message']}\n\nContext:\n{context}"
+                        'traceback': error.get('context', []),
+                        'call_chain': debug_context.get('call_chain', []),
+                        'object_type': debug_context.get('object_type'),
+                        'missing_attribute': debug_context.get('missing_attribute'),
+                        'class_definition': debug_context.get('class_definition', {}),
+                        'similar_methods': debug_context.get('similar_methods', []),
+                        'related_files': debug_context.get('related_files', {}),
+                        'description': f"{error['type']} at line {error_line}: {error['message']}\n\n## Local Context\n{local_context}\n\n{context_text}\n\n## Analysis Required\nThis is a runtime error that needs debugging. Analyze the full context above."
                     }
                     
                     try:
