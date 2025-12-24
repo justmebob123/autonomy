@@ -479,14 +479,30 @@ Analyze this runtime error and determine the best fix:
 - Make minimal changes - don't refactor unnecessarily
 - This is EXISTING code that's failing - understand what it's trying to do
 
-### Tool Call Format:
+### Tool Call Format (USE JSON):
+
+**REQUIRED FORMAT - Use this exact JSON structure:**
+
+```json
+{
+    "name": "modify_python_file",
+    "arguments": {
+        "filepath": "path/to/file.py",
+        "original_code": "exact code from file above",
+        "new_code": "your fixed version"
+    }
+}
 ```
-modify_python_file(
-    filepath="path/to/file.py",
-    original_code="<exact code from file above>",
-    new_code="<your fixed version>"
-)
-```
+
+**IMPORTANT:**
+- Use JSON format with "name" and "arguments" fields
+- Put the JSON in a ```json code block
+- Use regular JSON strings with \\n for newlines (NOT Python triple quotes)
+- Make sure all quotes are properly escaped
+
+**Alternative formats also accepted:**
+- Python function call: `modify_python_file(filepath="...", original_code="...", new_code="...")`
+- But JSON format is PREFERRED
 
 Fix the error NOW by calling the tool."""
     

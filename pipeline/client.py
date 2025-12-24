@@ -372,16 +372,26 @@ class ResponseParser:
     
     def _extract_all_json_blocks(self, text: str) -> Optional[Dict]:
         """
-        Find ALL JSON blocks in text and extract the first valid tool call.
-        Handles cases where JSON is embedded in explanatory text.
+        Multi-layered extraction system to handle various AI response formats.
+        Handles: JSON blocks, Python function calls, embedded JSON, etc.
         """
-        # First, try to extract from markdown code blocks
-        code_blocks = re.findall(r'```(?:json)?\s*\n([\s\S]*?)\n```', text)
+        # Layer 1: Try to extract Python function call syntax (e.g., modify_python_file(...))
+        self.logger.debug("    Layer 1: Trying Python function call syntax")
+        result = self._extract_function_call_syntax(text)
+        if result:
+            return result
+        
+        # Layer 2: Try to extract from markdown code blocks (with various preambles)
+        self.logger.debug("    Layer 2: Trying markdown code blocks")
+        code_blocks = re.findall(r'```(?:json|python|modify_python_file|try)?\s*\n([\s\S]*?)\n```', text)
         for block in code_blocks:
-            # CRITICAL: Convert Python triple-quoted strings to JSON-compatible format
-            # AI models often use """...""" which is Python syntax, not valid JSON
-            cleaned_block = self._convert_python_strings_to_json(block.strip())
+            # Try function call syntax first
+            result = self._extract_function_call_syntax(block)
+            if result:
+                return result
             
+            # Then try JSON with triple-quote conversion
+            cleaned_block = self._convert_python_strings_to_json(block.strip())
             try:
                 data = json.loads(cleaned_block)
                 if isinstance(data, dict) and "name" in data and "arguments" in data:
@@ -656,6 +666,81 @@ class ResponseParser:
                 normalized.append(norm)
         
         return normalized
+    
+    def _extract_function_call_syntax(self, text: str) -> Optional[Dict]:
+        """
+        Extract tool calls from Python function call syntax.
+        Handles formats like: modify_python_file(filepath="...", original_code="...", new_code="...")
+        """
+        # Known tool names to look for
+        known_tools = [
+            'modify_python_file', 'create_python_file', 'create_file',
+            'read_file', 'search_code', 'list_directory', 'report_issue'
+        ]
+        
+        for tool_name in known_tools:
+            # Look for tool_name( ... ) with proper bracket matching
+            pattern = rf'{tool_name}\s*\('
+            match = re.search(pattern, text)
+            
+            if not match:
+                continue
+            
+            # Find the matching closing parenthesis
+            start = match.end()
+            depth = 1
+            end = start
+            
+            for i in range(start, len(text)):
+                if text[i] == '(':
+                    depth += 1
+                elif text[i] == ')':
+                    depth -= 1
+                    if depth == 0:
+                        end = i
+                        break
+            
+            if depth != 0:
+                continue  # Unmatched parentheses
+            
+            args_str = text[start:end]
+            
+            # Parse the arguments - handle multi-line strings with escaped quotes
+            arguments = {}
+            
+            # Pattern to match key="value" where value can contain escaped quotes and newlines
+            # This handles: key="value", key='value', key="""value""", key='''value'''
+            arg_pattern = r'(\w+)\s*=\s*(?:"""([\s\S]*?)"""|\'\'\'([\s\S]*?)\'\'\'|"((?:[^"\\]|\\.)*)"|\'((?:[^\'\\]|\\.)*)\')'
+            
+            for arg_match in re.finditer(arg_pattern, args_str):
+                key = arg_match.group(1)
+                # Get the value from whichever group matched
+                value = (arg_match.group(2) or arg_match.group(3) or 
+                        arg_match.group(4) or arg_match.group(5) or "")
+                
+                # Unescape the value if it was in quotes (not triple quotes)
+                if arg_match.group(4) or arg_match.group(5):
+                    # Handle escaped characters
+                    value = value.replace('\\n', '\n')
+                    value = value.replace('\\t', '\t')
+                    value = value.replace('\\r', '\r')
+                    value = value.replace('\&quot;', '"')
+                    value = value.replace("\\'", "'")
+                    value = value.replace('\\\\', '\\')
+                
+                arguments[key] = value
+            
+            if arguments:
+                self.logger.debug(f"    ✓ Found function call syntax: {tool_name}")
+                self.logger.debug(f"      Arguments: {list(arguments.keys())}")
+                return {
+                    "function": {
+                        "name": tool_name,
+                        "arguments": arguments
+                    }
+                }
+        
+        return None
     
     def _convert_python_strings_to_json(self, text: str) -> str:
         """
