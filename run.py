@@ -414,8 +414,7 @@ def run_debug_qa_mode(args) -> int:
                     # Stop the tester
                     tester.stop()
                     
-                    # Clear global reference
-                    global _global_tester
+                    # Clear global reference (already declared above)
                     _global_tester = None
                     
                     if runtime_errors_found:
@@ -757,8 +756,7 @@ def run_debug_qa_mode(args) -> int:
             tester.stop()
             print("✅ Runtime tester stopped")
         
-        # Clear global reference
-        global _global_tester
+        # Clear global reference (already declared above)
         _global_tester = None
         
         return 0
