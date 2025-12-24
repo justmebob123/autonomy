@@ -227,7 +227,7 @@ def run_debug_qa_mode(args) -> int:
     
     iteration = 0
     consecutive_no_progress = 0
-    max_no_progress = 3
+    max_no_progress = 10  # Allow more attempts before giving up
     
     try:
         while True:
@@ -401,6 +401,11 @@ def run_debug_qa_mode(args) -> int:
                             error_type = error.get('type', 'error')
                             error_msg = error.get('line', '')
                             context = error.get('context', [])
+                            
+                            # Skip ERROR types - they don't have tracebacks
+                            # Only process EXCEPTION types which have full context
+                            if error_type != 'exception':
+                                continue
                             
                             # Try to extract file and line from traceback
                             file_path = None

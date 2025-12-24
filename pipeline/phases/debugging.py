@@ -79,13 +79,20 @@ class DebuggingPhase(BasePhase):
             )
         
         # Build messages
+        user_prompt = get_debug_prompt(filepath, content, issue)
         messages = [
             {"role": "system", "content": SYSTEM_PROMPTS["debugging"]},
-            {"role": "user", "content": get_debug_prompt(filepath, content, issue)}
+            {"role": "user", "content": user_prompt}
         ]
+        
+        # Log prompt in verbose mode
+        if hasattr(self, 'config') and self.config.verbose:
+            self.logger.info(f"  Prompt length: {len(user_prompt)} chars")
+            self.logger.info(f"  Prompt preview: {user_prompt[:300]}...")
         
         # Get tools
         tools = get_tools_for_phase("debugging")
+        self.logger.debug(f"  Available tools: {[t['function']['name'] for t in tools]}")
         
         # Send request
         response = self.chat(messages, tools, task_type="debugging")
@@ -102,10 +109,18 @@ class DebuggingPhase(BasePhase):
         
         if not tool_calls:
             self.logger.warning("  No fix applied")
+            # Log the actual response for debugging
+            if hasattr(self, 'config') and self.config.verbose:
+                self.logger.info(f"  AI Response (no tool calls): {response.get('content', '')[:500]}")
+            else:
+                # Always log a snippet to help debug
+                content = response.get('content', '')
+                if content:
+                    self.logger.warning(f"  AI responded but made no tool calls. Response starts with: {content[:200]}")
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message="No fix was applied"
+                message="No fix was applied - AI did not make any tool calls"
             )
         
         # Execute tool calls
