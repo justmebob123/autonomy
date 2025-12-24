@@ -745,7 +745,7 @@ class ResponseParser:
     def _convert_python_strings_to_json(self, text: str) -> str:
         """
         Convert Python-style triple-quoted strings to JSON-compatible format.
-        AI models often use """...""" which is valid Python but not valid JSON.
+        AI models often use triple quotes which is valid Python but not valid JSON.
         """
         # Replace triple-quoted strings with properly escaped JSON strings
         # Pattern: """content""" -> "content" (with proper escaping)
