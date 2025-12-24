@@ -568,13 +568,121 @@ TOOLS_DOCUMENTATION = [
 
 
 # =============================================================================
+# Resource Monitoring and Debugging Tools
+# =============================================================================
+
+TOOLS_MONITORING = [
+    {
+        "type": "function",
+        "function": {
+            "name": "get_memory_profile",
+            "description": "Get memory usage profile for a process or system-wide. Use this to check for memory leaks or high memory usage.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pid": {
+                        "type": "integer",
+                        "description": "Process ID to check (omit for system-wide)"
+                    },
+                    "include_children": {
+                        "type": "boolean",
+                        "description": "Include child processes in memory calculation",
+                        "default": False
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_cpu_profile",
+            "description": "Get CPU usage and time for a process or system-wide. Use this to identify CPU-intensive operations.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "pid": {
+                        "type": "integer",
+                        "description": "Process ID to check (omit for system-wide)"
+                    },
+                    "duration": {
+                        "type": "number",
+                        "description": "Sampling duration in seconds",
+                        "default": 1.0
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "inspect_process",
+            "description": "Get detailed information about a running process including PID, memory, CPU, and command line.",
+            "parameters": {
+                "type": "object",
+                "required": ["pid"],
+                "properties": {
+                    "pid": {
+                        "type": "integer",
+                        "description": "Process ID to inspect"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_system_resources",
+            "description": "Get overall system resource usage including CPU, memory, disk, and network.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "metrics": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "enum": ["cpu", "memory", "disk", "network"]
+                        },
+                        "description": "Which metrics to retrieve (default: all)"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "show_process_tree",
+            "description": "Show process tree to understand process relationships and hierarchies. Useful for debugging process management issues.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "root_pid": {
+                        "type": "integer",
+                        "description": "Root process ID (omit for current process)"
+                    },
+                    "depth": {
+                        "type": "integer",
+                        "description": "Tree depth to show",
+                        "default": 3
+                    }
+                }
+            }
+        }
+    }
+]
+
+# =============================================================================
 # Combined Tools List (for backward compatibility)
 # =============================================================================
 
 PIPELINE_TOOLS: List[Dict] = (
     TOOLS_PLANNING + 
     TOOLS_CODING + 
-    TOOLS_QA
+    TOOLS_QA +
+    TOOLS_MONITORING
 )
 
 
@@ -586,12 +694,15 @@ def get_tools_for_phase(phase: str) -> List[Dict]:
     """
     Get tools appropriate for a pipeline phase.
     
+    All phases get monitoring tools for resource awareness.
+    
     Args:
         phase: Name of the phase
         
     Returns:
         List of tool definitions for that phase
     """
+    # Base tools for each phase
     phase_tools = {
         "planning": TOOLS_PLANNING,
         "coding": TOOLS_CODING,
@@ -602,4 +713,10 @@ def get_tools_for_phase(phase: str) -> List[Dict]:
         "documentation": TOOLS_DOCUMENTATION,
     }
     
-    return phase_tools.get(phase, PIPELINE_TOOLS)
+    # Get base tools for this phase
+    tools = phase_tools.get(phase, PIPELINE_TOOLS)
+    
+    # Add monitoring tools to all phases for resource awareness
+    tools = tools + TOOLS_MONITORING
+    
+    return tools

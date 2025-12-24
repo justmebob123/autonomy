@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Optional, List, Dict, Callable
 from queue import Queue
 import logging
+from .process_manager import ProcessBaseline, SafeProcessManager, ResourceMonitor
 
 
 class ProgramRunner:
@@ -32,6 +33,11 @@ class ProgramRunner:
         self.command = command
         self.working_dir = working_dir
         self.logger = logger or logging.getLogger(__name__)
+        
+        # Process management
+        self.baseline = ProcessBaseline()
+        self.process_manager = SafeProcessManager(self.baseline)
+        self.resource_monitor = ResourceMonitor()
         
         self.process: Optional[subprocess.Popen] = None
         self.thread: Optional[threading.Thread] = None
@@ -72,6 +78,12 @@ class ProgramRunner:
                 bufsize=1,
                 preexec_fn=os.setsid  # Create new process group
             )
+            
+            # Register this process as spawned
+            pid = self.process.pid
+            pgid = os.getpgid(pid)
+            self.baseline.register_spawned_process(pid, pgid)
+            self.logger.info(f"Spawned process: PID={pid}, PGID={pgid}")
             
             # Read output in real-time
             while self.running and self.process.poll() is None:
@@ -122,36 +134,44 @@ class ProgramRunner:
         if self.process:
             try:
                 pid = self.process.pid
-                self.logger.info(f"Process PID: {pid}")
-                
-                # Kill the entire process group to ensure all children are terminated
                 pgid = os.getpgid(pid)
-                self.logger.info(f"Process group ID: {pgid}")
                 
-                # First, list all processes in the group
-                try:
-                    result = subprocess.run(
-                        ['ps', '-g', str(pgid), '-o', 'pid,cmd'],
-                        capture_output=True,
-                        text=True,
-                        timeout=2
-                    )
-                    if result.returncode == 0:
-                        self.logger.info(f"Processes in group before kill:\n{result.stdout}")
-                except Exception as e:
-                    self.logger.warning(f"Could not list processes: {e}")
+                self.logger.info(f"Stopping process: PID={pid}, PGID={pgid}")
                 
-                # Kill the process group
+                # CRITICAL: Check if this is our own process group
+                if pgid == self.baseline.own_pgid:
+                    self.logger.error("CRITICAL: Attempted to kill own process group!")
+                    self.logger.error(f"  Own PGID: {self.baseline.own_pgid}")
+                    self.logger.error(f"  Target PGID: {pgid}")
+                    self.logger.error("  This would kill the monitoring process!")
+                    self.logger.error("  Skipping process group kill.")
+                    # Just kill the specific process instead
+                    if self.process_manager.safe_kill(pid, signal.SIGTERM):
+                        self.logger.info("Killed specific process only")
+                    return
+                
+                # Show process tree before killing
+                self.logger.info("Process tree before kill:")
+                tree = self.process_manager.show_process_tree(pid, depth=2)
+                self.logger.info(f"\n{tree}")
+                
+                # Use safe process manager to kill
                 self.logger.info(f"Sending SIGTERM to process group {pgid}...")
-                os.killpg(pgid, signal.SIGTERM)
+                if not self.process_manager.safe_killpg(pgid, signal.SIGTERM):
+                    self.logger.warning("Safe killpg refused to kill process group")
+                    # Try killing just the process
+                    self.process_manager.safe_kill(pid, signal.SIGTERM)
                 
                 try:
                     self.process.wait(timeout=timeout)
                     self.logger.info("Process terminated gracefully")
                 except subprocess.TimeoutExpired:
                     # Force kill if needed
-                    self.logger.warning("Process group did not terminate gracefully, forcing SIGKILL")
-                    os.killpg(pgid, signal.SIGKILL)
+                    self.logger.warning("Process did not terminate gracefully, forcing SIGKILL")
+                    if pgid != self.baseline.own_pgid:
+                        self.process_manager.safe_killpg(pgid, signal.SIGKILL, force=True)
+                    else:
+                        self.process_manager.safe_kill(pid, signal.SIGKILL, force=True)
                     self.process.wait()
                     self.logger.info("Process force killed")
                 

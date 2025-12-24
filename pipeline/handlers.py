@@ -10,6 +10,7 @@ from pathlib import Path
 
 from .logging_setup import get_logger
 from .utils import validate_python_syntax
+from .process_manager import ProcessBaseline, SafeProcessManager, ResourceMonitor
 
 
 class ToolCallHandler:
@@ -40,6 +41,11 @@ class ToolCallHandler:
             # Create/clear the log file
             self.activity_log_file.write_text("")
         
+        # Process and resource monitoring
+        self.process_baseline = ProcessBaseline()
+        self.process_manager = SafeProcessManager(self.process_baseline)
+        self.resource_monitor = ResourceMonitor()
+        
         # Tool handlers
         self._handlers: Dict[str, Callable] = {
             "create_python_file": self._handle_create_file,
@@ -49,9 +55,15 @@ class ToolCallHandler:
             "report_issue": self._handle_report_issue,
             "approve_code": self._handle_approve_code,
             "create_task_plan": self._handle_create_plan,
-                                "read_file": self._handle_read_file,
+            "read_file": self._handle_read_file,
             "search_code": self._handle_search_code,
             "list_directory": self._handle_list_directory,
+            # Monitoring tools
+            "get_memory_profile": self._handle_get_memory_profile,
+            "get_cpu_profile": self._handle_get_cpu_profile,
+            "inspect_process": self._handle_inspect_process,
+            "get_system_resources": self._handle_get_system_resources,
+            "show_process_tree": self._handle_show_process_tree,
         }
     
     def reset(self):
@@ -766,3 +778,126 @@ class ToolCallHandler:
         
         lines.append("=" * 60)
         return "\n".join(lines)
+    
+    # =========================================================================
+    # Resource Monitoring Tool Handlers
+    # =========================================================================
+    
+    def _handle_get_memory_profile(self, args: Dict) -> Dict:
+        """Handle get_memory_profile tool"""
+        pid = args.get("pid")
+        include_children = args.get("include_children", False)
+        
+        try:
+            profile = self.resource_monitor.get_memory_profile(pid, include_children)
+            return {
+                "tool": "get_memory_profile",
+                "success": True,
+                "profile": profile
+            }
+        except Exception as e:
+            return {
+                "tool": "get_memory_profile",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_get_cpu_profile(self, args: Dict) -> Dict:
+        """Handle get_cpu_profile tool"""
+        pid = args.get("pid")
+        duration = args.get("duration", 1.0)
+        
+        try:
+            profile = self.resource_monitor.get_cpu_profile(pid, duration)
+            return {
+                "tool": "get_cpu_profile",
+                "success": True,
+                "profile": profile
+            }
+        except Exception as e:
+            return {
+                "tool": "get_cpu_profile",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_inspect_process(self, args: Dict) -> Dict:
+        """Handle inspect_process tool"""
+        pid = args.get("pid")
+        
+        if not pid:
+            return {
+                "tool": "inspect_process",
+                "success": False,
+                "error": "Missing required parameter: pid"
+            }
+        
+        try:
+            info = self.process_baseline.get_process_info(pid)
+            if info:
+                return {
+                    "tool": "inspect_process",
+                    "success": True,
+                    "process": {
+                        "pid": info.pid,
+                        "ppid": info.ppid,
+                        "pgid": info.pgid,
+                        "name": info.name,
+                        "cmdline": " ".join(info.cmdline),
+                        "memory_mb": round(info.memory_mb, 2),
+                        "cpu_percent": round(info.cpu_percent, 2),
+                        "is_spawned": self.process_baseline.is_spawned(pid),
+                        "is_protected": self.process_baseline.is_protected(pid)
+                    }
+                }
+            else:
+                return {
+                    "tool": "inspect_process",
+                    "success": False,
+                    "error": f"Process {pid} not found or not accessible"
+                }
+        except Exception as e:
+            return {
+                "tool": "inspect_process",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_get_system_resources(self, args: Dict) -> Dict:
+        """Handle get_system_resources tool"""
+        metrics = args.get("metrics", ["cpu", "memory", "disk"])
+        
+        try:
+            resources = self.resource_monitor.get_system_resources(metrics)
+            return {
+                "tool": "get_system_resources",
+                "success": True,
+                "resources": resources
+            }
+        except Exception as e:
+            return {
+                "tool": "get_system_resources",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_show_process_tree(self, args: Dict) -> Dict:
+        """Handle show_process_tree tool"""
+        root_pid = args.get("root_pid")
+        depth = args.get("depth", 3)
+        
+        try:
+            tree = self.process_manager.show_process_tree(root_pid, depth)
+            return {
+                "tool": "show_process_tree",
+                "success": True,
+                "tree": tree,
+                "own_pid": self.process_baseline.own_pid,
+                "own_pgid": self.process_baseline.own_pgid
+            }
+        except Exception as e:
+            return {
+                "tool": "show_process_tree",
+                "success": False,
+                "error": str(e)
+            }
