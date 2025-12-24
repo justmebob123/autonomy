@@ -38,6 +38,9 @@ class ToolCallHandler:
             "report_issue": self._handle_report_issue,
             "approve_code": self._handle_approve_code,
             "create_task_plan": self._handle_create_plan,
+                                "read_file": self._handle_read_file,
+            "search_code": self._handle_search_code,
+            "list_directory": self._handle_list_directory,
         }
     
     def reset(self):
@@ -358,6 +361,139 @@ class ToolCallHandler:
         
         return {"tool": "create_task_plan", "success": True, "task_count": len(self.tasks)}
     
+    def _handle_read_file(self, args: Dict) -> Dict:
+        """Handle read_file tool - read a file from the project."""
+        filepath = args.get("filepath", "")
+        
+        if not filepath:
+            return {"tool": "read_file", "success": False, "error": "No filepath provided"}
+        
+        # Normalize path
+        filepath = self._normalize_filepath(filepath)
+        full_path = self.project_dir / filepath
+        
+        try:
+            if not full_path.exists():
+                return {
+                    "tool": "read_file",
+                    "success": False,
+                    "error": f"File not found: {filepath}"
+                }
+            
+            with open(full_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            return {
+                "tool": "read_file",
+                "success": True,
+                "filepath": filepath,
+                "content": content,
+                "lines": len(content.split('\n'))
+            }
+        
+        except Exception as e:
+            return {
+                "tool": "read_file",
+                "success": False,
+                "error": f"Failed to read file: {e}"
+            }
+    
+    def _handle_search_code(self, args: Dict) -> Dict:
+        """Handle search_code tool - search for patterns in the project."""
+        pattern = args.get("pattern", "")
+        file_pattern = args.get("file_pattern", "*.py")
+        
+        if not pattern:
+            return {"tool": "search_code", "success": False, "error": "No pattern provided"}
+        
+        try:
+            import subprocess
+            result = subprocess.run(
+                ['grep', '-r', '-n', '-E', pattern, str(self.project_dir), f'--include={file_pattern}'],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if result.returncode == 0:
+                matches = result.stdout.strip()
+                match_count = len(matches.split('\n')) if matches else 0
+                
+                return {
+                    "tool": "search_code",
+                    "success": True,
+                    "pattern": pattern,
+                    "matches": matches,
+                    "match_count": match_count
+                }
+            else:
+                return {
+                    "tool": "search_code",
+                    "success": True,
+                    "pattern": pattern,
+                    "matches": "",
+                    "match_count": 0
+                }
+        
+        except Exception as e:
+            return {
+                "tool": "search_code",
+                "success": False,
+                "error": f"Search failed: {e}"
+            }
+    
+    def _handle_list_directory(self, args: Dict) -> Dict:
+        """Handle list_directory tool - list files in a directory."""
+        directory = args.get("directory", "")
+        
+        if not directory:
+            directory = "."
+        
+        # Normalize path
+        directory = self._normalize_filepath(directory)
+        full_path = self.project_dir / directory
+        
+        try:
+            if not full_path.exists():
+                return {
+                    "tool": "list_directory",
+                    "success": False,
+                    "error": f"Directory not found: {directory}"
+                }
+            
+            if not full_path.is_dir():
+                return {
+                    "tool": "list_directory",
+                    "success": False,
+                    "error": f"Not a directory: {directory}"
+                }
+            
+            # List files and directories
+            items = []
+            for item in sorted(full_path.iterdir()):
+                item_type = "dir" if item.is_dir() else "file"
+                items.append({
+                    "name": item.name,
+                    "type": item_type,
+                    "path": str(item.relative_to(self.project_dir))
+                })
+            
+            return {
+                "tool": "list_directory",
+                "success": True,
+                "directory": directory,
+                "items": items,
+                "count": len(items)
+            }
+        
+        except Exception as e:
+            return {
+                "tool": "list_directory",
+                "success": False,
+                "error": f"Failed to list directory: {e}"
+            }
+
+
     def get_error_summary(self) -> str:
         """Get a summary of all errors for debugging"""
         if not self.errors:

@@ -594,9 +594,14 @@ def run_debug_qa_mode(args) -> int:
                     
                     # Build comprehensive debug context
                     from pipeline.debug_context import build_comprehensive_context, format_context_for_prompt
+                    from pipeline.code_search import detect_refactoring_context, format_refactoring_context
                     
                     print("      📊 Gathering debug context...")
                     debug_context = build_comprehensive_context(error_group, project_dir)
+                    
+                    # Detect if this is part of a refactoring
+                    print("      🔍 Checking for refactoring context...")
+                    refactoring_context = detect_refactoring_context(error_group, project_dir)
                     
                     if config.verbose:
                         print(f"      - Call chain: {len(debug_context.get('call_chain', []))} frames")
@@ -607,9 +612,15 @@ def run_debug_qa_mode(args) -> int:
                             print(f"      - Class found with {len(debug_context['class_definition'].get('methods', []))} methods")
                         if debug_context.get('similar_methods'):
                             print(f"      - Similar methods: {', '.join(debug_context['similar_methods'][:3])}")
+                        if refactoring_context['is_refactoring']:
+                            print(f"      - ⚠️  Refactoring detected: {refactoring_context['total_occurrences']} total uses across {len(refactoring_context['files_affected'])} files")
                     
                     # Format context for prompt
                     context_text = format_context_for_prompt(debug_context)
+                    
+                    # Add refactoring context if detected
+                    if refactoring_context['is_refactoring']:
+                        context_text += "\n" + format_refactoring_context(refactoring_context)
                     
                     # Get local context around error line
                     from pipeline.line_fixer import get_line_context

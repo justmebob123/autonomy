@@ -206,6 +206,62 @@ TOOLS_DEBUGGING = [
                 }
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "read_file",
+            "description": "Read the contents of a file in the project to examine it. Use this to check related files or see how other parts of the code work.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to the file to read (relative to project root)"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "search_code",
+            "description": "Search for code patterns across the entire project. Use this to find all occurrences of a method, variable, or pattern. Helpful for understanding refactorings.",
+            "parameters": {
+                "type": "object",
+                "required": ["pattern"],
+                "properties": {
+                    "pattern": {
+                        "type": "string",
+                        "description": "Pattern to search for (supports regex)"
+                    },
+                    "file_pattern": {
+                        "type": "string",
+                        "description": "File pattern to search in (default: *.py)",
+                        "default": "*.py"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_directory",
+            "description": "List files in a directory to understand project structure.",
+            "parameters": {
+                "type": "object",
+                "required": ["directory"],
+                "properties": {
+                    "directory": {
+                        "type": "string",
+                        "description": "Directory path to list (relative to project root)"
+                    }
+                }
+            }
+        }
     }
 ]
 
