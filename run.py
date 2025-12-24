@@ -185,11 +185,12 @@ def run_debug_qa_mode(args) -> int:
     qa_phase = QAPhase(config, client)
     debug_phase = DebuggingPhase(config, client)
     
-    # Log file monitoring
+    # Log file monitoring (only if NOT using --command)
+    # When using --command, RuntimeTester handles log monitoring
     log_errors = []
     log_monitor_active = False
     
-    if hasattr(args, 'follow_log') and args.follow_log:
+    if hasattr(args, 'follow_log') and args.follow_log and not hasattr(args, 'test_command'):
         log_file = Path(args.follow_log)
         if log_file.exists():
             log_monitor_active = True
@@ -221,6 +222,8 @@ def run_debug_qa_mode(args) -> int:
             log_thread.start()
         else:
             print(f"⚠️  Log file not found: {log_file}\n")
+    elif hasattr(args, 'test_command') and args.test_command:
+        print(f"📋 Runtime testing mode: Log monitoring will start with program execution\n")
     
     iteration = 0
     consecutive_no_progress = 0
@@ -359,12 +362,13 @@ def run_debug_qa_mode(args) -> int:
                     print("\n▶️  Starting program execution...")
                     tester.start()
                     
-                    # Monitor for errors (wait up to 60 seconds)
-                    print("   Monitoring for runtime errors (60 seconds)...")
+                    # Monitor for errors (configurable duration, default 5 minutes)
+                    test_duration = getattr(args, 'test_duration', 300)  # Default 5 minutes
+                    print(f"   Monitoring for runtime errors ({test_duration} seconds)...")
                     start_time = time.time()
                     runtime_errors_found = []
                     
-                    while time.time() - start_time < 60:
+                    while time.time() - start_time < test_duration:
                         errors = tester.get_errors()
                         if errors:
                             runtime_errors_found.extend(errors)
@@ -389,10 +393,36 @@ def run_debug_qa_mode(args) -> int:
                                 for ctx_line in error['context'][:3]:  # Show first 3 context lines
                                     print(f"   {ctx_line}")
                         
-                        print("\n🔄 Continuing to next iteration to fix runtime errors...")
-                        # Add runtime errors to the error list for next iteration
-                        runtime_errors.extend(runtime_errors_found)
-                        continue  # Go to next iteration
+                        # Convert runtime errors to format expected by error processing
+                        # Extract file and line info from traceback
+                        for error in runtime_errors_found:
+                            error_msg = error.get('line', '')
+                            context = error.get('context', [])
+                            
+                            # Try to extract file and line from traceback
+                            file_path = None
+                            line_num = None
+                            for ctx in context:
+                                if 'File "' in ctx:
+                                    # Extract: File "/path/to/file.py", line 123
+                                    import re
+                                    match = re.search(r'File "([^"]+)", line (\d+)', ctx)
+                                    if match:
+                                        file_path = match.group(1)
+                                        line_num = int(match.group(2))
+                                        break
+                            
+                            runtime_errors.append({
+                                'file': file_path or 'unknown',
+                                'type': 'RuntimeError',
+                                'message': error_msg,
+                                'line': line_num,
+                                'context': context
+                            })
+                        
+                        # Don't return here - let it fall through to error processing
+                        print("\n🔄 Will attempt to fix runtime errors...")
+                        break  # Break out of runtime testing to process errors
                     else:
                         print(f"\n✅ No runtime errors detected in {int(time.time() - start_time)} seconds")
                         print("\n🎉 All tests passed!")
@@ -458,11 +488,31 @@ def run_debug_qa_mode(args) -> int:
             
             # Process each file
             for file_path, file_errors in errors_by_file.items():
+                # Skip unknown files (runtime errors without file info)
+                if file_path == 'unknown' or file_path == 'runtime':
+                    print(f"   ⚠️  Skipping {len(file_errors)} runtime errors without file location")
+                    print(f"   These errors need manual investigation:")
+                    for err in file_errors[:3]:
+                        print(f"      - {err.get('message', 'Unknown')[:80]}")
+                    continue
+                
                 print(f"📄 Processing {file_path} ({len(file_errors)} errors)...")
                 fixes_attempted += len(file_errors)
                 
                 # Verify file exists before processing
-                file_full_path = project_dir / file_path
+                # Handle absolute paths
+                if Path(file_path).is_absolute():
+                    file_full_path = Path(file_path)
+                    # Make it relative to project_dir for display
+                    try:
+                        file_path = str(file_full_path.relative_to(project_dir))
+                    except ValueError:
+                        # File is outside project dir
+                        print(f"   ⚠️  File is outside project directory: {file_path}")
+                        continue
+                else:
+                    file_full_path = project_dir / file_path
+                
                 if not file_full_path.exists():
                     print(f"   ⚠️  File not found: {file_path}")
                     print(f"   Full path checked: {file_full_path}")
@@ -653,6 +703,13 @@ Examples:
         dest="test_command",
         metavar="COMMAND",
         help="Command to execute for testing (use with --debug-qa)"
+    )
+    parser.add_argument(
+        "--test-duration",
+        type=int,
+        default=300,
+        metavar="SECONDS",
+        help="Duration to monitor for runtime errors in seconds (default: 300)"
     )
     
     # Server configuration
