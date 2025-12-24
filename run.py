@@ -428,10 +428,7 @@ def run_debug_qa_mode(args) -> int:
                         'line': error_line,
                         'offset': error.get('offset'),
                         'text': error.get('text'),
-                        'description': f"{error['type']} at line {error_line}: {error['message']}
-
-Context:
-{context}"
+                        'description': f"{error['type']} at line {error_line}: {error['message']}\n\nContext:\n{context}"
                     }
                     
                     try:
