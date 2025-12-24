@@ -129,10 +129,12 @@ Here's what a typical debugging session looks like:
 
 ## Configuration
 
-Activity logging is **always enabled** in debug/QA mode. No configuration needed.
+Activity logging is **always enabled** in debug/QA mode with three verbosity levels:
 
-To see the logs, run with standard output:
+### Verbosity Levels
 
+#### Level 0 (Normal) - Default
+Shows just the essential information:
 ```bash
 python3 run.py --debug-qa \
   --follow ../my_project/.autonomous_logs/autonomous.log \
@@ -140,14 +142,111 @@ python3 run.py --debug-qa \
   ../test-automation/
 ```
 
+Output:
+```
+🔧 [AI Activity] Modifying file: src/example.py
+📖 [AI Activity] Reading file: src/utils.py
+🔍 [AI Activity] Searching code: class MyClass
+```
+
+#### Level 1 (Verbose) - Use `-v`
+Shows operation details and code previews:
+```bash
+python3 run.py --debug-qa -v \
+  --follow ../my_project/.autonomous_logs/autonomous.log \
+  --command "./autonomous ../my_project/" \
+  ../test-automation/
+```
+
+Output:
+```
+🔧 [AI Activity] Modifying file: src/example.py
+   └─ Operation: str_replace
+   └─ Replacing: def old_function():...
+   └─ With: def new_function():...
+```
+
+#### Level 2 (Very Verbose) - Use `-vv`
+Shows full arguments in tree format:
+```bash
+python3 run.py --debug-qa -vv \
+  --follow ../my_project/.autonomous_logs/autonomous.log \
+  --command "./autonomous ../my_project/" \
+  ../test-automation/
+```
+
+Output:
+```
+🔧 [AI Activity] Modifying file: src/example.py
+   └─ Operation: str_replace
+   └─ Replacing: def old_function():...
+   └─ With: def new_function():...
+   └─ Full arguments:
+      ├─ file_path: src/example.py
+      ├─ operation: str_replace
+      ├─ old_str: def old_function():\n    pass
+      ├─ new_str: def new_function():\n    return True
+```
+
+### Activity Log File
+
+All AI activities are also logged to `<project>/ai_activity.log` with timestamps:
+
+```
+[2024-01-15T12:30:45.123456] MODIFY: src/example.py (str_replace)
+     OLD: def old_function():
+     NEW: def new_function():
+
+[2024-01-15T12:30:46.234567] READ: src/utils.py
+
+[2024-01-15T12:30:47.345678] SEARCH: class MyClass in **/*.py
+```
+
+This file is automatically created and is in `.gitignore`.
+
+## Command Line Examples
+
+### Basic Usage (Normal Verbosity)
+```bash
+python3 run.py --debug-qa \
+  --follow ../my_project/.autonomous_logs/autonomous.log \
+  --command "./autonomous ../my_project/" \
+  ../test-automation/
+```
+
+### Verbose Mode (Show Operation Details)
+```bash
+python3 run.py --debug-qa -v \
+  --follow ../my_project/.autonomous_logs/autonomous.log \
+  --command "./autonomous ../my_project/" \
+  ../test-automation/
+```
+
+### Very Verbose Mode (Full Arguments)
+```bash
+python3 run.py --debug-qa -vv \
+  --follow ../my_project/.autonomous_logs/autonomous.log \
+  --command "./autonomous ../my_project/" \
+  ../test-automation/
+```
+
+### Check Activity Log
+```bash
+# View real-time activity
+tail -f ../test-automation/ai_activity.log
+
+# View full activity history
+cat ../test-automation/ai_activity.log
+```
+
 ## Future Enhancements
 
 Possible future additions:
-- Activity log file export
 - Filtering by tool type
 - Timing information (how long each tool call took)
 - Success/failure indicators
 - Diff preview for file modifications
+- Export to different formats (JSON, CSV)
 
 ## Related Documentation
 
