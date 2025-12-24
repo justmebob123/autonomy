@@ -91,62 +91,16 @@ def attempt_line_based_fix(file_path: Path, error_line: int, error: dict) -> boo
     Attempt a simple line-based fix for common syntax errors.
     
     This is a fallback when AI-based fixing fails.
+    Uses direct line manipulation to avoid string escape issues.
     """
+    from pipeline.line_fixer import fix_line_directly
+    
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            lines = f.readlines()
-        
-        if error_line < 1 or error_line > len(lines):
-            return False
-        
-        line_idx = error_line - 1
-        line = lines[line_idx]
         error_type = error.get('type', '')
-        error_msg = error.get('message', '').lower()
-        error_text = error.get('text', '').strip()
+        error_msg = error.get('message', '')
         
-        fixed = False
-        original_line = line
+        return fix_line_directly(file_path, error_line, error_type, error_msg)
         
-        # Common fixes based on error patterns
-        if 'unmatched' in error_msg:
-            if ']' in error_msg:
-                # Missing closing bracket - check if line ends with quote
-                if '"' in line and not line.rstrip().endswith(']'):
-                    # Find the last quote and add ] after it
-                    line = line.rstrip()
-                    if line.endswith('"'):
-                        lines[line_idx] = line + ']\n'
-                        fixed = True
-            elif ')' in error_msg:
-                # Missing closing parenthesis
-                if not line.rstrip().endswith(')'):
-                    lines[line_idx] = line.rstrip() + ')\n'
-                    fixed = True
-        
-        elif 'invalid syntax' in error_msg:
-            if '</' in line:
-                # XML/HTML tag in Python code - comment it out
-                indent = len(line) - len(line.lstrip())
-                lines[line_idx] = ' ' * indent + '# ' + line.lstrip()
-                fixed = True
-            elif '```' in line:
-                # Markdown code block in Python - remove it
-                lines[line_idx] = '\n'
-                fixed = True
-            elif error_text and '</' in error_text:
-                # Error text shows XML tag - comment out the line
-                indent = len(line) - len(line.lstrip())
-                lines[line_idx] = ' ' * indent + '# ' + line.lstrip()
-                fixed = True
-        
-        if fixed:
-            # Write back
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.writelines(lines)
-            return True
-        
-        return False
     except Exception as e:
         print(f"      ⚠️  Line-based fix exception: {e}")
         return False
@@ -457,13 +411,12 @@ def run_debug_qa_mode(args) -> int:
                         continue
                     
                     # Get context around the error line
+                    from pipeline.line_fixer import get_line_context
+                    
                     error_line = error.get('line')
-                    context_lines = []
                     if error_line:
-                        start_line = max(0, error_line - 3)
-                        end_line = min(len(file_lines), error_line + 2)
-                        context_lines = file_lines[start_line:end_line]
-                        context = '\n'.join(f"{start_line + i + 1}: {line}" for i, line in enumerate(context_lines))
+                        context_list = get_line_context(file_full_path, error_line, context_lines=3)
+                        context = '\n'.join(context_list)
                     else:
                         context = "No line number available"
                     
