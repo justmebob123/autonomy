@@ -14,6 +14,7 @@ Usage:
 
 import argparse
 import sys
+import logging
 from pathlib import Path
 
 # Import the pipeline module
@@ -323,15 +324,81 @@ def run_debug_qa_mode(args) -> int:
             print("="*70 + "\n")
             
             if not all_errors:
-                print("✅ SUCCESS! No errors found.")
+                print("✅ SUCCESS! No syntax or import errors found.")
                 
-                if iteration == 1:
-                    print("\n🎉 All checks passed! The application is error-free.")
+                # If test command is provided, run runtime tests
+                if hasattr(args, 'test_command') and args.test_command:
+                    print("\n🧪 Phase 3: Running runtime tests...")
+                    print(f"   Command: {args.test_command}")
+                    print(f"   Log file: {args.follow_log if hasattr(args, 'follow_log') and args.follow_log else 'Not specified'}")
+                    
+                    if not hasattr(args, 'follow_log') or not args.follow_log:
+                        print("\n⚠️  Warning: No log file specified with --follow")
+                        print("   Runtime error detection will be limited.")
+                    
+                    # Import runtime tester
+                    from pipeline.runtime_tester import RuntimeTester
+                    
+                    # Setup runtime tester
+                    log_file = Path(args.follow_log) if hasattr(args, 'follow_log') and args.follow_log else project_dir / 'test.log'
+                    tester = RuntimeTester(
+                        command=args.test_command,
+                        working_dir=project_dir,
+                        log_file=log_file,
+                        logger=logging.getLogger(__name__)
+                    )
+                    
+                    print("\n▶️  Starting program execution...")
+                    tester.start()
+                    
+                    # Monitor for errors (wait up to 60 seconds)
+                    print("   Monitoring for runtime errors (60 seconds)...")
+                    start_time = time.time()
+                    runtime_errors_found = []
+                    
+                    while time.time() - start_time < 60:
+                        errors = tester.get_errors()
+                        if errors:
+                            runtime_errors_found.extend(errors)
+                            break
+                        
+                        if not tester.is_running():
+                            print(f"\n⚠️  Program exited after {int(time.time() - start_time)} seconds")
+                            break
+                        
+                        time.sleep(1)
+                    
+                    # Stop the tester
+                    tester.stop()
+                    
+                    if runtime_errors_found:
+                        print(f"\n❌ Found {len(runtime_errors_found)} runtime error(s)!")
+                        print("\n📋 Runtime Errors:")
+                        for i, error in enumerate(runtime_errors_found[:5], 1):  # Show first 5
+                            print(f"\n{i}. {error['type'].upper()}")
+                            print(f"   {error['line']}")
+                            if error.get('context'):
+                                for ctx_line in error['context'][:3]:  # Show first 3 context lines
+                                    print(f"   {ctx_line}")
+                        
+                        print("\n🔄 Continuing to next iteration to fix runtime errors...")
+                        # Add runtime errors to the error list for next iteration
+                        runtime_errors.extend(runtime_errors_found)
+                        continue  # Go to next iteration
+                    else:
+                        print(f"\n✅ No runtime errors detected in {int(time.time() - start_time)} seconds")
+                        print("\n🎉 All tests passed!")
+                        return 0
                 else:
-                    print(f"\n🎉 All errors resolved after {iteration} iterations!")
-                
-                print("\nYou can now run the application normally.")
-                return 0
+                    # No test command, just report success
+                    if iteration == 1:
+                        print("\n🎉 All checks passed! The application is error-free.")
+                    else:
+                        print(f"\n🎉 All errors resolved after {iteration} iterations!")
+                    
+                    print("\nYou can now run the application normally.")
+                    print("\n💡 Tip: Use --command to run runtime tests automatically")
+                    return 0
             
             # Display error summary
             print(f"Found {len(all_errors)} total errors:")
@@ -560,6 +627,12 @@ Examples:
         dest="follow_log",
         metavar="LOGFILE",
         help="Follow a log file for runtime errors (use with --debug-qa)"
+    )
+    parser.add_argument(
+        "--command",
+        dest="test_command",
+        metavar="COMMAND",
+        help="Command to execute for testing (use with --debug-qa)"
     )
     
     # Server configuration
