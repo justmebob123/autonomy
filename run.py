@@ -746,7 +746,51 @@ def run_debug_qa_mode(args) -> int:
             else:
                 consecutive_no_progress = 0
             
-            print("🔄 Re-scanning for errors...\n")
+            # If we fixed runtime errors and have a test command, verify the fix worked
+            if fixes_applied > 0 and runtime_errors and test_command:
+                print("\n🔍 Verifying fixes by re-running tests...\n")
+                
+                # Stop the current test run
+                if tester is not None:
+                    print("🛑 Stopping current test run...")
+                    tester.stop()
+                    time.sleep(2)  # Give it time to stop
+                
+                # Clear the log file
+                if log_file and log_file.exists():
+                    print(f"🗑️  Clearing log file: {log_file}")
+                    log_file.write_text("")
+                
+                # Restart the test
+                print(f"▶️  Restarting test: {test_command}\n")
+                tester = ProgramRunner(
+                    command=test_command,
+                    cwd=project_dir,
+                    log_file=log_file
+                )
+                tester.start()
+                
+                # Wait a bit for the program to start and potentially hit errors
+                print("⏳ Waiting 10 seconds to check if errors recur...")
+                time.sleep(10)
+                
+                # Check if the same errors appear again
+                if log_file and log_file.exists():
+                    log_content = log_file.read_text()
+                    # Simple check: see if the error message appears in the new log
+                    error_recurred = False
+                    for error in runtime_errors:
+                        if error.get('message', '') in log_content:
+                            error_recurred = True
+                            print(f"⚠️  Error still present: {error.get('message', '')[:100]}")
+                            break
+                    
+                    if not error_recurred:
+                        print("✅ Errors appear to be fixed! Continuing monitoring...")
+                    else:
+                        print("⚠️  Some errors still present, will continue debugging...")
+            
+            print("\n🔄 Re-scanning for errors...\n")
             time.sleep(2)  # Brief pause before next iteration
             
     except KeyboardInterrupt:
