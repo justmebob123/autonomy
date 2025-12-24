@@ -105,7 +105,9 @@ class DebuggingPhase(BasePhase):
             )
         
         # CRITICAL: Check for empty response
-        if not response or not response.get('content'):
+        message = response.get('message', {}) if response else {}
+        content = message.get('content', '')
+        if not response or not content:
             self.logger.error("  AI returned empty response - possible timeout or model issue")
             self.logger.error(f"  Response object: {response}")
             
@@ -124,17 +126,20 @@ class DebuggingPhase(BasePhase):
                                 host, model, messages, tools, 
                                 temperature=0.3, timeout=600
                             )
-                            if retry_response and retry_response.get('content'):
+                            retry_message = retry_response.get('message', {}) if retry_response else {}
+                            retry_content = retry_message.get('content', '')
+                            if retry_response and retry_content:
                                 response = retry_response
+                                content = retry_content
                                 self.logger.info("  Retry successful!")
                                 break
-                    if response and response.get('content'):
+                    if response and content:
                         break
-                if response and response.get('content'):
+                if response and content:
                     break
             
             # If still empty, return error
-            if not response or not response.get('content'):
+            if not response or not content:
                 return PhaseResult(
                     success=False,
                     phase=self.phase_name,

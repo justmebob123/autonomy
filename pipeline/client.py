@@ -724,7 +724,7 @@ class ResponseParser:
                     value = value.replace('\\n', '\n')
                     value = value.replace('\\t', '\t')
                     value = value.replace('\\r', '\r')
-                    value = value.replace('\&quot;', '"')
+                    value = value.replace(r'&quot;', '"')
                     value = value.replace("\\'", "'")
                     value = value.replace('\\\\', '\\')
                 
@@ -754,7 +754,7 @@ class ResponseParser:
             content = match.group(1)
             # Escape backslashes and quotes for JSON
             content = content.replace('\\', '\\\\')
-            content = content.replace('"', '\&quot;')
+            content = content.replace('"', r'&quot;')
             content = content.replace('\n', '\\n')
             content = content.replace('\r', '\\r')
             content = content.replace('\t', '\\t')
