@@ -235,8 +235,8 @@ IMPORTANT: Copy the original_code EXACTLY as it appears in the file, including:
 - Special characters
 
 Example for missing closing bracket:
-If line is: execute_pattern = r"self\.tool_executor\.execute\(\s*['"]([^'"]+)['"]"
-Fix to: execute_pattern = r"self\.tool_executor\.execute\(\s*['"]([^'"]+)['&quot;]"
+If line is: execute_pattern = r"self\\.tool_executor\\.execute\\(\\s*['"]([^'"]+)['"]"
+Fix to: execute_pattern = r"self\\.tool_executor\\.execute\\(\\s*['"]([^'"]+)['&quot;]"
 
 Fix the error now."""
 

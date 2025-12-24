@@ -103,28 +103,42 @@ def attempt_line_based_fix(file_path: Path, error_line: int, error: dict) -> boo
         line = lines[line_idx]
         error_type = error.get('type', '')
         error_msg = error.get('message', '').lower()
+        error_text = error.get('text', '').strip()
         
         fixed = False
+        original_line = line
         
-        # Common fixes
-        if 'unmatched' in error_msg and ']' in error_msg:
-            # Missing closing bracket
-            if line.rstrip().endswith('"'):
-                lines[line_idx] = line.rstrip() + ']\n'
+        # Common fixes based on error patterns
+        if 'unmatched' in error_msg:
+            if ']' in error_msg:
+                # Missing closing bracket - check if line ends with quote
+                if '"' in line and not line.rstrip().endswith(']'):
+                    # Find the last quote and add ] after it
+                    line = line.rstrip()
+                    if line.endswith('"'):
+                        lines[line_idx] = line + ']\n'
+                        fixed = True
+            elif ')' in error_msg:
+                # Missing closing parenthesis
+                if not line.rstrip().endswith(')'):
+                    lines[line_idx] = line.rstrip() + ')\n'
+                    fixed = True
+        
+        elif 'invalid syntax' in error_msg:
+            if '</' in line:
+                # XML/HTML tag in Python code - comment it out
+                indent = len(line) - len(line.lstrip())
+                lines[line_idx] = ' ' * indent + '# ' + line.lstrip()
                 fixed = True
-        elif 'unmatched' in error_msg and ')' in error_msg:
-            # Missing closing parenthesis
-            if not line.rstrip().endswith(')'):
-                lines[line_idx] = line.rstrip() + ')\n'
+            elif '```' in line:
+                # Markdown code block in Python - remove it
+                lines[line_idx] = '\n'
                 fixed = True
-        elif 'invalid syntax' in error_msg and '</' in line:
-            # XML/HTML tag in Python code - comment it out
-            lines[line_idx] = '# ' + line
-            fixed = True
-        elif 'invalid syntax' in error_msg and '```' in line:
-            # Markdown code block in Python - remove it
-            lines[line_idx] = '\n'
-            fixed = True
+            elif error_text and '</' in error_text:
+                # Error text shows XML tag - comment out the line
+                indent = len(line) - len(line.lstrip())
+                lines[line_idx] = ' ' * indent + '# ' + line.lstrip()
+                fixed = True
         
         if fixed:
             # Write back
@@ -133,7 +147,8 @@ def attempt_line_based_fix(file_path: Path, error_line: int, error: dict) -> boo
             return True
         
         return False
-    except Exception:
+    except Exception as e:
+        print(f"      ⚠️  Line-based fix exception: {e}")
         return False
 
 
@@ -405,6 +420,13 @@ def run_debug_qa_mode(args) -> int:
                 print(f"📄 Processing {file_path} ({len(file_errors)} errors)...")
                 fixes_attempted += len(file_errors)
                 
+                # Verify file exists before processing
+                file_full_path = project_dir / file_path
+                if not file_full_path.exists():
+                    print(f"   ⚠️  File not found: {file_path}")
+                    print(f"   Full path checked: {file_full_path}")
+                    continue
+                
                 # Run QA phase first to identify all issues
                 print("   🔍 Running QA analysis...")
                 try:
@@ -416,6 +438,9 @@ def run_debug_qa_mode(args) -> int:
                         print(f"   ⚠️  QA found issues: {qa_result.message}")
                 except Exception as e:
                     print(f"   ❌ QA error: {e}")
+                    if config.verbose:
+                        import traceback
+                        print(traceback.format_exc())
                 
                 # Run debugging phase for each error
                 for error in file_errors:
