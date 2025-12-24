@@ -510,8 +510,51 @@ def run_debug_qa_mode(args) -> int:
                         # Don't break - we want to continue to error processing below
                     else:
                         print(f"\n✅ No runtime errors detected in {int(time.time() - start_time)} seconds")
-                        print("\n🎉 All tests passed!")
-                        return 0
+                        
+                        # Check if we should extend monitoring or detach
+                        success_timeout = getattr(args, 'success_timeout', 600)
+                        detach_mode = getattr(args, 'detach', False)
+                        
+                        if detach_mode:
+                            print("\n🎉 All tests passed!")
+                            print(f"✅ Program is running successfully")
+                            print(f"🔓 Detaching - program will continue running in background")
+                            print(f"\nTo stop the program, use: pkill -f '{test_command}'")
+                            return 0
+                        elif success_timeout > test_duration:
+                            # Extend monitoring
+                            extended_duration = success_timeout - test_duration
+                            print(f"\n⏱️  Extending monitoring for {extended_duration} more seconds...")
+                            print(f"   (Use --detach to exit immediately on success)")
+                            
+                            extended_start = time.time()
+                            while time.time() - extended_start < extended_duration:
+                                errors = tester.get_errors()
+                                if errors:
+                                    print(f"\n⚠️  Errors appeared during extended monitoring!")
+                                    runtime_errors_found.extend(errors)
+                                    break
+                                
+                                if not tester.is_running():
+                                    print(f"\n⚠️  Program exited during extended monitoring")
+                                    break
+                                
+                                time.sleep(1)
+                            
+                            # Stop the tester after extended monitoring
+                            tester.stop()
+                            
+                            if not runtime_errors_found:
+                                print("\n🎉 All tests passed!")
+                                print(f"✅ Program ran successfully for {int(time.time() - start_time)} seconds")
+                                return 0
+                            else:
+                                # Errors found during extended monitoring - continue to process them
+                                print(f"\n🔄 Processing errors found during extended monitoring...")
+                                # The error processing logic below will handle these
+                        else:
+                            print("\n🎉 All tests passed!")
+                            return 0
                 else:
                     # No test command, just report success
                     if iteration == 1:
@@ -900,6 +943,18 @@ Examples:
         default=300,
         metavar="SECONDS",
         help="Duration to monitor for runtime errors in seconds (default: 300)"
+    )
+    parser.add_argument(
+        "--success-timeout",
+        type=int,
+        default=600,
+        metavar="SECONDS",
+        help="Extended monitoring duration if no errors found (default: 600)"
+    )
+    parser.add_argument(
+        "--detach",
+        action="store_true",
+        help="Exit after successful run, leaving program running in background"
     )
     
     # Server configuration
