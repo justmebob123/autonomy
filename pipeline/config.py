@@ -45,7 +45,7 @@ class PipelineConfig:
     max_retries_per_task: int = 3
     
     # Verbose mode - show prompts and responses
-    verbose: bool = False
+    verbose: int = 0  # 0=normal, 1=verbose, 2=very verbose
     
     # Timeouts (seconds) - None means no timeout (wait forever)
     planning_timeout: Optional[int] = None

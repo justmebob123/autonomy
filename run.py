@@ -775,8 +775,9 @@ Examples:
     )
     parser.add_argument(
         "-v", "--verbose",
-        action="store_true",
-        help="Verbose mode - show prompts and responses"
+        action="count",
+        default=0,
+        help="Verbose mode - show prompts and responses (-v=verbose, -vv=very verbose)"
     )
     parser.add_argument(
         "--debug-qa",

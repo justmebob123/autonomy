@@ -11,3 +11,7 @@ __pycache__/
 dist/
 build/
 *.backup
+
+# AI activity logs
+ai_activity.log
+**/ai_activity.log

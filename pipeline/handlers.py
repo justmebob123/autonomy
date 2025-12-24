@@ -15,9 +15,10 @@ from .utils import validate_python_syntax
 class ToolCallHandler:
     """Handles execution of tool calls from LLM responses"""
     
-    def __init__(self, project_dir: Path):
+    def __init__(self, project_dir: Path, verbose: int = 0, activity_log_file: str = None):
         self.project_dir = Path(project_dir)
         self.logger = get_logger()
+        self.verbose = verbose  # 0=normal, 1=verbose, 2=very verbose
         
         # Track results
         self.files_created: List[str] = []
@@ -31,6 +32,13 @@ class ToolCallHandler:
         
         # Activity logging
         self.activity_log: List[Dict] = []
+        
+        # Setup activity log file if specified
+        self.activity_log_file = None
+        if activity_log_file:
+            self.activity_log_file = Path(activity_log_file)
+            # Create/clear the log file
+            self.activity_log_file.write_text("")
         
         # Tool handlers
         self._handlers: Dict[str, Callable] = {
@@ -57,7 +65,7 @@ class ToolCallHandler:
         self.activity_log = []
     
     def _log_tool_activity(self, tool_name: str, args: Dict):
-        """Log AI tool activity with formatted output"""
+        """Log AI tool activity with formatted output based on verbosity level"""
         import datetime
         
         # Create activity entry
@@ -68,52 +76,102 @@ class ToolCallHandler:
         }
         self.activity_log.append(activity)
         
-        # Format output based on tool type
+        # Prepare log messages
+        console_lines = []
+        file_lines = []
+        
+        # Format output based on tool type and verbosity
         if tool_name == 'modify_python_file':
             file_path = args.get('file_path', 'unknown')
             operation = args.get('operation', 'unknown')
-            self.logger.info(f"🔧 [AI Activity] Modifying file: {file_path}")
-            self.logger.info(f"   └─ Operation: {operation}")
             
-            if operation == 'str_replace':
-                old_str = args.get('old_str', '')
-                new_str = args.get('new_str', '')
-                self.logger.info(f"   └─ Replacing: {old_str[:60]}...")
-                self.logger.info(f"   └─ With: {new_str[:60]}...")
-            elif operation == 'insert_after':
-                marker = args.get('marker', '')
-                self.logger.info(f"   └─ Inserting after: {marker[:60]}...")
-            elif operation == 'append':
-                self.logger.info(f"   └─ Appending content to end of file")
+            # Normal mode: Just file and operation
+            console_lines.append(f"🔧 [AI Activity] Modifying file: {file_path}")
+            file_lines.append(f"[{activity['timestamp']}] MODIFY: {file_path} ({operation})")
+            
+            # Verbose mode: Add operation details
+            if self.verbose >= 1:
+                console_lines.append(f"   └─ Operation: {operation}")
+                
+                if operation == 'str_replace':
+                    old_str = args.get('old_str', '')
+                    new_str = args.get('new_str', '')
+                    console_lines.append(f"   └─ Replacing: {old_str[:60]}...")
+                    console_lines.append(f"   └─ With: {new_str[:60]}...")
+                    file_lines.append(f"     OLD: {old_str[:100]}")
+                    file_lines.append(f"     NEW: {new_str[:100]}")
+                elif operation == 'insert_after':
+                    marker = args.get('marker', '')
+                    console_lines.append(f"   └─ Inserting after: {marker[:60]}...")
+                    file_lines.append(f"     MARKER: {marker[:100]}")
+                elif operation == 'append':
+                    console_lines.append(f"   └─ Appending content to end of file")
+            
+            # Very verbose mode: Full arguments in tree format
+            if self.verbose >= 2:
+                console_lines.append(f"   └─ Full arguments:")
+                for key, value in args.items():
+                    if isinstance(value, str):
+                        if len(value) > 200:
+                            console_lines.append(f"      ├─ {key}: {value[:200]}... ({len(value)} chars)")
+                        else:
+                            console_lines.append(f"      ├─ {key}: {value}")
+                    else:
+                        console_lines.append(f"      ├─ {key}: {value}")
                 
         elif tool_name == 'read_file':
             file_path = args.get('file_path', 'unknown')
-            self.logger.info(f"📖 [AI Activity] Reading file: {file_path}")
+            console_lines.append(f"📖 [AI Activity] Reading file: {file_path}")
+            file_lines.append(f"[{activity['timestamp']}] READ: {file_path}")
             
         elif tool_name == 'search_code':
             pattern = args.get('pattern', 'unknown')
             file_pattern = args.get('file_pattern', '*')
-            self.logger.info(f"🔍 [AI Activity] Searching code")
-            self.logger.info(f"   └─ Pattern: {pattern}")
-            self.logger.info(f"   └─ Files: {file_pattern}")
+            console_lines.append(f"🔍 [AI Activity] Searching code: {pattern}")
+            file_lines.append(f"[{activity['timestamp']}] SEARCH: {pattern} in {file_pattern}")
+            
+            if self.verbose >= 1:
+                console_lines.append(f"   └─ Pattern: {pattern}")
+                console_lines.append(f"   └─ Files: {file_pattern}")
             
         elif tool_name == 'list_directory':
             directory = args.get('directory', '.')
-            self.logger.info(f"📁 [AI Activity] Listing directory: {directory}")
+            console_lines.append(f"📁 [AI Activity] Listing directory: {directory}")
+            file_lines.append(f"[{activity['timestamp']}] LIST: {directory}")
             
         elif tool_name == 'create_python_file' or tool_name == 'create_file':
             file_path = args.get('file_path', 'unknown')
-            self.logger.info(f"✨ [AI Activity] Creating file: {file_path}")
+            console_lines.append(f"✨ [AI Activity] Creating file: {file_path}")
+            file_lines.append(f"[{activity['timestamp']}] CREATE: {file_path}")
+            
+            if self.verbose >= 1:
+                content = args.get('content', '')
+                if content:
+                    console_lines.append(f"   └─ Content length: {len(content)} chars")
             
         else:
             # Generic logging for other tools
-            self.logger.info(f"🤖 [AI Activity] Calling tool: {tool_name}")
-            # Show key arguments
-            for key, value in args.items():
-                if isinstance(value, str) and len(value) > 100:
-                    self.logger.info(f"   └─ {key}: {value[:100]}...")
-                else:
-                    self.logger.info(f"   └─ {key}: {value}")
+            console_lines.append(f"🤖 [AI Activity] Calling tool: {tool_name}")
+            file_lines.append(f"[{activity['timestamp']}] TOOL: {tool_name}")
+            
+            # Verbose mode: Show key arguments
+            if self.verbose >= 1:
+                for key, value in args.items():
+                    if isinstance(value, str) and len(value) > 100:
+                        console_lines.append(f"   └─ {key}: {value[:100]}...")
+                    else:
+                        console_lines.append(f"   └─ {key}: {value}")
+        
+        # Output to console
+        for line in console_lines:
+            self.logger.info(line)
+        
+        # Output to file if configured
+        if self.activity_log_file:
+            with open(self.activity_log_file, 'a') as f:
+                for line in file_lines:
+                    f.write(line + '\n')
+                f.write('\n')  # Blank line between entries
     
     def process_tool_calls(self, tool_calls: List[Dict]) -> List[Dict]:
         """Process a list of tool calls and return results"""
