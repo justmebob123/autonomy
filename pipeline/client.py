@@ -53,32 +53,53 @@ class OllamaClient:
     def get_model_for_task(self, task_type: str) -> Optional[Tuple[str, str]]:
         """Get the best available model for a task type"""
         
+        # ENHANCED LOGGING: Track model selection process
+        selection_log = []
+        
         if task_type in self.config.model_assignments:
             model, preferred_host = self.config.model_assignments[task_type]
+            selection_log.append(f"Preferred: {model} on {preferred_host}")
             
             if preferred_host in self.available_models:
                 for avail in self.available_models[preferred_host]:
                     if self._model_matches(avail, model):
+                        self.logger.debug(f"  Model selection: Using preferred {avail} on {preferred_host}")
                         return (preferred_host, avail)
+                selection_log.append(f"Preferred model not found on {preferred_host}")
+            else:
+                selection_log.append(f"Preferred host {preferred_host} not available")
             
+            # Try other hosts
             for host, models in self.available_models.items():
                 for avail in models:
                     if self._model_matches(avail, model):
+                        self.logger.info(f"  Model selection: Using {avail} on {host} (preferred host unavailable)")
                         return (host, avail)
+            
+            selection_log.append(f"Preferred model {model} not found on any host")
+        else:
+            selection_log.append(f"No model assignment for task type: {task_type}")
         
+        # Try fallbacks
         if task_type in self.config.model_fallbacks:
+            selection_log.append(f"Trying fallbacks: {self.config.model_fallbacks[task_type]}")
             for fallback in self.config.model_fallbacks[task_type]:
                 for host, models in self.available_models.items():
                     for avail in models:
                         if self._model_matches(avail, fallback):
-                            self.logger.info(f"  Using fallback: {avail}")
+                            self.logger.warning(f"  Model selection: Using fallback {avail} on {host}")
+                            self.logger.warning(f"  Selection path: {' -> '.join(selection_log)}")
                             return (host, avail)
+            selection_log.append("No fallback models available")
         
+        # Last resort
         for host, models in self.available_models.items():
             if models:
-                self.logger.warning(f"  Using last resort: {models[0]}")
+                self.logger.error(f"  Model selection: Using LAST RESORT {models[0]} on {host}")
+                self.logger.error(f"  Selection path: {' -> '.join(selection_log)}")
                 return (host, models[0])
         
+        self.logger.error(f"  Model selection FAILED: {' -> '.join(selection_log)}")
         return None
     
     def _model_matches(self, available: str, requested: str) -> bool:

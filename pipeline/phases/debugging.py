@@ -109,18 +109,43 @@ class DebuggingPhase(BasePhase):
         
         if not tool_calls:
             self.logger.warning("  No fix applied")
-            # Log the actual response for debugging
-            if hasattr(self, 'config') and self.config.verbose:
-                self.logger.info(f"  AI Response (no tool calls): {response.get('content', '')[:500]}")
+            
+            # ENHANCED LOGGING: Always log full response to understand why no tool calls
+            content = response.get('content', '')
+            
+            # Log to console (truncated)
+            if content:
+                self.logger.warning(f"  AI responded but made no tool calls.")
+                self.logger.warning(f"  Response preview: {content[:300]}...")
             else:
-                # Always log a snippet to help debug
-                content = response.get('content', '')
-                if content:
-                    self.logger.warning(f"  AI responded but made no tool calls. Response starts with: {content[:200]}")
+                self.logger.warning(f"  AI returned empty response")
+            
+            # Log full response to activity log for analysis
+            if hasattr(self, 'config'):
+                activity_log = self.project_dir / 'ai_activity.log'
+                try:
+                    with open(activity_log, 'a') as f:
+                        f.write(f"\n{'='*80}\n")
+                        f.write(f"DEBUGGING PHASE - NO TOOL CALLS\n")
+                        f.write(f"Timestamp: {datetime.now().isoformat()}\n")
+                        f.write(f"File: {filepath}\n")
+                        f.write(f"Issue: {issue.get('type')} - {issue.get('message', '')[:100]}\n")
+                        f.write(f"Model: {response.get('model', 'unknown')}\n")
+                        f.write(f"\nFull AI Response:\n{content}\n")
+                        f.write(f"{'='*80}\n")
+                except Exception as e:
+                    self.logger.debug(f"Could not write to activity log: {e}")
+            
+            # Analyze response to understand why no tool calls
+            analysis = self._analyze_no_tool_call_response(content, issue)
+            if analysis:
+                self.logger.warning(f"  Analysis: {analysis}")
+            
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message="No fix was applied - AI did not make any tool calls"
+                message=f"No fix was applied - AI did not make any tool calls. {analysis}",
+                data={"ai_response": content[:500], "analysis": analysis}
             )
         
         # Execute tool calls
@@ -206,6 +231,38 @@ class DebuggingPhase(BasePhase):
             errors=all_errors,
             data={"fixed": fixed, "failed": failed}
         )
+    
+    def _analyze_no_tool_call_response(self, content: str, issue: Dict) -> str:
+        """
+        Analyze AI response to understand why no tool calls were made.
+        
+        Returns a brief analysis string.
+        """
+        if not content:
+            return "AI returned empty response"
+        
+        content_lower = content.lower()
+        
+        # Check for common patterns
+        if "cannot" in content_lower or "can't" in content_lower or "unable" in content_lower:
+            return "AI believes it cannot fix this issue"
+        
+        if "need more" in content_lower or "require" in content_lower or "missing" in content_lower:
+            return "AI needs more information or context"
+        
+        if "not sure" in content_lower or "unclear" in content_lower or "don't know" in content_lower:
+            return "AI is uncertain about the fix"
+        
+        if "explanation" in content_lower or "because" in content_lower or "reason" in content_lower:
+            return "AI provided explanation instead of fix"
+        
+        if "tool" in content_lower or "function" in content_lower or "call" in content_lower:
+            return "AI mentioned tools but didn't call them"
+        
+        if len(content) > 1000:
+            return "AI provided lengthy response without action"
+        
+        return "AI responded but reason for no tool calls unclear"
     
     def _get_next_issue(self, state: PipelineState) -> Optional[Dict]:
         """Get the next issue to fix"""
