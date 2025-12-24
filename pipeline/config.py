@@ -63,18 +63,18 @@ class PipelineConfig:
     # 
     # Model selection rationale:
     # - planning: qwen2.5:14b - Good at structured thinking, uses native tools
-    # - coding: deepseek-coder-v2 (15.7B) - Best code generation available
+    # - coding: qwen2.5-coder:32b (32.8B) - BEST open-source coding model, GPT-4o level
     # - qa: qwen2.5:14b - Uses native tool calls properly
-    # - debugging: deepseek-coder-v2 (15.7B) - Excellent at code analysis
+    # - debugging: qwen2.5-coder:32b (32.8B) - BEST at code fixing, scored 73.7 on Aider
     # - routing: functiongemma - Fast, specialized for function calling
     # - tool_formatting: functiongemma - Helps format malformed tool calls
     model_assignments: Dict[str, Tuple[str, str]] = field(default_factory=lambda: {
         # Primary tasks - use large models on ollama02 (MUCH faster)
         "planning":        ("qwen2.5:14b", "ollama02.thiscluster.net"),
-        "coding":          ("deepseek-coder-v2", "ollama02.thiscluster.net"),
-        "qa":              ("qwen2.5:14b", "ollama02.thiscluster.net"),
-        "debugging":       ("deepseek-coder-v2", "ollama02.thiscluster.net"),
-        "debug":           ("deepseek-coder-v2", "ollama02.thiscluster.net"),
+        "coding":          ("qwen2.5-coder:32b", "ollama02.thiscluster.net"),
+        "qa":              ("qwen2.5:14b", "ollama02.thiscluster.net"),  # Can upgrade to llama3.1:70b if needed
+        "debugging":       ("qwen2.5-coder:32b", "ollama02.thiscluster.net"),
+        "debug":           ("qwen2.5-coder:32b", "ollama02.thiscluster.net"),
         
         # Utility tasks - use smaller/specialized models on ollama02
         "routing":         ("functiongemma", "ollama02.thiscluster.net"),
@@ -87,7 +87,7 @@ class PipelineConfig:
         "planning":  ["llama3.1:70b", "mixtral:8x7b", "phi3:medium", "qwen2.5:7b"],
         "coding":    ["deepseek-coder-v2:16b", "codellama:13b", "qwen2.5-coder:7b", "granite-code:8b"],
         "qa":        ["llama3.1:70b", "mixtral:8x7b", "phi3:medium", "qwen2.5:7b"],
-        "debugging": ["deepseek-coder-v2", "phi4", "qwen2.5-coder:14b", "qwen2.5:14b", "llama3.1", "qwen2.5-coder:7b"],
+        "debugging": ["qwen2.5-coder:32b", "qwen2.5-coder:14b", "deepseek-coder-v2", "phi4", "qwen2.5:14b", "llama3.1"],
         "debug":     ["deepseek-coder-v2:16b", "codellama:13b", "qwen2.5-coder:7b"],
         "routing":   ["phi3:mini", "llama3.2:3b", "qwen2.5:7b"],
         "tool_formatting": ["phi3:mini", "llama3.2:3b"],
