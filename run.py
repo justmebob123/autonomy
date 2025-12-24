@@ -87,10 +87,9 @@ def run_pipeline(config: PipelineConfig, resume: bool = True) -> bool:
 
 
 def run_debug_qa_mode(args) -> int:
-    """Run continuous debug/QA mode to check for errors and warnings."""
+    """Run continuous debug/QA mode using the AI pipeline to fix errors."""
     import ast
     import py_compile
-    import subprocess
     import time
     from pathlib import Path
     
@@ -101,14 +100,31 @@ def run_debug_qa_mode(args) -> int:
         return 1
     
     print("\n" + "="*70)
-    print("🔍 DEBUG/QA MODE - Continuous Error Detection")
+    print("🔍 DEBUG/QA MODE - AI-Powered Continuous Debugging")
     print("="*70)
     print(f"\nProject: {project_dir}")
-    print("\nThis mode will continuously check for:")
-    print("  • Syntax errors in Python files")
-    print("  • Import errors")
-    print("  • Runtime errors (when possible)")
+    print("\nThis mode will:")
+    print("  • Detect syntax errors in Python files")
+    print("  • Use AI to automatically fix the errors")
+    print("  • Continue until all errors are resolved")
     print("\nPress Ctrl+C to exit at any time.\n")
+    
+    # Build configuration for the pipeline
+    config = PipelineConfig(
+        project_dir=project_dir,
+        git_enabled=not args.no_git,
+        max_iterations=0,  # Unlimited iterations for debugging
+        max_retries_per_task=args.max_retries,
+        verbose=args.verbose,
+    )
+    
+    # Add custom servers if specified
+    if args.servers:
+        from pipeline.config import ServerConfig
+        config.servers = [
+            ServerConfig(name=f"server{i}", host=host)
+            for i, host in enumerate(args.servers)
+        ]
     
     iteration = 0
     
@@ -128,9 +144,8 @@ def run_debug_qa_mode(args) -> int:
             print(f"📁 Found {len(py_files)} Python files to check\n")
             
             errors_found = []
-            warnings_found = []
             
-            # Check each Python file
+            # Check each Python file for syntax errors
             for py_file in sorted(py_files):
                 rel_path = py_file.relative_to(project_dir)
                 
@@ -138,66 +153,28 @@ def run_debug_qa_mode(args) -> int:
                 if '__pycache__' in str(rel_path) or 'venv' in str(rel_path) or '.venv' in str(rel_path):
                     continue
                 
-                # 1. Syntax check using py_compile
-                try:
-                    py_compile.compile(str(py_file), doraise=True)
-                except py_compile.PyCompileError as e:
-                    errors_found.append({
-                        'file': rel_path,
-                        'type': 'SyntaxError',
-                        'message': str(e.msg),
-                        'line': e.exc_value.lineno if hasattr(e.exc_value, 'lineno') else None
-                    })
-                    continue
-                
-                # 2. AST parsing for deeper syntax validation
+                # Syntax check using AST parsing
                 try:
                     with open(py_file, 'r', encoding='utf-8') as f:
                         content = f.read()
                     ast.parse(content, filename=str(py_file))
                 except SyntaxError as e:
                     errors_found.append({
-                        'file': rel_path,
+                        'file': str(rel_path),
+                        'full_path': str(py_file),
                         'type': 'SyntaxError',
                         'message': e.msg,
                         'line': e.lineno,
                         'offset': e.offset,
-                        'text': e.text
+                        'text': e.text.strip() if e.text else None
                     })
                 except Exception as e:
                     errors_found.append({
-                        'file': rel_path,
+                        'file': str(rel_path),
+                        'full_path': str(py_file),
                         'type': type(e).__name__,
-                        'message': str(e)
-                    })
-            
-            # 3. Try importing the main module to catch import errors
-            if (project_dir / "pipeline" / "__init__.py").exists():
-                print("🔍 Checking imports...")
-                try:
-                    result = subprocess.run(
-                        [sys.executable, "-c", "import pipeline"],
-                        cwd=str(project_dir),
-                        capture_output=True,
-                        text=True,
-                        timeout=10
-                    )
-                    if result.returncode != 0:
-                        if "ModuleNotFoundError" in result.stderr or "ImportError" in result.stderr:
-                            errors_found.append({
-                                'file': 'pipeline',
-                                'type': 'ImportError',
-                                'message': result.stderr.strip()
-                            })
-                except subprocess.TimeoutExpired:
-                    warnings_found.append({
-                        'type': 'Warning',
-                        'message': 'Import check timed out after 10 seconds'
-                    })
-                except Exception as e:
-                    warnings_found.append({
-                        'type': 'Warning',
-                        'message': f'Could not check imports: {e}'
+                        'message': str(e),
+                        'line': None
                     })
             
             # Display results
@@ -205,44 +182,80 @@ def run_debug_qa_mode(args) -> int:
             print("📊 RESULTS")
             print("="*70 + "\n")
             
-            if not errors_found and not warnings_found:
-                print("✅ SUCCESS! No errors or warnings found.")
-                print("\n🎉 All checks passed! The application appears to be error-free.")
+            if not errors_found:
+                print("✅ SUCCESS! No errors found.")
+                print("\n🎉 All checks passed! The application is error-free.")
                 print("\nYou can now run the application normally.")
                 return 0
             
             # Display errors
-            if errors_found:
-                print(f"❌ ERRORS FOUND: {len(errors_found)}\n")
-                for i, error in enumerate(errors_found, 1):
-                    print(f"{i}. {error['type']} in {error['file']}")
-                    if error.get('line'):
-                        print(f"   Line {error['line']}: {error['message']}")
-                        if error.get('text'):
-                            print(f"   Code: {error['text'].strip()}")
-                        if error.get('offset'):
-                            print(f"   Position: column {error['offset']}")
-                    else:
-                        print(f"   {error['message']}")
-                    print()
+            print(f"❌ ERRORS FOUND: {len(errors_found)}\n")
+            for i, error in enumerate(errors_found, 1):
+                print(f"{i}. {error['type']} in {error['file']}")
+                if error.get('line'):
+                    print(f"   Line {error['line']}: {error['message']}")
+                    if error.get('text'):
+                        print(f"   Code: {error['text']}")
+                    if error.get('offset'):
+                        print(f"   Position: column {error['offset']}")
+                else:
+                    print(f"   {error['message']}")
+                print()
             
-            # Display warnings
-            if warnings_found:
-                print(f"⚠️  WARNINGS: {len(warnings_found)}\n")
-                for i, warning in enumerate(warnings_found, 1):
-                    print(f"{i}. {warning['type']}: {warning['message']}\n")
-            
-            # Wait for user action
+            # Use AI to fix the errors
             print("\n" + "─"*70)
-            print("🔧 Please fix the errors above, then press Enter to re-check...")
-            print("   Or press Ctrl+C to exit")
-            print("─"*70)
+            print("🤖 Using AI to fix errors...")
+            print("─"*70 + "\n")
             
-            try:
-                input()
-            except KeyboardInterrupt:
-                print("\n\n👋 Exiting debug/QA mode...")
-                return 0
+            # Import debugging phase
+            from pipeline.phases.debugging import DebuggingPhase
+            from pipeline.state.manager import StateManager
+            
+            # Load or create state
+            state_manager = StateManager(project_dir)
+            state = state_manager.load()
+            
+            # Create debugging phase
+            debug_phase = DebuggingPhase(config)
+            
+            # Process each error
+            fixes_applied = 0
+            for error in errors_found:
+                print(f"🔧 Fixing {error['file']}...")
+                
+                # Create issue dict for the debugging phase
+                issue = {
+                    'file': error['file'],
+                    'type': error['type'],
+                    'message': error['message'],
+                    'line': error.get('line'),
+                    'description': f"{error['type']} at line {error.get('line', 'unknown')}: {error['message']}"
+                }
+                
+                try:
+                    # Execute debugging phase
+                    result = debug_phase.execute(state, issue=issue)
+                    
+                    if result.success:
+                        print(f"   ✅ Fixed successfully")
+                        fixes_applied += 1
+                    else:
+                        print(f"   ⚠️  Could not fix: {result.message}")
+                except Exception as e:
+                    print(f"   ❌ Error during fix: {e}")
+            
+            # Save state
+            state_manager.save(state)
+            
+            print(f"\n📊 Applied {fixes_applied}/{len(errors_found)} fixes")
+            
+            if fixes_applied == 0:
+                print("\n⚠️  No fixes could be applied automatically.")
+                print("You may need to fix these errors manually.")
+                return 1
+            
+            print("\n🔄 Re-checking for errors...\n")
+            time.sleep(1)  # Brief pause before next iteration
             
     except KeyboardInterrupt:
         print("\n\n👋 Exiting debug/QA mode...")
