@@ -764,6 +764,58 @@ def run_debug_qa_mode(args) -> int:
                 
                 print()
             
+            # STAGE 2: Post-Fix QA Verification
+            # Run QA phase on files that were modified to catch any new issues
+            if fixes_applied > 0:
+                print("\n" + "="*70)
+                print("🔍 STAGE 2: POST-FIX QUALITY VERIFICATION")
+                print("="*70)
+                
+                # Get list of modified files from this iteration
+                from pipeline.handlers import ToolCallHandler
+                handler = ToolCallHandler(project_dir, config)
+                modified_files = list(set(handler.files_modified))  # Deduplicate
+                
+                if modified_files:
+                    print(f"Verifying {len(modified_files)} modified file(s)...\n")
+                    
+                    post_fix_issues = []
+                    for modified_file in modified_files:
+                        print(f"  📄 Checking: {modified_file}")
+                        
+                        # Read the modified file
+                        file_full_path = project_dir / modified_file
+                        if not file_full_path.exists():
+                            print(f"     ⚠️  File not found, skipping")
+                            continue
+                        
+                        try:
+                            # Run QA phase on this file
+                            qa_result = qa_phase.execute(state, filepath=modified_file)
+                            
+                            if qa_result.success:
+                                print(f"     ✅ QA passed - no new issues")
+                            else:
+                                print(f"     ⚠️  QA found issues: {qa_result.message}")
+                                # Note: Issues are already added to state by QA phase
+                                post_fix_issues.append({
+                                    'file': modified_file,
+                                    'message': qa_result.message
+                                })
+                        except Exception as e:
+                            print(f"     ❌ QA error: {e}")
+                            if config.verbose:
+                                import traceback
+                                print(traceback.format_exc())
+                    
+                    if post_fix_issues:
+                        print(f"\n⚠️  Post-fix QA found {len(post_fix_issues)} file(s) with new issues")
+                        print("   These will be addressed in the next iteration")
+                    else:
+                        print(f"\n✅ All modified files passed post-fix QA")
+                
+                print("="*70 + "\n")
+            
             # Save state
             state_manager.save(state)
             

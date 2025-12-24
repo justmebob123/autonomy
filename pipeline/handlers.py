@@ -407,10 +407,101 @@ class ToolCallHandler:
             self.logger.warning(f"  ⚠️  Could not save patch: {e}")
         
         full_path.write_text(new_content)
+        
+        # STAGE 1: Immediate Post-Fix Verification
+        self.logger.info(f"  🔍 Verifying fix...")
+        verification_passed = True
+        verification_errors = []
+        
+        try:
+            # 1. Re-read file to ensure write succeeded
+            written_content = full_path.read_text()
+            if written_content != new_content:
+                verification_errors.append("File content doesn't match what was written")
+                verification_passed = False
+            
+            # 2. Verify syntax is still valid (post-write check)
+            if filepath.endswith('.py'):
+                valid, error = validate_python_syntax(written_content)
+                if not valid:
+                    verification_errors.append(f"Syntax error after write: {error}")
+                    verification_passed = False
+            
+            # 3. Verify the change actually occurred
+            if original in written_content:
+                verification_errors.append("Original code still present - change may not have applied")
+                verification_passed = False
+            
+            if new_code not in written_content:
+                verification_errors.append("New code not found in file - change may have failed")
+                verification_passed = False
+            
+            # 4. Check imports are valid (basic check)
+            if filepath.endswith('.py'):
+                import ast
+                try:
+                    tree = ast.parse(written_content)
+                    # Extract imports
+                    imports = []
+                    for node in ast.walk(tree):
+                        if isinstance(node, ast.Import):
+                            for alias in node.names:
+                                imports.append(alias.name)
+                        elif isinstance(node, ast.ImportFrom):
+                            if node.module:
+                                imports.append(node.module)
+                    # Basic validation - just ensure imports parse
+                    self.logger.debug(f"    Found {len(imports)} import statements")
+                except SyntaxError as e:
+                    verification_errors.append(f"Import syntax error: {e}")
+                    verification_passed = False
+        
+        except Exception as e:
+            verification_errors.append(f"Verification exception: {e}")
+            verification_passed = False
+        
+        if not verification_passed:
+            self.logger.error(f"  ❌ Post-fix verification FAILED:")
+            for err in verification_errors:
+                self.logger.error(f"     - {err}")
+            
+            # Attempt rollback if we have a patch
+            if patch_content and 'patch_path' in locals():
+                self.logger.warning(f"  🔄 Attempting rollback using patch...")
+                try:
+                    # Restore original content
+                    full_path.write_text(content)
+                    self.logger.info(f"  ✅ Rollback successful - file restored to original state")
+                    return {
+                        "tool": "modify_file",
+                        "success": False,
+                        "error": "Post-fix verification failed: " + "; ".join(verification_errors),
+                        "filepath": filepath,
+                        "rolled_back": True
+                    }
+                except Exception as rollback_error:
+                    self.logger.error(f"  ❌ Rollback failed: {rollback_error}")
+                    return {
+                        "tool": "modify_file",
+                        "success": False,
+                        "error": "Post-fix verification failed AND rollback failed: " + "; ".join(verification_errors),
+                        "filepath": filepath,
+                        "rolled_back": False
+                    }
+            else:
+                return {
+                    "tool": "modify_file",
+                    "success": False,
+                    "error": "Post-fix verification failed: " + "; ".join(verification_errors),
+                    "filepath": filepath,
+                    "rolled_back": False
+                }
+        
+        self.logger.info(f"  ✅ Verification passed")
         self.files_modified.append(filepath)
         self.logger.info(f"  ✏️ Modified: {filepath}")
         
-        return {"tool": "modify_file", "success": True, "filepath": filepath}
+        return {"tool": "modify_file", "success": True, "filepath": filepath, "verified": True}
     
     def _find_similar_code(self, content: str, target: str, threshold: float = 0.6) -> str:
         """Try to find similar code in content"""
