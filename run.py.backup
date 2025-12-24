@@ -390,82 +390,39 @@ def run_debug_qa_mode(args) -> int:
                             print(f"\n{i}. {error['type'].upper()}")
                             print(f"   {error['line']}")
                             if error.get('context'):
-                                print(f"   Context has {len(error['context'])} lines:")
-                                for ctx_line in error['context'][:5]:  # Show first 5 context lines
+                                for ctx_line in error['context'][:3]:  # Show first 3 context lines
                                     print(f"   {ctx_line}")
                         
                         # Convert runtime errors to format expected by error processing
                         # Extract file and line info from traceback
-                        import re
                         for error in runtime_errors_found:
-                            error_type = error.get('type', 'error')
                             error_msg = error.get('line', '')
                             context = error.get('context', [])
                             
                             # Try to extract file and line from traceback
                             file_path = None
                             line_num = None
-                            
-                            # Strategy 1: Look in context for File line
                             for ctx in context:
                                 if 'File "' in ctx:
+                                    # Extract: File "/path/to/file.py", line 123
+                                    import re
                                     match = re.search(r'File "([^"]+)", line (\d+)', ctx)
                                     if match:
                                         file_path = match.group(1)
                                         line_num = int(match.group(2))
                                         break
                             
-                            # Strategy 2: If no file found, grep through project for the error message
-                            if not file_path and error_msg:
-                                # Extract the actual error message (last line of context or error_msg)
-                                search_text = context[-1] if context else error_msg
-                                # Remove common prefixes
-                                search_text = search_text.replace('ERROR:', '').replace('CRITICAL:', '').strip()
-                                
-                                # Only search if we have meaningful text (not just "Traceback")
-                                if search_text and 'Traceback' not in search_text and len(search_text) > 20:
-                                    try:
-                                        # Use grep to find the file
-                                        import subprocess
-                                        result = subprocess.run(
-                                            ['grep', '-r', '-l', '--include=*.py', search_text[:100], str(project_dir)],
-                                            capture_output=True,
-                                            text=True,
-                                            timeout=5
-                                        )
-                                        if result.returncode == 0 and result.stdout.strip():
-                                            # Found file(s), use the first one
-                                            found_file = result.stdout.strip().split('\n')[0]
-                                            file_path = found_file
-                                            # Try to find line number
-                                            result2 = subprocess.run(
-                                                ['grep', '-n', search_text[:100], found_file],
-                                                capture_output=True,
-                                                text=True,
-                                                timeout=5
-                                            )
-                                            if result2.returncode == 0 and result2.stdout.strip():
-                                                line_match = re.match(r'(\d+):', result2.stdout)
-                                                if line_match:
-                                                    line_num = int(line_match.group(1))
-                                    except Exception as e:
-                                        if config.verbose:
-                                            print(f"  Could not grep for error: {e}")
-                            
                             runtime_errors.append({
                                 'file': file_path or 'unknown',
                                 'type': 'RuntimeError',
                                 'message': error_msg,
                                 'line': line_num,
-                                'context': context,
-                                'original_type': error_type
+                                'context': context
                             })
                         
                         # Don't return here - let it fall through to error processing
                         print("\n🔄 Will attempt to fix runtime errors...")
-                        # Recalculate all_errors to include runtime errors
-                        all_errors = syntax_errors + import_errors + runtime_errors
-                        # Don't break - we want to continue to error processing below
+                        break  # Break out of runtime testing to process errors
                     else:
                         print(f"\n✅ No runtime errors detected in {int(time.time() - start_time)} seconds")
                         print("\n🎉 All tests passed!")
