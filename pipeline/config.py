@@ -29,7 +29,7 @@ class PipelineConfig:
     servers: List[ServerConfig] = field(default_factory=lambda: [
         ServerConfig(
             name="ollama01",
-            host="ollama01.thiscluster.net",
+               host="ollama01.thiscluster.net",
             capabilities=["coding", "planning", "qa", "debugging"]
         ),
         ServerConfig(
@@ -69,12 +69,12 @@ class PipelineConfig:
     # - routing: functiongemma - Fast, specialized for function calling
     # - tool_formatting: functiongemma - Helps format malformed tool calls
     model_assignments: Dict[str, Tuple[str, str]] = field(default_factory=lambda: {
-        # Primary tasks - use large models on ollama01
-        "planning":        ("qwen2.5:14b", "ollama01.thiscluster.net"),
-        "coding":          ("qwen2.5-coder:14b", "ollama01.thiscluster.net"),
-        "qa":              ("qwen2.5:14b", "ollama01.thiscluster.net"),
-        "debugging":       ("qwen2.5-coder:14b", "ollama01.thiscluster.net"),
-        "debug":           ("qwen2.5-coder:14b", "ollama01.thiscluster.net"),
+        # Primary tasks - use large models on ollama02 (MUCH faster)
+        "planning":        ("qwen2.5:14b", "ollama02.thiscluster.net"),
+        "coding":          ("qwen2.5-coder:14b", "ollama02.thiscluster.net"),
+        "qa":              ("qwen2.5:14b", "ollama02.thiscluster.net"),
+        "debugging":       ("qwen2.5-coder:14b", "ollama02.thiscluster.net"),
+        "debug":           ("qwen2.5-coder:14b", "ollama02.thiscluster.net"),
         
         # Utility tasks - use smaller/specialized models on ollama02
         "routing":         ("functiongemma", "ollama02.thiscluster.net"),
