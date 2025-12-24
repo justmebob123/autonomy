@@ -113,6 +113,7 @@ class ProgramRunner:
             timeout: Seconds to wait for graceful shutdown
         """
         if not self.running:
+            self.logger.info("Stop called but program not running")
             return
         
         self.logger.info("Stopping program...")
@@ -120,30 +121,73 @@ class ProgramRunner:
         
         if self.process:
             try:
+                pid = self.process.pid
+                self.logger.info(f"Process PID: {pid}")
+                
                 # Kill the entire process group to ensure all children are terminated
-                pgid = os.getpgid(self.process.pid)
-                self.logger.info(f"Terminating process group {pgid}...")
+                pgid = os.getpgid(pid)
+                self.logger.info(f"Process group ID: {pgid}")
+                
+                # First, list all processes in the group
+                try:
+                    result = subprocess.run(
+                        ['ps', '-g', str(pgid), '-o', 'pid,cmd'],
+                        capture_output=True,
+                        text=True,
+                        timeout=2
+                    )
+                    if result.returncode == 0:
+                        self.logger.info(f"Processes in group before kill:\n{result.stdout}")
+                except Exception as e:
+                    self.logger.warning(f"Could not list processes: {e}")
+                
+                # Kill the process group
+                self.logger.info(f"Sending SIGTERM to process group {pgid}...")
                 os.killpg(pgid, signal.SIGTERM)
                 
                 try:
                     self.process.wait(timeout=timeout)
+                    self.logger.info("Process terminated gracefully")
                 except subprocess.TimeoutExpired:
                     # Force kill if needed
-                    self.logger.warning("Process group did not terminate gracefully, forcing kill")
+                    self.logger.warning("Process group did not terminate gracefully, forcing SIGKILL")
                     os.killpg(pgid, signal.SIGKILL)
                     self.process.wait()
+                    self.logger.info("Process force killed")
+                
+                # Verify processes are gone
+                try:
+                    result = subprocess.run(
+                        ['ps', '-g', str(pgid), '-o', 'pid,cmd'],
+                        capture_output=True,
+                        text=True,
+                        timeout=2
+                    )
+                    if result.returncode == 0 and result.stdout.strip():
+                        self.logger.warning(f"Some processes still running:\n{result.stdout}")
+                        # Try pkill as fallback
+                        self.logger.info("Using pkill as fallback...")
+                        subprocess.run(['pkill', '-9', '-f', self.command], timeout=2)
+                    else:
+                        self.logger.info("All processes in group terminated successfully")
+                except Exception as e:
+                    self.logger.warning(f"Could not verify cleanup: {e}")
+                    
             except ProcessLookupError:
                 # Process already terminated
                 self.logger.info("Process already terminated")
             except Exception as e:
                 self.logger.error(f"Error stopping process: {e}")
-                # Fallback to regular terminate/kill
+                import traceback
+                self.logger.error(traceback.format_exc())
+                
+                # Fallback: try pkill
+                self.logger.info("Attempting pkill fallback...")
                 try:
-                    self.process.terminate()
-                    self.process.wait(timeout=timeout)
-                except subprocess.TimeoutExpired:
-                    self.process.kill()
-                    self.process.wait()
+                    subprocess.run(['pkill', '-9', '-f', self.command], timeout=2)
+                    self.logger.info("pkill fallback completed")
+                except Exception as e2:
+                    self.logger.error(f"pkill fallback failed: {e2}")
         
         if self.thread:
             self.thread.join(timeout=timeout)
