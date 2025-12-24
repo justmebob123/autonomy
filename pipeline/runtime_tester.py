@@ -9,6 +9,8 @@ import subprocess
 import threading
 import time
 import re
+import os
+import signal
 from pathlib import Path
 from typing import Optional, List, Dict, Callable
 from queue import Queue
@@ -59,6 +61,7 @@ class ProgramRunner:
     def _run(self):
         """Internal method to run the program."""
         try:
+            # Create a new process group so we can kill all children
             self.process = subprocess.Popen(
                 self.command,
                 shell=True,
@@ -66,7 +69,8 @@ class ProgramRunner:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
-                bufsize=1
+                bufsize=1,
+                preexec_fn=os.setsid  # Create new process group
             )
             
             # Read output in real-time
@@ -103,7 +107,7 @@ class ProgramRunner:
     
     def stop(self, timeout: float = 5.0):
         """
-        Stop the running program.
+        Stop the running program and all child processes.
         
         Args:
             timeout: Seconds to wait for graceful shutdown
@@ -116,14 +120,30 @@ class ProgramRunner:
         
         if self.process:
             try:
-                # Try graceful termination first
-                self.process.terminate()
-                self.process.wait(timeout=timeout)
-            except subprocess.TimeoutExpired:
-                # Force kill if needed
-                self.logger.warning("Program did not terminate gracefully, forcing kill")
-                self.process.kill()
-                self.process.wait()
+                # Kill the entire process group to ensure all children are terminated
+                pgid = os.getpgid(self.process.pid)
+                self.logger.info(f"Terminating process group {pgid}...")
+                os.killpg(pgid, signal.SIGTERM)
+                
+                try:
+                    self.process.wait(timeout=timeout)
+                except subprocess.TimeoutExpired:
+                    # Force kill if needed
+                    self.logger.warning("Process group did not terminate gracefully, forcing kill")
+                    os.killpg(pgid, signal.SIGKILL)
+                    self.process.wait()
+            except ProcessLookupError:
+                # Process already terminated
+                self.logger.info("Process already terminated")
+            except Exception as e:
+                self.logger.error(f"Error stopping process: {e}")
+                # Fallback to regular terminate/kill
+                try:
+                    self.process.terminate()
+                    self.process.wait(timeout=timeout)
+                except subprocess.TimeoutExpired:
+                    self.process.kill()
+                    self.process.wait()
         
         if self.thread:
             self.thread.join(timeout=timeout)
