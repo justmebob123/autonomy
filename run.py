@@ -15,10 +15,34 @@ Usage:
 import argparse
 import sys
 import logging
+import signal
+import atexit
 from pathlib import Path
 
 # Import the pipeline module
 from pipeline import PhaseCoordinator, PipelineConfig
+
+# Global reference to runtime tester for signal handling
+_global_tester = None
+
+def cleanup_handler(signum=None, frame=None):
+    """Handle cleanup on exit or interrupt"""
+    global _global_tester
+    if _global_tester is not None:
+        print("\n🛑 Cleaning up processes...")
+        try:
+            _global_tester.stop()
+            print("✅ All processes stopped")
+        except Exception as e:
+            print(f"⚠️  Error during cleanup: {e}")
+    
+    if signum is not None:
+        sys.exit(130)  # Standard exit code for SIGINT
+
+# Register signal handlers
+signal.signal(signal.SIGINT, cleanup_handler)
+signal.signal(signal.SIGTERM, cleanup_handler)
+atexit.register(cleanup_handler)
 
 
 def discover_models(config: PipelineConfig) -> None:
@@ -229,6 +253,9 @@ def run_debug_qa_mode(args) -> int:
     consecutive_no_progress = 0
     max_no_progress = 10  # Allow more attempts before giving up
     
+    # Initialize runtime tester outside loop so it can be cleaned up on Ctrl-C
+    tester = None
+    
     try:
         while True:
             iteration += 1
@@ -359,6 +386,10 @@ def run_debug_qa_mode(args) -> int:
                         logger=logging.getLogger(__name__)
                     )
                     
+                    # Set global reference for signal handler
+                    global _global_tester
+                    _global_tester = tester
+                    
                     print("\n▶️  Starting program execution...")
                     tester.start()
                     
@@ -382,6 +413,10 @@ def run_debug_qa_mode(args) -> int:
                     
                     # Stop the tester
                     tester.stop()
+                    
+                    # Clear global reference
+                    global _global_tester
+                    _global_tester = None
                     
                     if runtime_errors_found:
                         print(f"\n❌ Found {len(runtime_errors_found)} runtime error(s)!")
@@ -715,9 +750,27 @@ def run_debug_qa_mode(args) -> int:
     except KeyboardInterrupt:
         print("\n\n👋 Exiting debug/QA mode...")
         log_monitor_active = False
+        
+        # Stop runtime tester if it exists
+        if tester is not None:
+            print("🛑 Stopping runtime tester...")
+            tester.stop()
+            print("✅ Runtime tester stopped")
+        
+        # Clear global reference
+        global _global_tester
+        _global_tester = None
+        
         return 0
     finally:
         log_monitor_active = False
+        
+        # Ensure tester is stopped in finally block too
+        if tester is not None:
+            try:
+                tester.stop()
+            except:
+                pass
 
 
 def main() -> int:
