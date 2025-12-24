@@ -354,6 +354,21 @@ You are debugging a runtime error in a Python application. This is NOT about cre
                 prompt += f"- `{method}`\n"
             prompt += "\n"
     
+    # Add all locations where this error occurs
+    locations = issue.get('locations', [])
+    if locations and len(locations) > 1:
+        prompt += f"## All Occurrences ({len(locations)} locations)\n\n"
+        for i, loc in enumerate(locations[:10], 1):  # Show first 10
+            prompt += f"{i}. Line {loc.get('line', '?')}"
+            if loc.get('function'):
+                prompt += f" in `{loc['function']}`"
+            if loc.get('code'):
+                prompt += f"\n   Code: `{loc['code']}`"
+            prompt += "\n"
+        if len(locations) > 10:
+            prompt += f"\n... and {len(locations) - 10} more locations\n"
+        prompt += "\n**Your fix should address ALL these locations.**\n\n"
+    
     # Add the problematic file content
     prompt += f"""## File Content: {filepath}
 

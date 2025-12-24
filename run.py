@@ -481,11 +481,22 @@ def run_debug_qa_mode(args) -> int:
                     print("\n💡 Tip: Use --command to run runtime tests automatically")
                     return 0
             
-            # Display error summary
+            # Deduplicate errors before processing
+            from pipeline.error_dedup import deduplicate_errors, format_deduplicated_summary
+            
             print(f"Found {len(all_errors)} total errors:")
             print(f"  • Syntax errors: {len(syntax_errors)}")
             print(f"  • Import errors: {len(import_errors)}")
             print(f"  • Runtime errors: {len(runtime_errors)}")
+            print()
+            
+            # Deduplicate to avoid fixing the same error multiple times
+            print("🔄 Deduplicating errors...")
+            deduplicated_errors = deduplicate_errors(all_errors)
+            print(f"   Reduced to {len(deduplicated_errors)} unique error(s)\n")
+            
+            if config.verbose:
+                print(format_deduplicated_summary(deduplicated_errors))
             print()
             
             # Display detailed errors
@@ -523,24 +534,22 @@ def run_debug_qa_mode(args) -> int:
             fixes_applied = 0
             fixes_attempted = 0
             
-            # Group errors by file for efficient processing
-            errors_by_file = defaultdict(list)
-            for error in all_errors:
-                file_path = error.get('file', 'unknown')
-                errors_by_file[file_path].append(error)
+            # Group deduplicated errors by file
+            from pipeline.error_dedup import group_errors_by_file
+            errors_by_file = group_errors_by_file(deduplicated_errors)
             
             # Process each file
-            for file_path, file_errors in errors_by_file.items():
+            for file_path, error_groups in errors_by_file.items():
                 # Skip unknown files (runtime errors without file info)
                 if file_path == 'unknown' or file_path == 'runtime':
-                    print(f"   ⚠️  Skipping {len(file_errors)} runtime errors without file location")
+                    print(f"   ⚠️  Skipping {len(error_groups)} error group(s) without file location")
                     print(f"   These errors need manual investigation:")
-                    for err in file_errors[:3]:
-                        print(f"      - {err.get('message', 'Unknown')[:80]}")
+                    for err_group in error_groups[:3]:
+                        print(f"      - {err_group.get('message', 'Unknown')[:80]} ({len(err_group.get('locations', []))} locations)")
                     continue
                 
-                print(f"📄 Processing {file_path} ({len(file_errors)} errors)...")
-                fixes_attempted += len(file_errors)
+                print(f"📄 Processing {file_path} ({len(error_groups)} error group(s), {sum(len(g.get('locations', [])) for g in error_groups)} total occurrences)...")
+                fixes_attempted += sum(len(g.get('locations', [])) for g in error_groups)
                 
                 # Verify file exists before processing
                 # Handle absolute paths
@@ -576,15 +585,18 @@ def run_debug_qa_mode(args) -> int:
                         import traceback
                         print(traceback.format_exc())
                 
-                # Run debugging phase for each error  
-                for error in file_errors:
-                    print(f"   🔧 Fixing: {error['type']} at line {error.get('line', '?')}")
+                # Run debugging phase for each error group
+                for error_group in error_groups:
+                    num_locations = len(error_group.get("locations", []))
+                    print(f"   🔧 Fixing: {error_group['type']} - {error_group['message'][:60]}...")
+                    print(f"      📍 {num_locations} occurrence(s) in {file_path}")
+                    
                     
                     # Build comprehensive debug context
                     from pipeline.debug_context import build_comprehensive_context, format_context_for_prompt
                     
                     print("      📊 Gathering debug context...")
-                    debug_context = build_comprehensive_context(error, project_dir)
+                    debug_context = build_comprehensive_context(error_group, project_dir)
                     
                     if config.verbose:
                         print(f"      - Call chain: {len(debug_context.get('call_chain', []))} frames")
@@ -601,7 +613,7 @@ def run_debug_qa_mode(args) -> int:
                     
                     # Get local context around error line
                     from pipeline.line_fixer import get_line_context
-                    error_line = error.get('line')
+                    error_line = error_group.get('locations', [{}])[0].get('line')  # Use first location
                     if error_line:
                         try:
                             file_full_path = project_dir / file_path if not Path(file_path).is_absolute() else Path(file_path)
@@ -612,15 +624,16 @@ def run_debug_qa_mode(args) -> int:
                     else:
                         local_context = "No line number available"
                     
-                    # Create comprehensive issue dict
+                    # Create comprehensive issue dict for the error group
                     issue = {
                         'filepath': file_path,
-                        'type': error['type'],
-                        'message': error['message'],
+                        'type': error_group['type'],
+                        'message': error_group['message'],
                         'line': error_line,
-                        'offset': error.get('offset'),
-                        'text': error.get('text'),
-                        'traceback': error.get('context', []),
+                        'locations': error_group.get('locations', []),  # All locations
+                        'offset': error_group.get('locations', [{}])[0].get('offset'),
+                        'text': error_group.get('locations', [{}])[0].get('code'),
+                        'traceback': error_group.get('context', []),
                         'call_chain': debug_context.get('call_chain', []),
                         'object_type': debug_context.get('object_type'),
                         'missing_attribute': debug_context.get('missing_attribute'),
