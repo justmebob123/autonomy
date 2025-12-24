@@ -155,6 +155,21 @@ class ProgramRunner:
                     self.process.wait()
                     self.logger.info("Process force killed")
                 
+                # Reap any zombie processes
+                try:
+                    import errno
+                    while True:
+                        try:
+                            # Reap any child processes (zombies)
+                            pid, status = os.waitpid(-1, os.WNOHANG)
+                            if pid == 0:
+                                break  # No more zombies
+                            self.logger.info(f"Reaped zombie process: {pid}")
+                        except ChildProcessError:
+                            break  # No more children
+                except Exception as e:
+                    self.logger.warning(f"Error reaping zombies: {e}")
+                
                 # Verify processes are gone
                 try:
                     result = subprocess.run(
