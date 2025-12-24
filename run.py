@@ -311,7 +311,15 @@ def run_debug_qa_mode(args) -> int:
             runtime_errors = []
             if log_errors:
                 print(f"📋 Phase 3: Processing {len(log_errors)} log errors...")
-                runtime_errors = log_errors.copy()
+                # Normalize log errors to match syntax/import error structure
+                for log_error in log_errors:
+                    runtime_errors.append({
+                        'file': 'runtime',
+                        'type': 'RuntimeError',
+                        'message': log_error.get('line', 'Unknown error'),
+                        'line': None,
+                        'timestamp': log_error.get('timestamp')
+                    })
                 log_errors.clear()
                 print()
             
@@ -409,14 +417,26 @@ def run_debug_qa_mode(args) -> int:
             
             # Display detailed errors
             for i, error in enumerate(all_errors[:10], 1):  # Show first 10
-                print(f"{i}. {error['type']} in {error.get('file', 'unknown')}")
-                if error.get('line'):
-                    print(f"   Line {error['line']}: {error['message']}")
-                    if error.get('text'):
-                        print(f"   Code: {error['text']}")
+                error_type = error.get('type', 'Error')
+                error_file = error.get('file', 'unknown')
+                
+                if error_type == 'RuntimeError':
+                    print(f"{i}. {error_type} at {error.get('timestamp', 'unknown time')}")
+                    msg = error.get('message', 'Unknown error')
+                    # Truncate long messages
+                    if len(msg) > 100:
+                        print(f"   {msg[:100]}...")
+                    else:
+                        print(f"   {msg}")
                 else:
-                    msg = error['message'][:100]
-                    print(f"   {msg}...")
+                    print(f"{i}. {error_type} in {error_file}")
+                    if error.get('line'):
+                        print(f"   Line {error['line']}: {error.get('message', '')}")
+                        if error.get('text'):
+                            print(f"   Code: {error['text']}")
+                    else:
+                        msg = error.get('message', 'Unknown error')[:100]
+                        print(f"   {msg}...")
                 print()
             
             if len(all_errors) > 10:
