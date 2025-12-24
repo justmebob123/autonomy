@@ -48,11 +48,11 @@ class PipelineConfig:
     verbose: int = 0  # 0=normal, 1=verbose, 2=very verbose
     
     # Timeouts (seconds) - None means no timeout (wait forever)
-    planning_timeout: Optional[int] = None
-    coding_timeout: Optional[int] = None
-    qa_timeout: Optional[int] = None
-    debug_timeout: Optional[int] = 180  # 3 minutes for complex debugging
-    request_timeout: Optional[int] = None
+    planning_timeout: Optional[int] = 300  # 5 minutes for planning
+    coding_timeout: Optional[int] = 600  # 10 minutes for coding (can be complex)
+    qa_timeout: Optional[int] = 300  # 5 minutes for QA
+    debug_timeout: Optional[int] = 600  # 10 minutes for CPU-only systems and complex debugging
+    request_timeout: Optional[int] = 300  # 5 minutes default for CPU systems
     
     # State management
     state_dir: str = ".pipeline"
@@ -63,18 +63,18 @@ class PipelineConfig:
     # 
     # Model selection rationale:
     # - planning: qwen2.5:14b - Good at structured thinking, uses native tools
-    # - coding: qwen2.5-coder:14b - Best code generation
+    # - coding: deepseek-coder-v2 (15.7B) - Best code generation available
     # - qa: qwen2.5:14b - Uses native tool calls properly
-    # - debugging: qwen2.5-coder:14b - Good at code analysis
+    # - debugging: deepseek-coder-v2 (15.7B) - Excellent at code analysis
     # - routing: functiongemma - Fast, specialized for function calling
     # - tool_formatting: functiongemma - Helps format malformed tool calls
     model_assignments: Dict[str, Tuple[str, str]] = field(default_factory=lambda: {
         # Primary tasks - use large models on ollama02 (MUCH faster)
         "planning":        ("qwen2.5:14b", "ollama02.thiscluster.net"),
-        "coding":          ("qwen2.5-coder:14b", "ollama02.thiscluster.net"),
+        "coding":          ("deepseek-coder-v2", "ollama02.thiscluster.net"),
         "qa":              ("qwen2.5:14b", "ollama02.thiscluster.net"),
-        "debugging":       ("qwen2.5-coder:14b", "ollama02.thiscluster.net"),
-        "debug":           ("qwen2.5-coder:14b", "ollama02.thiscluster.net"),
+        "debugging":       ("deepseek-coder-v2", "ollama02.thiscluster.net"),
+        "debug":           ("deepseek-coder-v2", "ollama02.thiscluster.net"),
         
         # Utility tasks - use smaller/specialized models on ollama02
         "routing":         ("functiongemma", "ollama02.thiscluster.net"),
