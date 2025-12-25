@@ -586,6 +586,7 @@ class DebuggingPhase(BasePhase):
                 prompt_registry=self.prompt_registry,
                 tool_registry=self.tool_registry,
                 client=self.client,
+                config=self.config,
                 logger=self.logger
             )
             
@@ -813,6 +814,7 @@ Remember:
                 prompt_registry=self.prompt_registry,
                 tool_registry=self.tool_registry,
                 client=self.client,
+                config=self.config,
                 logger=self.logger
             )
             
@@ -1194,6 +1196,7 @@ Remember:
                         prompt_registry=self.prompt_registry,
                         tool_registry=self.tool_registry,
                         client=self.client,
+                        config=self.config,
                         logger=self.logger
                     )
                     

@@ -821,58 +821,73 @@ def run_debug_qa_mode(args) -> int:
                         
                         # CRITICAL FIX #7: FORCED USER INTERVENTION
                         # Check if user intervention is required
+                        # AUTONOMOUS: Use AI UserProxy instead of blocking for human input
                         if debug_result.data and debug_result.data.get('requires_user_input'):
                             print("\n" + "="*70)
-                            print("🚨 USER INTERVENTION REQUIRED")
+                            print("🤖 AUTONOMOUS USER PROXY CONSULTATION")
                             print("="*70)
-                            print(f"\nThe AI system is stuck and needs your help.")
+                            print(f"\nThe AI system is stuck - consulting UserProxy specialist...")
                             print(f"Error: {issue.get('message', 'Unknown error')[:100]}")
                             print(f"File: {issue.get('filepath', 'Unknown file')}")
                             print(f"Line: {issue.get('line', 'Unknown line')}")
                             print(f"\nReason: {debug_result.message}")
                             print(f"Intervention count: {debug_result.data.get('intervention_count', 0)}")
-                            print("\nWhat would you like to do?")
-                            print("1. Provide guidance to the AI")
-                            print("2. Skip this error and continue")
-                            print("3. Exit debug mode")
                             
-                            try:
-                                choice = input("\nYour choice (1-3): ").strip()
+                            # Import and create UserProxyAgent
+                            from pipeline.user_proxy import UserProxyAgent
+                            user_proxy = UserProxyAgent(
+                                role_registry=coordinator.role_registry,
+                                prompt_registry=coordinator.prompt_registry,
+                                tool_registry=coordinator.tool_registry,
+                                client=coordinator.client,
+                                logger=logger
+                            )
+                            
+                            # Get guidance from AI specialist
+                            guidance_result = user_proxy.get_guidance(
+                                error_info={
+                                    'type': issue.get('type', 'Unknown'),
+                                    'message': issue.get('message', 'Unknown'),
+                                    'file': issue.get('filepath', 'Unknown'),
+                                    'line': issue.get('line', 'Unknown')
+                                },
+                                loop_info={
+                                    'type': 'multiple_interventions',
+                                    'iterations': debug_result.data.get('intervention_count', 0),
+                                    'pattern': 'stuck_in_loop'
+                                },
+                                debugging_history=debug_result.data.get('history', []),
+                                context={'issue': issue, 'debug_result': debug_result}
+                            )
+                            
+                            # Apply AI guidance
+                            guidance = guidance_result.get('guidance', '')
+                            action = guidance_result.get('action', 'continue')
+                            
+                            print(f"\n📋 UserProxy Guidance: {guidance}")
+                            print(f"📋 Recommended Action: {action}")
+                            
+                            if action == 'skip':
+                                print("\n⏭️  Skipping this error per AI guidance...")
+                                continue
+                            elif action == 'continue':
+                                # Add AI guidance to issue and retry
+                                issue['user_guidance'] = guidance
+                                print(f"\n🔄 Retrying with AI guidance...")
                                 
-                                if choice == '1':
-                                    guidance = input("\nYour guidance for the AI: ").strip()
-                                    if guidance:
-                                        # Add guidance to issue and retry
-                                        issue['user_guidance'] = guidance
-                                        print(f"\n📝 Added your guidance, retrying with AI...")
-                                        
-                                        # Retry with user guidance
-                                        retry_result = debug_phase.execute_with_conversation_thread(
-                                            state,
-                                            issue=issue,
-                                            max_attempts=3
-                                        )
-                                        
-                                        if retry_result.success:
-                                            print("      ✅ Fixed successfully with your guidance!")
-                                            fixes_applied += 1
-                                        else:
-                                            print(f"      ❌ Still failed: {retry_result.message}")
-                                    else:
-                                        print("      ⚠️  No guidance provided, skipping...")
+                                # Retry with AI guidance
+                                retry_result = debug_phase.execute_with_conversation_thread(
+                                    state,
+                                    issue=issue,
+                                    max_attempts=3
+                                )
                                 
-                                elif choice == '2':
-                                    print("      ⏭️  Skipping this error...")
-                                    continue
-                                
+                                if retry_result.success:
+                                    print("      ✅ Fixed successfully with AI guidance!")
+                                    fixes_applied += 1
                                 else:
-                                    print("      👋 Exiting debug mode...")
-                                    return 1
-                            
-                            except (KeyboardInterrupt, EOFError):
-                                print("\n      👋 Interrupted, exiting debug mode...")
-                                return 1
-                        
+                                    print(f"      ❌ Still failed: {retry_result.message}")
+
                         elif debug_result.success:
                             print("      ✅ Fixed successfully")
                             fixes_applied += 1

@@ -13,15 +13,20 @@ class UserProxyAgent:
     This ensures the system remains fully autonomous with no human blocking.
     """
     
-    def __init__(self, role_registry, prompt_registry, tool_registry, client, logger=None):
+    def __init__(self, role_registry, prompt_registry, tool_registry, client, config, logger=None):
         self.role_registry = role_registry
         self.prompt_registry = prompt_registry
         self.tool_registry = tool_registry
         self.client = client
+        self.config = config
         self.logger = logger or logging.getLogger(__name__)
         
         # Track if we've created the user proxy role
         self._user_proxy_created = False
+        
+        # Initialize ToolAdvisor for FunctionGemma support
+        from pipeline.agents.tool_advisor import ToolAdvisor
+        self.tool_advisor = ToolAdvisor(client, config)
     
     def _ensure_user_proxy_role_exists(self) -> bool:
         """
@@ -47,12 +52,7 @@ class UserProxyAgent:
                 "Provide high-level guidance without specific code changes",
                 "Identify when to escalate to different specialists"
             ],
-            "tools": [
-                "read_file",
-                "search_code",
-                "list_directory",
-                "execute_command"
-            ],
+            "tools": "ALL",  # UserProxy gets access to ALL tools
             "model": "qwen2.5:14b",
             "server": "ollama02.thiscluster.net",
             "collaboration_pattern": "sequential",
@@ -143,17 +143,36 @@ Iterations: {loop_info.get('iterations', 0)}
 Pattern: {loop_info.get('pattern', 'Unknown')}
 """
         
-        # Consult the specialist
+        # Create a conversation thread for the specialist
+        from pipeline.conversation_thread import ConversationThread
+        thread = ConversationThread(
+            filepath=error_info.get('file', 'unknown'),
+            error_type=error_info.get('type', 'Unknown'),
+            error_message=error_info.get('message', 'Unknown'),
+            line_number=error_info.get('line', 0)
+        )
+        
+        # Add context to thread
+        thread.add_message(
+            role="system",
+            content=f"DEBUGGING HISTORY:\n{history_text}\n\nCURRENT ERROR:\n{error_text}\n\nLOOP PATTERN:\n{loop_text}"
+        )
+        
+        # Get ALL tools from tool registry
+        from pipeline.tools import PIPELINE_TOOLS, TOOLS_DEBUGGING
+        all_tools = PIPELINE_TOOLS + TOOLS_DEBUGGING
+        
+        # Use ToolAdvisor to help select best tools for this task
+        task_desc = f"Analyze debugging loop and provide guidance. Error: {error_info.get('message', 'Unknown')}"
+        suggested_tools = self.tool_advisor.suggest_tools(task_desc, all_tools)
+        self.logger.info(f"ToolAdvisor suggested tools: {suggested_tools}")
+        
+        # Consult the specialist with ALL tools
         try:
             result = self.role_registry.consult_specialist(
-                specialist_name="user_proxy",
-                task_description="Provide guidance to break debugging loop",
-                context={
-                    "history": history_text,
-                    "error_info": error_text,
-                    "loop_info": loop_text,
-                    **context
-                }
+                name="user_proxy",
+                thread=thread,
+                tools=all_tools  # Give UserProxy ALL tools
             )
             
             if result.get("success"):
