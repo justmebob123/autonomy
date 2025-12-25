@@ -6,6 +6,7 @@ Fixes code issues identified by QA.
 
 from datetime import datetime
 from typing import Dict, List, Optional
+from pathlib import Path
 
 from .base import BasePhase, PhaseResult
 from ..state.manager import PipelineState, TaskState, TaskStatus, FileStatus
@@ -18,6 +19,9 @@ from ..conversation_thread import ConversationThread
 from ..specialist_agents import SpecialistTeam
 from ..failure_prompts import get_retry_prompt
 from ..sudo_filter import filter_sudo_from_tool_calls
+from ..action_tracker import ActionTracker
+from ..pattern_detector import PatternDetector
+from ..loop_intervention import LoopInterventionSystem
 
 
 class DebuggingPhase(BasePhase):
@@ -40,6 +44,60 @@ class DebuggingPhase(BasePhase):
         # Directory for conversation threads
         self.threads_dir = self.project_dir / "conversation_threads"
         self.threads_dir.mkdir(exist_ok=True)
+        
+        # Initialize loop detection system
+        logs_dir = self.project_dir / ".autonomous_logs"
+        logs_dir.mkdir(exist_ok=True)
+        self.action_tracker = ActionTracker(
+            history_file=logs_dir / "action_history.jsonl"
+        )
+        self.pattern_detector = PatternDetector(self.action_tracker)
+        self.loop_intervention = LoopInterventionSystem(
+            self.action_tracker,
+            self.pattern_detector,
+            self.logger
+        )
+    
+    def _track_tool_calls(self, tool_calls: List[Dict], results: List[Dict], agent: str = "main"):
+        """Track tool calls for loop detection"""
+        for tool_call, result in zip(tool_calls, results):
+            tool_name = tool_call.get('tool', 'unknown')
+            args = tool_call.get('args', {})
+            
+            # Extract file path if present
+            file_path = None
+            if 'file_path' in args:
+                file_path = args['file_path']
+            elif 'filepath' in args:
+                file_path = args['filepath']
+            
+            # Track the action
+            self.action_tracker.track_action(
+                phase=self.phase_name,
+                agent=agent,
+                tool=tool_name,
+                args=args,
+                result=result,
+                file_path=file_path,
+                success=result.get('success', False)
+            )
+    
+    def _check_for_loops(self) -> Optional[Dict]:
+        """Check for loops and intervene if necessary"""
+        intervention = self.loop_intervention.check_and_intervene()
+        
+        if intervention:
+            # Log the intervention
+            self.logger.warning("=" * 80)
+            self.logger.warning("LOOP DETECTED - INTERVENTION REQUIRED")
+            self.logger.warning("=" * 80)
+            self.logger.warning(intervention['guidance'])
+            self.logger.warning("=" * 80)
+            
+            # Return intervention for AI to see
+            return intervention
+        
+        return None
     
     def execute(self, state: PipelineState,
                 issue: Dict = None,
@@ -207,6 +265,20 @@ class DebuggingPhase(BasePhase):
         activity_log = self.project_dir / 'ai_activity.log'
         handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log))
         results = handler.process_tool_calls(tool_calls)
+        
+        # Track actions for loop detection
+        self._track_tool_calls(tool_calls, results, agent="main")
+        
+        # Check for loops
+        intervention = self._check_for_loops()
+        if intervention and intervention.get('requires_user_input'):
+            # Critical: Must escalate to user
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message=f"Loop detected - user intervention required: {intervention['guidance'][:200]}",
+                data={'intervention': intervention}
+            )
         
         # Show activity summary
         self.logger.info(handler.get_activity_summary())
@@ -389,6 +461,20 @@ Remember:
         activity_log = self.project_dir / 'ai_activity.log'
         handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log))
         results = handler.process_tool_calls(tool_calls)
+        
+        # Track actions for loop detection
+        self._track_tool_calls(tool_calls, results, agent="retry")
+        
+        # Check for loops
+        intervention = self._check_for_loops()
+        if intervention and intervention.get('requires_user_input'):
+            # Critical: Must escalate to user
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message=f"Loop detected during retry - user intervention required",
+                data={'intervention': intervention}
+            )
         
         # Show activity summary
         self.logger.info(handler.get_activity_summary())
@@ -575,6 +661,27 @@ Remember:
             activity_log = self.project_dir / 'ai_activity.log'
             handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log))
             results = handler.process_tool_calls(tool_calls)
+            
+            # Track actions for loop detection
+            self._track_tool_calls(tool_calls, results, agent="conversation")
+            
+            # Check for loops
+            intervention = self._check_for_loops()
+            if intervention:
+                # Add intervention guidance to thread
+                thread.add_message(
+                    role="system",
+                    content=f"⚠️ LOOP DETECTED\n\n{intervention['guidance']}"
+                )
+                
+                if intervention.get('requires_user_input'):
+                    # Critical: Must escalate to user
+                    return PhaseResult(
+                        success=False,
+                        phase=self.phase_name,
+                        message=f"Loop detected - user intervention required",
+                        data={'intervention': intervention, 'thread': thread}
+                    )
             
             # Add results to thread
             thread.add_message(
