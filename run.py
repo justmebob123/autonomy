@@ -898,10 +898,11 @@ def run_debug_qa_mode(args) -> int:
                 
                 # Restart the test
                 print(f"▶️  Restarting test: {args.test_command}\n")
-                tester = ProgramRunner(
+                tester = RuntimeTester(
                     command=args.test_command,
-                    cwd=project_dir,
-                    log_file=log_file
+                    working_dir=project_dir,
+                    log_file=log_file,
+                    logger=logging.getLogger(__name__)
                 )
                 tester.start()
                 
