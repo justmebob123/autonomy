@@ -99,9 +99,9 @@ class ToolCallHandler:
         file_lines = []
         
         # Format output based on tool type and verbosity
-        if tool_name == 'modify_python_file':
-            file_path = args.get('file_path', 'unknown')
-            operation = args.get('operation', 'unknown')
+        if tool_name in ['modify_python_file', 'modify_file']:
+            file_path = args.get('filepath', args.get('file_path', args.get('path', 'unknown')))
+            operation = args.get('operation', 'str_replace')
             
             # Normal mode: Just file and operation
             console_lines.append(f"🔧 [AI Activity] Modifying file: {file_path}")
@@ -138,7 +138,7 @@ class ToolCallHandler:
                         console_lines.append(f"      ├─ {key}: {value}")
                 
         elif tool_name == 'read_file':
-            file_path = args.get('file_path', 'unknown')
+            file_path = args.get('filepath', args.get('file_path', args.get('path', 'unknown')))
             console_lines.append(f"📖 [AI Activity] Reading file: {file_path}")
             file_lines.append(f"[{activity['timestamp']}] READ: {file_path}")
             
