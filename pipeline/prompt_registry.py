@@ -207,7 +207,7 @@ class PromptRegistry:
             )
         """
         if name not in self.prompts:
-            self.logger.warning(f"Prompt not found: {name}")
+            self.logger.debug(f"Custom prompt not found: {name} (will use default)")
             return None
         
         spec = self.prompts[name]
