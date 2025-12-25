@@ -202,20 +202,19 @@ class FunctionGemmaFormatter:
         self.client = client
         self.logger = get_logger()
     
+    def _find_gemma_host(self) -> Optional[str]:
+        """Find a server with functiongemma available."""
+        for host, models in self.client.available_models.items():
+            for model in models:
+                if 'functiongemma' in model.lower():
+                    return host
+        return None
+    
     def format_tool_call(self, raw_output: str, available_tools: List[Dict]) -> Optional[Dict]:
         """
         Use functiongemma to extract/format a tool call from raw model output.
         """
-        # Find functiongemma
-        gemma_host = None
-        for host, models in self.client.available_models.items():
-            for model in models:
-                if 'functiongemma' in model.lower():
-                    gemma_host = host
-                    break
-            if gemma_host:
-                break
-        
+        gemma_host = self._find_gemma_host()
         if not gemma_host:
             self.logger.debug("  functiongemma not available for formatting")
             return None
@@ -266,6 +265,110 @@ Output ONLY the JSON, nothing else:"""
                     pass
         except Exception as e:
             self.logger.debug(f"  functiongemma formatting failed: {e}")
+        
+        return None
+    
+    def validate_and_fix_tool_call(self, tool_call: Dict, available_tools: List[Dict], 
+                                   file_content: str = None, error_message: str = None) -> Optional[Dict]:
+        """
+        Use FunctionGemma to validate and fix a tool call.
+        
+        This is especially useful for modify_python_file when original_code doesn't match.
+        
+        Args:
+            tool_call: The tool call to validate/fix
+            available_tools: List of available tools
+            file_content: Optional file content for context
+            error_message: Optional error message if this is a retry
+            
+        Returns:
+            Fixed tool call or None if can't be fixed
+        """
+        gemma_host = self._find_gemma_host()
+        if not gemma_host:
+            return None
+        
+        func = tool_call.get('function', {})
+        name = func.get('name', 'unknown')
+        args = func.get('arguments', {})
+        
+        # Build context
+        context_parts = []
+        if error_message:
+            context_parts.append(f"Previous error: {error_message}")
+        if file_content:
+            context_parts.append(f"File content (first 1000 chars):\n{file_content[:1000]}")
+        
+        context = "\n\n".join(context_parts) if context_parts else "No additional context"
+        
+        # Build tool descriptions
+        tool_descriptions = []
+        for tool in available_tools:
+            t_func = tool.get("function", {})
+            t_name = t_func.get("name", "unknown")
+            t_desc = t_func.get("description", "")
+            t_params = t_func.get("parameters", {}).get("properties", {})
+            t_required = t_func.get("parameters", {}).get("required", [])
+            
+            param_list = []
+            for p_name, p_info in t_params.items():
+                req = " (required)" if p_name in t_required else ""
+                param_list.append(f"{p_name}{req}")
+            
+            tool_descriptions.append(f"- {t_name}({', '.join(param_list)}): {t_desc}")
+        
+        tools_text = "\n".join(tool_descriptions)
+        
+        prompt = f"""You are a tool call validator. Fix this tool call if needed.
+
+Tool call to validate:
+{json.dumps({"name": name, "arguments": args}, indent=2)}
+
+Available tools:
+{tools_text}
+
+Context:
+{context}
+
+Instructions:
+1. Check if the tool name is correct
+2. Check if all required parameters are present
+3. For modify_python_file, ensure original_code EXACTLY matches the file content
+4. Fix any issues you find
+
+Output ONLY valid JSON in this format:
+{{"name": "tool_name", "arguments": {{"param": "value"}}}}
+
+Output the corrected tool call now:"""
+        
+        messages = [{"role": "user", "content": prompt}]
+        
+        try:
+            response = self.client.chat(
+                gemma_host,
+                "functiongemma:latest",
+                messages,
+                tools=None,
+                temperature=0.1,
+                timeout=None  # UNLIMITED
+            )
+            
+            content = response.get("message", {}).get("content", "")
+            if content:
+                # Try to parse the response
+                try:
+                    # Extract JSON from response
+                    import re
+                    json_match = re.search(r'\{[^{}]*"name"[^{}]*"arguments"[^{}]*\}', content, re.DOTALL)
+                    if json_match:
+                        data = json.loads(json_match.group(0))
+                        if "name" in data and "arguments" in data:
+                            self.logger.info(f"  ✅ FunctionGemma validated/fixed tool call: {data['name']}")
+                            return {"function": data}
+                except json.JSONDecodeError as e:
+                    self.logger.debug(f"  Failed to parse FunctionGemma response: {e}")
+        except Exception as e:
+            self.logger.debug(f"  FunctionGemma validation failed: {e}")
         
         return None
 

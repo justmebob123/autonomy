@@ -1339,6 +1339,53 @@ Remember:
                         error_message = result.get('error', 'Unknown error')
                         failure_analysis = result.get('failure_analysis')
                         self.logger.warning(f"  ❌ Modification failed: {error_message}")
+                        
+                        # CRITICAL: Try to fix with FunctionGemma if original code not found
+                        if 'Original code not found' in error_message or 'not found in file' in error_message:
+                            self.logger.info("  🔧 Attempting to fix tool call with FunctionGemma...")
+                            
+                            # Get the failed tool call
+                            failed_call = None
+                            for call in tool_calls:
+                                if call.get('function', {}).get('name') in ['modify_python_file', 'modify_file']:
+                                    failed_call = call
+                                    break
+                            
+                            if failed_call and hasattr(self, 'parser') and hasattr(self.parser, 'gemma_formatter'):
+                                # Read current file content
+                                filepath = result.get('filepath', issue.get('filepath'))
+                                file_content = self.read_file(filepath) if filepath else None
+                                
+                                # Try to fix with FunctionGemma
+                                fixed_call = self.parser.gemma_formatter.validate_and_fix_tool_call(
+                                    tool_call=failed_call,
+                                    available_tools=tools,
+                                    file_content=file_content,
+                                    error_message=error_message
+                                )
+                                
+                                if fixed_call:
+                                    self.logger.info("  ✅ FunctionGemma fixed the tool call, retrying...")
+                                    
+                                    # Re-execute with fixed call
+                                    verbose = getattr(self.config, 'verbose', 0) if hasattr(self, 'config') else 0
+                                    activity_log = self.project_dir / 'ai_activity.log'
+                                    retry_handler = ToolCallHandler(self.project_dir, verbose=verbose, 
+                                                                   activity_log_file=str(activity_log), 
+                                                                   tool_registry=self.tool_registry)
+                                    
+                                    retry_results = retry_handler.process_tool_calls([fixed_call])
+                                    
+                                    # Check if retry succeeded
+                                    for retry_result in retry_results:
+                                        if retry_result.get('tool') == 'modify_file' and retry_result.get('success'):
+                                            success = True
+                                            error_message = None
+                                            self.logger.info("  🎉 FunctionGemma fix succeeded!")
+                                            results = retry_results  # Use retry results
+                                            break
+                                else:
+                                    self.logger.warning("  ❌ FunctionGemma could not fix the tool call")
             
             # Record attempt
             original_code = ""
