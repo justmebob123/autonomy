@@ -11,6 +11,7 @@ from pathlib import Path
 from .logging_setup import get_logger
 from .utils import validate_python_syntax
 from .process_manager import ProcessBaseline, SafeProcessManager, ResourceMonitor
+from .failure_analyzer import FailureAnalyzer, ModificationFailure, create_failure_report
 
 
 class ToolCallHandler:
@@ -45,6 +46,11 @@ class ToolCallHandler:
         self.process_baseline = ProcessBaseline()
         self.process_manager = SafeProcessManager(self.process_baseline)
         self.resource_monitor = ResourceMonitor()
+        
+        # Failure analysis
+        self.failure_analyzer = FailureAnalyzer(logger=self.logger)
+        self.failures_dir = self.project_dir / "failures"
+        self.failures_dir.mkdir(exist_ok=True)
         
         # Tool handlers
         self._handlers: Dict[str, Callable] = {
@@ -417,28 +423,66 @@ class ToolCallHandler:
                 
                 if not found:
                     self.logger.warning(f"  ⚠️ Original code not found in {filepath}")
+                    
+                    # ENHANCED: Create failure analysis
+                    failure = ModificationFailure(
+                        filepath=filepath,
+                        original_content=content,
+                        modified_content=None,
+                        intended_original=original,
+                        intended_replacement=new_code,
+                        error_message="Original code not found in file"
+                    )
+                    
+                    analysis = self.failure_analyzer.analyze_modification_failure(failure)
+                    
+                    # Save detailed failure report
+                    report_path = create_failure_report(failure, analysis, self.failures_dir)
+                    self.logger.info(f"  📄 Failure analysis saved: {report_path.name}")
+                    
                     # Try to find similar code
                     similar = self._find_similar_code(content, original)
                     error_msg = "Original code not found in file"
                     if similar:
                         error_msg += f". Did you mean:\n{similar[:200]}"
+                    
                     return {
                         "tool": "modify_file", 
                         "success": False,
                         "error": error_msg,
-                        "filepath": filepath
+                        "filepath": filepath,
+                        "failure_analysis": analysis,
+                        "failure_report": str(report_path),
+                        "ai_feedback": analysis["ai_feedback"]
                     }
         
         # Validate Python syntax
         if filepath.endswith('.py'):
             valid, error = validate_python_syntax(new_content)
             if not valid:
+                # ENHANCED: Create failure analysis for syntax errors
+                failure = ModificationFailure(
+                    filepath=filepath,
+                    original_content=content,
+                    modified_content=new_content,
+                    intended_original=original,
+                    intended_replacement=new_code,
+                    error_message=f"Modified code has syntax error: {error}"
+                )
+                
+                analysis = self.failure_analyzer.analyze_modification_failure(failure)
+                report_path = create_failure_report(failure, analysis, self.failures_dir)
+                self.logger.info(f"  📄 Syntax error analysis saved: {report_path.name}")
+                
                 return {
                     "tool": "modify_file", 
                     "success": False,
                     "error": f"Modified code has syntax error: {error}",
                     "filepath": filepath,
-                    "error_type": "syntax_error"
+                    "error_type": "syntax_error",
+                    "failure_analysis": analysis,
+                    "failure_report": str(report_path),
+                    "ai_feedback": analysis["ai_feedback"]
                 }
         
         # Generate and save patch before applying changes
@@ -528,6 +572,21 @@ class ToolCallHandler:
             for err in verification_errors:
                 self.logger.error(f"     - {err}")
             
+            # ENHANCED: Create failure analysis for verification failures
+            failure = ModificationFailure(
+                filepath=filepath,
+                original_content=content,
+                modified_content=written_content,
+                intended_original=original,
+                intended_replacement=new_code,
+                error_message="Post-fix verification failed: " + "; ".join(verification_errors),
+                patch=patch_content if 'patch_content' in locals() else None
+            )
+            
+            analysis = self.failure_analyzer.analyze_modification_failure(failure)
+            report_path = create_failure_report(failure, analysis, self.failures_dir)
+            self.logger.info(f"  📄 Verification failure analysis saved: {report_path.name}")
+            
             # Attempt rollback if we have a patch
             if patch_content and 'patch_path' in locals():
                 self.logger.warning(f"  🔄 Attempting rollback using patch...")
@@ -540,7 +599,10 @@ class ToolCallHandler:
                         "success": False,
                         "error": "Post-fix verification failed: " + "; ".join(verification_errors),
                         "filepath": filepath,
-                        "rolled_back": True
+                        "rolled_back": True,
+                        "failure_analysis": analysis,
+                        "failure_report": str(report_path),
+                        "ai_feedback": analysis["ai_feedback"]
                     }
                 except Exception as rollback_error:
                     self.logger.error(f"  ❌ Rollback failed: {rollback_error}")
@@ -549,7 +611,10 @@ class ToolCallHandler:
                         "success": False,
                         "error": "Post-fix verification failed AND rollback failed: " + "; ".join(verification_errors),
                         "filepath": filepath,
-                        "rolled_back": False
+                        "rolled_back": False,
+                        "failure_analysis": analysis,
+                        "failure_report": str(report_path),
+                        "ai_feedback": analysis["ai_feedback"]
                     }
             else:
                 return {
@@ -557,7 +622,10 @@ class ToolCallHandler:
                     "success": False,
                     "error": "Post-fix verification failed: " + "; ".join(verification_errors),
                     "filepath": filepath,
-                    "rolled_back": False
+                    "rolled_back": False,
+                    "failure_analysis": analysis,
+                    "failure_report": str(report_path),
+                    "ai_feedback": analysis["ai_feedback"]
                 }
         
         self.logger.info(f"  ✅ Verification passed")

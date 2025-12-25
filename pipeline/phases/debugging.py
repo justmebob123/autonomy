@@ -206,6 +206,34 @@ class DebuggingPhase(BasePhase):
                     error = result.get("error", "Unknown error")
                     self.logger.warning(f"  Fix failed: {error}")
                     
+                    # ENHANCED: Check if we have AI feedback from failure analysis
+                    ai_feedback = result.get("ai_feedback")
+                    failure_report = result.get("failure_report")
+                    
+                    if ai_feedback:
+                        self.logger.info(f"  📋 Detailed failure analysis available")
+                        if failure_report:
+                            self.logger.info(f"  📄 Report: {failure_report}")
+                        
+                        # If we have AI feedback, we should retry with this information
+                        # For now, include it in the error data
+                        return PhaseResult(
+                            success=False,
+                            phase=self.phase_name,
+                            message=f"Fix failed: {error}",
+                            errors=[{
+                                "type": "fix_failed", 
+                                "message": error,
+                                "ai_feedback": ai_feedback,
+                                "failure_report": failure_report
+                            }],
+                            data={
+                                "should_retry": True,
+                                "ai_feedback": ai_feedback,
+                                "failure_analysis": result.get("failure_analysis")
+                            }
+                        )
+                    
                     return PhaseResult(
                         success=False,
                         phase=self.phase_name,
@@ -244,6 +272,155 @@ class DebuggingPhase(BasePhase):
             message=f"Fixed issue in {filepath}",
             files_modified=handler.files_modified,
             data={"issue": issue, "filepath": filepath}
+        )
+    
+    def retry_with_feedback(self, state: PipelineState, 
+                           issue: Dict,
+                           ai_feedback: str,
+                           previous_attempt: Dict = None) -> PhaseResult:
+        """
+        Retry fixing an issue with detailed failure feedback.
+        
+        This method provides the AI with comprehensive information about
+        why the previous attempt failed.
+        """
+        
+        filepath = issue.get("filepath")
+        if not filepath:
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message="Issue has no filepath"
+            )
+        
+        # Normalize filepath
+        filepath = filepath.lstrip('/').replace('\\', '/')
+        if filepath.startswith('./'):
+            filepath = filepath[2:]
+        
+        self.logger.info(f"  🔄 Retrying fix with failure analysis: {filepath}")
+        
+        # Read current content
+        content = self.read_file(filepath)
+        if not content:
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message=f"File not found: {filepath}"
+            )
+        
+        # Build enhanced prompt with failure feedback
+        retry_prompt = f"""# RETRY: Fix with Failure Analysis
+
+You previously attempted to fix this issue but the modification failed.
+Here is detailed analysis of what went wrong and how to fix it.
+
+{ai_feedback}
+
+## Current Task
+Fix the following issue in `{filepath}`:
+
+**Issue Type:** {issue.get('type')}
+**Description:** {issue.get('description', '')}
+**Line:** {issue.get('line', 'N/A')}
+
+## Current File Content
+```python
+{content}
+```
+
+## Instructions
+1. READ the failure analysis carefully
+2. UNDERSTAND why the previous attempt failed
+3. FOLLOW the suggestions provided
+4. Use the correct tool calls to fix the issue
+5. VERIFY your code before applying changes
+
+Remember:
+- Copy EXACT code from the file, including all whitespace
+- Use larger code blocks with context if needed
+- Test your replacement code for syntax errors
+- Match the indentation of surrounding code
+"""
+        
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPTS["debugging"]},
+            {"role": "user", "content": retry_prompt}
+        ]
+        
+        # Get tools
+        tools = get_tools_for_phase("debugging")
+        
+        # Send request
+        response = self.chat(messages, tools, task_type="debugging")
+        
+        if "error" in response:
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message=f"Retry failed: {response['error']}"
+            )
+        
+        # Parse response
+        tool_calls, _ = self.parser.parse_response(response)
+        
+        if not tool_calls:
+            self.logger.warning("  No fix applied in retry attempt")
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message="Retry: No modifications made"
+            )
+        
+        # Execute tool calls
+        verbose = getattr(self.config, 'verbose', 0) if hasattr(self, 'config') else 0
+        activity_log = self.project_dir / 'ai_activity.log'
+        handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log))
+        results = handler.process_tool_calls(tool_calls)
+        
+        # Show activity summary
+        self.logger.info(handler.get_activity_summary())
+        
+        if not handler.files_modified:
+            # Check for errors
+            for result in results:
+                if not result.get("success"):
+                    error = result.get("error", "Unknown error")
+                    self.logger.warning(f"  Retry failed: {error}")
+                    
+                    return PhaseResult(
+                        success=False,
+                        phase=self.phase_name,
+                        message=f"Retry failed: {error}",
+                        errors=[{"type": "retry_failed", "message": error}]
+                    )
+            
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message="Retry: No modifications made"
+            )
+        
+        # Success
+        self.logger.info(f"  ✅ Retry successful: {filepath}")
+        
+        # Update file hash
+        for modified_file in handler.files_modified:
+            file_hash = self.file_tracker.update_hash(modified_file)
+            full_path = self.project_dir / modified_file
+            if full_path.exists():
+                state.update_file(modified_file, file_hash, full_path.stat().st_size)
+        
+        # Mark file for re-review
+        if filepath in state.files:
+            state.files[filepath].qa_status = FileStatus.PENDING
+        
+        return PhaseResult(
+            success=True,
+            phase=self.phase_name,
+            message=f"Retry successful: Fixed issue in {filepath}",
+            files_modified=handler.files_modified,
+            data={"issue": issue, "filepath": filepath, "retry": True}
         )
     
     def fix_all_issues(self, state: PipelineState, 

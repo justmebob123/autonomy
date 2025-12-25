@@ -751,8 +751,40 @@ def run_debug_qa_mode(args) -> int:
                         else:
                             print(f"      ⚠️  Could not fix: {debug_result.message}")
                             
+                            # ENHANCED: Check if we should retry with failure analysis
+                            if debug_result.data and debug_result.data.get("should_retry"):
+                                ai_feedback = debug_result.data.get("ai_feedback")
+                                if ai_feedback:
+                                    print("      🔄 Retrying with failure analysis...")
+                                    try:
+                                        retry_result = debug_phase.retry_with_feedback(
+                                            state, 
+                                            issue, 
+                                            ai_feedback
+                                        )
+                                        
+                                        if retry_result.success:
+                                            print("      ✅ Retry successful!")
+                                            fixes_applied += 1
+                                        else:
+                                            print(f"      ⚠️  Retry failed: {retry_result.message}")
+                                            
+                                            # Fall back to line-based fix if available
+                                            if "Original code not found" in debug_result.message and error_line:
+                                                print("      🔄 Attempting line-based fix...")
+                                                if attempt_line_based_fix(file_full_path, error_line, error):
+                                                    print("      ✅ Fixed with line-based approach")
+                                                    fixes_applied += 1
+                                                else:
+                                                    print("      ❌ Line-based fix also failed")
+                                    except Exception as retry_error:
+                                        print(f"      ❌ Retry error: {retry_error}")
+                                        if config.verbose:
+                                            import traceback
+                                            print(traceback.format_exc())
+                            
                             # If the fix failed due to string matching, try a simpler approach
-                            if "Original code not found" in debug_result.message and error_line:
+                            elif "Original code not found" in debug_result.message and error_line:
                                 print("      🔄 Attempting line-based fix...")
                                 if attempt_line_based_fix(file_full_path, error_line, error):
                                     print("      ✅ Fixed with line-based approach")
