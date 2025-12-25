@@ -497,8 +497,29 @@ def run_debug_qa_mode(args) -> int:
                         for error in runtime_errors_found:
                             error_type = error.get('type', 'error')
                             context = error.get('context', [])
-                            # Get the actual error message (last line of context, or the line field)
-                            error_msg = context[-1] if context else error.get('line', '')
+                            
+                            # CRITICAL FIX: Extract the actual error message from traceback
+                            # The last line might be "Log file: ..." or other non-error text
+                            # We need to find the line with the actual Python exception
+                            error_msg = None
+                            actual_exception_type = None
+                            
+                            for line in reversed(context):
+                                line_stripped = line.strip()
+                                if line_stripped and ('Error:' in line_stripped or 'Exception:' in line_stripped):
+                                    # Check if this looks like a Python exception (not "ERROR:" log message)
+                                    if not line_stripped.startswith('ERROR:') and not line_stripped.startswith('File'):
+                                        error_msg = line_stripped
+                                        # Extract exception type
+                                        match = re.match(r'(\w+(?:Error|Exception)):\s*(.+)', line_stripped)
+                                        if match:
+                                            actual_exception_type = match.group(1)
+                                            error_msg = match.group(2)  # Just the message part
+                                        break
+                            
+                            # Fallback if no exception found
+                            if not error_msg:
+                                error_msg = context[-1] if context else error.get('line', '')
                             
                             # Skip ERROR types - they don't have tracebacks
                             # Only process EXCEPTION types which have full context
@@ -555,9 +576,12 @@ def run_debug_qa_mode(args) -> int:
                                         if config.verbose:
                                             print(f"  Could not grep for error: {e}")
                             
+                            # Use the actual exception type if we found it, otherwise default to RuntimeError
+                            final_error_type = actual_exception_type if actual_exception_type else 'RuntimeError'
+                            
                             runtime_errors.append({
                                 'file': file_path or 'unknown',
-                                'type': 'RuntimeError',
+                                'type': final_error_type,  # Use actual Python exception type
                                 'message': error_msg,
                                 'line': line_num,
                                 'context': context,

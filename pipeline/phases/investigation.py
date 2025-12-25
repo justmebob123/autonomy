@@ -195,22 +195,44 @@ Start your investigation now by using the available tools."""
         
         content_lower = content.lower()
         
-        # Try to extract root cause
+        # Try to extract root cause - get the full section, not just one sentence
         if "root cause" in content_lower:
-            # Find the sentence containing "root cause"
-            sentences = content.split('.')
-            for sentence in sentences:
-                if "root cause" in sentence.lower():
-                    findings["root_cause"] = sentence.strip()
-                    break
+            # Find the section containing "root cause"
+            import re
+            # Look for "Root Cause" section (case insensitive)
+            match = re.search(r'(?:###?\s*)?(?:Step \d+:?\s*)?(?:Identify the )?Root Cause[:\s]*\n+(.*?)(?=\n\n|###|$)', content, re.IGNORECASE | re.DOTALL)
+            if match:
+                findings["root_cause"] = match.group(1).strip()
+            else:
+                # Fallback: Find sentences containing "root cause"
+                sentences = content.split('.')
+                root_cause_sentences = []
+                for i, sentence in enumerate(sentences):
+                    if "root cause" in sentence.lower():
+                        # Take this sentence and the next 2-3 sentences for context
+                        root_cause_sentences = sentences[i:min(i+3, len(sentences))]
+                        break
+                if root_cause_sentences:
+                    findings["root_cause"] = '. '.join(s.strip() for s in root_cause_sentences if s.strip())
         
-        # Try to extract recommended fix
+        # Try to extract recommended fix - get the full section
         if "recommend" in content_lower or "fix" in content_lower:
-            sentences = content.split('.')
-            for sentence in sentences:
-                if "recommend" in sentence.lower() or "should fix" in sentence.lower():
-                    findings["recommended_fix"] = sentence.strip()
-                    break
+            import re
+            # Look for "Recommended Fix" or "Fix Strategy" section
+            match = re.search(r'(?:###?\s*)?(?:Step \d+:?\s*)?(?:Recommend a )?Fix Strategy[:\s]*\n+(.*?)(?=\n\n|###|$)', content, re.IGNORECASE | re.DOTALL)
+            if match:
+                findings["recommended_fix"] = match.group(1).strip()
+            else:
+                # Fallback: Find sentences containing "recommend" or "fix"
+                sentences = content.split('.')
+                fix_sentences = []
+                for i, sentence in enumerate(sentences):
+                    if "recommend" in sentence.lower() or "should fix" in sentence.lower():
+                        # Take this sentence and the next 2-3 sentences for context
+                        fix_sentences = sentences[i:min(i+3, len(sentences))]
+                        break
+                if fix_sentences:
+                    findings["recommended_fix"] = '. '.join(s.strip() for s in fix_sentences if s.strip())
         
         # Look for file mentions
         import re

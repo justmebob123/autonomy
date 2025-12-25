@@ -79,8 +79,9 @@ class PipelineConfig:
         "qa":              ("qwen2.5:14b", "ollama01.thiscluster.net"),
         "routing":         ("functiongemma", "ollama01.thiscluster.net"),
         
-        # ollama02: Coding, debugging (heavier workloads)
+        # ollama02: Coding, debugging, investigation (heavier workloads)
         "coding":          ("qwen2.5-coder:32b", "ollama02.thiscluster.net"),
+        "investigation":   ("qwen2.5-coder:32b", "ollama02.thiscluster.net"),  # ADDED
         "debugging":       ("qwen2.5-coder:32b", "ollama02.thiscluster.net"),
         "debug":           ("qwen2.5-coder:32b", "ollama02.thiscluster.net"),
         
