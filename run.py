@@ -382,6 +382,16 @@ def run_debug_qa_mode(args) -> int:
                     
                     # Setup runtime tester
                     log_file = Path(args.follow_log) if hasattr(args, 'follow_log') and args.follow_log else project_dir / 'test.log'
+
+                    # Clear the log file to avoid processing stale errors from previous runs
+                    if log_file.exists():
+                        print(f"   🧹 Clearing log file to avoid stale errors...")
+                        try:
+                            log_file.write_text('')
+                            print(f"   ✅ Log file cleared: {log_file}")
+                        except Exception as e:
+                            print(f"   ⚠️  Warning: Could not clear log file: {e}")
+
                     tester = RuntimeTester(
                         command=args.test_command,
                         working_dir=project_dir,
