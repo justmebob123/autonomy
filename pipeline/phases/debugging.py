@@ -1122,8 +1122,12 @@ Remember:
                 self.logger.info(f"🔧 TOOL CALLS ({len(tool_calls)}):")
                 self.logger.info(f"{'='*70}")
                 for i, call in enumerate(tool_calls, 1):
-                    self.logger.info(f"\n  {i}. {call.get('name', 'unknown')}")
-                    args = call.get('arguments', {})
+                    # Tool calls have structure: {"function": {"name": "...", "arguments": {...}}}
+                    func = call.get('function', {})
+                    tool_name = func.get('name', call.get('name', 'unknown'))
+                    args = func.get('arguments', call.get('arguments', {}))
+                    
+                    self.logger.info(f"\n  {i}. {tool_name}")
                     if args:
                         import json
                         self.logger.info(f"     Arguments:")
