@@ -675,6 +675,9 @@ def run_debug_qa_mode(args) -> int:
             fixes_applied = 0
             fixes_attempted = 0
             
+            # Track all modified files across all fixes in this iteration
+            all_modified_files = set()
+            
             # Group deduplicated errors by file
             from pipeline.error_dedup import group_errors_by_file
             errors_by_file = group_errors_by_file(deduplicated_errors)
@@ -807,7 +810,10 @@ def run_debug_qa_mode(args) -> int:
                             max_attempts=5
                         )
                         
-                        # CRITICAL FIX #7: FORCED USER INTERVENTION
+                        # Track modified files from this debug attempt
+                        if debug_result.files_modified:
+                            all_modified_files.update(debug_result.files_modified)
+                        
                         # Check if user intervention is required
                         # AUTONOMOUS: Use AI UserProxy instead of blocking for human input
                         if debug_result.data and debug_result.data.get('requires_user_input'):
@@ -872,6 +878,10 @@ def run_debug_qa_mode(args) -> int:
                                     issue=issue,
                                     max_attempts=3
                                 )
+                                
+                                # Track modified files from retry
+                                if retry_result.files_modified:
+                                    all_modified_files.update(retry_result.files_modified)
                                 
                                 if retry_result.success:
                                     print("      ✅ Fixed successfully with AI guidance!")
@@ -958,10 +968,8 @@ def run_debug_qa_mode(args) -> int:
                 print("🔍 STAGE 2: POST-FIX QUALITY VERIFICATION")
                 print("="*70)
                 
-                # Get list of modified files from this iteration
-                from pipeline.handlers import ToolCallHandler
-                handler = ToolCallHandler(project_dir, config)
-                modified_files = list(set(handler.files_modified))  # Deduplicate
+                # Get list of modified files from all debug attempts in this iteration
+                modified_files = list(all_modified_files)  # Convert set to list
                 
                 if modified_files:
                     print(f"Verifying {len(modified_files)} modified file(s)...\n")

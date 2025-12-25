@@ -421,7 +421,8 @@ class DebuggingPhase(BasePhase):
             return PhaseResult(
                 success=True,
                 phase=self.phase_name,
-                message="No issues to fix"
+                message="No issues to fix",
+                files_modified=[],
             )
         
         filepath = issue.get("filepath")
@@ -429,7 +430,8 @@ class DebuggingPhase(BasePhase):
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message="Issue has no filepath"
+                message="Issue has no filepath",
+                files_modified=[],
             )
         
         # Normalize filepath
@@ -446,7 +448,8 @@ class DebuggingPhase(BasePhase):
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"File not found: {filepath}"
+                message=f"File not found: {filepath}",
+                files_modified=[],
             )
         
         # Build messages
@@ -472,7 +475,8 @@ class DebuggingPhase(BasePhase):
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"Debug failed: {response['error']}"
+                message=f"Debug failed: {response['error']}",
+                files_modified=[],
             )
         
         # CRITICAL: Check for empty response
@@ -514,7 +518,8 @@ class DebuggingPhase(BasePhase):
                 return PhaseResult(
                     success=False,
                     phase=self.phase_name,
-                    message="AI returned empty response after retries - possible model timeout or availability issue"
+                    message="AI returned empty response after retries - possible model timeout or availability issue",
+                    files_modified=[],
                 )
         
         # Parse response
@@ -558,7 +563,8 @@ class DebuggingPhase(BasePhase):
                 success=False,
                 phase=self.phase_name,
                 message=f"No fix was applied - AI did not make any tool calls. {analysis}",
-                data={"ai_response": content[:500], "analysis": analysis}
+                data={"ai_response": content[:500], "analysis": analysis},
+                files_modified=[],
             )
         
         # Execute tool calls
@@ -648,14 +654,16 @@ class DebuggingPhase(BasePhase):
                                 "should_retry": True,
                                 "ai_feedback": ai_feedback,
                                 "failure_analysis": result.get("failure_analysis")
-                            }
+                            },
+                            files_modified=[],
                         )
                     
                     return PhaseResult(
                         success=False,
                         phase=self.phase_name,
                         message=f"Fix failed: {error}",
-                        errors=[{"type": "fix_failed", "message": error}]
+                        errors=[{"type": "fix_failed", "message": error}],
+                        files_modified=[],
                     )
             
             return PhaseResult(
@@ -707,7 +715,8 @@ class DebuggingPhase(BasePhase):
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message="Issue has no filepath"
+                message="Issue has no filepath",
+                files_modified=[],
             )
         
         # Normalize filepath
@@ -723,7 +732,8 @@ class DebuggingPhase(BasePhase):
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"File not found: {filepath}"
+                message=f"File not found: {filepath}",
+                files_modified=[],
             )
         
         # Build enhanced prompt with failure feedback
@@ -775,7 +785,8 @@ Remember:
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"Retry failed: {response['error']}"
+                message=f"Retry failed: {response['error']}",
+                files_modified=[],
             )
         
         # Parse response
@@ -855,7 +866,8 @@ Remember:
                         success=False,
                         phase=self.phase_name,
                         message=f"Retry failed: {error}",
-                        errors=[{"type": "retry_failed", "message": error}]
+                        errors=[{"type": "retry_failed", "message": error}],
+                        files_modified=[],
                     )
             
             return PhaseResult(
@@ -909,7 +921,8 @@ Remember:
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message="No filepath in issue"
+                message="No filepath in issue",
+                files_modified=[],
             )
         
         # Read file content - MANDATORY
@@ -1170,7 +1183,8 @@ Remember:
                             'requires_user_input': True,
                             'intervention_count': len([a for a in thread.attempts if not a.success]),
                             'thread': thread
-                        }
+                        },
+                        files_modified=[],
                     )
             
             # Old loop detection (for logging only)
@@ -1452,7 +1466,8 @@ Remember:
             phase=self.phase_name,
             message=f"Fixed {fixed} issues, {failed} failed",
             errors=all_errors,
-            data={"fixed": fixed, "failed": failed}
+            data={"fixed": fixed, "failed": failed},
+            files_modified=[],
         )
     
     def _analyze_no_tool_call_response(self, content: str, issue: Dict) -> str:
