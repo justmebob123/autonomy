@@ -275,12 +275,143 @@ class NameErrorStrategy(ErrorStrategy):
         ]
 
 
+class TypeErrorStrategy(ErrorStrategy):
+    """Strategy for TypeError - especially function call parameter errors."""
+    
+    def __init__(self):
+        super().__init__('TypeError')
+    
+    def get_investigation_steps(self, issue: Dict) -> List[str]:
+        """Investigation steps for TypeError."""
+        error_msg = issue.get('message', '')
+        
+        # Check if it's a function call parameter error
+        if 'unexpected keyword argument' in error_msg or 'got an unexpected' in error_msg:
+            return [
+                "CRITICAL: This is a function call parameter error",
+                "STEP 1: Use get_function_signature to extract the target function's signature",
+                "STEP 2: Compare the signature with the actual function call",
+                "STEP 3: Identify which parameters are INVALID (not in signature)",
+                "STEP 4: Determine if parameters should be REMOVED or if function signature needs updating"
+            ]
+        elif 'missing' in error_msg and 'required' in error_msg:
+            return [
+                "This is a missing required parameter error",
+                "Use get_function_signature to see what parameters are required",
+                "Check the function call to see what's missing",
+                "Add the missing required parameters"
+            ]
+        else:
+            return [
+                "Read the error message carefully to understand the type mismatch",
+                "Check what type is expected vs what type is provided",
+                "Fix the type conversion or parameter"
+            ]
+    
+    def get_fix_approaches(self, issue: Dict) -> List[Dict]:
+        """Fix approaches for TypeError."""
+        error_msg = issue.get('message', '')
+        
+        if 'unexpected keyword argument' in error_msg or 'got an unexpected' in error_msg:
+            # Extract parameter name from error message
+            import re
+            match = re.search(r"unexpected keyword argument '(\w+)'", error_msg)
+            param_name = match.group(1) if match else 'unknown'
+            
+            return [
+                {
+                    'name': 'Remove Invalid Parameter (MOST COMMON)',
+                    'description': f"Remove the '{param_name}' parameter from the function call",
+                    'steps': [
+                        f"Find the function call that passes '{param_name}'",
+                        f"Remove the '{param_name}=...' line from the call",
+                        "Ensure proper syntax (remove trailing comma if needed)",
+                        "Use modify_python_file to apply the fix"
+                    ]
+                },
+                {
+                    'name': 'Update Function Signature (LESS COMMON)',
+                    'description': f"Add '{param_name}' parameter to the function definition",
+                    'steps': [
+                        "Find the function definition",
+                        f"Add '{param_name}' to the parameter list",
+                        "Implement handling for the new parameter",
+                        "Use modify_python_file to apply the fix"
+                    ]
+                }
+            ]
+        else:
+            return [
+                {
+                    'name': 'Fix Type Mismatch',
+                    'description': "Convert the value to the expected type",
+                    'steps': [
+                        "Identify the expected type",
+                        "Add type conversion (int(), str(), list(), etc.)",
+                        "Use modify_python_file to apply the fix"
+                    ]
+                }
+            ]
+    
+    def enhance_prompt(self, base_prompt: str, issue: Dict) -> str:
+        """Enhance prompt with TypeError-specific guidance."""
+        error_msg = issue.get('message', '')
+        
+        if 'unexpected keyword argument' in error_msg or 'got an unexpected' in error_msg:
+            # Extract parameter name
+            import re
+            match = re.search(r"unexpected keyword argument '(\w+)'", error_msg)
+            param_name = match.group(1) if match else 'unknown'
+            
+            enhancement = f"""
+
+## ⚠️ CRITICAL: FUNCTION CALL PARAMETER ERROR ⚠️
+
+This is a TypeError caused by passing an INVALID parameter to a function.
+
+**The Problem:**
+- The function call passes parameter '{param_name}'
+- But the function definition does NOT accept '{param_name}'
+
+**What You MUST Do:**
+
+1. **You already called get_function_signature** - Review the results
+2. **Compare the signature with the function call** - Which parameters are invalid?
+3. **IMMEDIATELY call modify_python_file** to remove the invalid parameter
+
+**DO NOT:**
+- Call get_function_signature again (you already have the signature)
+- Just explain what to do (you must CALL the tool)
+- Add more investigation (you have all the information)
+
+**CALL modify_python_file NOW** to remove '{param_name}' from the function call.
+
+Example:
+```json
+{{
+    "name": "modify_python_file",
+    "arguments": {{
+        "filepath": "path/to/file.py",
+        "original_code": "function_call(\\n    param1=value1,\\n    {param_name}=value,\\n    param2=value2\\n)",
+        "new_code": "function_call(\\n    param1=value1,\\n    param2=value2\\n)"
+    }}
+}}
+```
+
+**FIX IT NOW - Call modify_python_file to remove the invalid parameter.**
+"""
+            return base_prompt + enhancement
+        else:
+            return super().enhance_prompt(base_prompt, issue)
+
+
 # Strategy registry
 ERROR_STRATEGIES = {
     'UnboundLocalError': UnboundLocalErrorStrategy(),
     'KeyError': KeyErrorStrategy(),
     'AttributeError': AttributeErrorStrategy(),
     'NameError': NameErrorStrategy(),
+    'TypeError': TypeErrorStrategy(),
 }
 
 
