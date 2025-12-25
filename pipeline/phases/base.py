@@ -87,8 +87,10 @@ class BasePhase(ABC):
         # Dynamic registries (Integration Point #2)
         from ..prompt_registry import PromptRegistry
         from ..tool_registry import ToolRegistry
+        from ..role_registry import RoleRegistry
         self.prompt_registry = PromptRegistry(self.project_dir)
         self.tool_registry = ToolRegistry(self.project_dir)
+        self.role_registry = RoleRegistry(self.project_dir, self.client)
     
     @abstractmethod
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
