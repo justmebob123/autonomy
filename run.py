@@ -743,7 +743,12 @@ def run_debug_qa_mode(args) -> int:
                     }
                     
                     try:
-                        debug_result = debug_phase.execute(state, issue=issue)
+                        # Use conversation thread method for better context and specialist consultation
+                        debug_result = debug_phase.execute_with_conversation_thread(
+                            state, 
+                            issue=issue,
+                            max_attempts=5
+                        )
                         
                         if debug_result.success:
                             print("      ✅ Fixed successfully")

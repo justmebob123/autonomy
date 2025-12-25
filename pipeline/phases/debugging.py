@@ -14,6 +14,10 @@ from ..tools import get_tools_for_phase
 from ..prompts import SYSTEM_PROMPTS, get_debug_prompt
 from ..handlers import ToolCallHandler
 from ..utils import validate_python_syntax
+from ..conversation_thread import ConversationThread
+from ..specialist_agents import SpecialistTeam
+from ..failure_prompts import get_retry_prompt
+from ..sudo_filter import filter_sudo_from_tool_calls
 
 
 class DebuggingPhase(BasePhase):
@@ -28,6 +32,14 @@ class DebuggingPhase(BasePhase):
     """
     
     phase_name = "debug"
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Initialize specialist team
+        self.specialist_team = SpecialistTeam(self.client, self.logger)
+        # Directory for conversation threads
+        self.threads_dir = self.project_dir / "conversation_threads"
+        self.threads_dir.mkdir(exist_ok=True)
     
     def execute(self, state: PipelineState,
                 issue: Dict = None,
@@ -422,6 +434,265 @@ Remember:
             files_modified=handler.files_modified,
             data={"issue": issue, "filepath": filepath, "retry": True}
         )
+    
+    def execute_with_conversation_thread(self, state: PipelineState,
+                                        issue: Dict,
+                                        task: TaskState = None,
+                                        max_attempts: int = 5) -> PhaseResult:
+        """
+        Execute debugging with persistent conversation thread and specialist consultation.
+        
+        This method:
+        1. Creates a conversation thread for the issue
+        2. Attempts fixes with full context
+        3. Consults specialists when needed
+        4. Maintains conversation history across attempts
+        5. Filters sudo commands
+        6. Saves complete thread for analysis
+        """
+        
+        # Create conversation thread
+        thread = ConversationThread(issue, self.project_dir)
+        self.logger.info(f"  💬 Started conversation thread: {thread.thread_id}")
+        
+        # Get tools
+        tools = get_tools_for_phase("debugging")
+        
+        # Track overall success
+        overall_success = False
+        
+        # Attempt loop
+        while thread.should_continue(max_attempts):
+            attempt_num = thread.current_attempt + 1
+            self.logger.info(f"\n  🔄 Attempt #{attempt_num}")
+            
+            # Build prompt with full conversation context
+            if attempt_num == 1:
+                # First attempt - use standard debug prompt
+                filepath = issue.get("filepath")
+                content = self.read_file(filepath)
+                user_prompt = get_debug_prompt(filepath, content, issue)
+            else:
+                # Subsequent attempts - use retry prompt with failure analysis
+                last_attempt = thread.attempts[-1]
+                context = {
+                    'filepath': issue.get('filepath'),
+                    'intended_original': last_attempt.original_code,
+                    'replacement_code': last_attempt.replacement_code,
+                    'file_content': thread.file_snapshots.get(thread.current_attempt, ''),
+                    'attempt_summary': thread.get_attempt_summary(),
+                    'error_message': last_attempt.error_message,
+                    'failure_type': last_attempt.analysis.get('failure_type') if last_attempt.analysis else 'UNKNOWN'
+                }
+                
+                user_prompt = get_retry_prompt(context, last_attempt.analysis or {})
+            
+            # Add to conversation
+            thread.add_message(role="user", content=user_prompt)
+            
+            # Get conversation history for LLM
+            messages = [
+                {"role": "system", "content": SYSTEM_PROMPTS["debugging"]}
+            ] + thread.get_conversation_history()
+            
+            # Send request
+            self.logger.info(f"  🤖 Requesting fix from AI...")
+            response = self.chat(messages, tools, task_type="debugging")
+            
+            if "error" in response:
+                thread.add_message(
+                    role="assistant",
+                    content=f"Error: {response['error']}",
+                    metadata={"error": True}
+                )
+                break
+            
+            # Parse response
+            tool_calls, text_response = self.parser.parse_response(response)
+            
+            # Add AI response to thread
+            thread.add_message(
+                role="assistant",
+                content=text_response,
+                tool_calls=tool_calls
+            )
+            
+            # Filter sudo commands
+            if tool_calls:
+                allowed_calls, blocked_calls, sudo_summary = filter_sudo_from_tool_calls(tool_calls)
+                
+                if blocked_calls:
+                    self.logger.warning(f"  ⚠️  Blocked {len(blocked_calls)} sudo command(s)")
+                    # Add sudo block message to thread
+                    thread.add_message(
+                        role="system",
+                        content=sudo_summary,
+                        metadata={"sudo_blocked": True}
+                    )
+                
+                tool_calls = allowed_calls
+            
+            if not tool_calls:
+                self.logger.warning("  ⚠️  No tool calls made")
+                
+                # Consult specialist for guidance
+                self.logger.info("  🔬 Consulting specialists for guidance...")
+                failure_type = thread.attempts[-1].analysis.get('failure_type') if thread.attempts else 'UNKNOWN'
+                specialist_name = self.specialist_team.get_best_specialist_for_failure(failure_type)
+                
+                specialist_analysis = self.specialist_team.consult_specialist(
+                    specialist_name,
+                    thread,
+                    tools
+                )
+                
+                # Execute specialist's tool calls if any
+                if specialist_analysis.get('tool_calls'):
+                    self.logger.info(f"  🔧 Executing {len(specialist_analysis['tool_calls'])} tool calls from specialist...")
+                    verbose = getattr(self.config, 'verbose', 0) if hasattr(self, 'config') else 0
+                    activity_log = self.project_dir / 'ai_activity.log'
+                    handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log))
+                    specialist_results = handler.process_tool_calls(specialist_analysis['tool_calls'])
+                    
+                    # Add results to thread
+                    thread.add_message(
+                        role="system",
+                        content=f"Specialist tool results: {len(specialist_results)} calls executed",
+                        tool_results=specialist_results
+                    )
+                
+                continue
+            
+            # Execute tool calls
+            self.logger.info(f"  🔧 Executing {len(tool_calls)} tool call(s)...")
+            verbose = getattr(self.config, 'verbose', 0) if hasattr(self, 'config') else 0
+            activity_log = self.project_dir / 'ai_activity.log'
+            handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log))
+            results = handler.process_tool_calls(tool_calls)
+            
+            # Add results to thread
+            thread.add_message(
+                role="system",
+                content="Tool execution results",
+                tool_results=results
+            )
+            
+            # Check if modification was successful
+            success = False
+            error_message = None
+            failure_analysis = None
+            
+            for result in results:
+                if result.get('tool') == 'modify_file':
+                    if result.get('success'):
+                        success = True
+                        self.logger.info("  ✅ Modification successful!")
+                    else:
+                        error_message = result.get('error', 'Unknown error')
+                        failure_analysis = result.get('failure_analysis')
+                        self.logger.warning(f"  ❌ Modification failed: {error_message}")
+            
+            # Record attempt
+            original_code = ""
+            replacement_code = ""
+            for call in tool_calls:
+                if call.get('function', {}).get('name') == 'modify_file':
+                    args = call.get('function', {}).get('arguments', {})
+                    original_code = args.get('original_code', args.get('original', ''))
+                    replacement_code = args.get('new_code', args.get('replacement', ''))
+                    break
+            
+            thread.record_attempt(
+                agent_name="Primary Debugger",
+                original_code=original_code,
+                replacement_code=replacement_code,
+                success=success,
+                error_message=error_message,
+                tool_calls=tool_calls,
+                tool_results=results,
+                analysis=failure_analysis
+            )
+            
+            if success:
+                overall_success = True
+                break
+            
+            # If failed, consult specialists
+            if failure_analysis and attempt_num < max_attempts:
+                self.logger.info("  🔬 Consulting specialist team...")
+                
+                # Get best specialist for this failure type
+                failure_type = failure_analysis.get('failure_type', 'UNKNOWN')
+                specialist_name = self.specialist_team.get_best_specialist_for_failure(failure_type)
+                
+                specialist_analysis = self.specialist_team.consult_specialist(
+                    specialist_name,
+                    thread,
+                    tools
+                )
+                
+                # Execute specialist's tool calls
+                if specialist_analysis.get('tool_calls'):
+                    self.logger.info(f"  🔧 Executing {len(specialist_analysis['tool_calls'])} specialist tool calls...")
+                    specialist_results = handler.process_tool_calls(specialist_analysis['tool_calls'])
+                    
+                    # Add to thread
+                    thread.add_message(
+                        role="system",
+                        content=f"Specialist analysis complete",
+                        tool_results=specialist_results
+                    )
+        
+        # Save conversation thread
+        thread_file = thread.save_thread(self.threads_dir)
+        self.logger.info(f"  💾 Conversation thread saved: {thread_file.name}")
+        
+        # Update state if successful
+        if overall_success:
+            filepath = issue.get("filepath")
+            
+            # Update file hash
+            for modified_file in handler.files_modified:
+                file_hash = self.file_tracker.update_hash(modified_file)
+                full_path = self.project_dir / modified_file
+                if full_path.exists():
+                    state.update_file(modified_file, file_hash, full_path.stat().st_size)
+            
+            # Update task if provided
+            if task:
+                task.status = TaskStatus.DEBUG_PENDING
+                task.priority = TaskPriority.DEBUG_PENDING
+            
+            # Mark file for re-review
+            if filepath in state.files:
+                state.files[filepath].qa_status = FileStatus.PENDING
+            
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message=f"Fixed issue in {filepath} after {thread.current_attempt} attempt(s)",
+                files_modified=handler.files_modified,
+                data={
+                    "issue": issue,
+                    "filepath": filepath,
+                    "attempts": thread.current_attempt,
+                    "thread_id": thread.thread_id,
+                    "specialists_consulted": thread.specialists_consulted
+                }
+            )
+        else:
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message=f"Failed to fix issue after {thread.current_attempt} attempt(s)",
+                data={
+                    "issue": issue,
+                    "attempts": thread.current_attempt,
+                    "thread_id": thread.thread_id,
+                    "specialists_consulted": thread.specialists_consulted,
+                    "thread_file": str(thread_file)
+                }
+            )
     
     def fix_all_issues(self, state: PipelineState, 
                        max_fixes: int = 10) -> PhaseResult:
