@@ -64,6 +64,7 @@ class ToolCallHandler:
             "read_file": self._handle_read_file,
             "search_code": self._handle_search_code,
             "list_directory": self._handle_list_directory,
+            "execute_command": self._handle_execute_command,
             # Monitoring tools
             "get_memory_profile": self._handle_get_memory_profile,
             "get_cpu_profile": self._handle_get_cpu_profile,
@@ -921,6 +922,57 @@ class ToolCallHandler:
                 "tool": "list_directory",
                 "success": False,
                 "error": f"Failed to list directory: {e}"
+            }
+    
+    def _handle_execute_command(self, args: Dict) -> Dict:
+        """Handle execute_command tool - execute shell commands for analysis."""
+        import subprocess
+        
+        command = args.get("command", "")
+        timeout = args.get("timeout", 300)
+        capture_output = args.get("capture_output", True)
+        
+        if not command:
+            return {
+                "tool": "execute_command",
+                "success": False,
+                "error": "No command provided"
+            }
+        
+        try:
+            # Execute command in project directory
+            result = subprocess.run(
+                command,
+                shell=True,
+                cwd=self.project_dir,
+                capture_output=capture_output,
+                text=True,
+                timeout=timeout
+            )
+            
+            return {
+                "tool": "execute_command",
+                "success": result.returncode == 0,
+                "command": command,
+                "returncode": result.returncode,
+                "stdout": result.stdout if capture_output else "",
+                "stderr": result.stderr if capture_output else "",
+                "output": result.stdout if capture_output else ""
+            }
+        
+        except subprocess.TimeoutExpired:
+            return {
+                "tool": "execute_command",
+                "success": False,
+                "error": f"Command timed out after {timeout}s",
+                "command": command
+            }
+        except Exception as e:
+            return {
+                "tool": "execute_command",
+                "success": False,
+                "error": f"Failed to execute command: {e}",
+                "command": command
             }
 
 

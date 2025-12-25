@@ -27,7 +27,7 @@ class Task:
     server: str
     input_data: Dict[str, Any]
     dependencies: List[str] = field(default_factory=list)
-    timeout: int = 300
+    timeout: int = 72000  # 20 HOURS for CPU-only systems
     priority: str = "medium"
     result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None

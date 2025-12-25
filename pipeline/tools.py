@@ -237,6 +237,33 @@ TOOLS_DEBUGGING = [
     {
         "type": "function",
         "function": {
+            "name": "execute_command",
+            "description": "Execute a shell command for analysis. Use this to run git commands, linters, tests, grep, find, or other analysis tools. CRITICAL for specialists to gather information.",
+            "parameters": {
+                "type": "object",
+                "required": ["command"],
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "description": "Shell command to execute (e.g., 'git log --oneline -10', 'grep -r pattern .', 'find . -name *.py')"
+                    },
+                    "timeout": {
+                        "type": "integer",
+                        "description": "Command timeout in seconds",
+                        "default": 300
+                    },
+                    "capture_output": {
+                        "type": "boolean",
+                        "description": "Capture command output",
+                        "default": True
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "modify_python_file",
             "description": "Modify an existing Python file by replacing specific code to fix an issue.",
             "parameters": {
