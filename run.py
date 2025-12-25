@@ -836,10 +836,10 @@ def run_debug_qa_mode(args) -> int:
                             # Import and create UserProxyAgent
                             from pipeline.user_proxy import UserProxyAgent
                             user_proxy = UserProxyAgent(
-                                role_registry=coordinator.role_registry,
-                                prompt_registry=coordinator.prompt_registry,
-                                tool_registry=coordinator.tool_registry,
-                                client=coordinator.client,
+                                role_registry=debug_phase.role_registry,
+                                prompt_registry=debug_phase.prompt_registry,
+                                tool_registry=debug_phase.tool_registry,
+                                client=client,
                                 logger=logger
                             )
                             

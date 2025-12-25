@@ -426,6 +426,7 @@ class RuntimeTester:
             logger: Logger instance
         """
         self.logger = logger or logging.getLogger(__name__)
+        self.log_file = log_file  # Store log_file as attribute
         
         self.error_queue = Queue()
         
