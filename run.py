@@ -522,7 +522,7 @@ def run_debug_qa_mode(args) -> int:
                             print("\n🎉 All tests passed!")
                             print(f"✅ Program is running successfully")
                             print(f"🔓 Detaching - program will continue running in background")
-                            print(f"\nTo stop the program, use: pkill -f '{test_command}'")
+                            print(f"\nTo stop the program, use: pkill -f '{args.test_command}'")
                             return 0
                         elif success_timeout > test_duration:
                             # Extend monitoring
@@ -882,7 +882,7 @@ def run_debug_qa_mode(args) -> int:
                 consecutive_no_progress = 0
             
             # If we fixed runtime errors and have a test command, verify the fix worked
-            if fixes_applied > 0 and runtime_errors and test_command:
+            if fixes_applied > 0 and runtime_errors and hasattr(args, 'test_command') and args.test_command:
                 print("\n🔍 Verifying fixes by re-running tests...\n")
                 
                 # Stop the current test run
@@ -897,9 +897,9 @@ def run_debug_qa_mode(args) -> int:
                     log_file.write_text("")
                 
                 # Restart the test
-                print(f"▶️  Restarting test: {test_command}\n")
+                print(f"▶️  Restarting test: {args.test_command}\n")
                 tester = ProgramRunner(
-                    command=test_command,
+                    command=args.test_command,
                     cwd=project_dir,
                     log_file=log_file
                 )
