@@ -690,17 +690,21 @@ PIPELINE_TOOLS: List[Dict] = (
 # Tool Getter Function
 # =============================================================================
 
-def get_tools_for_phase(phase: str) -> List[Dict]:
+def get_tools_for_phase(phase: str, tool_registry=None) -> List[Dict]:
     """
     Get tools appropriate for a pipeline phase.
     
     All phases get monitoring tools for resource awareness.
+    Custom tools from ToolRegistry are added if registry provided.
     
     Args:
         phase: Name of the phase
+        tool_registry: Optional ToolRegistry instance for custom tools
         
     Returns:
         List of tool definitions for that phase
+        
+    Integration Point #3: Custom tools added from registry
     """
     # Base tools for each phase
     phase_tools = {
@@ -718,5 +722,12 @@ def get_tools_for_phase(phase: str) -> List[Dict]:
     
     # Add monitoring tools to all phases for resource awareness
     tools = tools + TOOLS_MONITORING
+    
+    # Add custom tools from registry (Integration Point #3)
+    if tool_registry:
+        for tool_name in tool_registry.tools:
+            tool_def = tool_registry.get_tool_definition(tool_name)
+            if tool_def:
+                tools.append(tool_def)
     
     return tools
