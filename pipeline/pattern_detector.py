@@ -17,6 +17,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from pipeline.action_tracker import ActionTracker, Action
+from pipeline.error_signature import ErrorSignature
 
 
 @dataclass
@@ -58,6 +59,10 @@ class PatternDetector:
         """
         self.tracker = action_tracker
         
+        # Track current error signature to detect when it changes
+        self.current_error_signature: Optional[ErrorSignature] = None
+        self.error_signature_changed = False
+        
         # Thresholds for detection
         self.thresholds = {
             'action_repeat': 3,           # Same action 3+ times
@@ -68,6 +73,31 @@ class PatternDetector:
             'rapid_actions': 10,          # 10+ actions in 60 seconds
         }
     
+    def set_current_error(self, error_signature: Optional[ErrorSignature]) -> None:
+        """
+        Set the current error signature being worked on.
+        
+        If the error signature changes, this indicates progress (fixing one bug
+        and moving to another), so we should reset loop detection.
+        
+        Args:
+            error_signature: Current error being worked on, or None
+        """
+        if error_signature != self.current_error_signature:
+            self.error_signature_changed = True
+            self.current_error_signature = error_signature
+        else:
+            self.error_signature_changed = False
+    
+    def is_making_progress(self) -> bool:
+        """
+        Check if we're making progress (error signature changed).
+        
+        Returns:
+            True if error signature changed (indicating progress)
+        """
+        return self.error_signature_changed
+    
     def detect_all_loops(self) -> List[LoopDetection]:
         """
         Run all loop detection algorithms.
@@ -75,6 +105,10 @@ class PatternDetector:
         Returns:
             List of detected loops, sorted by severity
         """
+        # If error signature changed, we're making progress - don't report loops
+        if self.error_signature_changed:
+            return []
+        
         detections = []
         
         # Run all detection methods

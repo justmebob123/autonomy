@@ -21,6 +21,8 @@ from pathlib import Path
 
 # Import the pipeline module
 from pipeline import PhaseCoordinator, PipelineConfig
+from pipeline.error_signature import ErrorSignature, ProgressTracker
+from pipeline.progress_display import print_bug_transition, print_progress_stats, print_refining_fix
 
 # Global reference to runtime tester for signal handling
 _global_tester = None
@@ -259,6 +261,9 @@ def run_debug_qa_mode(args) -> int:
     # Initialize runtime tester outside loop so it can be cleaned up on Ctrl-C
     tester = None
     
+    # Initialize progress tracker
+    progress_tracker = ProgressTracker()
+    
     try:
         while True:
             iteration += 1
@@ -358,6 +363,15 @@ def run_debug_qa_mode(args) -> int:
             
             # Combine all errors
             all_errors = syntax_errors + import_errors + runtime_errors
+            
+            # Track errors for progress detection
+            progress_tracker.add_iteration(all_errors)
+            
+            # Check for bug transitions
+            if iteration > 1:
+                transition = progress_tracker.detect_transition()
+                if transition:
+                    print_bug_transition(transition)
             
             # Display results
             print("="*70)
@@ -730,6 +744,10 @@ def run_debug_qa_mode(args) -> int:
                     print(f"   🔧 Fixing: {error_group['type']} - {error_group['message'][:60]}...")
                     print(f"      📍 {num_locations} occurrence(s) in {file_path}")
                     
+                    # Create error signature for this error
+                    error_sig = ErrorSignature.from_error_dict(error_group)
+                    if error_sig and hasattr(debug_phase, 'pattern_detector'):
+                        debug_phase.pattern_detector.set_current_error(error_sig)
                     
                     # Build comprehensive debug context
                     from pipeline.debug_context import build_comprehensive_context, format_context_for_prompt
@@ -919,6 +937,11 @@ def run_debug_qa_mode(args) -> int:
             print(f"  Fixes applied: {fixes_applied}")
             print(f"  Success rate: {fixes_applied}/{fixes_attempted} ({100*fixes_applied//max(fixes_attempted,1)}%)")
             print("="*70 + "\n")
+            
+            # Show progress statistics
+            if iteration > 1:
+                stats = progress_tracker.get_stats()
+                print_progress_stats(stats)
             
             # Check for progress
             if fixes_applied == 0:
