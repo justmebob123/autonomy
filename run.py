@@ -345,22 +345,10 @@ def run_debug_qa_mode(args) -> int:
                         break
                 print()
             
-            # Phase 3: Check log errors
+            # Phase 3: Runtime errors (handled by RuntimeTester below)
             runtime_errors = []
-            if log_errors:
-                print(f"📋 Phase 3: Processing {len(log_errors)} log errors...")
-                # Normalize log errors to match syntax/import error structure
-                for log_error in log_errors:
-                    runtime_errors.append({
-                        'file': 'runtime',
-                        'type': 'RuntimeError',
-                        'message': log_error.get('line', 'Unknown error'),
-                        'line': None,
-                        'timestamp': log_error.get('timestamp')
-                    })
-                log_errors.clear()
-                print()
-            
+            # OLD log_errors code removed - RuntimeTester handles runtime errors now
+
             # Combine all errors
             all_errors = syntax_errors + import_errors + runtime_errors
             
