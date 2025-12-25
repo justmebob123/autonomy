@@ -62,6 +62,9 @@ class PhaseCoordinator:
         from .phases.prompt_design import PromptDesignPhase
         from .phases.tool_design import ToolDesignPhase
         from .phases.role_design import RoleDesignPhase
+        from .phases.tool_evaluation import ToolEvaluationPhase
+        from .phases.prompt_improvement import PromptImprovementPhase
+        from .phases.role_improvement import RoleImprovementPhase
         
         # BasePhase.__init__ takes (config, client) - project_dir comes from config
         return {
@@ -76,6 +79,10 @@ class PhaseCoordinator:
             "prompt_design": PromptDesignPhase(self.config, self.client),
             "tool_design": ToolDesignPhase(self.config, self.client),
             "role_design": RoleDesignPhase(self.config, self.client),
+            # Self-improvement phases (Integration Point #2)
+            "tool_evaluation": ToolEvaluationPhase(self.config, self.client),
+            "prompt_improvement": PromptImprovementPhase(self.config, self.client),
+            "role_improvement": RoleImprovementPhase(self.config, self.client),
         }
     
     def run(self, resume: bool = True) -> bool:
@@ -280,12 +287,114 @@ class PhaseCoordinator:
                 "reason": "update_docs_after_completion"
             }
         
-        # 6. ALL tasks complete and docs updated - trigger project planning
+        # 6. Self-improvement cycle - evaluate and improve custom tools/prompts/roles
+        # Check if we should run improvement phases
+        if self._should_run_improvement_cycle(state):
+            # Determine which improvement phase to run
+            improvement_phase = self._get_next_improvement_phase(state)
+            if improvement_phase:
+                return improvement_phase
+        
+        # 7. ALL tasks complete and docs updated - trigger project planning
         # This is the KEY change: instead of returning None/exiting, we plan expansion
         return {
             "phase": "project_planning",
             "reason": "expand_project"
         }
+    
+    def _should_run_improvement_cycle(self, state: PipelineState) -> bool:
+        """
+        Determine if we should run self-improvement cycle.
+        
+        Run improvement cycle when:
+        - All tasks are complete
+        - Custom tools/prompts/roles exist
+        - Haven't run improvement recently
+        
+        Args:
+            state: Current pipeline state
+            
+        Returns:
+            True if should run improvement cycle
+        """
+        # Check if all tasks are complete
+        if not state.tasks:
+            return False
+        
+        all_complete = all(
+            task.status == TaskStatus.COMPLETED
+            for task in state.tasks.values()
+        )
+        
+        if not all_complete:
+            return False
+        
+        # Check if custom tools/prompts/roles exist
+        custom_tools_dir = self.project_dir / "pipeline" / "tools" / "custom"
+        custom_prompts_dir = self.project_dir / "pipeline" / "prompts" / "custom"
+        custom_roles_dir = self.project_dir / "pipeline" / "roles" / "custom"
+        
+        has_custom_tools = custom_tools_dir.exists() and any(custom_tools_dir.glob("*_spec.json"))
+        has_custom_prompts = custom_prompts_dir.exists() and any(custom_prompts_dir.glob("*.json"))
+        has_custom_roles = custom_roles_dir.exists() and any(custom_roles_dir.glob("*.json"))
+        
+        return has_custom_tools or has_custom_prompts or has_custom_roles
+    
+    def _get_next_improvement_phase(self, state: PipelineState) -> Optional[Dict]:
+        """
+        Get the next improvement phase to run.
+        
+        Priority order:
+        1. Tool evaluation
+        2. Prompt improvement
+        3. Role improvement
+        
+        Args:
+            state: Current pipeline state
+            
+        Returns:
+            Phase action dict or None
+        """
+        # Check which improvement phases have been run
+        tool_eval_runs = state.phases.get("tool_evaluation", None)
+        prompt_imp_runs = state.phases.get("prompt_improvement", None)
+        role_imp_runs = state.phases.get("role_improvement", None)
+        
+        # Check what exists
+        custom_tools_dir = self.project_dir / "pipeline" / "tools" / "custom"
+        custom_prompts_dir = self.project_dir / "pipeline" / "prompts" / "custom"
+        custom_roles_dir = self.project_dir / "pipeline" / "roles" / "custom"
+        
+        has_custom_tools = custom_tools_dir.exists() and any(custom_tools_dir.glob("*_spec.json"))
+        has_custom_prompts = custom_prompts_dir.exists() and any(custom_prompts_dir.glob("*.json"))
+        has_custom_roles = custom_roles_dir.exists() and any(custom_roles_dir.glob("*.json"))
+        
+        # Priority 1: Tool evaluation (if tools exist and not recently evaluated)
+        if has_custom_tools:
+            if not tool_eval_runs or tool_eval_runs.run_count == 0:
+                return {
+                    "phase": "tool_evaluation",
+                    "reason": "evaluate_custom_tools"
+                }
+        
+        # Priority 2: Prompt improvement (if prompts exist and not recently improved)
+        if has_custom_prompts:
+            if not prompt_imp_runs or prompt_imp_runs.run_count == 0:
+                return {
+                    "phase": "prompt_improvement",
+                    "reason": "improve_custom_prompts"
+                }
+        
+        # Priority 3: Role improvement (if roles exist and not recently improved)
+        if has_custom_roles:
+            if not role_imp_runs or role_imp_runs.run_count == 0:
+                return {
+                    "phase": "role_improvement",
+                    "reason": "improve_custom_roles"
+                }
+        
+        # All improvement phases have been run at least once
+        return None
     
     def _dependencies_met(self, state: PipelineState, task: TaskState) -> bool:
         """Check if all dependencies for a task are completed"""

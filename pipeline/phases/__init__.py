@@ -8,6 +8,9 @@ This module contains all pipeline phases:
 - DebuggingPhase: Fixes issues found by QA
 - ProjectPlanningPhase: Expands project when all tasks complete
 - DocumentationPhase: Updates README and ARCHITECTURE
+- ToolEvaluationPhase: Evaluates custom tools
+- PromptImprovementPhase: Improves custom prompts
+- RoleImprovementPhase: Improves custom roles
 """
 
 from .base import BasePhase, PhaseResult
@@ -17,6 +20,9 @@ from .qa import QAPhase
 from .debugging import DebuggingPhase
 from .project_planning import ProjectPlanningPhase
 from .documentation import DocumentationPhase
+from .tool_evaluation import ToolEvaluationPhase
+from .prompt_improvement import PromptImprovementPhase
+from .role_improvement import RoleImprovementPhase
 
 __all__ = [
     "BasePhase",
@@ -27,4 +33,7 @@ __all__ = [
     "DebuggingPhase",
     "ProjectPlanningPhase",
     "DocumentationPhase",
+    "ToolEvaluationPhase",
+    "PromptImprovementPhase",
+    "RoleImprovementPhase",
 ]

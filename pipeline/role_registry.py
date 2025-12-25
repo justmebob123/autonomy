@@ -382,6 +382,18 @@ class RoleRegistry:
         
         return team
     
+    def get_specialist_spec(self, name: str) -> Optional[Dict]:
+        """
+        Get the specification for a specialist.
+        
+        Args:
+            name: Name of the specialist
+            
+        Returns:
+            Specialist specification dict or None
+        """
+        return self.role_specs.get(name)
+    
     def get_statistics(self) -> Dict:
         """
         Get registry statistics.
