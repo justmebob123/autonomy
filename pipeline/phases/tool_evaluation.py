@@ -12,12 +12,13 @@ import json
 import importlib.util
 
 from .base import BasePhase, PhaseResult
+from .loop_detection_mixin import LoopDetectionMixin
 from ..state.manager import PipelineState
 from ..tools import get_tools_for_phase
 from ..logging_setup import get_logger
 
 
-class ToolEvaluationPhase(BasePhase):
+class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
     """
     Tool Evaluation phase that tests and validates custom tools.
     
@@ -33,7 +34,8 @@ class ToolEvaluationPhase(BasePhase):
     phase_name = "tool_evaluation"
     
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        BasePhase.__init__(self, *args, **kwargs)
+        LoopDetectionMixin.__init__(self, self.project_dir, self.phase_name)
         self.custom_tools_dir = self.project_dir / "pipeline" / "tools" / "custom"
         self.custom_tools_dir.mkdir(parents=True, exist_ok=True)
         self.evaluation_results_dir = self.project_dir / ".pipeline" / "tool_evaluations"
@@ -209,6 +211,15 @@ class ToolEvaluationPhase(BasePhase):
             
             # Parse response
             tool_calls, _ = self.parse_response(response, "tool_evaluation")
+            
+            # Check for loops
+            if self.check_for_loops(tool_calls):
+                self.logger.warning(f"    Loop detected for tool {tool_name}")
+                result['issues'].append('Loop detected during evaluation')
+                return result
+            
+            # Track tool calls
+            self.track_tool_calls(tool_calls)
             
             if tool_calls:
                 for call in tool_calls:

@@ -15,13 +15,15 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 
 from .base import BasePhase, PhaseResult
+from .loop_detection_mixin import LoopDetectionMixin
 from ..state.manager import PipelineState, TaskState, TaskStatus
 from ..prompts import SYSTEM_PROMPTS, get_documentation_prompt
 from ..tools import TOOLS_DOCUMENTATION
+from ..handlers import ToolCallHandler
 from ..logging_setup import get_logger
 
 
-class DocumentationPhase(BasePhase):
+class DocumentationPhase(LoopDetectionMixin, BasePhase):
     """
     Documentation update phase.
     
@@ -30,6 +32,11 @@ class DocumentationPhase(BasePhase):
     """
     
     phase_name = "documentation"
+    
+    def __init__(self, *args, **kwargs):
+        """Initialize with loop detection"""
+        BasePhase.__init__(self, *args, **kwargs)
+        LoopDetectionMixin.__init__(self, self.project_dir, self.phase_name)
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """Execute documentation phase"""
@@ -46,7 +53,7 @@ class DocumentationPhase(BasePhase):
         
         # Build messages using centralized prompts
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPTS["documentation"]},
+            {"role": "system", "content": self._get_system_prompt("documentation")},
             {"role": "user", "content": get_documentation_prompt(context, new_completions)}
         ]
         
@@ -77,35 +84,29 @@ class DocumentationPhase(BasePhase):
                 message="Documentation reviewed - no updates needed"
             )
         
-        # Process tool calls
-        updates_made = []
+        # Check for loops before processing
+        if self.check_for_loops(tool_calls):
+            self.logger.warning("  Loop detected in documentation phase")
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message="Loop detected - stopping to prevent infinite cycle"
+            )
         
-        for tool_call in tool_calls:
-            name = tool_call.get("name") or tool_call.get("function", {}).get("name")
-            args = tool_call.get("arguments", {})
-            
-            if isinstance(args, str):
-                try:
-                    args = json.loads(args)
-                except json.JSONDecodeError:
-                    continue
-            
-            self.logger.debug(f"  Processing: {name}")
-            
-            if name == "analyze_documentation_needs":
-                self._log_analysis(args)
-            
-            elif name == "update_readme_section":
-                if self._update_readme_section(args):
-                    updates_made.append(f"Updated README: {args.get('section_heading')}")
-            
-            elif name == "add_readme_section":
-                if self._add_readme_section(args):
-                    updates_made.append(f"Added README section: {args.get('section_heading')}")
-            
-            elif name == "confirm_documentation_current":
-                notes = args.get("notes", "")
-                self.logger.info(f"  ✓ Documentation confirmed current: {notes[:50]}")
+        # Track tool calls for loop detection
+        self.track_tool_calls(tool_calls)
+        
+        # Process tool calls using ToolCallHandler
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+        results = handler.process_tool_calls(tool_calls)
+        
+        # Extract updates from results
+        updates_made = []
+        for result in results:
+            if result.get("success"):
+                tool_name = result.get("tool", "unknown")
+                if "update_readme" in tool_name or "add_readme" in tool_name:
+                    updates_made.append(f"Updated documentation via {tool_name}")
         
         # Update state tracking
         state.last_doc_update_count = completed_count

@@ -79,7 +79,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         
         # Build messages
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPTS["qa"]},
+            {"role": "system", "content": self._get_system_prompt("qa")},
             {"role": "user", "content": get_qa_prompt(filepath, content)}
         ]
         

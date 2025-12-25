@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, Optional
 
 from .base import BasePhase, PhaseResult
+from .loop_detection_mixin import LoopDetectionMixin
 from ..state.manager import PipelineState
 from ..config import PipelineConfig
 from ..client import OllamaClient
@@ -16,7 +17,7 @@ from ..prompts.prompt_architect import get_prompt_architect_prompt
 from ..tools import get_tools_for_phase
 
 
-class PromptDesignPhase(BasePhase):
+class PromptDesignPhase(LoopDetectionMixin, BasePhase):
     """
     Phase for designing custom prompts.
     
@@ -36,7 +37,8 @@ class PromptDesignPhase(BasePhase):
     phase_name = "prompt_design"
     
     def __init__(self, config: PipelineConfig, client: OllamaClient):
-        super().__init__(config, client)
+        BasePhase.__init__(self, config, client)
+        LoopDetectionMixin.__init__(self, self.project_dir, self.phase_name)
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """
@@ -124,6 +126,18 @@ class PromptDesignPhase(BasePhase):
                 message="AI did not make any tool calls to create the prompt",
                 data={"response": text_response}
             )
+        
+        # Check for loops before processing
+        if self.check_for_loops(tool_calls):
+            self.logger.warning("  Loop detected in prompt design phase")
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message="Loop detected - stopping to prevent infinite cycle"
+            )
+        
+        # Track tool calls for loop detection
+        self.track_tool_calls(tool_calls)
         
         # Process tool calls
         from ..handlers import ToolCallHandler

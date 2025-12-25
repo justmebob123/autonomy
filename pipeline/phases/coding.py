@@ -77,7 +77,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         
         # Build messages
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPTS["coding"]},
+            {"role": "system", "content": self._get_system_prompt("coding")},
             {"role": "user", "content": get_coding_prompt(
                 task.description,
                 task.target_file,

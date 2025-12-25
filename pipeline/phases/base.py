@@ -276,3 +276,27 @@ class BasePhase(ABC):
             parts.append(code_ctx)
         
         return "\n\n".join(parts)
+    
+    def _get_system_prompt(self, phase_name: str) -> str:
+        """
+        Get system prompt from registry or fallback to hardcoded.
+        
+        This enables custom prompts from PromptArchitect to be used
+        when available, while maintaining backward compatibility.
+        
+        Args:
+            phase_name: Name of the phase (e.g., "debugging", "coding")
+        
+        Returns:
+            System prompt string
+        """
+        from ..prompts import SYSTEM_PROMPTS
+        
+        # Try custom prompt first
+        custom_prompt = self.prompt_registry.get_prompt(f"{phase_name}_system")
+        if custom_prompt:
+            self.logger.debug(f"  Using custom system prompt for {phase_name}")
+            return custom_prompt
+        
+        # Fallback to hardcoded
+        return SYSTEM_PROMPTS.get(phase_name, SYSTEM_PROMPTS.get("base", ""))

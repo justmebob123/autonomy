@@ -52,7 +52,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         
         # Build messages
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPTS["planning"]},
+            {"role": "system", "content": self._get_system_prompt("planning")},
             {"role": "user", "content": get_planning_prompt(master_plan, existing_files)}
         ]
         

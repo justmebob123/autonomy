@@ -15,13 +15,15 @@ from datetime import datetime
 from typing import Dict, List, Optional, Any
 
 from .base import BasePhase, PhaseResult
+from .loop_detection_mixin import LoopDetectionMixin
 from ..state.manager import PipelineState, TaskState, TaskStatus
 from ..prompts import SYSTEM_PROMPTS, get_project_planning_prompt
 from ..tools import TOOLS_PROJECT_PLANNING
+from ..handlers import ToolCallHandler
 from ..logging_setup import get_logger
 
 
-class ProjectPlanningPhase(BasePhase):
+class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
     """
     Project expansion planning phase.
     
@@ -38,6 +40,11 @@ class ProjectPlanningPhase(BasePhase):
     # Limits to prevent runaway expansion
     MAX_TASKS_PER_CYCLE = 5
     MAX_EXPANSION_CYCLES = 999999  # UNLIMITED expansion cycles
+    
+    def __init__(self, *args, **kwargs):
+        """Initialize with loop detection"""
+        BasePhase.__init__(self, *args, **kwargs)
+        LoopDetectionMixin.__init__(self, self.project_dir, self.phase_name)
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """Execute project planning phase"""
@@ -62,7 +69,7 @@ class ProjectPlanningPhase(BasePhase):
         
         # Build planning messages using centralized prompts
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPTS["project_planning"]},
+            {"role": "system", "content": self._get_system_prompt("project_planning")},
             {"role": "user", "content": get_project_planning_prompt(
                 context, expansion_count, completed_count, total_tasks
             )}
@@ -96,42 +103,30 @@ class ProjectPlanningPhase(BasePhase):
                 message="Failed to generate expansion plan"
             )
         
-        # Process tool calls
+        # Check for loops before processing
+        if self.check_for_loops(tool_calls):
+            self.logger.warning("  Loop detected in project planning phase")
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message="Loop detected - stopping to prevent infinite cycle"
+            )
+        
+        # Track tool calls for loop detection
+        self.track_tool_calls(tool_calls)
+        
+        # Process tool calls using ToolCallHandler
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+        results = handler.process_tool_calls(tool_calls)
+        
+        # Extract new tasks from handler results
         new_tasks = []
+        if hasattr(handler, 'tasks') and handler.tasks:
+            new_tasks = handler.tasks[:self.MAX_TASKS_PER_CYCLE]
+            self.logger.info(f"  📝 Generated {len(new_tasks)} expansion tasks")
+        
         project_status = None
         architecture_updates = []
-        
-        for tool_call in tool_calls:
-            name = tool_call.get("name") or tool_call.get("function", {}).get("name")
-            args = tool_call.get("arguments", {})
-            
-            if isinstance(args, str):
-                try:
-                    args = json.loads(args)
-                except json.JSONDecodeError:
-                    self.logger.warning(f"  Failed to parse arguments: {args[:100]}")
-                    continue
-            
-            self.logger.debug(f"  Processing tool: {name}")
-            
-            if name == "analyze_project_status":
-                project_status = args
-                self._log_project_status(args)
-            
-            elif name == "propose_expansion_tasks":
-                tasks = args.get("tasks", [])
-                focus = args.get("expansion_focus", "")
-                
-                self.logger.info(f"  🎯 Expansion focus: {focus}")
-                
-                # Validate and filter tasks
-                validated = self._validate_proposed_tasks(tasks, state)
-                new_tasks.extend(validated[:self.MAX_TASKS_PER_CYCLE])
-                
-                self.logger.info(f"  📝 Proposed {len(validated)} tasks, accepted {len(new_tasks)}")
-            
-            elif name == "update_architecture":
-                architecture_updates.append(args)
         
         # Create new tasks in state
         tasks_created = []

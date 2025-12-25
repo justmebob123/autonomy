@@ -264,7 +264,7 @@ class DebuggingPhase(BasePhase):
         # Build messages
         user_prompt = self._get_prompt('debugging', filepath=filepath, content=content, issue=issue)
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPTS["debugging"]},
+            {"role": "system", "content": self._get_system_prompt("debugging")},
             {"role": "user", "content": user_prompt}
         ]
         
@@ -541,7 +541,7 @@ Remember:
 """
         
         messages = [
-            {"role": "system", "content": SYSTEM_PROMPTS["debugging"]},
+            {"role": "system", "content": self._get_system_prompt("debugging")},
             {"role": "user", "content": retry_prompt}
         ]
         
@@ -737,7 +737,7 @@ Remember:
             
             # Get conversation history for LLM
             messages = [
-                {"role": "system", "content": SYSTEM_PROMPTS["debugging"]}
+                {"role": "system", "content": self._get_system_prompt("debugging")}
             ] + thread.get_conversation_history()
             
             # Send request
@@ -907,7 +907,7 @@ Remember:
                 
                 # Ask AI for decision
                 decision_messages = [
-                    {"role": "system", "content": SYSTEM_PROMPTS["debugging"]},
+                    {"role": "system", "content": self._get_system_prompt("debugging")},
                     {"role": "user", "content": decision_prompt}
                 ]
                 

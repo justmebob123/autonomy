@@ -11,11 +11,12 @@ from pathlib import Path
 import json
 
 from .base import BasePhase, PhaseResult
+from .loop_detection_mixin import LoopDetectionMixin
 from ..state.manager import PipelineState
 from ..logging_setup import get_logger
 
 
-class RoleImprovementPhase(BasePhase):
+class RoleImprovementPhase(LoopDetectionMixin, BasePhase):
     """
     Role Improvement phase that enhances custom roles.
     
@@ -31,7 +32,8 @@ class RoleImprovementPhase(BasePhase):
     phase_name = "role_improvement"
     
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        BasePhase.__init__(self, *args, **kwargs)
+        LoopDetectionMixin.__init__(self, self.project_dir, self.phase_name)
         self.custom_roles_dir = self.project_dir / "pipeline" / "roles" / "custom"
         self.custom_roles_dir.mkdir(parents=True, exist_ok=True)
         self.improvement_results_dir = self.project_dir / ".pipeline" / "role_improvements"
@@ -220,6 +222,15 @@ class RoleImprovementPhase(BasePhase):
             
             # Parse response
             tool_calls, _ = self.parse_response(response, "role_improvement")
+            
+            # Check for loops
+            if self.check_for_loops(tool_calls):
+                self.logger.warning(f"    Loop detected for role {role_name}")
+                result['error'] = 'Loop detected'
+                return result
+            
+            # Track tool calls
+            self.track_tool_calls(tool_calls)
             
             if tool_calls:
                 for call in tool_calls:

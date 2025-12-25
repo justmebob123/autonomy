@@ -11,11 +11,12 @@ from pathlib import Path
 import json
 
 from .base import BasePhase, PhaseResult
+from .loop_detection_mixin import LoopDetectionMixin
 from ..state.manager import PipelineState
 from ..logging_setup import get_logger
 
 
-class PromptImprovementPhase(BasePhase):
+class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
     """
     Prompt Improvement phase that enhances custom prompts.
     
@@ -30,7 +31,8 @@ class PromptImprovementPhase(BasePhase):
     phase_name = "prompt_improvement"
     
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        BasePhase.__init__(self, *args, **kwargs)
+        LoopDetectionMixin.__init__(self, self.project_dir, self.phase_name)
         self.custom_prompts_dir = self.project_dir / "pipeline" / "prompts" / "custom"
         self.custom_prompts_dir.mkdir(parents=True, exist_ok=True)
         self.improvement_results_dir = self.project_dir / ".pipeline" / "prompt_improvements"
@@ -195,6 +197,15 @@ class PromptImprovementPhase(BasePhase):
             
             # Parse response
             tool_calls, _ = self.parse_response(response, "prompt_improvement")
+            
+            # Check for loops
+            if self.check_for_loops(tool_calls):
+                self.logger.warning(f"    Loop detected for prompt {prompt_name}")
+                result['error'] = 'Loop detected'
+                return result
+            
+            # Track tool calls
+            self.track_tool_calls(tool_calls)
             
             if tool_calls:
                 for call in tool_calls:
