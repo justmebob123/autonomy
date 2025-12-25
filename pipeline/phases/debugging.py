@@ -22,6 +22,7 @@ from ..sudo_filter import filter_sudo_from_tool_calls
 from ..action_tracker import ActionTracker
 from ..pattern_detector import PatternDetector
 from ..loop_intervention import LoopInterventionSystem
+from ..team_orchestrator import TeamOrchestrator
 
 
 class DebuggingPhase(BasePhase):
@@ -56,6 +57,14 @@ class DebuggingPhase(BasePhase):
             self.action_tracker,
             self.pattern_detector,
             self.logger
+        )
+        
+        # Initialize team orchestrator for parallel specialist execution
+        self.team_orchestrator = TeamOrchestrator(
+            self.client,
+            self.specialist_team,
+            self.logger,
+            max_workers=4
         )
     
     def _track_tool_calls(self, tool_calls: List[Dict], results: List[Dict], agent: str = "main"):
