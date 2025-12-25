@@ -475,11 +475,17 @@ Remember:
             else:
                 # Subsequent attempts - use retry prompt with failure analysis
                 last_attempt = thread.attempts[-1]
+                
+                # CRITICAL FIX: Always read the CURRENT file state, not stale snapshots
+                # After rollback, the file is back to its original state
+                filepath = issue.get('filepath')
+                current_content = self.read_file(filepath)
+                
                 context = {
-                    'filepath': issue.get('filepath'),
+                    'filepath': filepath,
                     'intended_original': last_attempt.original_code,
                     'replacement_code': last_attempt.replacement_code,
-                    'file_content': thread.file_snapshots.get(thread.current_attempt, ''),
+                    'file_content': current_content,  # Use CURRENT file content, not snapshot
                     'attempt_summary': thread.get_attempt_summary(),
                     'error_message': last_attempt.error_message,
                     'failure_type': last_attempt.analysis.get('failure_type') if last_attempt.analysis else 'UNKNOWN'
