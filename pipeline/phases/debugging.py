@@ -167,7 +167,10 @@ class DebuggingPhase(BasePhase):
             )
         elif prompt_type == 'retry':
             from ..failure_prompts import get_retry_prompt
-            return get_retry_prompt(variables.get('context'))
+            return get_retry_prompt(
+                variables.get('context'),
+                variables.get('failure_analysis', {})
+            )
         else:
             from ..prompts import get_debug_prompt
             return get_debug_prompt(
