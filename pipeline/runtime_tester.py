@@ -117,6 +117,23 @@ class ProgramRunner:
             # Get exit code
             if self.process:
                 self.exit_code = self.process.wait()
+                
+                # CRITICAL: Read any remaining output after process exits
+                # This catches error messages that were buffered
+                if self.process.stdout:
+                    remaining_stdout = self.process.stdout.read()
+                    if remaining_stdout:
+                        for line in remaining_stdout.splitlines():
+                            if line:
+                                self.stdout_lines.append(line + '\n')
+                
+                if self.process.stderr:
+                    remaining_stderr = self.process.stderr.read()
+                    if remaining_stderr:
+                        for line in remaining_stderr.splitlines():
+                            if line:
+                                self.stderr_lines.append(line + '\n')
+                
                 self.logger.info(f"Program exited with code: {self.exit_code}")
         
         except Exception as e:
