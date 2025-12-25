@@ -147,21 +147,9 @@ class ProgramRunner:
                 
                 self.logger.info(f"Stopping process: PID={pid}, PGID={pgid}")
                 
-                # CRITICAL: Check if this is our own process group
-                if pgid == self.baseline.own_pgid:
-                    self.logger.error("CRITICAL: Attempted to kill own process group!")
-                    self.logger.error(f"  Own PGID: {self.baseline.own_pgid}")
-                    self.logger.error(f"  Target PGID: {pgid}")
-                    self.logger.error("  This would kill the monitoring process!")
-                    self.logger.error("  Skipping process group kill.")
-                    # Just kill the specific process instead
-                    if self.process_manager.safe_kill(pid, signal.SIGTERM):
-                        self.logger.info("Killed specific process only")
-                    return
-                
-                # Double-check: Verify the process group doesn't contain our PID
+                # Get all processes in the target group
+                import subprocess
                 try:
-                    import subprocess
                     result = subprocess.run(
                         ['ps', '-g', str(pgid), '-o', 'pid', '--no-headers'],
                         capture_output=True,
@@ -169,95 +157,77 @@ class ProgramRunner:
                         timeout=2
                     )
                     if result.returncode == 0:
-                        pids_in_group = [int(p.strip()) for p in result.stdout.strip().split('\n') if p.strip()]
-                        if self.baseline.own_pid in pids_in_group:
-                            self.logger.error(f"CRITICAL: Our own PID {self.baseline.own_pid} is in target group {pgid}!")
-                            self.logger.error("  Refusing to kill this group!")
-                            return
+                        pids_in_group = [int(p.strip()) for p in result.stdout.strip().split('
+') if p.strip()]
+                        self.logger.info(f"Found {len(pids_in_group)} processes in group {pgid}")
+                        
+                        # Kill each process individually, skipping our own and parent
+                        killed_count = 0
+                        for proc_pid in pids_in_group:
+                            if proc_pid == self.baseline.own_pid:
+                                self.logger.info(f"Skipping own PID {proc_pid}")
+                                continue
+                            if proc_pid == self.baseline.parent_pid:
+                                self.logger.info(f"Skipping parent PID {proc_pid}")
+                                continue
+                            
+                            try:
+                                # Try SIGTERM first
+                                os.kill(proc_pid, signal.SIGTERM)
+                                self.logger.info(f"Sent SIGTERM to {proc_pid}")
+                                killed_count += 1
+                            except ProcessLookupError:
+                                self.logger.debug(f"Process {proc_pid} already dead")
+                            except Exception as e:
+                                self.logger.warning(f"Error killing {proc_pid}: {e}")
+                        
+                        self.logger.info(f"Sent SIGTERM to {killed_count} processes")
+                        
+                        # Wait a bit for graceful shutdown
+                        time.sleep(1)
+                        
+                        # Force kill any remaining processes
+                        for proc_pid in pids_in_group:
+                            if proc_pid == self.baseline.own_pid or proc_pid == self.baseline.parent_pid:
+                                continue
+                            
+                            try:
+                                # Check if still alive
+                                os.kill(proc_pid, 0)
+                                # Still alive, force kill
+                                os.kill(proc_pid, signal.SIGKILL)
+                                self.logger.info(f"Sent SIGKILL to {proc_pid}")
+                            except ProcessLookupError:
+                                # Already dead, good
+                                pass
+                            except Exception as e:
+                                self.logger.warning(f"Error force killing {proc_pid}: {e}")
+                        
                 except Exception as e:
-                    self.logger.warning(f"Could not verify process group membership: {e}")
+                    self.logger.warning(f"Error getting process group: {e}")
+                    # Fallback: just kill the main process
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                        self.logger.info(f"Killed main process {pid}")
+                    except:
+                        pass
                 
-                # Show process tree before killing
-                self.logger.info("Process tree before kill:")
-                tree = self.process_manager.show_process_tree(pid, depth=2)
-                self.logger.info(f"\n{tree}")
-                
-                # Use safe process manager to kill
-                self.logger.info(f"Sending SIGTERM to process group {pgid}...")
-                if not self.process_manager.safe_killpg(pgid, signal.SIGTERM):
-                    self.logger.warning("Safe killpg refused to kill process group")
-                    # Try killing just the process
-                    self.process_manager.safe_kill(pid, signal.SIGTERM)
-                
+                # Wait for process to die
                 try:
                     self.process.wait(timeout=timeout)
-                    self.logger.info("Process terminated gracefully")
+                    self.logger.info("Process terminated")
                 except subprocess.TimeoutExpired:
-                    # Force kill if needed
-                    self.logger.warning("Process did not terminate gracefully, forcing SIGKILL")
-                    if pgid != self.baseline.own_pgid:
-                        self.process_manager.safe_killpg(pgid, signal.SIGKILL, force=True)
-                    else:
-                        self.process_manager.safe_kill(pid, signal.SIGKILL, force=True)
-                    self.process.wait()
-                    self.logger.info("Process force killed")
-                
-                # Reap any zombie processes
-                try:
-                    import errno
-                    while True:
-                        try:
-                            # Reap any child processes (zombies)
-                            pid, status = os.waitpid(-1, os.WNOHANG)
-                            if pid == 0:
-                                break  # No more zombies
-                            self.logger.info(f"Reaped zombie process: {pid}")
-                        except ChildProcessError:
-                            break  # No more children
-                except Exception as e:
-                    self.logger.warning(f"Error reaping zombies: {e}")
-                
-                # Verify processes are gone
-                try:
-                    result = subprocess.run(
-                        ['ps', '-g', str(pgid), '-o', 'pid,cmd'],
-                        capture_output=True,
-                        text=True,
-                        timeout=2
-                    )
-                    if result.returncode == 0 and result.stdout.strip():
-                        self.logger.warning(f"Some processes still running:\n{result.stdout}")
-                        # Try pkill as fallback
-                        self.logger.info("Using pkill as fallback...")
-                        # CRITICAL: pkill removed - it was killing the monitoring process!
-                           # Instead, processes should be killed by the process group kill above
-                    else:
-                        self.logger.info("All processes in group terminated successfully")
-                except Exception as e:
-                    self.logger.warning(f"Could not verify cleanup: {e}")
+                    self.logger.warning("Process did not terminate, may still be running")
+                except:
+                    pass
                     
-            except ProcessLookupError:
-                # Process already terminated
-                self.logger.info("Process already terminated")
             except Exception as e:
-                self.logger.error(f"Error stopping process: {e}")
+                self.logger.error(f"Error stopping program: {e}")
                 import traceback
                 self.logger.error(traceback.format_exc())
-                
-                # Fallback: try pkill
-                self.logger.info("Attempting pkill fallback...")
-                try:
-                    # CRITICAL: pkill removed - it was killing the monitoring process!
-                           # Instead, processes should be killed by the process group kill above
-                    self.logger.info("pkill fallback completed")
-                except Exception as e2:
-                    self.logger.error(f"pkill fallback failed: {e2}")
-        
-        if self.thread:
-            self.thread.join(timeout=timeout)
-        
-        self.logger.info("Program stopped")
-    
+            finally:
+                self.process = None
+
     def is_running(self) -> bool:
         """Check if the program is currently running."""
         return self.running
