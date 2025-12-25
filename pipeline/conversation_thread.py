@@ -355,7 +355,7 @@ All specialists have access to the full conversation history and can build on pr
         thread_file.write_text(json.dumps(thread_data, indent=2))
         return thread_file
     
-    def should_continue(self, max_attempts: int = 5) -> bool:
+    def should_continue(self, max_attempts: int = 999999) -> bool:  # UNLIMITED attempts
         """Determine if we should continue trying"""
         
         # Stop if we succeeded

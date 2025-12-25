@@ -321,7 +321,7 @@ def run_debug_qa_mode(args) -> int:
                                 [sys.executable, "-c", f"import sys; sys.path.insert(0, '{project_dir}'); import {project_dir.name}"],
                                 capture_output=True,
                                 text=True,
-                                timeout=10,
+                                timeout=None,
                                 cwd=str(project_dir.parent)
                             )
                             if result.returncode != 0 and result.stderr:
@@ -486,7 +486,7 @@ def run_debug_qa_mode(args) -> int:
                                             ['grep', '-r', '-l', '--include=*.py', search_text[:100], str(project_dir)],
                                             capture_output=True,
                                             text=True,
-                                            timeout=5
+                                            timeout=None
                                         )
                                         if result.returncode == 0 and result.stdout.strip():
                                             # Found file(s), use the first one
@@ -497,7 +497,7 @@ def run_debug_qa_mode(args) -> int:
                                                 ['grep', '-n', search_text[:100], found_file],
                                                 capture_output=True,
                                                 text=True,
-                                                timeout=5
+                                                timeout=None
                                             )
                                             if result2.returncode == 0 and result2.stdout.strip():
                                                 line_match = re.match(r'(\d+):', result2.stdout)
@@ -525,7 +525,7 @@ def run_debug_qa_mode(args) -> int:
                         print(f"\n✅ No runtime errors detected in {int(time.time() - start_time)} seconds")
                         
                         # Check if we should extend monitoring or detach
-                        success_timeout = getattr(args, 'success_timeout', 600)
+                        success_timeout = getattr(args, 'success_timeout', 999999)  # UNLIMITED by default
                         detach_mode = getattr(args, 'detach', False)
                         
                         if detach_mode:

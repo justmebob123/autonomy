@@ -70,7 +70,7 @@ class SpecialistAgent:
             messages,
             tools,
             temperature=self.config.temperature,
-            timeout=72000  # 20 HOURS for specialist analysis on CPU systems
+            timeout=None  # UNLIMITED - wait forever
         )
         
         if "error" in response:

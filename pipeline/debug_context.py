@@ -187,7 +187,7 @@ def find_class_definition(project_dir: Path, class_name: str) -> Dict:
             ['grep', '-r', '-n', f'class {class_name}', str(project_dir), '--include=*.py'],
             capture_output=True,
             text=True,
-            timeout=5
+            timeout=None  # UNLIMITED
         )
         
         if result.returncode == 0 and result.stdout.strip():

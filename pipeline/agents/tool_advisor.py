@@ -243,7 +243,7 @@ Provide a clear, concise explanation with an example."""
                 messages,
                 tools=None,
                 temperature=0.1,  # Low temperature for precise responses
-                timeout=30
+                timeout=None  # UNLIMITED
             )
             return response
         except Exception as e:

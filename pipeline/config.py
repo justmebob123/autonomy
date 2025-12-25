@@ -41,22 +41,22 @@ class PipelineConfig:
     
     project_dir: Path = field(default_factory=lambda: Path.cwd())
     git_enabled: bool = True
-    max_iterations: int = 0  # 0 = unlimited
-    max_retries_per_task: int = 3
+    max_iterations: int = 0  # 0 = unlimited (GOOD)
+    max_retries_per_task: int = 999999  # UNLIMITED retries per task
     
     # Verbose mode - show prompts and responses
     verbose: int = 0  # 0=normal, 1=verbose, 2=very verbose
     
     # Timeouts (seconds) - None means no timeout (wait forever)
-    # ORDERS OF MAGNITUDE INCREASE - CPU-only systems need MUCH longer
-    planning_timeout: Optional[int] = 36000  # 10 HOURS for planning
-    coding_timeout: Optional[int] = 72000  # 20 HOURS for coding (can be very complex)
-    qa_timeout: Optional[int] = 36000  # 10 HOURS for QA
-    debug_timeout: Optional[int] = 72000  # 20 HOURS for CPU-only systems and complex debugging
-    request_timeout: Optional[int] = 72000  # 20 HOURS default for CPU systems
-    specialist_timeout: Optional[int] = 72000  # 20 HOURS for specialist analysis
-    orchestrator_timeout: Optional[int] = 72000  # 20 HOURS for team orchestration
-    tool_advisor_timeout: Optional[int] = 36000  # 10 HOURS for tool advisor
+    # ALL TIMEOUTS SET TO NONE = COMPLETELY UNLIMITED PER USER REQUEST
+    planning_timeout: Optional[int] = None  # UNLIMITED - wait forever
+    coding_timeout: Optional[int] = None    # UNLIMITED - wait forever
+    qa_timeout: Optional[int] = None        # UNLIMITED - wait forever
+    debug_timeout: Optional[int] = None     # UNLIMITED - wait forever
+    request_timeout: Optional[int] = None   # UNLIMITED - wait forever
+    specialist_timeout: Optional[int] = None  # UNLIMITED - wait forever
+    orchestrator_timeout: Optional[int] = None  # UNLIMITED - wait forever
+    tool_advisor_timeout: Optional[int] = None  # UNLIMITED - wait forever
     
     # State management
     state_dir: str = ".pipeline"

@@ -233,7 +233,7 @@ Provide:
                 messages,
                 tools=None,
                 temperature=0.3,
-                timeout=60
+                timeout=None  # UNLIMITED
             )
             return response
         except Exception as e:

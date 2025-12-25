@@ -126,12 +126,12 @@ class ProgramRunner:
         finally:
             self.running = False
     
-    def stop(self, timeout: float = 5.0):
+    def stop(self, timeout: float = 300.0):
         """
         Stop the running program and all child processes.
         
         Args:
-            timeout: Seconds to wait for graceful shutdown
+            timeout: Seconds to wait for graceful shutdown (5 minutes)
         """
         if not self.running:
             self.logger.info("Stop called but program not running")
@@ -154,7 +154,7 @@ class ProgramRunner:
                         ['ps', '-g', str(pgid), '-o', 'pid', '--no-headers'],
                         capture_output=True,
                         text=True,
-                        timeout=2
+                        timeout=60  # 60 seconds for ps command
                     )
                     if result.returncode == 0:
                         pids_in_group = [int(p.strip()) for p in result.stdout.strip().split('\n') if p.strip()]
@@ -373,7 +373,7 @@ class LogMonitor:
         self.running = False
         
         if self.thread:
-            self.thread.join(timeout=2)
+            self.thread.join(timeout=60)  # 60 seconds for thread cleanup
         
         self.logger.info("Log monitor stopped")
     

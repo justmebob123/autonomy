@@ -37,7 +37,7 @@ class ProjectPlanningPhase(BasePhase):
     
     # Limits to prevent runaway expansion
     MAX_TASKS_PER_CYCLE = 5
-    MAX_EXPANSION_CYCLES = 100  # Safety limit
+    MAX_EXPANSION_CYCLES = 999999  # UNLIMITED expansion cycles
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """Execute project planning phase"""

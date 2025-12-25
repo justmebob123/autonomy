@@ -30,7 +30,7 @@ class OllamaClient:
         
         for server in self.config.servers:
             try:
-                response = requests.get(f"{server.base_url}/api/tags", timeout=10)
+                response = requests.get(f"{server.base_url}/api/tags", timeout=None)  # UNLIMITED
                 if response.status_code == 200:
                     data = response.json()
                     server.models = [m["name"] for m in data.get("models", [])]
@@ -252,7 +252,7 @@ Output ONLY the JSON, nothing else:"""
                 messages,
                 tools=None,
                 temperature=0.1,
-                timeout=3600
+                timeout=None  # UNLIMITED
             )
             
             content = response.get("message", {}).get("content", "")

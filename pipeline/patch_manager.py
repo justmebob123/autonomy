@@ -227,7 +227,7 @@ class PatchManager:
         except Exception as e:
             return False, f"Error: {e}"
     
-    def list_patches(self, limit: int = 10) -> List[Path]:
+    def list_patches(self, limit: int = 999999) -> List[Path]:  # UNLIMITED patches
         """
         List recent patches.
         

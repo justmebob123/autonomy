@@ -54,7 +54,7 @@ def search_for_attribute_usage(
                 ['grep', '-r', '-n', '-E', pattern, str(project_dir), '--include=*.py'],
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=None  # UNLIMITED
             )
             
             if result.returncode == 0:
@@ -114,7 +114,7 @@ def search_for_pattern(
             ['grep', '-r', '-n', '-E', pattern, str(project_dir), f'--include={file_pattern}'],
             capture_output=True,
             text=True,
-            timeout=10
+            timeout=None  # UNLIMITED
         )
         
         if result.returncode == 0:

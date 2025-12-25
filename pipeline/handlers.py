@@ -843,7 +843,7 @@ class ToolCallHandler:
                 ['grep', '-r', '-n', '-E', pattern, str(self.project_dir), f'--include={file_pattern}'],
                 capture_output=True,
                 text=True,
-                timeout=10
+                timeout=None  # UNLIMITED
             )
             
             if result.returncode == 0:
@@ -929,7 +929,7 @@ class ToolCallHandler:
         import subprocess
         
         command = args.get("command", "")
-        timeout = args.get("timeout", 300)
+        timeout = args.get("timeout", None)  # UNLIMITED by default
         capture_output = args.get("capture_output", True)
         
         if not command:

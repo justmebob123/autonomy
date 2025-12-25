@@ -129,15 +129,12 @@ class PhaseCoordinator:
         iteration = 0
         max_iter = self.config.max_iterations if self.config.max_iterations > 0 else float('inf')
         
-        # Minimum time between iterations to prevent spinning
-        min_interval = 2.0
+        # NO RATE LIMITING - run as fast as possible
+        min_interval = 0  # UNLIMITED - no delay between iterations
         last_iteration_time = 0
         
         while iteration < max_iter:
-            # Rate limiting
-            elapsed = time.time() - last_iteration_time
-            if elapsed < min_interval and last_iteration_time > 0:
-                time.sleep(min_interval - elapsed)
+            # No rate limiting - removed per user request
             last_iteration_time = time.time()
             
             # Load current state

@@ -307,7 +307,7 @@ class DebuggingPhase(BasePhase):
                             # Retry with this model (increased timeout for CPU inference)
                             retry_response = self.client.chat(
                                 host, model, messages, tools, 
-                                temperature=0.3, timeout=7200
+                                temperature=0.3, timeout=None  # UNLIMITED
                             )
                             retry_message = retry_response.get('message', {}) if retry_response else {}
                             retry_content = retry_message.get('content', '')
@@ -637,7 +637,7 @@ Remember:
     def execute_with_conversation_thread(self, state: PipelineState,
                                         issue: Dict,
                                         task: TaskState = None,
-                                        max_attempts: int = 5) -> PhaseResult:
+                                        max_attempts: int = 999999) -> PhaseResult:  # UNLIMITED attempts
         """
         Execute debugging with persistent conversation thread and specialist consultation.
         

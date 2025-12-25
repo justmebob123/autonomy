@@ -190,7 +190,7 @@ class SafeProcessManager:
             self.logger.error(f"Error killing process group {pgid}: {e}")
             return False
     
-    def kill_spawned_processes(self, timeout: float = 5.0) -> Tuple[int, int]:
+    def kill_spawned_processes(self, timeout: float = 60.0) -> Tuple[int, int]:  # 60 seconds for graceful shutdown
         """
         Kill all spawned processes
         

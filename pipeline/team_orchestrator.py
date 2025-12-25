@@ -27,7 +27,7 @@ class Task:
     server: str
     input_data: Dict[str, Any]
     dependencies: List[str] = field(default_factory=list)
-    timeout: int = 72000  # 20 HOURS for CPU-only systems
+    timeout: int = None  # UNLIMITED - wait forever
     priority: str = "medium"
     result: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
@@ -159,7 +159,7 @@ class TeamOrchestrator:
             prompt=prompt,
             model="qwen2.5:14b",  # Use capable model for planning
             server="ollama01.thiscluster.net",
-            timeout=300
+            timeout=None  # UNLIMITED
         )
         
         # Parse response to extract plan
@@ -363,7 +363,7 @@ class TeamOrchestrator:
                             'specialist': 'Root Cause Analyst',
                             'server': 'ollama01.thiscluster.net',
                             'input': {},
-                            'timeout': 300
+                            'timeout': None  # UNLIMITED
                         }
                     ]
                 }
@@ -394,7 +394,7 @@ class TeamOrchestrator:
                     server=task_data.get('server', 'ollama01.thiscluster.net'),
                     input_data=task_data.get('input', {}),
                     dependencies=task_data.get('dependencies', []),
-                    timeout=task_data.get('timeout', 300),
+                    timeout=task_data.get('timeout', None),  # UNLIMITED by default
                     priority=task_data.get('priority', 'medium')
                 )
                 tasks.append(task)
