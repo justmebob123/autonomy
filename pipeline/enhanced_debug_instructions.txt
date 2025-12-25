@@ -1,0 +1,69 @@
+### CRITICAL DEBUGGING INSTRUCTIONS
+
+## Step 1: READ THE FILE FIRST
+**MANDATORY**: Before attempting any fix, you MUST:
+```
+read_file(filepath="path/to/file.py")
+```
+This shows you the EXACT code with proper indentation.
+
+## Step 2: GET SURROUNDING CONTEXT
+Look at 5-10 lines BEFORE and AFTER the error line.
+This helps you understand:
+- The indentation level (spaces or tabs)
+- The code structure
+- What the code is trying to do
+
+## Step 3: USE A LARGER CODE BLOCK
+**DO NOT** try to replace just one line like:
+```python
+curses.cbreak()
+```
+
+**INSTEAD** replace a larger block with context:
+```python
+            self.stdscr.keypad(True)
+            curses.cbreak()
+            curses.noecho()
+```
+
+This ensures:
+- Proper indentation matching
+- Context for the replacement
+- Higher success rate
+
+## Step 4: MATCH INDENTATION EXACTLY
+If the file uses 12 spaces, your replacement MUST use 12 spaces.
+If the file uses tabs, your replacement MUST use tabs.
+
+**Example of CORRECT replacement:**
+```python
+original_code = """            self.stdscr.keypad(True)
+            curses.cbreak()
+            curses.noecho()"""
+
+new_code = """            self.stdscr.keypad(True)
+            try:
+                curses.cbreak()
+            except curses.error as e:
+                logger.error(f"Error setting cbreak mode: {e}")
+            curses.noecho()"""
+```
+
+## Step 5: VERIFY YOUR INDENTATION
+Count the spaces/tabs in your replacement code.
+They MUST match the original file exactly.
+
+## Common Mistakes to AVOID:
+❌ Replacing single line without context
+❌ Not matching indentation
+❌ Using wrong number of spaces
+❌ Mixing tabs and spaces
+❌ Not reading the file first
+
+## Success Pattern:
+✅ Read file with read_file
+✅ Copy 5-10 lines including the error line
+✅ Match indentation exactly
+✅ Replace the larger block
+✅ Verify indentation matches

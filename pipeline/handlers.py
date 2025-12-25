@@ -535,11 +535,17 @@ class ToolCallHandler:
                     verification_passed = False
             
             # 3. Verify the change actually occurred
-            if original in written_content:
-                verification_errors.append("Original code still present - change may not have applied")
-                verification_passed = False
+            # Check if the exact original code block was replaced
+            # Note: If new_code contains original (like wrapping in try/except), 
+            # we should check that the standalone original is gone
+            if original not in new_code:  # Only check if original was completely replaced
+                if original in written_content:
+                    verification_errors.append("Original code still present - change may not have applied")
+                    verification_passed = False
             
-            if new_code not in written_content:
+            # Check if new code is present (with some flexibility for whitespace)
+            new_code_stripped = new_code.strip()
+            if new_code_stripped and new_code_stripped not in written_content:
                 verification_errors.append("New code not found in file - change may have failed")
                 verification_passed = False
             

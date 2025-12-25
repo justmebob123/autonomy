@@ -426,7 +426,21 @@ You are debugging a runtime error in a Python application. This is NOT about cre
 {code}
 ```
 
-"""
+## ⚠️ CRITICAL DEBUGGING INSTRUCTIONS ⚠️
+   
+   **STEP 1: READ THE FILE FIRST**
+   Use read_file tool to see the EXACT code with proper indentation.
+   
+   **STEP 2: USE A LARGER CODE BLOCK (5-10 lines)**
+   DO NOT replace just one line. Replace a block that includes surrounding context.
+   
+   ❌ WRONG: original_code = "curses.cbreak()"
+   ✅ CORRECT: original_code with 5-10 lines including context and indentation
+   
+   **STEP 3: MATCH INDENTATION EXACTLY**
+   Count the spaces in the file. Match them exactly in your replacement.
+   
+   """
     
     # Add related files if available (limit to key files)
     related_files = issue.get('related_files', {})

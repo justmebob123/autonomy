@@ -67,15 +67,23 @@ Check if code changed:
 - Check patch history
 
 ## Your Task
-1. **Use tools extensively** - Don't guess, investigate
-2. **Find the actual code** - It must be there somewhere
-3. **Identify the mismatch** - What's different?
-4. **Provide exact solution** - Show the correct code to use
+1. **FIRST: Read the file** - Use read_file to see the actual code with proper indentation
+2. **Use tools extensively** - Don't guess, investigate with cat -A, grep, etc.
+3. **Find the actual code** - It must be there somewhere with its exact indentation
+4. **Identify the mismatch** - What's different? Indentation? Whitespace?
+5. **Provide exact solution** - Show the correct code WITH PROPER INDENTATION
+
+## CRITICAL: Indentation Matching
+- The file uses a specific indentation (spaces or tabs)
+- You MUST match this indentation exactly
+- Use read_file to see the surrounding code
+- Copy the indentation from the actual file
+- Include enough context (3-5 lines) to ensure proper indentation
 
 ## Output Requirements
 - **Findings:** List all discoveries with evidence
-- **Exact Code:** Provide the EXACT code from the file (copy-paste)
-- **Recommendations:** Specific steps to fix
+- **Exact Code:** Provide the EXACT code from the file (copy-paste with indentation)
+- **Recommendations:** Specific steps to fix with proper indentation
 - **Tool Calls:** Make all necessary tool calls to investigate
 """
 
