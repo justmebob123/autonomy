@@ -572,14 +572,46 @@ class DebuggingPhase(BasePhase):
         
         # Check for loops
         intervention = self._check_for_loops()
-        if intervention and intervention.get('requires_user_input'):
-            # Critical: Must escalate to user
-            return PhaseResult(
-                success=False,
-                phase=self.phase_name,
-                message=f"Loop detected - user intervention required: {intervention['guidance'][:200]}",
-                data={'intervention': intervention}
-            )
+           if intervention and intervention.get('requires_user_input'):
+               # AUTONOMOUS: Consult AI UserProxy specialist instead of blocking
+               self.logger.info(&quot;\n&quot; + &quot;=&quot;*80)
+               self.logger.info(&quot;🤖 AUTONOMOUS USER PROXY CONSULTATION&quot;)
+               self.logger.info(&quot;=&quot;*80)
+               self.logger.info(&quot;Loop detected - consulting AI specialist for guidance...&quot;)
+               
+               # Import and create UserProxyAgent
+               from pipeline.user_proxy import UserProxyAgent
+               user_proxy = UserProxyAgent(
+                   role_registry=self.role_registry,
+                   prompt_registry=self.prompt_registry,
+                   tool_registry=self.tool_registry,
+                   client=self.client,
+                   logger=self.logger
+               )
+               
+               # Get guidance from AI specialist
+               guidance_result = user_proxy.get_guidance(
+                   error_info={
+                       'type': error_type,
+                       'message': error_message,
+                       'file': filepath,
+                       'line': line_number
+                   },
+                   loop_info={
+                       'type': intervention.get('type', 'Unknown'),
+                       'iterations': intervention.get('iterations', 0),
+                       'pattern': intervention.get('pattern', 'Unknown')
+                   },
+                   debugging_history=self.action_tracker.get_recent_actions(10) if hasattr(self, 'action_tracker') else [],
+                   context={'intervention': intervention}
+               )
+               
+               # Apply the guidance
+               guidance = guidance_result.get('guidance', '')
+               self.logger.info(f&quot;\n✓ AI Guidance: {guidance}&quot;)
+               
+               # Continue with the guidance (don't return failure)
+               # The guidance will be incorporated into the next iteration
         
         # Show activity summary
         self.logger.info(handler.get_activity_summary())
@@ -768,14 +800,46 @@ Remember:
         
         # Check for loops
         intervention = self._check_for_loops()
-        if intervention and intervention.get('requires_user_input'):
-            # Critical: Must escalate to user
-            return PhaseResult(
-                success=False,
-                phase=self.phase_name,
-                message=f"Loop detected during retry - user intervention required",
-                data={'intervention': intervention}
-            )
+           if intervention and intervention.get('requires_user_input'):
+               # AUTONOMOUS: Consult AI UserProxy specialist instead of blocking
+               self.logger.info(&quot;\n&quot; + &quot;=&quot;*80)
+               self.logger.info(&quot;🤖 AUTONOMOUS USER PROXY CONSULTATION&quot;)
+               self.logger.info(&quot;=&quot;*80)
+               self.logger.info(&quot;Loop detected - consulting AI specialist for guidance...&quot;)
+               
+               # Import and create UserProxyAgent
+               from pipeline.user_proxy import UserProxyAgent
+               user_proxy = UserProxyAgent(
+                   role_registry=self.role_registry,
+                   prompt_registry=self.prompt_registry,
+                   tool_registry=self.tool_registry,
+                   client=self.client,
+                   logger=self.logger
+               )
+               
+               # Get guidance from AI specialist
+               guidance_result = user_proxy.get_guidance(
+                   error_info={
+                       'type': error_type,
+                       'message': error_message,
+                       'file': filepath,
+                       'line': line_number
+                   },
+                   loop_info={
+                       'type': intervention.get('type', 'Unknown'),
+                       'iterations': intervention.get('iterations', 0),
+                       'pattern': intervention.get('pattern', 'Unknown')
+                   },
+                   debugging_history=self.action_tracker.get_recent_actions(10) if hasattr(self, 'action_tracker') else [],
+                   context={'intervention': intervention}
+               )
+               
+               # Apply the guidance
+               guidance = guidance_result.get('guidance', '')
+               self.logger.info(f&quot;\n✓ AI Guidance: {guidance}&quot;)
+               
+               # Continue with the guidance (don't return failure)
+               # The guidance will be incorporated into the next iteration
         
         # Show activity summary
         self.logger.info(handler.get_activity_summary())
@@ -1117,6 +1181,53 @@ Remember:
                     role="system",
                     content=f"⚠️ LOOP DETECTED\n\n{intervention['guidance']}"
                 )
+                
+                   if intervention.get('requires_user_input'):
+                       # AUTONOMOUS: Consult AI UserProxy specialist instead of blocking
+                       self.logger.info("\n" + "="*80)
+                       self.logger.info("🤖 AUTONOMOUS USER PROXY CONSULTATION")
+                       self.logger.info("="*80)
+                       self.logger.info("Loop detected - consulting AI specialist for guidance...")
+                       
+                       # Import and create UserProxyAgent
+                       from pipeline.user_proxy import UserProxyAgent
+                       user_proxy = UserProxyAgent(
+                           role_registry=self.role_registry,
+                           prompt_registry=self.prompt_registry,
+                           tool_registry=self.tool_registry,
+                           client=self.client,
+                           logger=self.logger
+                       )
+                       
+                       # Get guidance from AI specialist
+                       guidance_result = user_proxy.get_guidance(
+                           error_info={
+                               'type': error_type,
+                               'message': error_message,
+                               'file': filepath,
+                               'line': line_number
+                           },
+                           loop_info={
+                               'type': intervention.get('type', 'Unknown'),
+                               'iterations': intervention.get('iterations', 0),
+                               'pattern': intervention.get('pattern', 'Unknown')
+                           },
+                           debugging_history=thread.get_conversation_history() if thread else [],
+                           context={'intervention': intervention, 'thread': thread}
+                       )
+                       
+                       # Apply the guidance
+                       guidance = guidance_result.get('guidance', '')
+                       self.logger.info(f"\n✓ AI Guidance: {guidance}")
+                       
+                       # Add guidance to thread
+                       if thread:
+                           thread.add_message(
+                               role="system",
+                               content=f"UserProxy AI Guidance: {guidance}"
+                           )
+                       
+                       # Continue with the guidance (don't return failure)
             
             # Add results to thread
             thread.add_message(
