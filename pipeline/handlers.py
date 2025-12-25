@@ -362,21 +362,72 @@ class ToolCallHandler:
         
         content = full_path.read_text()
         
-        if original not in content:
-            self.logger.warning(f"  ⚠️ Original code not found in {filepath}")
-            # Try to find similar code
-            similar = self._find_similar_code(content, original)
-            error_msg = "Original code not found in file"
-            if similar:
-                error_msg += f". Did you mean:\n{similar[:200]}"
-            return {
-                "tool": "modify_file", 
-                "success": False,
-                "error": error_msg,
-                "filepath": filepath
-            }
-        
-        new_content = content.replace(original, new_code, 1)
+        # Try exact match first
+        if original in content:
+            new_content = content.replace(original, new_code, 1)
+        else:
+            # Try with normalized whitespace (strip leading/trailing, normalize internal)
+            original_stripped = original.strip()
+            
+            # Try to find the code with any indentation
+            found = False
+            for line_num, line in enumerate(content.split('\n'), 1):
+                if line.strip() == original_stripped:
+                    # Found it! Get the indentation
+                    indent = line[:len(line) - len(line.lstrip())]
+                    # Apply same indentation to new code
+                    new_code_indented = '\n'.join(indent + l if l.strip() else l 
+                                                   for l in new_code.split('\n'))
+                    # Replace the line
+                    lines = content.split('\n')
+                    lines[line_num - 1] = new_code_indented
+                    new_content = '\n'.join(lines)
+                    found = True
+                    self.logger.info(f"  ✓ Found code at line {line_num} with indentation, applied fix")
+                    break
+            
+            if not found:
+                # Try multi-line match with flexible whitespace
+                original_lines = [l.strip() for l in original.strip().split('\n') if l.strip()]
+                content_lines = content.split('\n')
+                
+                for i in range(len(content_lines) - len(original_lines) + 1):
+                    # Check if this is a match
+                    match = True
+                    for j, orig_line in enumerate(original_lines):
+                        if content_lines[i + j].strip() != orig_line:
+                            match = False
+                            break
+                    
+                    if match:
+                        # Found it! Get indentation from first line
+                        first_line = content_lines[i]
+                        indent = first_line[:len(first_line) - len(first_line.lstrip())]
+                        
+                        # Apply same indentation to new code
+                        new_code_lines = [indent + l if l.strip() else l 
+                                         for l in new_code.split('\n')]
+                        
+                        # Replace the lines
+                        content_lines[i:i+len(original_lines)] = new_code_lines
+                        new_content = '\n'.join(content_lines)
+                        found = True
+                        self.logger.info(f"  ✓ Found multi-line code at line {i+1} with indentation, applied fix")
+                        break
+                
+                if not found:
+                    self.logger.warning(f"  ⚠️ Original code not found in {filepath}")
+                    # Try to find similar code
+                    similar = self._find_similar_code(content, original)
+                    error_msg = "Original code not found in file"
+                    if similar:
+                        error_msg += f". Did you mean:\n{similar[:200]}"
+                    return {
+                        "tool": "modify_file", 
+                        "success": False,
+                        "error": error_msg,
+                        "filepath": filepath
+                    }
         
         # Validate Python syntax
         if filepath.endswith('.py'):
