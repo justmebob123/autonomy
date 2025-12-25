@@ -83,6 +83,10 @@ class BasePhase(ABC):
         
         # Cache tools for functiongemma fallback
         self._tools_cache: Dict[str, List[Dict]] = {}
+        
+        # Dynamic registries (Integration Point #2)
+        from ..prompt_registry import PromptRegistry
+        self.prompt_registry = PromptRegistry(self.project_dir)
     
     @abstractmethod
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:

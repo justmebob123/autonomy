@@ -59,6 +59,7 @@ class PhaseCoordinator:
             ProjectPlanningPhase,
             DocumentationPhase,
         )
+        from .phases.prompt_design import PromptDesignPhase
         
         # BasePhase.__init__ takes (config, client) - project_dir comes from config
         return {
@@ -69,6 +70,8 @@ class PhaseCoordinator:
             "debug": DebuggingPhase(self.config, self.client),  # Alias
             "project_planning": ProjectPlanningPhase(self.config, self.client),
             "documentation": DocumentationPhase(self.config, self.client),
+            # Meta-agent phases (Integration Point #1)
+            "prompt_design": PromptDesignPhase(self.config, self.client),
         }
     
     def run(self, resume: bool = True) -> bool:
