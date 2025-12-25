@@ -448,12 +448,50 @@ class RuntimeTester:
         self.log_monitor.stop()
     
     def get_errors(self) -> List[Dict]:
-        """Get all detected errors."""
+        """Get all detected errors from both log file and stdout/stderr."""
         errors = []
+        
+        # Get errors from log file monitoring
         while not self.error_queue.empty():
             errors.append(self.error_queue.get())
+        
+        # CRITICAL: Also check stdout/stderr for errors that didn't make it to log file
+        # This catches crashes during initialization before logging starts
+        if not self.program_runner.is_running() and self.program_runner.exit_code != 0:
+            # Check stderr for tracebacks
+            stderr_text = ''.join(self.program_runner.stderr_lines)
+            if 'Traceback' in stderr_text or 'Error:' in stderr_text or 'ERROR:' in stderr_text:
+                errors.append({
+                    'type': 'stderr_exception',
+                    'line': 'Program crashed before logging started',
+                    'context': self.program_runner.stderr_lines[-50:],  # Last 50 lines
+                    'exit_code': self.program_runner.exit_code
+                })
+            
+            # Check stdout for errors too
+            stdout_text = ''.join(self.program_runner.stdout_lines)
+            if 'Traceback' in stdout_text or 'Error:' in stdout_text or 'ERROR:' in stdout_text:
+                errors.append({
+                    'type': 'stdout_exception',
+                    'line': 'Program crashed before logging started',
+                    'context': self.program_runner.stdout_lines[-50:],  # Last 50 lines
+                    'exit_code': self.program_runner.exit_code
+                })
+        
         return errors
     
     def is_running(self) -> bool:
         """Check if testing is currently running."""
         return self.program_runner.is_running()
+    
+    def get_stdout(self) -> List[str]:
+        """Get captured stdout lines."""
+        return self.program_runner.stdout_lines.copy()
+    
+    def get_stderr(self) -> List[str]:
+        """Get captured stderr lines."""
+        return self.program_runner.stderr_lines.copy()
+    
+    def get_exit_code(self) -> Optional[int]:
+        """Get program exit code."""
+        return self.program_runner.exit_code

@@ -430,6 +430,47 @@ def run_debug_qa_mode(args) -> int:
                     # Clear global reference (already declared above)
                     _global_tester = None
                     
+                    # CRITICAL: Check if program crashed but no errors in log file
+                    # This catches initialization crashes before logging starts
+                    if not runtime_errors_found and not tester.is_running():
+                        exit_code = tester.get_exit_code()
+                        if exit_code and exit_code != 0:
+                            print(f"\n⚠️  Program exited with code {exit_code} but no errors in log file")
+                            print("   Checking stdout/stderr for crash information...")
+                            
+                            stderr = tester.get_stderr()
+                            stdout = tester.get_stdout()
+                            
+                            # Check stderr for errors
+                            if stderr and any('Traceback' in line or 'Error' in line for line in stderr):
+                                print(f"\n❌ Found crash in stderr output!")
+                                print("\n📋 Program Output (stderr):")
+                                for line in stderr[-30:]:  # Last 30 lines
+                                    print(f"   {line.rstrip()}")
+                                
+                                # Force error detection
+                                runtime_errors_found.append({
+                                    'type': 'stderr_crash',
+                                    'line': 'Program crashed during initialization',
+                                    'context': stderr[-30:],
+                                    'exit_code': exit_code
+                                })
+                            
+                            # Check stdout for errors
+                            elif stdout and any('Traceback' in line or 'Error' in line for line in stdout):
+                                print(f"\n❌ Found crash in stdout output!")
+                                print("\n📋 Program Output (stdout):")
+                                for line in stdout[-30:]:  # Last 30 lines
+                                    print(f"   {line.rstrip()}")
+                                
+                                # Force error detection
+                                runtime_errors_found.append({
+                                    'type': 'stdout_crash',
+                                    'line': 'Program crashed during initialization',
+                                    'context': stdout[-30:],
+                                    'exit_code': exit_code
+                                })
+                    
                     if runtime_errors_found:
                         print(f"\n❌ Found {len(runtime_errors_found)} runtime error(s)!")
                         print("\n📋 Runtime Errors:")
