@@ -15,7 +15,7 @@ from collections import defaultdict
 
 from pipeline.client import OllamaClient
 from pipeline.specialist_agents import SpecialistTeam
-from pipeline.prompts.team_orchestrator import get_team_orchestrator_prompt
+from .prompts.team_orchestrator import get_team_orchestrator_prompt
 from pipeline.conversation_thread import ConversationThread
 
 

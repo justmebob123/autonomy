@@ -344,7 +344,7 @@ class FailureAnalyzer:
             
             # Check for unmatched quotes
             single_quotes = line.count("'") - line.count("\\'")
-            double_quotes = line.count('"') - line.count('\&quot;')
+            double_quotes = line.count('"') - line.count(r'\&quot;')
             if single_quotes % 2 != 0:
                 issues.append(f"Line {i}: Unmatched single quotes")
             if double_quotes % 2 != 0:
