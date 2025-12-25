@@ -361,6 +361,57 @@ Provide strategic, high-level analysis and recommendations."""
         
         return analysis
     
+    def consult_team(self, thread: ConversationThread, 
+                    tools: List[Dict],
+                    specialists: Optional[List[str]] = None) -> Dict:
+        """
+        Consult multiple specialists in sequence.
+        
+        Each specialist sees the previous specialists' analysis.
+        """
+        
+        if specialists is None:
+            # Default consultation order
+            specialists = [
+                "Whitespace Analyst",
+                "Syntax Analyst",
+                "Pattern Analyst",
+                "Root Cause Analyst"
+            ]
+        
+        team_analysis = {
+            "specialists_consulted": [],
+            "analyses": {},
+            "consensus_findings": [],
+            "consensus_recommendations": [],
+            "confidence": 0.0
+        }
+        
+        for specialist_name in specialists:
+            if specialist_name not in self.specialists:
+                self.logger.warning(f"  ⚠️  Specialist '{specialist_name}' not available")
+                continue
+            
+            analysis = self.consult_specialist(specialist_name, thread, tools)
+            
+            if "error" not in analysis:
+                team_analysis["specialists_consulted"].append(specialist_name)
+                team_analysis["analyses"][specialist_name] = analysis
+                
+                # Aggregate findings
+                team_analysis["consensus_findings"].extend(analysis.get("findings", []))
+                team_analysis["consensus_recommendations"].extend(analysis.get("recommendations", []))
+                
+                # Update confidence (average)
+                confidences = [a.get("confidence", 0.0) for a in team_analysis["analyses"].values()]
+                team_analysis["confidence"] = sum(confidences) / len(confidences) if confidences else 0.0
+        
+        # Deduplicate and prioritize
+        team_analysis["consensus_findings"] = list(set(team_analysis["consensus_findings"]))
+        team_analysis["consensus_recommendations"] = list(set(team_analysis["consensus_recommendations"]))
+        
+        return team_analysis
+    
     def get_best_specialist_for_failure(self, failure_type: str) -> str:
         """Get the best specialist for a specific failure type"""
         

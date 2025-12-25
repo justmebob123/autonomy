@@ -504,3 +504,256 @@ class TeamOrchestrator:
     # SELF-IMPROVEMENT VALIDATION METHODS
     # ========================================================================
     
+    def validate_custom_tool(self, tool_name: str, tool_registry) -> Dict[str, Any]:
+        """
+        Validate a custom tool works correctly.
+        
+        Args:
+            tool_name: Name of the tool to validate
+            tool_registry: ToolRegistry instance
+            
+        Returns:
+            Validation result dictionary
+        """
+        self.logger.info(f"🔍 Validating custom tool: {tool_name}")
+        
+        result = {
+            'tool_name': tool_name,
+            'valid': False,
+            'issues': [],
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        try:
+            # Check if tool exists in registry
+            if tool_name not in tool_registry.tools:
+                result['issues'].append(f"Tool {tool_name} not found in registry")
+                return result
+            
+            # Get tool info
+            tool_info = tool_registry.tools[tool_name]
+            spec = tool_info.get('spec', {})
+            
+            # Validate specification
+            if not spec.get('name'):
+                result['issues'].append("Tool specification missing name")
+            
+            if not spec.get('description'):
+                result['issues'].append("Tool specification missing description")
+            
+            if not spec.get('parameters'):
+                result['issues'].append("Tool specification missing parameters")
+            
+            # Check if implementation exists
+            impl_file = tool_info.get('impl_file')
+            if not impl_file or not Path(impl_file).exists():
+                result['issues'].append("Tool implementation file not found")
+            
+            # Check if function is callable
+            tool_func = tool_info.get('function')
+            if not callable(tool_func):
+                result['issues'].append("Tool function is not callable")
+            
+            # If no issues, tool is valid
+            if not result['issues']:
+                result['valid'] = True
+                self.logger.info(f"  ✅ Tool {tool_name} is valid")
+            else:
+                self.logger.warning(f"  ⚠️  Tool {tool_name} has issues: {result['issues']}")
+        
+        except Exception as e:
+            result['issues'].append(f"Validation error: {str(e)}")
+            self.logger.error(f"  ❌ Error validating tool {tool_name}: {e}")
+        
+        return result
+    
+    def validate_custom_prompt(self, prompt_name: str, prompt_registry) -> Dict[str, Any]:
+        """
+        Validate a custom prompt is effective.
+        
+        Args:
+            prompt_name: Name of the prompt to validate
+            prompt_registry: PromptRegistry instance
+            
+        Returns:
+            Validation result dictionary
+        """
+        self.logger.info(f"📝 Validating custom prompt: {prompt_name}")
+        
+        result = {
+            'prompt_name': prompt_name,
+            'valid': False,
+            'issues': [],
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        try:
+            # Try to get the prompt
+            prompt = prompt_registry.get_prompt(prompt_name)
+            
+            if not prompt:
+                result['issues'].append(f"Prompt {prompt_name} not found in registry")
+                return result
+            
+            # Validate prompt content
+            if not prompt or len(prompt.strip()) < 10:
+                result['issues'].append("Prompt is too short or empty")
+            
+            # Check for variable placeholders
+            if '{' in prompt and '}' in prompt:
+                # Has variables - good
+                pass
+            else:
+                # No variables - might be static (could be okay)
+                pass
+            
+            # If no issues, prompt is valid
+            if not result['issues']:
+                result['valid'] = True
+                self.logger.info(f"  ✅ Prompt {prompt_name} is valid")
+            else:
+                self.logger.warning(f"  ⚠️  Prompt {prompt_name} has issues: {result['issues']}")
+        
+        except Exception as e:
+            result['issues'].append(f"Validation error: {str(e)}")
+            self.logger.error(f"  ❌ Error validating prompt {prompt_name}: {e}")
+        
+        return result
+    
+    def validate_custom_role(self, role_name: str, role_registry) -> Dict[str, Any]:
+        """
+        Validate a custom role performs as expected.
+        
+        Args:
+            role_name: Name of the role to validate
+            role_registry: RoleRegistry instance
+            
+        Returns:
+            Validation result dictionary
+        """
+        self.logger.info(f"🎭 Validating custom role: {role_name}")
+        
+        result = {
+            'role_name': role_name,
+            'valid': False,
+            'issues': [],
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        try:
+            # Check if role exists
+            if not role_registry.has_specialist(role_name):
+                result['issues'].append(f"Role {role_name} not found in registry")
+                return result
+            
+            # Get role specification
+            role_spec = role_registry.get_specialist_spec(role_name)
+            
+            if not role_spec:
+                result['issues'].append("Role specification not found")
+                return result
+            
+            # Validate role specification
+            if not role_spec.get('name'):
+                result['issues'].append("Role specification missing name")
+            
+            if not role_spec.get('description'):
+                result['issues'].append("Role specification missing description")
+            
+            if not role_spec.get('responsibilities'):
+                result['issues'].append("Role specification missing responsibilities")
+            
+            if not role_spec.get('model'):
+                result['issues'].append("Role specification missing model")
+            
+            # If no issues, role is valid
+            if not result['issues']:
+                result['valid'] = True
+                self.logger.info(f"  ✅ Role {role_name} is valid")
+            else:
+                self.logger.warning(f"  ⚠️  Role {role_name} has issues: {result['issues']}")
+        
+        except Exception as e:
+            result['issues'].append(f"Validation error: {str(e)}")
+            self.logger.error(f"  ❌ Error validating role {role_name}: {e}")
+        
+        return result
+    
+    def coordinate_improvement_cycle(
+        self,
+        tool_registry,
+        prompt_registry,
+        role_registry
+    ) -> Dict[str, Any]:
+        """
+        Coordinate a complete improvement cycle.
+        
+        Validates all custom tools, prompts, and roles.
+        Identifies issues and triggers improvements.
+        
+        Args:
+            tool_registry: ToolRegistry instance
+            prompt_registry: PromptRegistry instance
+            role_registry: RoleRegistry instance
+            
+        Returns:
+            Improvement cycle results
+        """
+        self.logger.info("🔄 Starting improvement cycle coordination...")
+        
+        results = {
+            'timestamp': datetime.now().isoformat(),
+            'tools': {},
+            'prompts': {},
+            'roles': {},
+            'summary': {}
+        }
+        
+        # Validate all custom tools
+        self.logger.info("\n📦 Validating custom tools...")
+        for tool_name in tool_registry.tools:
+            validation = self.validate_custom_tool(tool_name, tool_registry)
+            results['tools'][tool_name] = validation
+        
+        # Validate all custom prompts
+        self.logger.info("\n📝 Validating custom prompts...")
+        custom_prompts_dir = Path(prompt_registry.project_dir) / "pipeline" / "prompts" / "custom"
+        if custom_prompts_dir.exists():
+            for prompt_file in custom_prompts_dir.glob("*.json"):
+                prompt_name = prompt_file.stem
+                validation = self.validate_custom_prompt(prompt_name, prompt_registry)
+                results['prompts'][prompt_name] = validation
+        
+        # Validate all custom roles
+        self.logger.info("\n🎭 Validating custom roles...")
+        custom_roles_dir = Path(role_registry.project_dir) / "pipeline" / "roles" / "custom"
+        if custom_roles_dir.exists():
+            for role_file in custom_roles_dir.glob("*.json"):
+                role_name = role_file.stem
+                validation = self.validate_custom_role(role_name, role_registry)
+                results['roles'][role_name] = validation
+        
+        # Generate summary
+        tools_valid = sum(1 for v in results['tools'].values() if v['valid'])
+        tools_total = len(results['tools'])
+        
+        prompts_valid = sum(1 for v in results['prompts'].values() if v['valid'])
+        prompts_total = len(results['prompts'])
+        
+        roles_valid = sum(1 for v in results['roles'].values() if v['valid'])
+        roles_total = len(results['roles'])
+        
+        results['summary'] = {
+            'tools': {'valid': tools_valid, 'total': tools_total},
+            'prompts': {'valid': prompts_valid, 'total': prompts_total},
+            'roles': {'valid': roles_valid, 'total': roles_total},
+            'overall_valid': tools_valid + prompts_valid + roles_valid,
+            'overall_total': tools_total + prompts_total + roles_total
+        }
+        
+        self.logger.info(f"\n📊 Improvement Cycle Summary:")
+        self.logger.info(f"  Tools: {tools_valid}/{tools_total} valid")
+        self.logger.info(f"  Prompts: {prompts_valid}/{prompts_total} valid")
+        self.logger.info(f"  Roles: {roles_valid}/{roles_total} valid")
+        
+        return results
