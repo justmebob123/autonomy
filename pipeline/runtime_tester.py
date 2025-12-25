@@ -157,8 +157,7 @@ class ProgramRunner:
                         timeout=2
                     )
                     if result.returncode == 0:
-                        pids_in_group = [int(p.strip()) for p in result.stdout.strip().split('
-') if p.strip()]
+                        pids_in_group = [int(p.strip()) for p in result.stdout.strip().split('\n') if p.strip()]
                         self.logger.info(f"Found {len(pids_in_group)} processes in group {pgid}")
                         
                         # Kill each process individually, skipping our own and parent
