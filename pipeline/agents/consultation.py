@@ -124,39 +124,6 @@ Provide:
         self.consultation_history.append(result)
         return result
     
-    def consult_all_specialists(self, code: str, issue: Dict, context: Dict) -> List[Dict]:
-        """
-        Consult all available specialists.
-        
-        Args:
-            code: The code to analyze
-            issue: The issue description
-            context: Additional context
-            
-        Returns:
-            List of consultation results
-        """
-        self.logger.info("  🤝 Consulting all specialists...")
-        
-        results = []
-        
-        # Code analyst
-        try:
-            analyst_result = self.consult_code_analyst(code, issue)
-            results.append(analyst_result)
-        except Exception as e:
-            self.logger.error(f"Code analyst consultation failed: {e}")
-        
-        # Problem solver
-        try:
-            problem_description = f"{issue.get('type')}: {issue.get('message', '')}"
-            solver_result = self.consult_problem_solver(problem_description, context)
-            results.append(solver_result)
-        except Exception as e:
-            self.logger.error(f"Problem solver consultation failed: {e}")
-        
-        return results
-    
     def synthesize_consultations(self, consultations: List[Dict]) -> str:
         """
         Synthesize multiple consultation results into a coherent recommendation.

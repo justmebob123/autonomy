@@ -749,49 +749,6 @@ class ToolCallHandler:
         self.logger.info(f"  ✓ Approved: {filepath}")
         return {"tool": "approve_code", "success": True, "filepath": filepath}
     
-    def _handle_create_plan(self, args: Dict) -> Dict:
-        """Handle create_task_plan tool"""
-        tasks = args.get("tasks", [])
-        
-        if not tasks:
-            return {"tool": "create_task_plan", "success": False, "error": "No tasks provided"}
-        
-        # Normalize and validate tasks
-        normalized_tasks = []
-        for task in tasks:
-            target_file = task.get("target_file", task.get("file", ""))
-            
-            # Normalize the target file path
-            if target_file:
-                target_file = self._normalize_filepath(target_file)
-            
-            normalized = {
-                "description": task.get("description", ""),
-                "target_file": target_file,
-                "priority": task.get("priority", 5),
-                "dependencies": task.get("dependencies", []),
-            }
-            
-            # Skip tasks without description
-            if not normalized["description"]:
-                continue
-            
-            # Ensure priority is in valid range
-            normalized["priority"] = max(1, min(10, normalized["priority"]))
-            
-            normalized_tasks.append(normalized)
-        
-        # Sort by priority
-        self.tasks = sorted(normalized_tasks, key=lambda t: t.get("priority", 10))
-        
-        self.logger.info(f"  📋 Created plan with {len(self.tasks)} tasks:")
-        for i, task in enumerate(self.tasks[:5], 1):
-            self.logger.info(f"     {i}. [{task['priority']}] {task.get('description', '')[:50]}")
-        if len(self.tasks) > 5:
-            self.logger.info(f"     ... and {len(self.tasks) - 5} more")
-        
-        return {"tool": "create_task_plan", "success": True, "task_count": len(self.tasks)}
-    
     def _handle_read_file(self, args: Dict) -> Dict:
         """Handle read_file tool - read a file from the project."""
         filepath = args.get("filepath", "")
