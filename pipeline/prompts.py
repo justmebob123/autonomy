@@ -430,17 +430,26 @@ DO NOT call search_code or read_file - you already have everything you need belo
 
 ## ⚠️ CRITICAL DEBUGGING INSTRUCTIONS ⚠️
    
-   **STEP 1: READ THE FILE FIRST**
-   Use read_file tool to see the EXACT code with proper indentation.
+   **STEP 1: VALIDATE FUNCTION PARAMETERS FIRST**
+   If you're modifying a function CALL, use get_function_signature to verify what parameters it accepts.
+   Example: If fixing JobExecutor(...), first call get_function_signature to see what __init__ accepts.
    
-   **STEP 2: USE A LARGER CODE BLOCK (5-10 lines)**
+   **STEP 2: READ THE FILE IF NEEDED**
+   Use read_file tool to see the EXACT code with proper indentation (if not already provided).
+   
+   **STEP 3: USE A LARGER CODE BLOCK (5-10 lines)**
    DO NOT replace just one line. Replace a block that includes surrounding context.
    
    ❌ WRONG: original_code = "curses.cbreak()"
    ✅ CORRECT: original_code with 5-10 lines including context and indentation
    
-   **STEP 3: MATCH INDENTATION EXACTLY**
+   **STEP 4: MATCH INDENTATION EXACTLY**
    Count the spaces in the file. Match them exactly in your replacement.
+   
+   **STEP 5: VERIFY YOUR FIX WON'T INTRODUCE NEW ERRORS**
+   - If adding parameters to a function call, verify they exist in the signature
+   - If removing parameters, ensure they're not required
+   - Use validate_function_call to check before applying the fix
    
    """
     

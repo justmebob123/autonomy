@@ -152,6 +152,14 @@ After investigation, provide:
         error_msg = issue.get('message', '')
         line_num = issue.get('line', 'unknown')
         
+        # Check if this is a function call error
+        is_function_call_error = any(keyword in error_msg.lower() for keyword in [
+            'unexpected keyword argument',
+            'missing required positional argument',
+            'takes', 'positional argument',
+            'got an unexpected'
+        ])
+        
         prompt = f"""Investigate this code issue:
 
 FILE: {filepath}
@@ -165,11 +173,47 @@ FILE CONTENT:
 ```
 
 YOUR TASK:
+"""
+        
+        if is_function_call_error:
+            prompt += """
+⚠️ CRITICAL: This appears to be a FUNCTION CALL ERROR (invalid parameters)
+
+MANDATORY INVESTIGATION STEPS:
+1. **FIRST**: Use get_function_signature to extract the target function's signature
+   - Identify the function being called (e.g., JobExecutor.__init__)
+   - Find the file where it's defined (e.g., src/execution/job_executor.py)
+   - Call: get_function_signature(filepath="...", function_name="__init__", class_name="JobExecutor")
+   
+2. **SECOND**: Compare the function signature with the actual call
+   - What parameters does the function ACTUALLY accept?
+   - What parameters is the code trying to pass?
+   - Which parameters are invalid?
+   
+3. **THIRD**: Use read_file to examine the target function if needed
+   - Verify the signature extraction is correct
+   - Check if there are any *args or **kwargs
+   
+4. **FOURTH**: Determine the fix strategy
+   - Should invalid parameters be REMOVED from the call?
+   - Should the function signature be MODIFIED to accept them?
+   - Are the parameters being passed with wrong names?
+
+5. **REPORT YOUR FINDINGS**:
+   - Root cause: Exactly which parameters are invalid and why
+   - Recommended fix: Remove invalid parameters OR modify function signature
+   - Complications: Any dependencies or side effects
+
+START BY CALLING get_function_signature - This is CRITICAL for function call errors!
+"""
+        else:
+            prompt += """
 1. Use read_file to examine any imported modules or related files
 2. Use search_code to find similar patterns or related code
-3. Analyze the error in context
-4. Identify the root cause
-5. Recommend a fix strategy
+3. If the error involves function calls, use get_function_signature to verify parameters
+4. Analyze the error in context
+5. Identify the root cause
+6. Recommend a fix strategy
 
 Start your investigation now by using the available tools."""
         
@@ -177,8 +221,8 @@ Start your investigation now by using the available tools."""
     
     def _get_investigation_tools(self) -> List[Dict]:
         """Get tools available for investigation"""
-        # Use QA phase tools which include read_file, search_code, list_directory
-        return get_tools_for_phase("qa")
+        # Use debugging phase tools which include signature validation
+        return get_tools_for_phase("debugging")
     
     def _extract_findings(self, content: str, issue: Dict) -> Dict:
         """Extract findings from investigation response"""

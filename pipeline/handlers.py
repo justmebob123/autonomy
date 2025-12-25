@@ -12,6 +12,7 @@ from .logging_setup import get_logger
 from .utils import validate_python_syntax
 from .process_manager import ProcessBaseline, SafeProcessManager, ResourceMonitor
 from .failure_analyzer import FailureAnalyzer, ModificationFailure, create_failure_report
+from .signature_extractor import SignatureExtractor
 
 
 class ToolCallHandler:
@@ -47,6 +48,9 @@ class ToolCallHandler:
         self.process_manager = SafeProcessManager(self.process_baseline)
         self.resource_monitor = ResourceMonitor()
         
+        # Signature extraction for parameter validation
+        self.signature_extractor = SignatureExtractor(str(self.project_dir))
+        
         # Failure analysis
         self.failure_analyzer = FailureAnalyzer(logger=self.logger)
         self.failures_dir = self.project_dir / "failures"
@@ -65,6 +69,9 @@ class ToolCallHandler:
             "search_code": self._handle_search_code,
             "list_directory": self._handle_list_directory,
             "execute_command": self._handle_execute_command,
+            # Signature validation tools
+            "get_function_signature": self._handle_get_function_signature,
+            "validate_function_call": self._handle_validate_function_call,
             # Monitoring tools
             "get_memory_profile": self._handle_get_memory_profile,
             "get_cpu_profile": self._handle_get_cpu_profile,
@@ -1125,6 +1132,117 @@ class ToolCallHandler:
         except Exception as e:
             return {
                 "tool": "show_process_tree",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_get_function_signature(self, args: Dict) -> Dict:
+        """
+        Handle get_function_signature tool.
+        
+        Extracts function signature to verify what parameters it accepts.
+        """
+        filepath = args.get("filepath")
+        function_name = args.get("function_name")
+        class_name = args.get("class_name")
+        
+        if not filepath or not function_name:
+            return {
+                "tool": "get_function_signature",
+                "success": False,
+                "error": "Missing required arguments: filepath and function_name"
+            }
+        
+        try:
+            signature = self.signature_extractor.extract_function_signature(
+                filepath, function_name, class_name
+            )
+            
+            if not signature:
+                return {
+                    "tool": "get_function_signature",
+                    "success": False,
+                    "error": f"Function {function_name} not found in {filepath}"
+                }
+            
+            if "error" in signature:
+                return {
+                    "tool": "get_function_signature",
+                    "success": False,
+                    "error": signature["error"]
+                }
+            
+            # Format signature for readability
+            formatted = self.signature_extractor.format_signature(signature)
+            
+            return {
+                "tool": "get_function_signature",
+                "success": True,
+                "signature": signature,
+                "formatted": formatted,
+                "filepath": filepath,
+                "function_name": function_name,
+                "class_name": class_name
+            }
+            
+        except Exception as e:
+            return {
+                "tool": "get_function_signature",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_validate_function_call(self, args: Dict) -> Dict:
+        """
+        Handle validate_function_call tool.
+        
+        Validates that a function call uses valid parameters before making the call.
+        """
+        filepath = args.get("filepath")
+        function_name = args.get("function_name")
+        call_kwargs = args.get("call_kwargs", {})
+        class_name = args.get("class_name")
+        
+        if not filepath or not function_name:
+            return {
+                "tool": "validate_function_call",
+                "success": False,
+                "error": "Missing required arguments: filepath and function_name"
+            }
+        
+        try:
+            validation = self.signature_extractor.validate_function_call(
+                filepath, function_name, call_kwargs, class_name
+            )
+            
+            if validation["valid"]:
+                return {
+                    "tool": "validate_function_call",
+                    "success": True,
+                    "valid": True,
+                    "message": "All parameters are valid",
+                    "signature": validation["signature"]
+                }
+            else:
+                # Invalid parameters found
+                invalid = validation.get("invalid_parameters", [])
+                valid = validation.get("valid_parameters", [])
+                
+                return {
+                    "tool": "validate_function_call",
+                    "success": True,  # Tool executed successfully
+                    "valid": False,   # But validation failed
+                    "invalid_parameters": invalid,
+                    "valid_parameters": valid,
+                    "has_kwargs": validation.get("has_kwargs", False),
+                    "error": f"Invalid parameters: {', '.join(invalid)}",
+                    "suggestion": f"Valid parameters are: {', '.join(valid)}",
+                    "signature": validation.get("signature")
+                }
+                
+        except Exception as e:
+            return {
+                "tool": "validate_function_call",
                 "success": False,
                 "error": str(e)
             }

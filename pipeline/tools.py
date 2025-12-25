@@ -237,6 +237,60 @@ TOOLS_DEBUGGING = [
     {
         "type": "function",
         "function": {
+            "name": "get_function_signature",
+            "description": "CRITICAL: Extract function signature to verify what parameters it accepts. USE THIS BEFORE modifying function calls to ensure parameters are valid.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath", "function_name"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to file containing the function (e.g., 'src/execution/job_executor.py')"
+                    },
+                    "function_name": {
+                        "type": "string",
+                        "description": "Name of the function to inspect (e.g., '__init__')"
+                    },
+                    "class_name": {
+                        "type": "string",
+                        "description": "Optional: Class name if function is a method (e.g., 'JobExecutor')"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "validate_function_call",
+            "description": "CRITICAL: Validate that a function call uses valid parameters. USE THIS to prevent TypeError from invalid parameters.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath", "function_name", "call_kwargs"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to file containing the function"
+                    },
+                    "function_name": {
+                        "type": "string",
+                        "description": "Name of the function being called"
+                    },
+                    "call_kwargs": {
+                        "type": "object",
+                        "description": "Dictionary of keyword arguments you plan to pass"
+                    },
+                    "class_name": {
+                        "type": "string",
+                        "description": "Optional: Class name if function is a method"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "execute_command",
             "description": "Execute a shell command for analysis. Use this to run git commands, linters, tests, grep, find, or other analysis tools. CRITICAL for specialists to gather information.",
             "parameters": {

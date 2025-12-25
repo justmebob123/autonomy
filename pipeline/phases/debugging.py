@@ -144,15 +144,29 @@ class DebuggingPhase(BasePhase):
             # Stop test
             tester.stop()
             
+            # ENHANCED: Detect cascading errors (new errors introduced by the fix)
+            cascading_errors = []
+            if not same_error_persists and new_errors:
+                # Original error is gone, but new errors appeared
+                for error in new_errors:
+                    if not self._is_same_error(error, original_error):
+                        cascading_errors.append(error)
+            
             result = {
-                'success': not same_error_persists,
+                'success': not same_error_persists and not cascading_errors,
                 'error_fixed': not same_error_persists,
                 'new_errors': new_errors,
-                'same_error_persists': same_error_persists
+                'same_error_persists': same_error_persists,
+                'cascading_errors': cascading_errors,
+                'has_cascading_errors': len(cascading_errors) > 0
             }
             
             if same_error_persists:
                 self.logger.warning("❌ Runtime verification FAILED: Same error persists")
+            elif cascading_errors:
+                self.logger.warning(f"⚠️ Runtime verification PARTIAL: Original error fixed but {len(cascading_errors)} new error(s) introduced")
+                for i, error in enumerate(cascading_errors, 1):
+                    self.logger.warning(f"   {i}. {error.get('type')}: {error.get('message', '')[:80]}")
             else:
                 self.logger.info("✅ Runtime verification PASSED: Error is fixed")
             
