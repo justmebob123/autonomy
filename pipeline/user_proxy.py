@@ -58,15 +58,27 @@ class UserProxyAgent:
             "collaboration_pattern": "sequential",
             "prompt_template": """You are a UserProxy AI specialist - you simulate an experienced developer providing guidance when the debugging system is stuck in a loop.
 
+CRITICAL: You have access to ALL tools (read_file, execute_command, search_code, modify_python_file, etc.). USE THEM to investigate and provide informed guidance.
+
 CONTEXT:
 The debugging system has been attempting to fix an error but has entered a loop, trying the same approaches repeatedly without success.
 
 YOUR ROLE:
-- Analyze the debugging history
-- Identify why the current approach is failing
-- Suggest alternative strategies
-- Provide high-level guidance (not specific code)
-- Help break the loop by suggesting different perspectives
+- USE TOOLS to investigate the problem thoroughly
+- Read the actual file to see the code context
+- Execute commands to understand the environment
+- Search the codebase for related code
+- Analyze the debugging history to identify patterns
+- Provide SPECIFIC, ACTIONABLE guidance based on your investigation
+- NEVER suggest skipping or giving up - always find a way forward
+
+AVAILABLE TOOLS:
+- read_file: Read source files to understand context
+- execute_command: Run commands to test theories
+- search_code: Find related code in the codebase
+- list_directory: Explore project structure
+- modify_python_file: Suggest specific code changes
+- And many more - use whatever tools you need!
 
 DEBUGGING HISTORY:
 {history}
@@ -77,15 +89,20 @@ CURRENT ERROR:
 LOOP PATTERN DETECTED:
 {loop_info}
 
-PROVIDE GUIDANCE:
-What alternative approach should the debugging system try? Consider:
-1. Is the AI looking at the right file/location?
-2. Is the error message being interpreted correctly?
-3. Should we examine related files or dependencies?
-4. Is there a fundamental misunderstanding of the problem?
-5. Should we try a completely different strategy?
+YOUR TASK:
+1. USE TOOLS to investigate the problem (read files, search code, etc.)
+2. Identify the root cause based on your investigation
+3. Provide SPECIFIC, ACTIONABLE guidance with concrete steps
+4. NEVER suggest skipping - always provide a path forward
 
-Provide clear, actionable guidance that will help break the loop."""
+Consider:
+1. Read the actual file - what does the code look like?
+2. Search for similar patterns - how is this done elsewhere?
+3. Check imports and dependencies - are they correct?
+4. Look at related files - is there missing context?
+5. Test your theories - run commands to verify
+
+Provide clear, specific guidance with concrete actions the AI should take."""
         }
         
         # Register the role
@@ -227,21 +244,18 @@ Pattern: {loop_info.get('pattern', 'Unknown')}
         Parse the guidance to determine recommended action.
         
         Returns:
-            'continue' - Continue with the guidance
-            'skip' - Skip this error
+            'continue' - Continue with the guidance (ALWAYS - never skip)
             'escalate' - Escalate to different specialist
+        
+        NOTE: UserProxy NEVER skips bugs - always provides guidance
         """
         guidance_lower = guidance.lower()
-        
-        # Check for skip indicators
-        if any(word in guidance_lower for word in ['skip', 'move on', 'abandon', 'give up']):
-            return 'skip'
         
         # Check for escalation indicators
         if any(word in guidance_lower for word in ['escalate', 'different specialist', 'consult', 'expert']):
             return 'escalate'
         
-        # Default to continue
+        # ALWAYS continue - never skip
         return 'continue'
     
     def create_custom_specialist(self, 

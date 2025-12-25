@@ -867,10 +867,13 @@ def run_debug_qa_mode(args) -> int:
                             print(f"\n📋 UserProxy Guidance: {guidance}")
                             print(f"📋 Recommended Action: {action}")
                             
-                            if action == 'skip':
-                                print("\n⏭️  Skipping this error per AI guidance...")
-                                continue
-                            elif action == 'continue':
+                            if action == "escalate":
+                                print("\n🔼 Escalating to different specialist per AI guidance...")
+                                # TODO: Implement specialist escalation
+                                # For now, treat as continue with guidance
+                            
+                            # ALWAYS continue - UserProxy never skips bugs
+                            if action in ["continue", "escalate"]:
                                 # Add AI guidance to issue and retry
                                 issue['user_guidance'] = guidance
                                 print(f"\n🔄 Retrying with AI guidance...")
