@@ -840,7 +840,7 @@ def run_debug_qa_mode(args) -> int:
                                 prompt_registry=debug_phase.prompt_registry,
                                 tool_registry=debug_phase.tool_registry,
                                 client=client,
-                                logger=logger
+                                logger=logging.getLogger(__name__)
                             )
                             
                             # Get guidance from AI specialist
