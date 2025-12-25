@@ -240,15 +240,17 @@ Use approve_code ONLY if the code passes ALL checks."""
 def get_debug_prompt(filepath: str, code: str, issue: dict) -> str:
     """Generate the user prompt for debugging phase"""
     
-    # Check if this is a runtime error with rich context
-    is_runtime_error = issue.get('type') == 'RuntimeError' and issue.get('call_chain')
+    # Check if this is a runtime error (any Python exception, not just RuntimeError)
+    error_type = issue.get('type', '')
+    is_syntax_error = error_type in ['SyntaxError', 'IndentationError', 'TabError']
     
-    if is_runtime_error:
-        # Use enhanced prompt for runtime errors
-        return _get_runtime_debug_prompt(filepath, code, issue)
-    else:
-        # Use original prompt for syntax errors
+    # Use runtime prompt for all runtime errors (UnboundLocalError, KeyError, AttributeError, etc.)
+    # Use syntax prompt only for actual syntax errors
+    if is_syntax_error:
         return _get_syntax_debug_prompt(filepath, code, issue)
+    else:
+        # All other errors are runtime errors
+        return _get_runtime_debug_prompt(filepath, code, issue)
 
 def get_project_planning_prompt(context: str, expansion_count: int, 
                                  completed_count: int, total_tasks: int) -> str:
@@ -352,18 +354,19 @@ def _get_runtime_debug_prompt(filepath: str, code: str, issue: dict) -> str:
     line_num = issue.get('line', 'unknown')
     error_msg = issue.get('message', 'No message')
     
-    # Build comprehensive prompt - START WITH THE MOST CRITICAL INSTRUCTION
+    # Build SIMPLE, DIRECT prompt
     prompt = f"""
-🚨 CRITICAL: CALL modify_python_file NOW TO FIX THIS ERROR 🚨
-
-⛔ DO NOT search_code - you already have the file below
-⛔ DO NOT read_file - the file is shown below
-⛔ DO NOT just explain - you must FIX it
-✅ CALL modify_python_file with the fix RIGHT NOW
+YOU MUST FIX THIS ERROR BY CALLING modify_python_file
 
 File: {filepath}
-Line: {line_num}
-Error: {error_msg}
+Error Line: {line_num}
+
+ERROR:
+{error_msg}
+
+THE FILE CONTENT IS BELOW. Find line {line_num}, understand the error, and call modify_python_file to fix it.
+
+DO NOT call search_code or read_file - you already have everything you need below.
 
 """
     
