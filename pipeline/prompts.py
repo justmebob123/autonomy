@@ -521,3 +521,81 @@ Analyze this runtime error and determine the best fix:
 Fix the error NOW by calling the tool."""
     
     return prompt
+
+
+def get_modification_decision_prompt(context: dict) -> str:
+    """
+    Generate prompt for AI to decide what to do after a modification with verification issues.
+    
+    This is called when a change has been applied but verification found issues.
+    The AI needs to decide: keep, rollback, or refine.
+    """
+    filepath = context.get('filepath', 'unknown')
+    verification_issues = context.get('verification_issues', [])
+    modified_content = context.get('modified_content', '')
+    original_content = context.get('original_content', '')
+    failure_analysis = context.get('failure_analysis', {})
+    
+    issues_text = '\n'.join(f"  - {issue}" for issue in verification_issues)
+    
+    return f"""# Modification Decision Required
+
+Your code modification has been APPLIED to the file, but verification found some issues.
+
+## File: {filepath}
+
+## Verification Issues Found:
+{issues_text}
+
+## Current File State (AFTER your modification):
+```python
+{modified_content}
+```
+
+## Original File State (BEFORE your modification):
+```python
+{original_content}
+```
+
+## Failure Analysis:
+{failure_analysis.get('root_cause', 'No analysis available')}
+
+## Your Options:
+
+### Option A: ACCEPT - Keep the change and move forward
+Choose this if:
+- The verification issues are false positives
+- The change is semantically correct even if verification failed
+- The code compiles and will work at runtime
+- The issues are minor and don't affect functionality
+
+### Option B: REFINE - Make additional changes to fix the issues
+Choose this if:
+- The change is on the right track but needs adjustment
+- You can fix the verification issues with a small modification
+- You want to build on this change iteratively
+
+### Option C: ROLLBACK - Undo this change and try a different approach
+Choose this if:
+- The change is fundamentally wrong
+- You need to try a completely different solution
+- The verification issues indicate a serious problem
+
+## Instructions:
+
+1. **Analyze the current file state** - Look at what your change actually produced
+2. **Evaluate the verification issues** - Are they real problems or false positives?
+3. **Make a decision** - Choose A, B, or C
+
+**If you choose A (ACCEPT):**
+Respond with: "DECISION: ACCEPT - [brief explanation why the change is good]"
+
+**If you choose B (REFINE):**
+Respond with: "DECISION: REFINE - [explanation]"
+Then immediately call `modify_python_file` with the refinement.
+
+**If you choose C (ROLLBACK):**
+Respond with: "DECISION: ROLLBACK - [explanation of why and what to try instead]"
+
+**Make your decision now.**
+"""

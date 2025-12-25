@@ -619,6 +619,79 @@ Remember:
                 analysis=failure_analysis
             )
             
+            
+            # ARCHITECTURAL CHANGE: Check if AI decision is needed
+            needs_decision = False
+            decision_context = None
+            
+            for result in results:
+                if result.get('tool') == 'modify_file' and result.get('needs_ai_decision'):
+                    needs_decision = True
+                    decision_context = {
+                        'filepath': result.get('filepath'),
+                        'verification_issues': result.get('verification_issues', []),
+                        'modified_content': result.get('modified_content', ''),
+                        'original_content': result.get('original_content', ''),
+                        'failure_analysis': result.get('failure_analysis', {}),
+                        'patch': result.get('patch'),
+                        'rollback_available': result.get('rollback_available', False)
+                    }
+                    break
+            
+            # If AI decision is needed, ask the AI what to do
+            if needs_decision:
+                self.logger.info("  🤔 AI decision required - asking AI to evaluate the change...")
+                
+                from ..prompts import get_modification_decision_prompt
+                decision_prompt = get_modification_decision_prompt(decision_context)
+                
+                # Ask AI for decision
+                decision_messages = [
+                    {"role": "system", "content": SYSTEM_PROMPTS["debugging"]},
+                    {"role": "user", "content": decision_prompt}
+                ]
+                
+                decision_response = self.chat(decision_messages, tools, task_type="debugging")
+                
+                if "error" not in decision_response:
+                    decision_text = decision_response.get('message', {}).get('content', '')
+                    self.logger.info(f"  💭 AI Decision: {decision_text[:200]}...")
+                    
+                    # Parse decision
+                    if "DECISION: ACCEPT" in decision_text.upper():
+                        self.logger.info("  ✅ AI decided to ACCEPT the change")
+                        success = True
+                        overall_success = True
+                        
+                    elif "DECISION: REFINE" in decision_text.upper():
+                        self.logger.info("  🔧 AI decided to REFINE the change")
+                        # Parse any tool calls from the refinement
+                        refine_calls, _ = self.parser.parse_response(decision_response)
+                        if refine_calls:
+                            self.logger.info(f"  🔧 Executing {len(refine_calls)} refinement tool calls...")
+                            refine_results = handler.process_tool_calls(refine_calls)
+                            # Check if refinement succeeded
+                            for r in refine_results:
+                                if r.get('success') and not r.get('needs_ai_decision'):
+                                    success = True
+                                    overall_success = True
+                        
+                    elif "DECISION: ROLLBACK" in decision_text.upper():
+                        self.logger.info("  🔄 AI decided to ROLLBACK the change")
+                        # Perform rollback
+                        if decision_context.get('rollback_available') and decision_context.get('patch'):
+                            try:
+                                filepath = decision_context['filepath']
+                                full_path = self.project_dir / filepath
+                                full_path.write_text(decision_context['original_content'])
+                                self.logger.info("  ✅ Rollback completed")
+                            except Exception as e:
+                                self.logger.error(f"  ❌ Rollback failed: {e}")
+                    else:
+                        self.logger.warning("  ⚠️  Could not parse AI decision, treating as failure")
+                else:
+                    self.logger.error(f"  ❌ Error getting AI decision: {decision_response.get('error')}")
+            
             if success:
                 overall_success = True
                 break

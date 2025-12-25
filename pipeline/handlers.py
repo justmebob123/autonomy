@@ -617,9 +617,9 @@ class ToolCallHandler:
             verification_passed = False
         
         if not verification_passed:
-            self.logger.error(f"  ❌ Post-fix verification FAILED:")
+            self.logger.warning(f"  ⚠️  Post-fix verification found issues:")
             for err in verification_errors:
-                self.logger.error(f"     - {err}")
+                self.logger.warning(f"     - {err}")
             
             # ENHANCED: Create failure analysis for verification failures
             failure = ModificationFailure(
@@ -628,54 +628,34 @@ class ToolCallHandler:
                 modified_content=written_content,
                 intended_original=original,
                 intended_replacement=new_code,
-                error_message="Post-fix verification failed: " + "; ".join(verification_errors),
+                error_message="Post-fix verification found issues: " + "; ".join(verification_errors),
                 patch=patch_content if 'patch_content' in locals() else None
             )
             
             analysis = self.failure_analyzer.analyze_modification_failure(failure)
             report_path = create_failure_report(failure, analysis, self.failures_dir)
-            self.logger.info(f"  📄 Verification failure analysis saved: {report_path.name}")
+            self.logger.info(f"  📄 Verification analysis saved: {report_path.name}")
             
-            # Attempt rollback if we have a patch
-            if patch_content and 'patch_path' in locals():
-                self.logger.warning(f"  🔄 Attempting rollback using patch...")
-                try:
-                    # Restore original content
-                    full_path.write_text(content)
-                    self.logger.info(f"  ✅ Rollback successful - file restored to original state")
-                    return {
-                        "tool": "modify_file",
-                        "success": False,
-                        "error": "Post-fix verification failed: " + "; ".join(verification_errors),
-                        "filepath": filepath,
-                        "rolled_back": True,
-                        "failure_analysis": analysis,
-                        "failure_report": str(report_path),
-                        "ai_feedback": analysis["ai_feedback"]
-                    }
-                except Exception as rollback_error:
-                    self.logger.error(f"  ❌ Rollback failed: {rollback_error}")
-                    return {
-                        "tool": "modify_file",
-                        "success": False,
-                        "error": "Post-fix verification failed AND rollback failed: " + "; ".join(verification_errors),
-                        "filepath": filepath,
-                        "rolled_back": False,
-                        "failure_analysis": analysis,
-                        "failure_report": str(report_path),
-                        "ai_feedback": analysis["ai_feedback"]
-                    }
-            else:
-                return {
-                    "tool": "modify_file",
-                    "success": False,
-                    "error": "Post-fix verification failed: " + "; ".join(verification_errors),
-                    "filepath": filepath,
-                    "rolled_back": False,
-                    "failure_analysis": analysis,
-                    "failure_report": str(report_path),
-                    "ai_feedback": analysis["ai_feedback"]
-                }
+            # ARCHITECTURAL CHANGE: DO NOT automatically rollback!
+            # Instead, return the state and let the AI decide what to do
+            self.logger.info(f"  💭 Change has been applied - AI will decide next action")
+            
+            return {
+                "tool": "modify_file",
+                "success": True,  # Change WAS applied successfully
+                "applied": True,
+                "verification_issues": verification_errors,
+                "verification_passed": False,
+                "modified_content": written_content,
+                "original_content": content,
+                "patch": patch_content if 'patch_content' in locals() else None,
+                "filepath": filepath,
+                "needs_ai_decision": True,  # Signal that AI should decide next action
+                "failure_analysis": analysis,
+                "failure_report": str(report_path),
+                "ai_feedback": analysis["ai_feedback"],
+                "rollback_available": bool(patch_content and 'patch_path' in locals())
+            }
         
         self.logger.info(f"  ✅ Verification passed")
         self.files_modified.append(filepath)
