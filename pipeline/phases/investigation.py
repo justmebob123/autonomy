@@ -219,3 +219,25 @@ Start your investigation now by using the available tools."""
         findings["related_files"] = list(set(files))
         
         return findings
+    
+    def generate_state_markdown(self, state: PipelineState) -> str:
+        """
+        Generate markdown content for investigation phase state.
+        
+        Args:
+            state: Current pipeline state
+            
+        Returns:
+            Markdown string
+        """
+        lines = ["# Investigation Phase State\n"]
+        
+        if self.phase_name in state.phases:
+            phase_state = state.phases[self.phase_name]
+            lines.append(f"**Run Count:** {phase_state.run_count}\n")
+            lines.append(f"**Last Run:** {phase_state.last_run}\n")
+            lines.append(f"**Success Rate:** {phase_state.success_count}/{phase_state.run_count}\n")
+        else:
+            lines.append("No investigation runs yet.\n")
+        
+        return "\n".join(lines)
