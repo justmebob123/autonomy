@@ -290,7 +290,7 @@ Provide specific, line-by-line syntax analysis."""
         # Code Pattern Specialist
         self.add_specialist(SpecialistConfig(
             name="Pattern Analyst",
-            model="deepseek-coder-v2",
+            model="qwen2.5-coder:32b",
             host="ollama02.thiscluster.net",
             expertise="code patterns and similar code detection",
             system_prompt="""You are an expert in finding and analyzing code patterns.
