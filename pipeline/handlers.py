@@ -577,14 +577,36 @@ class ToolCallHandler:
                     verification_errors.append(f"Syntax error after write: {error}")
                     verification_passed = False
             
-            # 3. Verify the change actually occurred
-            # Check if the exact original code block was replaced
-            # Note: If new_code contains original (like wrapping in try/except), 
-            # we should check that the standalone original is gone
-            if original not in new_code:  # Only check if original was completely replaced
-                if original in written_content:
-                    verification_errors.append("Original code still present - change may not have applied")
+            # 3. Verify the change actually occurred - FIXED LOGIC
+            # Normalize whitespace for comparison
+            original_normalized = ' '.join(original.split())
+            new_code_normalized = ' '.join(new_code.split())
+            written_normalized = ' '.join(written_content.split())
+            
+            # Detect if this is a wrapping operation (code is being wrapped, not replaced)
+            is_wrapping = (
+                original_normalized in new_code_normalized and  # Original is inside new code
+                len(new_code_normalized) > len(original_normalized) * 1.3  # New code is significantly larger (30%+)
+            )
+            
+            if is_wrapping:
+                # For wrapping operations (try/except, if/else, etc.)
+                # Just verify the new wrapped code was added
+                if new_code_normalized not in written_normalized:
+                    verification_errors.append("Wrapped code not found in file - wrapping operation may have failed")
                     verification_passed = False
+            else:
+                # For replacement operations
+                # Verify original was removed AND new was added
+                if new_code_normalized not in written_normalized:
+                    verification_errors.append("New code not found in file - replacement may have failed")
+                    verification_passed = False
+                
+                # Only check if original was completely replaced (not just wrapped)
+                if original_normalized not in new_code_normalized:
+                    if original_normalized in written_normalized:
+                        verification_errors.append("Original code still present - replacement incomplete")
+                        verification_passed = False
             
             # Check if new code is present (with some flexibility for whitespace)
             new_code_stripped = new_code.strip()
