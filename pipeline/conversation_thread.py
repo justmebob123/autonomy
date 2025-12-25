@@ -79,7 +79,9 @@ class ConversationThread:
     def __init__(self, issue: Dict, project_dir: Path):
         self.issue = issue
         self.project_dir = project_dir
-        self.thread_id = f"{issue['filepath']}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        # Sanitize filepath for use in filename (replace slashes with underscores)
+        sanitized_filepath = issue['filepath'].replace('/', '_').replace('\\', '_')
+        self.thread_id = f"{sanitized_filepath}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
         # Conversation history
         self.messages: List[Message] = []

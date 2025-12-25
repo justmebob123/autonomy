@@ -252,7 +252,7 @@ Output ONLY the JSON, nothing else:"""
                 messages,
                 tools=None,
                 temperature=0.1,
-                timeout=30
+                timeout=3600
             )
             
             content = response.get("message", {}).get("content", "")

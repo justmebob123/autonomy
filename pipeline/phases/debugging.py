@@ -136,7 +136,7 @@ class DebuggingPhase(BasePhase):
                             # Retry with this model (increased timeout for CPU inference)
                             retry_response = self.client.chat(
                                 host, model, messages, tools, 
-                                temperature=0.3, timeout=600
+                                temperature=0.3, timeout=7200
                             )
                             retry_message = retry_response.get('message', {}) if retry_response else {}
                             retry_content = retry_message.get('content', '')

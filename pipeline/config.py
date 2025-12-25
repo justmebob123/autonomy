@@ -48,11 +48,11 @@ class PipelineConfig:
     verbose: int = 0  # 0=normal, 1=verbose, 2=very verbose
     
     # Timeouts (seconds) - None means no timeout (wait forever)
-    planning_timeout: Optional[int] = 300  # 5 minutes for planning
-    coding_timeout: Optional[int] = 600  # 10 minutes for coding (can be complex)
-    qa_timeout: Optional[int] = 300  # 5 minutes for QA
-    debug_timeout: Optional[int] = 600  # 10 minutes for CPU-only systems and complex debugging
-    request_timeout: Optional[int] = 300  # 5 minutes default for CPU systems
+    planning_timeout: Optional[int] = 3600  # 1 HOUR for planning
+    coding_timeout: Optional[int] = 7200  # 2 HOURS for coding (can be very complex)
+    qa_timeout: Optional[int] = 3600  # 1 HOUR for QA
+    debug_timeout: Optional[int] = 7200  # 2 HOURS for CPU-only systems and complex debugging
+    request_timeout: Optional[int] = 7200  # 2 HOURS default for CPU systems
     
     # State management
     state_dir: str = ".pipeline"
