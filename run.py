@@ -495,7 +495,7 @@ def run_debug_qa_mode(args) -> int:
                             
                             # Skip ERROR types - they don't have tracebacks
                             # Only process EXCEPTION types which have full context
-                            if error_type != 'exception':
+                            if 'exception' not in error_type.lower() and 'crash' not in error_type.lower():
                                 continue
                             
                             # Try to extract file and line from traceback
