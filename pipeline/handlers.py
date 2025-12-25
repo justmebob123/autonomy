@@ -381,15 +381,37 @@ class ToolCallHandler:
                 if line.strip() == original_stripped:
                     # Found it! Get the indentation
                     indent = line[:len(line) - len(line.lstrip())]
-                    # Apply same indentation to new code
-                    new_code_indented = '\n'.join(indent + l if l.strip() else l 
-                                                   for l in new_code.split('\n'))
+                    
+                    # CRITICAL FIX: Strip existing indentation from new_code before applying detected indentation
+                    new_code_lines_raw = new_code.split('\n')
+                    
+                    # Detect minimum indentation in new_code
+                    min_indent = float('inf')
+                    for l in new_code_lines_raw:
+                        if l.strip():
+                            line_indent = len(l) - len(l.lstrip())
+                            min_indent = min(min_indent, line_indent)
+                    
+                    if min_indent == float('inf'):
+                        min_indent = 0
+                    
+                    # Strip minimum indentation, then apply target indentation
+                    new_code_lines = []
+                    for l in new_code_lines_raw:
+                        if l.strip():
+                            stripped = l[min_indent:] if len(l) >= min_indent else l.lstrip()
+                            new_code_lines.append(indent + stripped)
+                        else:
+                            new_code_lines.append(l)
+                    
+                    new_code_indented = '\n'.join(new_code_lines)
+                    
                     # Replace the line
                     lines = content.split('\n')
                     lines[line_num - 1] = new_code_indented
                     new_content = '\n'.join(lines)
                     found = True
-                    self.logger.info(f"  ✓ Found code at line {line_num} with indentation, applied fix")
+                    self.logger.info(f"  ✓ Found code at line {line_num}, stripped {min_indent} spaces, applied {len(indent)} spaces indentation")
                     break
             
             if not found:
@@ -410,15 +432,36 @@ class ToolCallHandler:
                         first_line = content_lines[i]
                         indent = first_line[:len(first_line) - len(first_line.lstrip())]
                         
-                        # Apply same indentation to new code
-                        new_code_lines = [indent + l if l.strip() else l 
-                                         for l in new_code.split('\n')]
+                        # CRITICAL FIX: Strip existing indentation from new_code before applying detected indentation
+                        # The AI often provides code with indentation already, and we were adding MORE on top!
+                        new_code_lines_raw = new_code.split('\n')
+                        
+                        # Detect minimum indentation in new_code (excluding empty lines)
+                        min_indent = float('inf')
+                        for line in new_code_lines_raw:
+                            if line.strip():  # Skip empty lines
+                                line_indent = len(line) - len(line.lstrip())
+                                min_indent = min(min_indent, line_indent)
+                        
+                        # If new_code has no indentation, min_indent will be inf
+                        if min_indent == float('inf'):
+                            min_indent = 0
+                        
+                        # Strip the minimum indentation from all lines, then apply target indentation
+                        new_code_lines = []
+                        for line in new_code_lines_raw:
+                            if line.strip():  # Non-empty line
+                                # Remove min_indent spaces, then add target indent
+                                stripped = line[min_indent:] if len(line) >= min_indent else line.lstrip()
+                                new_code_lines.append(indent + stripped)
+                            else:  # Empty line
+                                new_code_lines.append(line)
                         
                         # Replace the lines
                         content_lines[i:i+len(original_lines)] = new_code_lines
                         new_content = '\n'.join(content_lines)
                         found = True
-                        self.logger.info(f"  ✓ Found multi-line code at line {i+1} with indentation, applied fix")
+                        self.logger.info(f"  ✓ Found multi-line code at line {i+1}, stripped {min_indent} spaces, applied {len(indent)} spaces indentation")
                         break
                 
                 if not found:
