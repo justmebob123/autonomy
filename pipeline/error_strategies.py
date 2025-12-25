@@ -1,0 +1,317 @@
+"""
+Error-specific debugging strategies.
+
+This module provides specialized strategies for different error types,
+helping the AI understand and fix errors more effectively.
+"""
+from typing import Dict, List, Optional
+
+
+class ErrorStrategy:
+    """Base class for error-specific strategies."""
+    
+    def __init__(self, error_type: str):
+        self.error_type = error_type
+    
+    def get_investigation_steps(self, issue: Dict) -> List[str]:
+        """Get investigation steps for this error type."""
+        raise NotImplementedError
+    
+    def get_fix_approaches(self, issue: Dict) -> List[Dict]:
+        """Get potential fix approaches for this error type."""
+        raise NotImplementedError
+    
+    def enhance_prompt(self, base_prompt: str, issue: Dict) -> str:
+        """Enhance the base prompt with error-specific guidance."""
+        investigation = "\n".join(f"{i}. {step}" for i, step in enumerate(self.get_investigation_steps(issue), 1))
+        
+        approaches = "\n\n".join(
+            f"**Approach {i}: {approach['name']}**\n"
+            f"{approach['description']}\n"
+            f"Steps:\n" + "\n".join(f"  - {step}" for step in approach['steps'])
+            for i, approach in enumerate(self.get_fix_approaches(issue), 1)
+        )
+        
+        enhancement = f"""
+
+## ERROR-SPECIFIC STRATEGY: {self.error_type}
+
+### Investigation Steps:
+{investigation}
+
+### Recommended Fix Approaches:
+{approaches}
+
+"""
+        return base_prompt + enhancement
+
+
+class UnboundLocalErrorStrategy(ErrorStrategy):
+    """Strategy for UnboundLocalError."""
+    
+    def __init__(self):
+        super().__init__('UnboundLocalError')
+    
+    def get_investigation_steps(self, issue: Dict) -> List[str]:
+        """Investigation steps for UnboundLocalError."""
+        variable_name = self._extract_variable_name(issue)
+        line_num = issue.get('line', 'unknown')
+        
+        return [
+            f"READ THE FILE to see the complete code structure",
+            f"FIND where '{variable_name}' is used at line {line_num}",
+            f"SEARCH for where '{variable_name}' is defined (use grep or search_code)",
+            f"CHECK if '{variable_name}' is defined BEFORE line {line_num}",
+            f"CHECK if '{variable_name}' is in the correct scope (not in a conditional block)",
+            f"TRACE the execution flow to understand when '{variable_name}' should be available"
+        ]
+    
+    def get_fix_approaches(self, issue: Dict) -> List[Dict]:
+        """Fix approaches for UnboundLocalError."""
+        variable_name = self._extract_variable_name(issue)
+        line_num = issue.get('line', 'unknown')
+        
+        return [
+            {
+                'name': 'Move Definition Earlier',
+                'description': f"Move the definition of '{variable_name}' to BEFORE line {line_num}",
+                'steps': [
+                    f"Find where '{variable_name}' is currently defined",
+                    f"Move that definition to before line {line_num}",
+                    "Ensure proper indentation and scope",
+                    "Verify no other code depends on the original location"
+                ]
+            },
+            {
+                'name': 'Initialize Variable',
+                'description': f"Initialize '{variable_name}' with a default value before use",
+                'steps': [
+                    f"Add '{variable_name} = None' or appropriate default before line {line_num}",
+                    "Ensure it's in the correct scope (same indentation level)",
+                    "Consider what default value makes sense (None, [], {}, etc.)"
+                ]
+            },
+            {
+                'name': 'Fix Scope Issue',
+                'description': f"Fix the scope issue for '{variable_name}'",
+                'steps': [
+                    f"Check if '{variable_name}' is defined inside a conditional block (if/try/etc.)",
+                    "Ensure it's defined in ALL code paths that reach line {line_num}",
+                    "Or move the definition to outer scope before the conditional"
+                ]
+            }
+        ]
+    
+    def _extract_variable_name(self, issue: Dict) -> str:
+        """Extract variable name from error message."""
+        message = issue.get('message', '')
+        # "cannot access local variable 'servers' where it is not associated with a value"
+        if "'" in message:
+            parts = message.split("'")
+            if len(parts) >= 2:
+                return parts[1]
+        return 'unknown'
+
+
+class KeyErrorStrategy(ErrorStrategy):
+    """Strategy for KeyError."""
+    
+    def __init__(self):
+        super().__init__('KeyError')
+    
+    def get_investigation_steps(self, issue: Dict) -> List[str]:
+        """Investigation steps for KeyError."""
+        key_name = self._extract_key_name(issue)
+        
+        return [
+            f"READ THE FILE to see the dictionary access",
+            f"FIND where the dictionary is created/populated",
+            f"CHECK what keys the dictionary actually has",
+            f"VERIFY if '{key_name}' should exist in the dictionary",
+            f"CHECK if there's a typo in the key name",
+            f"DETERMINE if the key is optional or required"
+        ]
+    
+    def get_fix_approaches(self, issue: Dict) -> List[Dict]:
+        """Fix approaches for KeyError."""
+        key_name = self._extract_key_name(issue)
+        
+        return [
+            {
+                'name': 'Add Missing Key',
+                'description': f"Add the missing '{key_name}' key to the dictionary",
+                'steps': [
+                    "Find where the dictionary is created",
+                    f"Add '{key_name}': value to the dictionary initialization",
+                    "Ensure proper value type based on usage"
+                ]
+            },
+            {
+                'name': 'Use .get() Method',
+                'description': f"Use .get() with default value instead of direct access",
+                'steps': [
+                    f"Change dict['{key_name}'] to dict.get('{key_name}', default)",
+                    "Choose appropriate default value (None, '', [], etc.)",
+                    "Ensure code handles the default value correctly"
+                ]
+            },
+            {
+                'name': 'Fix Key Name',
+                'description': f"Fix typo or incorrect key name",
+                'steps': [
+                    "Print or log the actual keys in the dictionary",
+                    "Find the correct key name (might be similar)",
+                    "Update the code to use correct key"
+                ]
+            }
+        ]
+    
+    def _extract_key_name(self, issue: Dict) -> str:
+        """Extract key name from error message."""
+        message = issue.get('message', '')
+        # KeyError: 'url'
+        if "'" in message:
+            parts = message.split("'")
+            if len(parts) >= 2:
+                return parts[1]
+        return 'unknown'
+
+
+class AttributeErrorStrategy(ErrorStrategy):
+    """Strategy for AttributeError."""
+    
+    def __init__(self):
+        super().__init__('AttributeError')
+    
+    def get_investigation_steps(self, issue: Dict) -> List[str]:
+        """Investigation steps for AttributeError."""
+        return [
+            "READ THE FILE to see the attribute access",
+            "FIND what type of object is being accessed",
+            "CHECK what attributes/methods the object actually has",
+            "VERIFY if the attribute name is correct (check for typos)",
+            "DETERMINE if the object is the expected type"
+        ]
+    
+    def get_fix_approaches(self, issue: Dict) -> List[Dict]:
+        """Fix approaches for AttributeError."""
+        return [
+            {
+                'name': 'Fix Attribute Name',
+                'description': "Correct the attribute/method name",
+                'steps': [
+                    "Check the object's class definition",
+                    "Find the correct attribute name",
+                    "Update the code to use correct name"
+                ]
+            },
+            {
+                'name': 'Add Missing Attribute',
+                'description': "Add the missing attribute to the class",
+                'steps': [
+                    "Find the class definition",
+                    "Add the missing attribute/method",
+                    "Implement appropriate functionality"
+                ]
+            },
+            {
+                'name': 'Fix Object Type',
+                'description': "Ensure the object is the correct type",
+                'steps': [
+                    "Check where the object is created",
+                    "Verify it's the expected type",
+                    "Fix the object creation if wrong type"
+                ]
+            }
+        ]
+
+
+class NameErrorStrategy(ErrorStrategy):
+    """Strategy for NameError."""
+    
+    def __init__(self):
+        super().__init__('NameError')
+    
+    def get_investigation_steps(self, issue: Dict) -> List[str]:
+        """Investigation steps for NameError."""
+        return [
+            "READ THE FILE to see where the name is used",
+            "CHECK if the name is defined anywhere in the file",
+            "CHECK if the name should be imported",
+            "VERIFY if there's a typo in the name",
+            "CHECK the scope (local vs global)"
+        ]
+    
+    def get_fix_approaches(self, issue: Dict) -> List[Dict]:
+        """Fix approaches for NameError."""
+        return [
+            {
+                'name': 'Add Import',
+                'description': "Import the missing name",
+                'steps': [
+                    "Determine which module contains the name",
+                    "Add appropriate import statement",
+                    "Verify the import path is correct"
+                ]
+            },
+            {
+                'name': 'Define Variable',
+                'description': "Define the missing variable",
+                'steps': [
+                    "Determine where the variable should be defined",
+                    "Add variable definition with appropriate value",
+                    "Ensure proper scope"
+                ]
+            },
+            {
+                'name': 'Fix Typo',
+                'description': "Correct the name spelling",
+                'steps': [
+                    "Find similar names in the code",
+                    "Identify the correct spelling",
+                    "Update the code"
+                ]
+            }
+        ]
+
+
+# Strategy registry
+ERROR_STRATEGIES = {
+    'UnboundLocalError': UnboundLocalErrorStrategy(),
+    'KeyError': KeyErrorStrategy(),
+    'AttributeError': AttributeErrorStrategy(),
+    'NameError': NameErrorStrategy(),
+}
+
+
+def get_strategy(error_type: str) -> Optional[ErrorStrategy]:
+    """
+    Get strategy for error type.
+    
+    Args:
+        error_type: Type of error (e.g., 'UnboundLocalError')
+        
+    Returns:
+        ErrorStrategy instance or None if no strategy exists
+    """
+    return ERROR_STRATEGIES.get(error_type)
+
+
+def enhance_prompt_with_strategy(base_prompt: str, issue: Dict) -> str:
+    """
+    Enhance prompt with error-specific strategy if available.
+    
+    Args:
+        base_prompt: Base debugging prompt
+        issue: Issue dictionary with error information
+        
+    Returns:
+        Enhanced prompt with strategy guidance
+    """
+    error_type = issue.get('type', 'RuntimeError')
+    strategy = get_strategy(error_type)
+    
+    if strategy:
+        return strategy.enhance_prompt(base_prompt, issue)
+    else:
+        return base_prompt

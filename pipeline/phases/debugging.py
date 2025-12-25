@@ -23,6 +23,7 @@ from ..action_tracker import ActionTracker
 from ..pattern_detector import PatternDetector
 from ..loop_intervention import LoopInterventionSystem
 from ..team_orchestrator import TeamOrchestrator
+from ..error_strategies import get_strategy, enhance_prompt_with_strategy
 
 
 class DebuggingPhase(BasePhase):
@@ -91,6 +92,116 @@ class DebuggingPhase(BasePhase):
                 success=result.get('success', False)
             )
     
+    def _verify_fix_with_runtime_test(self, filepath: str, original_error: Dict, tester) -> Dict:
+        """
+        CRITICAL FIX #2: RUNTIME VERIFICATION
+        Verify fix by re-running the program and checking if error is gone.
+        
+        Args:
+            filepath: File that was modified
+            original_error: The original error we're trying to fix
+            tester: RuntimeTester instance
+            
+        Returns:
+            dict: {
+                'success': bool,
+                'error_fixed': bool,
+                'new_errors': list,
+                'same_error_persists': bool
+            }
+        """
+        import time
+        
+        self.logger.info("🧪 RUNTIME VERIFICATION: Re-running program to verify fix...")
+        
+        # Stop current test
+        if tester and tester.is_running():
+            tester.stop()
+            time.sleep(2)
+        
+        # Clear log file
+        if tester and tester.log_file and tester.log_file.exists():
+            tester.log_file.write_text('')
+            self.logger.info(f"   Cleared log file: {tester.log_file}")
+        
+        # Restart test
+        if tester:
+            tester.start()
+            self.logger.info("   Program restarted, waiting 5 seconds...")
+            time.sleep(5)  # Give it time to hit the error
+            
+            # Check for errors
+            new_errors = tester.get_errors()
+            
+            # Check if SAME error persists
+            same_error_persists = False
+            for error in new_errors:
+                if self._is_same_error(error, original_error):
+                    same_error_persists = True
+                    self.logger.warning(f"   ❌ Same error persists: {error.get('type')}")
+                    break
+            
+            # Stop test
+            tester.stop()
+            
+            result = {
+                'success': not same_error_persists,
+                'error_fixed': not same_error_persists,
+                'new_errors': new_errors,
+                'same_error_persists': same_error_persists
+            }
+            
+            if same_error_persists:
+                self.logger.warning("❌ Runtime verification FAILED: Same error persists")
+            else:
+                self.logger.info("✅ Runtime verification PASSED: Error is fixed")
+            
+            return result
+        else:
+            # No tester available, assume success
+            self.logger.warning("⚠️  No runtime tester available, skipping verification")
+            return {
+                'success': True,
+                'error_fixed': True,
+                'new_errors': [],
+                'same_error_persists': False
+            }
+    
+    def _is_same_error(self, error1: Dict, error2: Dict) -> bool:
+        """
+        Check if two errors are the same.
+        
+        Args:
+            error1: First error dict
+            error2: Second error dict
+            
+        Returns:
+            True if errors are the same
+        """
+        # Compare error type
+        type1 = error1.get('type', '')
+        type2 = error2.get('type', '')
+        
+        if type1 != type2:
+            return False
+        
+        # Compare error message (first 100 chars)
+        msg1 = str(error1.get('message', ''))[:100]
+        msg2 = str(error2.get('message', ''))[:100]
+        
+        if msg1 != msg2:
+            return False
+        
+        # Compare file (if available)
+        file1 = error1.get('file', '')
+        file2 = error2.get('file', '')
+        
+        if file1 and file2 and file1 != file2:
+            return False
+        
+        # Same error
+        return True
+    
     def _check_for_loops(self) -> Optional[Dict]:
         """Check for loops and intervene if necessary"""
         intervention = self.loop_intervention.check_and_intervene()
@@ -107,6 +218,80 @@ class DebuggingPhase(BasePhase):
             return intervention
         
         return None
+    
+    def _check_for_loops_and_enforce(self, intervention_count: int, thread: 'ConversationThread') -> Dict:
+        """
+        CRITICAL FIX #3: ENFORCED LOOP BREAKING
+        Check for loops and ENFORCE intervention based on count.
+        
+        Args:
+            intervention_count: Number of interventions so far
+            thread: Conversation thread
+            
+        Returns:
+            dict: {
+                'should_stop': bool,
+                'action': 'continue' | 'consult_specialist' | 'ask_user',
+                'message': str,
+                'specialist_type': str (if action is consult_specialist)
+            }
+        """
+        intervention = self._check_for_loops()
+        
+        if not intervention:
+            return {'should_stop': False, 'action': 'continue', 'message': ''}
+        
+        # Log the intervention count
+        self.logger.warning(f"Loop intervention #{intervention_count}")
+        
+        # ENFORCE based on intervention count
+        if intervention_count == 1:
+            # First warning: Log and continue
+            self.logger.warning("⚠️  First loop detected - continuing with caution")
+            return {
+                'should_stop': False,
+                'action': 'continue',
+                'message': 'First loop warning - continuing'
+            }
+        
+        elif intervention_count == 2:
+            # Second warning: Consult whitespace specialist
+            self.logger.warning("⚠️  Second loop detected - CONSULTING WHITESPACE SPECIALIST")
+            return {
+                'should_stop': True,
+                'action': 'consult_specialist',
+                'message': 'Consulting whitespace specialist for fresh perspective',
+                'specialist_type': 'whitespace'
+            }
+        
+        elif intervention_count == 3:
+            # Third warning: Consult syntax specialist
+            self.logger.warning("⚠️  Third loop detected - CONSULTING SYNTAX SPECIALIST")
+            return {
+                'should_stop': True,
+                'action': 'consult_specialist',
+                'message': 'Consulting syntax specialist for alternative approach',
+                'specialist_type': 'syntax'
+            }
+        
+        elif intervention_count == 4:
+            # Fourth warning: Consult pattern specialist
+            self.logger.warning("⚠️  Fourth loop detected - CONSULTING PATTERN SPECIALIST")
+            return {
+                'should_stop': True,
+                'action': 'consult_specialist',
+                'message': 'Consulting pattern specialist for root cause analysis',
+                'specialist_type': 'pattern'
+            }
+        
+        else:
+            # Fifth+ warning: FORCE user intervention
+            self.logger.error("🚨 MULTIPLE LOOPS DETECTED - FORCING USER INTERVENTION")
+            return {
+                'should_stop': True,
+                'action': 'ask_user',
+                'message': f'Multiple loop interventions failed ({intervention_count} attempts) - user help required'
+            }
     
     def _consult_specialist(self, specialist_type: str, thread: ConversationThread, tools: List) -> Dict:
         """
@@ -653,6 +838,41 @@ Remember:
         6. Saves complete thread for analysis
         """
         
+        # CRITICAL FIX #1: MANDATORY FILE READING
+        # AI MUST read the file before attempting any fix
+        filepath = issue.get('filepath')
+        if not filepath:
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message="No filepath in issue"
+            )
+        
+        # Read file content - MANDATORY
+        file_content = self.read_file(filepath)
+        if not file_content:
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message=f"CRITICAL: Could not read file: {filepath}"
+            )
+        
+        # Add file content to issue for AI context
+        issue['file_content'] = file_content
+        issue['file_lines'] = file_content.split('\n')
+        issue['file_length'] = len(issue['file_lines'])
+        
+        # Get surrounding code context (40 lines around error)
+        error_line = issue.get('line', 0)
+        if error_line > 0:
+            start = max(0, error_line - 20)
+            end = min(len(issue['file_lines']), error_line + 20)
+            issue['surrounding_code'] = '\n'.join(issue['file_lines'][start:end])
+            issue['context_start_line'] = start + 1
+            issue['context_end_line'] = end
+        
+        self.logger.info(f"  ✅ Read file: {filepath} ({len(file_content)} chars, {len(issue['file_lines'])} lines)")
+        
         # Create conversation thread
         thread = ConversationThread(issue, self.project_dir)
         self.logger.info(f"  💬 Started conversation thread: {thread.thread_id}")
@@ -713,7 +933,18 @@ Remember:
                 # First attempt - use standard debug prompt
                 filepath = issue.get("filepath")
                 content = self.read_file(filepath)
-                user_prompt = self._get_prompt('debugging', filepath=filepath, content=content, issue=issue)
+                base_prompt = self._get_prompt('debugging', filepath=filepath, content=content, issue=issue)
+                
+                # CRITICAL FIX #4: ERROR-SPECIFIC STRATEGIES
+                # Enhance prompt with error-specific strategy if available
+                error_type = issue.get('type', 'RuntimeError')
+                strategy = get_strategy(error_type)
+                if strategy:
+                    self.logger.info(f"  📋 Using {error_type} strategy")
+                    user_prompt = enhance_prompt_with_strategy(base_prompt, issue)
+                else:
+                    self.logger.debug(f"  No specific strategy for {error_type}, using generic approach")
+                    user_prompt = base_prompt
             else:
                 # Subsequent attempts - use retry prompt with failure analysis
                 last_attempt = thread.attempts[-1]
@@ -821,7 +1052,64 @@ Remember:
             # Track actions for loop detection
             self._track_tool_calls(tool_calls, results, agent="conversation")
             
-            # Check for loops
+            # CRITICAL FIX #3: ENFORCED LOOP BREAKING
+            # Check for loops with enforcement
+            loop_check = self._check_for_loops_and_enforce(
+                intervention_count=len([a for a in thread.attempts if not a.success]),
+                thread=thread
+            )
+            
+            if loop_check['should_stop']:
+                if loop_check['action'] == 'consult_specialist':
+                    # FORCE specialist consultation
+                    self.logger.info(f"  🔬 FORCED: {loop_check['message']}")
+                    specialist_type = loop_check.get('specialist_type', 'whitespace')
+                    
+                    specialist_result = self._consult_specialist(
+                        specialist_type,
+                        thread,
+                        tools
+                    )
+                    
+                    # Add specialist guidance to thread
+                    if specialist_result.get('findings'):
+                        thread.add_message(
+                            role="system",
+                            content=f"Specialist ({specialist_type}) findings:\n{specialist_result['findings']}"
+                        )
+                    
+                    # If specialist provided tool calls, execute them
+                    if specialist_result.get('tool_calls'):
+                        self.logger.info(f"  🔧 Executing specialist's {len(specialist_result['tool_calls'])} tool calls...")
+                        verbose = getattr(self.config, 'verbose', 0) if hasattr(self, 'config') else 0
+                        activity_log = self.project_dir / 'ai_activity.log'
+                        handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log), tool_registry=self.tool_registry)
+                        specialist_results = handler.process_tool_calls(specialist_result['tool_calls'])
+                        
+                        # Check if specialist succeeded
+                        if any(r.get('success') for r in specialist_results):
+                            self.logger.info("  ✅ Specialist fix applied successfully")
+                            overall_success = True
+                            break
+                    
+                    # Continue to next attempt with specialist guidance
+                    continue
+                
+                elif loop_check['action'] == 'ask_user':
+                    # FORCE user intervention - BLOCKING
+                    self.logger.error(f"  🚨 FORCED USER INTERVENTION: {loop_check['message']}")
+                    return PhaseResult(
+                        success=False,
+                        phase=self.phase_name,
+                        message=loop_check['message'],
+                        data={
+                            'requires_user_input': True,
+                            'intervention_count': len([a for a in thread.attempts if not a.success]),
+                            'thread': thread
+                        }
+                    )
+            
+            # Old loop detection (for logging only)
             intervention = self._check_for_loops()
             if intervention:
                 # Add intervention guidance to thread
@@ -829,15 +1117,6 @@ Remember:
                     role="system",
                     content=f"⚠️ LOOP DETECTED\n\n{intervention['guidance']}"
                 )
-                
-                if intervention.get('requires_user_input'):
-                    # Critical: Must escalate to user
-                    return PhaseResult(
-                        success=False,
-                        phase=self.phase_name,
-                        message=f"Loop detected - user intervention required",
-                        data={'intervention': intervention, 'thread': thread}
-                    )
             
             # Add results to thread
             thread.add_message(
