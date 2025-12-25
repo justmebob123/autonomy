@@ -6,7 +6,7 @@ import logging
 import signal
 import atexit
 
-from pipeline.coordinator import Coordinator
+from pipeline.coordinator import PhaseCoordinator
 from pipeline.state import PipelineState
 from pipeline.config import Config
 from pipeline.logging_setup import setup_logging, get_logger
@@ -136,7 +136,7 @@ def run_debug_qa_mode(args):
     config.discover_ollama_servers()
     
     # Initialize coordinator
-    coordinator = Coordinator(project_dir, config)
+    coordinator = PhaseCoordinator(project_dir, config)
     state = PipelineState(project_dir)
     
     # Initialize phases
@@ -558,7 +558,7 @@ def main():
         config.verbose = args.verbose
         config.discover_ollama_servers()
         
-        coordinator = Coordinator(Path(args.project_dir), config)
+        coordinator = PhaseCoordinator(Path(args.project_dir), config)
         state = PipelineState(Path(args.project_dir))
         
         result = coordinator.run(state)
