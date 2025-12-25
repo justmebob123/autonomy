@@ -819,9 +819,81 @@ def run_debug_qa_mode(args) -> int:
                             max_attempts=5
                         )
                         
-                        if debug_result.success:
+                        # CRITICAL FIX #7: FORCED USER INTERVENTION
+                        # Check if user intervention is required
+                        if debug_result.data and debug_result.data.get('requires_user_input'):
+                            print("\n" + "="*70)
+                            print("🚨 USER INTERVENTION REQUIRED")
+                            print("="*70)
+                            print(f"\nThe AI system is stuck and needs your help.")
+                            print(f"Error: {issue.get('message', 'Unknown error')[:100]}")
+                            print(f"File: {issue.get('filepath', 'Unknown file')}")
+                            print(f"Line: {issue.get('line', 'Unknown line')}")
+                            print(f"\nReason: {debug_result.message}")
+                            print(f"Intervention count: {debug_result.data.get('intervention_count', 0)}")
+                            print("\nWhat would you like to do?")
+                            print("1. Provide guidance to the AI")
+                            print("2. Skip this error and continue")
+                            print("3. Exit debug mode")
+                            
+                            try:
+                                choice = input("\nYour choice (1-3): ").strip()
+                                
+                                if choice == '1':
+                                    guidance = input("\nYour guidance for the AI: ").strip()
+                                    if guidance:
+                                        # Add guidance to issue and retry
+                                        issue['user_guidance'] = guidance
+                                        print(f"\n📝 Added your guidance, retrying with AI...")
+                                        
+                                        # Retry with user guidance
+                                        retry_result = debug_phase.execute_with_conversation_thread(
+                                            state,
+                                            issue=issue,
+                                            max_attempts=3
+                                        )
+                                        
+                                        if retry_result.success:
+                                            print("      ✅ Fixed successfully with your guidance!")
+                                            fixes_applied += 1
+                                        else:
+                                            print(f"      ❌ Still failed: {retry_result.message}")
+                                    else:
+                                        print("      ⚠️  No guidance provided, skipping...")
+                                
+                                elif choice == '2':
+                                    print("      ⏭️  Skipping this error...")
+                                    continue
+                                
+                                else:
+                                    print("      👋 Exiting debug mode...")
+                                    return 1
+                            
+                            except (KeyboardInterrupt, EOFError):
+                                print("\n      👋 Interrupted, exiting debug mode...")
+                                return 1
+                        
+                        elif debug_result.success:
                             print("      ✅ Fixed successfully")
                             fixes_applied += 1
+                            
+                            # CRITICAL FIX #2: RUNTIME VERIFICATION
+                            # Verify the fix actually worked by re-running the program
+                            if tester:
+                                print("      🧪 Verifying fix with runtime test...")
+                                verification = debug_phase._verify_fix_with_runtime_test(
+                                    filepath=issue.get('filepath'),
+                                    original_error=error_group,
+                                    tester=tester
+                                )
+                                
+                                if verification['error_fixed']:
+                                    print("      ✅ Runtime verification PASSED: Error is fixed")
+                                else:
+                                    print("      ❌ Runtime verification FAILED: Error persists")
+                                    print("      🔄 Continuing to next iteration...")
+                                    fixes_applied -= 1  # Don't count this as a successful fix
+                        
                         else:
                             print(f"      ⚠️  Could not fix: {debug_result.message}")
                             
