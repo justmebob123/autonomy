@@ -93,7 +93,7 @@ class InvestigationPhase(BasePhase):
         if tool_calls:
             verbose = getattr(self.config, 'verbose', 0) if hasattr(self, 'config') else 0
             activity_log = self.project_dir / 'ai_activity.log'
-            handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log))
+            handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log), tool_registry=self.tool_registry)
             results = handler.process_tool_calls(tool_calls)
             
             self.logger.info(f"  ✓ Gathered context using {len(tool_calls)} tool calls")

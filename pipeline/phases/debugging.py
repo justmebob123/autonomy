@@ -108,6 +108,110 @@ class DebuggingPhase(BasePhase):
         
         return None
     
+    def _consult_specialist(self, specialist_type: str, thread: ConversationThread, tools: List) -> Dict:
+        """
+        Consult specialist from registry or fall back to hardcoded.
+        
+        Args:
+            specialist_type: Type of specialist needed
+            thread: Conversation thread
+            tools: Available tools
+            
+        Returns:
+            Specialist analysis results
+        """
+        # Try custom specialist first
+        if self.role_registry.has_specialist(specialist_type):
+            self.logger.debug(f"Using custom specialist: {specialist_type}")
+            return self.role_registry.consult_specialist(
+                specialist_type,
+                thread=thread,
+                tools=tools
+            )
+        
+        # Fall back to hardcoded
+        return self.specialist_team.consult_specialist(
+            specialist_type,
+            thread=thread,
+            tools=tools
+        )
+    
+    def _get_prompt(self, prompt_type: str, **variables) -> str:
+        """
+        Get prompt from registry or fall back to hardcoded.
+        
+        Args:
+            prompt_type: Type of prompt (e.g., 'debugging', 'retry')
+            **variables: Variables to substitute in prompt
+            
+        Returns:
+            Formatted prompt string
+        """
+        # Try custom prompt first
+        custom_prompt = self.prompt_registry.get_prompt(
+            f"{self.phase_name}_{prompt_type}",
+            variables=variables
+        )
+        
+        if custom_prompt:
+            self.logger.debug(f"Using custom prompt: {self.phase_name}_{prompt_type}")
+            return custom_prompt
+        
+        # Fall back to hardcoded
+        if prompt_type == 'debugging':
+            from ..prompts import get_debug_prompt
+            return get_debug_prompt(
+                variables.get('filepath'),
+                variables.get('content'),
+                variables.get('issue')
+            )
+        elif prompt_type == 'retry':
+            from ..failure_prompts import get_retry_prompt
+            return get_retry_prompt(variables.get('context'))
+        else:
+            from ..prompts import get_debug_prompt
+            return get_debug_prompt(
+                variables.get('filepath'),
+                variables.get('content'),
+                variables.get('issue')
+            )
+    
+    def _assess_error_complexity(self, issue: Dict, thread: ConversationThread) -> str:
+        """
+        Assess error complexity to determine if team orchestration is needed.
+        
+        Returns:
+            'simple' - Direct fix
+            'complex' - Team orchestration
+            'novel' - Self-designing
+        """
+        # Check number of attempts
+        if len(thread.attempts) >= 3:
+            return 'complex'  # Multiple failed attempts
+        
+        # Check error type
+        error_type = issue.get('type', '')
+        if error_type in ['SyntaxError', 'IndentationError']:
+            return 'simple'
+        
+        # Check if multiple files involved
+        if 'multiple_files' in issue.get('context', {}):
+            return 'complex'
+        
+        # Check if circular dependencies
+        if 'circular' in issue.get('message', '').lower():
+            return 'complex'
+        
+        # Check if multiple error types
+        message = issue.get('message', '').lower()
+        error_indicators = ['syntax', 'indentation', 'import', 'attribute', 'type']
+        error_count = sum(1 for indicator in error_indicators if indicator in message)
+        if error_count >= 2:
+            return 'complex'
+        
+        # Default to simple
+        return 'simple'
+    
     def execute(self, state: PipelineState,
                 issue: Dict = None,
                 task: TaskState = None, **kwargs) -> PhaseResult:
@@ -158,7 +262,7 @@ class DebuggingPhase(BasePhase):
             )
         
         # Build messages
-        user_prompt = get_debug_prompt(filepath, content, issue)
+        user_prompt = self._get_prompt('debugging', filepath=filepath, content=content, issue=issue)
         messages = [
             {"role": "system", "content": SYSTEM_PROMPTS["debugging"]},
             {"role": "user", "content": user_prompt}
@@ -272,7 +376,7 @@ class DebuggingPhase(BasePhase):
         # Execute tool calls
         verbose = getattr(self.config, 'verbose', 0) if hasattr(self, 'config') else 0
         activity_log = self.project_dir / 'ai_activity.log'
-        handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log))
+        handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log), tool_registry=self.tool_registry)
         results = handler.process_tool_calls(tool_calls)
         
         # Track actions for loop detection
@@ -468,7 +572,7 @@ Remember:
         # Execute tool calls
         verbose = getattr(self.config, 'verbose', 0) if hasattr(self, 'config') else 0
         activity_log = self.project_dir / 'ai_activity.log'
-        handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log))
+        handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log), tool_registry=self.tool_registry)
         results = handler.process_tool_calls(tool_calls)
         
         # Track actions for loop detection
@@ -550,6 +654,46 @@ Remember:
         thread = ConversationThread(issue, self.project_dir)
         self.logger.info(f"  💬 Started conversation thread: {thread.thread_id}")
         
+        # Assess error complexity
+        complexity = self._assess_error_complexity(issue, thread)
+        self.logger.info(f"  📊 Error complexity: {complexity}")
+        
+        # Use team orchestration for complex errors
+        if complexity == 'complex':
+            self.logger.info("  🎭 Complex error detected - using team orchestration")
+            
+            try:
+                # Create orchestration plan
+                plan = self.team_orchestrator.create_orchestration_plan(
+                    problem=f"Fix {issue['type']}: {issue['message']}",
+                    context={
+                        'file': issue.get('filepath'),
+                        'error': issue,
+                        'thread': thread,
+                        'attempts': len(thread.attempts)
+                    }
+                )
+                
+                # Execute plan
+                orchestration_results = self.team_orchestrator.execute_plan(plan, thread)
+                
+                # Use synthesis for fix
+                if orchestration_results['success']:
+                    synthesis = orchestration_results['synthesis']
+                    self.logger.info(f"  ✅ Team orchestration completed in {orchestration_results['duration']:.1f}s")
+                    self.logger.info(f"  📈 Parallel efficiency: {orchestration_results['statistics']['parallel_efficiency']:.1f}x")
+                    
+                    # Add synthesis to thread for context
+                    thread.add_message(
+                        role="system",
+                        content=f"Team orchestration synthesis: {synthesis}"
+                    )
+                else:
+                    self.logger.warning("  ⚠️ Team orchestration failed, falling back to standard approach")
+            except Exception as e:
+                self.logger.error(f"  ❌ Team orchestration error: {e}")
+                self.logger.info("  Falling back to standard debugging approach")
+        
         # Get tools
         tools = get_tools_for_phase("debugging")
         
@@ -566,7 +710,7 @@ Remember:
                 # First attempt - use standard debug prompt
                 filepath = issue.get("filepath")
                 content = self.read_file(filepath)
-                user_prompt = get_debug_prompt(filepath, content, issue)
+                user_prompt = self._get_prompt('debugging', filepath=filepath, content=content, issue=issue)
             else:
                 # Subsequent attempts - use retry prompt with failure analysis
                 last_attempt = thread.attempts[-1]
@@ -586,7 +730,7 @@ Remember:
                     'failure_type': last_attempt.analysis.get('failure_type') if last_attempt.analysis else 'UNKNOWN'
                 }
                 
-                user_prompt = get_retry_prompt(context, last_attempt.analysis or {})
+                user_prompt = self._get_prompt('retry', context=context)
             
             # Add to conversation
             thread.add_message(role="user", content=user_prompt)
@@ -641,7 +785,7 @@ Remember:
                 failure_type = thread.attempts[-1].analysis.get('failure_type') if thread.attempts else 'UNKNOWN'
                 specialist_name = self.specialist_team.get_best_specialist_for_failure(failure_type)
                 
-                specialist_analysis = self.specialist_team.consult_specialist(
+                specialist_analysis = self._consult_specialist(
                     specialist_name,
                     thread,
                     tools
@@ -652,7 +796,7 @@ Remember:
                     self.logger.info(f"  🔧 Executing {len(specialist_analysis['tool_calls'])} tool calls from specialist...")
                     verbose = getattr(self.config, 'verbose', 0) if hasattr(self, 'config') else 0
                     activity_log = self.project_dir / 'ai_activity.log'
-                    handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log))
+                    handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log), tool_registry=self.tool_registry)
                     specialist_results = handler.process_tool_calls(specialist_analysis['tool_calls'])
                     
                     # Add results to thread
@@ -668,7 +812,7 @@ Remember:
             self.logger.info(f"  🔧 Executing {len(tool_calls)} tool call(s)...")
             verbose = getattr(self.config, 'verbose', 0) if hasattr(self, 'config') else 0
             activity_log = self.project_dir / 'ai_activity.log'
-            handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log))
+            handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log), tool_registry=self.tool_registry)
             results = handler.process_tool_calls(tool_calls)
             
             # Track actions for loop detection
@@ -820,7 +964,7 @@ Remember:
                 failure_type = failure_analysis.get('failure_type', 'UNKNOWN')
                 specialist_name = self.specialist_team.get_best_specialist_for_failure(failure_type)
                 
-                specialist_analysis = self.specialist_team.consult_specialist(
+                specialist_analysis = self._consult_specialist(
                     specialist_name,
                     thread,
                     tools

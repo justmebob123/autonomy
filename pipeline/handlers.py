@@ -17,7 +17,7 @@ from .failure_analyzer import FailureAnalyzer, ModificationFailure, create_failu
 class ToolCallHandler:
     """Handles execution of tool calls from LLM responses"""
     
-    def __init__(self, project_dir: Path, verbose: int = 0, activity_log_file: str = None):
+    def __init__(self, project_dir: Path, verbose: int = 0, activity_log_file: str = None, tool_registry=None):
         self.project_dir = Path(project_dir)
         self.logger = get_logger()
         self.verbose = verbose  # 0=normal, 1=verbose, 2=very verbose
@@ -71,6 +71,11 @@ class ToolCallHandler:
             "get_system_resources": self._handle_get_system_resources,
             "show_process_tree": self._handle_show_process_tree,
         }
+        
+        # Register custom tools from registry (Integration Fix #1)
+        if tool_registry:
+            tool_registry.set_handler(self)
+            self.logger.info(f"Registered {len(tool_registry.tools)} custom tools from ToolRegistry")
     
     def reset(self):
         """Reset tracking state"""

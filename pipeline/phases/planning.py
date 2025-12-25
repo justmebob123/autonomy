@@ -13,9 +13,10 @@ from ..state.priority import TaskPriority
 from ..tools import get_tools_for_phase
 from ..prompts import SYSTEM_PROMPTS, get_planning_prompt
 from ..handlers import ToolCallHandler
+from .loop_detection_mixin import LoopDetectionMixin
 
 
-class PlanningPhase(BasePhase):
+class PlanningPhase(BasePhase, LoopDetectionMixin):
     """
     Planning phase that creates task plans from MASTER_PLAN.md.
     
@@ -27,6 +28,10 @@ class PlanningPhase(BasePhase):
     """
     
     phase_name = "planning"
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.init_loop_detection()
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """Execute the planning phase"""
@@ -72,9 +77,22 @@ class PlanningPhase(BasePhase):
         
         if tool_calls:
             # Process tool calls
-            handler = ToolCallHandler(self.project_dir)
-            handler.process_tool_calls(tool_calls)
+            handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+            results = handler.process_tool_calls(tool_calls)
             tasks = handler.tasks
+            
+            # Track actions for loop detection
+            self.track_tool_calls(tool_calls, results, agent="planning")
+            
+            # Check for loops
+            intervention = self.check_for_loops()
+            if intervention and intervention.get('requires_user_input'):
+                return PhaseResult(
+                    success=False,
+                    phase=self.phase_name,
+                    message=f"Loop detected - user intervention required",
+                    data={'intervention': intervention}
+                )
         
         # Fallback: extract from text
         if not tasks and content:

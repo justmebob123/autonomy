@@ -13,9 +13,10 @@ from ..state.priority import TaskPriority
 from ..tools import get_tools_for_phase
 from ..prompts import SYSTEM_PROMPTS, get_qa_prompt
 from ..handlers import ToolCallHandler
+from .loop_detection_mixin import LoopDetectionMixin
 
 
-class QAPhase(BasePhase):
+class QAPhase(BasePhase, LoopDetectionMixin):
     """
     QA phase that reviews generated code.
     
@@ -27,6 +28,10 @@ class QAPhase(BasePhase):
     """
     
     phase_name = "qa"
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.init_loop_detection()
     
     def execute(self, state: PipelineState,
                 filepath: str = None, 
@@ -114,8 +119,21 @@ class QAPhase(BasePhase):
         # Process tool calls
         verbose = getattr(self.config, 'verbose', 0) if hasattr(self, 'config') else 0
         activity_log = self.project_dir / 'ai_activity.log'
-        handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log))
-        handler.process_tool_calls(tool_calls)
+        handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log), tool_registry=self.tool_registry)
+        results = handler.process_tool_calls(tool_calls)
+        
+        # Track actions for loop detection
+        self.track_tool_calls(tool_calls, results, agent="qa")
+        
+        # Check for loops
+        intervention = self.check_for_loops()
+        if intervention and intervention.get('requires_user_input'):
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message=f"Loop detected - user intervention required",
+                data={'intervention': intervention}
+            )
         
         # Check results
         if handler.approved:

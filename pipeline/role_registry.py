@@ -229,6 +229,18 @@ class RoleRegistry:
         """
         return self.specialists.get(name)
     
+    def has_specialist(self, name: str) -> bool:
+        """
+        Check if a specialist exists in the registry.
+        
+        Args:
+            name: Specialist name
+            
+        Returns:
+            True if specialist exists, False otherwise
+        """
+        return name in self.specialists
+    
     def consult_specialist(self, name: str, thread: ConversationThread, 
                           tools: List[Dict]) -> Dict:
         """

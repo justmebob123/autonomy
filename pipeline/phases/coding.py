@@ -14,9 +14,10 @@ from ..tools import get_tools_for_phase
 from ..prompts import SYSTEM_PROMPTS, get_coding_prompt
 from ..handlers import ToolCallHandler
 from ..utils import validate_python_syntax
+from .loop_detection_mixin import LoopDetectionMixin
 
 
-class CodingPhase(BasePhase):
+class CodingPhase(BasePhase, LoopDetectionMixin):
     """
     Coding phase that implements tasks.
     
@@ -30,6 +31,10 @@ class CodingPhase(BasePhase):
     """
     
     phase_name = "coding"
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.init_loop_detection()
     
     def execute(self, state: PipelineState, 
                 task: TaskState = None, **kwargs) -> PhaseResult:
@@ -114,8 +119,22 @@ class CodingPhase(BasePhase):
             )
         
         # Execute tool calls
-        handler = ToolCallHandler(self.project_dir)
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
         results = handler.process_tool_calls(tool_calls)
+        
+        # Track actions for loop detection
+        self.track_tool_calls(tool_calls, results, agent="coding")
+        
+        # Check for loops
+        intervention = self.check_for_loops()
+        if intervention and intervention.get('requires_user_input'):
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                task_id=task.task_id,
+                message=f"Loop detected - user intervention required",
+                data={'intervention': intervention}
+            )
         
         # Check results
         files_created = handler.files_created

@@ -127,7 +127,7 @@ class PromptDesignPhase(BasePhase):
         
         # Process tool calls
         from ..handlers import ToolCallHandler
-        handler = ToolCallHandler(self.project_dir, verbose=self.config.verbose)
+        handler = ToolCallHandler(self.project_dir, verbose=self.config.verbose, tool_registry=self.tool_registry)
         results = handler.process_tool_calls(tool_calls)
         
         # Check if prompt was created
