@@ -211,8 +211,13 @@ def run_debug_qa_mode(args) -> int:
     state = state_manager.load()
     
     # Initialize phases
+    from pipeline.phases.investigation import InvestigationPhase
     qa_phase = QAPhase(config, client)
+    investigation_phase = InvestigationPhase(config, client)
     debug_phase = DebuggingPhase(config, client)
+    
+    # Pass investigation phase to debugging phase
+    debug_phase.phases = {'investigation': investigation_phase}
     
     # Log file monitoring (only if NOT using --command)
     # When using --command, RuntimeTester handles log monitoring

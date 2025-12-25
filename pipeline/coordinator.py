@@ -59,6 +59,7 @@ class PhaseCoordinator:
             ProjectPlanningPhase,
             DocumentationPhase,
         )
+        from .phases.investigation import InvestigationPhase
         from .phases.prompt_design import PromptDesignPhase
         from .phases.tool_design import ToolDesignPhase
         from .phases.role_design import RoleDesignPhase
@@ -71,6 +72,7 @@ class PhaseCoordinator:
             "planning": PlanningPhase(self.config, self.client),
             "coding": CodingPhase(self.config, self.client),
             "qa": QAPhase(self.config, self.client),
+            "investigation": InvestigationPhase(self.config, self.client),
             "debugging": DebuggingPhase(self.config, self.client),
             "debug": DebuggingPhase(self.config, self.client),  # Alias
             "project_planning": ProjectPlanningPhase(self.config, self.client),

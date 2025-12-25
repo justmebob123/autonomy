@@ -954,6 +954,43 @@ Remember:
         thread = ConversationThread(issue, self.project_dir)
         self.logger.info(f"  💬 Started conversation thread: {thread.thread_id}")
         
+        # CRITICAL: Run investigation phase FIRST to diagnose the problem
+        self.logger.info(f"\n{'='*70}")
+        self.logger.info(f"🔍 INVESTIGATION PHASE - Diagnosing problem before fixing")
+        self.logger.info(f"{'='*70}")
+        
+        investigation_phase = self.phases.get('investigation') if hasattr(self, 'phases') else None
+        investigation_findings = None
+        
+        if investigation_phase:
+            investigation_result = investigation_phase.execute(state, issue=issue)
+            if investigation_result.success and investigation_result.data:
+                investigation_findings = investigation_result.data.get('findings', {})
+                self.logger.info(f"  ✅ Investigation complete")
+                if investigation_findings.get('root_cause'):
+                    self.logger.info(f"  🎯 Root cause: {investigation_findings['root_cause']}")
+                if investigation_findings.get('recommended_fix'):
+                    self.logger.info(f"  💡 Recommended fix: {investigation_findings['recommended_fix']}")
+                if investigation_findings.get('related_files'):
+                    self.logger.info(f"  📁 Related files: {', '.join(investigation_findings['related_files'])}")
+                
+                # Add investigation findings to thread context
+                import json
+                thread.add_message(
+                    role="system",
+                    content=f"Investigation findings:\n{json.dumps(investigation_findings, indent=2)}",
+                    metadata={"investigation": True}
+                )
+                
+                # Add to issue for AI context
+                issue['investigation_findings'] = investigation_findings
+            else:
+                self.logger.warning(f"  ⚠️ Investigation failed: {investigation_result.message}")
+        else:
+            self.logger.warning(f"  ⚠️ Investigation phase not available")
+        
+        self.logger.info(f"{'='*70}\n")
+        
         # Assess error complexity
         complexity = self._assess_error_complexity(issue, thread)
         self.logger.info(f"  📊 Error complexity: {complexity}")
@@ -1065,6 +1102,39 @@ Remember:
             
             # Parse response
             tool_calls, text_response = self.parser.parse_response(response)
+            
+            # LOG AI RESPONSE AND TOOL CALLS
+            self.logger.info(f"\n{'='*70}")
+            self.logger.info(f"🤖 AI RESPONSE:")
+            self.logger.info(f"{'='*70}")
+            if text_response:
+                # Truncate if too long
+                if len(text_response) > 500:
+                    self.logger.info(f"{text_response[:500]}...")
+                    self.logger.info(f"  (truncated, full response: {len(text_response)} chars)")
+                else:
+                    self.logger.info(text_response)
+            else:
+                self.logger.info("  (no text response)")
+            
+            if tool_calls:
+                self.logger.info(f"\n{'='*70}")
+                self.logger.info(f"🔧 TOOL CALLS ({len(tool_calls)}):")
+                self.logger.info(f"{'='*70}")
+                for i, call in enumerate(tool_calls, 1):
+                    self.logger.info(f"\n  {i}. {call.get('name', 'unknown')}")
+                    args = call.get('arguments', {})
+                    if args:
+                        import json
+                        self.logger.info(f"     Arguments:")
+                        for key, value in args.items():
+                            if isinstance(value, str) and len(value) > 200:
+                                self.logger.info(f"       {key}: {value[:200]}... ({len(value)} chars)")
+                            else:
+                                self.logger.info(f"       {key}: {json.dumps(value, indent=8)}")
+            else:
+                self.logger.info(f"\n⚠️  NO TOOL CALLS MADE")
+            self.logger.info(f"{'='*70}\n")
             
             # Add AI response to thread
             thread.add_message(
