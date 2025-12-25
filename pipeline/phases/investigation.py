@@ -69,7 +69,7 @@ class InvestigationPhase(BasePhase):
         investigation_prompt = self._build_investigation_prompt(filepath, content, issue)
         
         messages = [
-            {"role": "system", "content": self._get_system_prompt()},
+            {"role": "system", "content": self._get_system_prompt("debugging")},
             {"role": "user", "content": investigation_prompt}
         ]
         
