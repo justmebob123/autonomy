@@ -1,0 +1,16 @@
+🚨 CRITICAL: FIX THIS ERROR NOW 🚨
+
+You have ONE job: Call modify_python_file to FIX the error.
+
+⛔ DO NOT:
+- search_code (you already have the file below)
+- read_file (file is shown below)  
+- Just explain what's wrong
+- Analyze without fixing
+
+✅ YOU MUST:
+- Call modify_python_file RIGHT NOW
+- Use 5-10 lines of EXACT original code from the file
+- Provide your fixed version
+
+The file content and error are shown below. FIX IT NOW.

@@ -352,19 +352,18 @@ def _get_runtime_debug_prompt(filepath: str, code: str, issue: dict) -> str:
     line_num = issue.get('line', 'unknown')
     error_msg = issue.get('message', 'No message')
     
-    # Build comprehensive prompt
-    prompt = f"""# Runtime Error Debugging Task
+    # Build comprehensive prompt - START WITH THE MOST CRITICAL INSTRUCTION
+    prompt = f"""
+🚨 CRITICAL: CALL modify_python_file NOW TO FIX THIS ERROR 🚨
 
-⚠️ CRITICAL: You MUST use the `modify_python_file` tool to fix this error.
-⚠️ DO NOT just explain the fix - you must APPLY it using the tool.
-⚠️ The tool expects EXACT original code and replacement code.
+⛔ DO NOT search_code - you already have the file below
+⛔ DO NOT read_file - the file is shown below
+⛔ DO NOT just explain - you must FIX it
+✅ CALL modify_python_file with the fix RIGHT NOW
 
-You are debugging a runtime error in a Python application. This is NOT about creating new code - it's about fixing existing code that's failing at runtime.
-
-## Error Information
-- **File**: {filepath}
-- **Line**: {line_num}
-- **Error**: {error_msg}
+File: {filepath}
+Line: {line_num}
+Error: {error_msg}
 
 """
     
