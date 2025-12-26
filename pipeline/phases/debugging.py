@@ -1,29 +1,41 @@
 """
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Dict, List, Optional
+
 Debugging Phase
 
 Fixes code issues identified by QA.
 """
+from __future__ import annotations
 
-from datetime import datetime
-from typing import Dict, List, Optional
-from pathlib import Path
+
 
 from .base import BasePhase, PhaseResult
 from ..state.manager import PipelineState, TaskState, TaskStatus, FileStatus
-from ..state.priority import TaskPriority
-from ..tools import get_tools_for_phase
-from ..prompts import SYSTEM_PROMPTS, get_debug_prompt
 from ..handlers import ToolCallHandler
-from ..utils import validate_python_syntax
+from ..phase_resources import get_phase_tools, get_debugging_prompt, get_modification_decision
 from ..conversation_thread import ConversationThread
-from ..specialist_agents import SpecialistTeam
-from ..failure_prompts import get_retry_prompt
-from ..sudo_filter import filter_sudo_from_tool_calls
-from ..action_tracker import ActionTracker
-from ..pattern_detector import PatternDetector
-from ..loop_intervention import LoopInterventionSystem
-from ..team_orchestrator import TeamOrchestrator
-from ..error_strategies import get_strategy, enhance_prompt_with_strategy
+from ..loop_detection_system import LoopDetectionFacade
+from ..team_coordination import TeamCoordinationFacade
+from ..debugging_utils import (
+    get_timestamp_iso,
+    is_same_error,
+    assess_error_complexity,
+    analyze_no_tool_call_response,
+    get_next_issue,
+    get_error_strategy,
+    enhance_prompt_with_error_strategy,
+    get_failure_retry_prompt,
+    filter_sudo_commands,
+    safe_json_dumps,
+    safe_json_loads,
+    sleep_with_backoff,
+    get_current_timestamp,
+    TaskPriority
+)
+from pipeline.user_proxy import UserProxyAgent
 
 
 class DebuggingPhase(BasePhase):
@@ -41,29 +53,16 @@ class DebuggingPhase(BasePhase):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Initialize specialist team
-        self.specialist_team = SpecialistTeam(self.client, self.logger)
         # Directory for conversation threads
         self.threads_dir = self.project_dir / "conversation_threads"
         self.threads_dir.mkdir(exist_ok=True)
         
         # Initialize loop detection system
-        logs_dir = self.project_dir / ".autonomous_logs"
-        logs_dir.mkdir(exist_ok=True)
-        self.action_tracker = ActionTracker(
-            history_file=logs_dir / "action_history.jsonl"
-        )
-        self.pattern_detector = PatternDetector(self.action_tracker)
-        self.loop_intervention = LoopInterventionSystem(
-            self.action_tracker,
-            self.pattern_detector,
-            self.logger
-        )
+        self.loop_detection = LoopDetectionFacade(self.project_dir, self.logger)
         
-        # Initialize team orchestrator for parallel specialist execution
-        self.team_orchestrator = TeamOrchestrator(
+        # Initialize team coordination system
+        self.team_coordination = TeamCoordinationFacade(
             self.client,
-            self.specialist_team,
             self.logger,
             max_workers=4
         )
@@ -82,7 +81,7 @@ class DebuggingPhase(BasePhase):
                 file_path = args['filepath']
             
             # Track the action
-            self.action_tracker.track_action(
+            self.loop_detection.track_action(
                 phase=self.phase_name,
                 agent=agent,
                 tool=tool_name,
@@ -110,14 +109,13 @@ class DebuggingPhase(BasePhase):
                 'same_error_persists': bool
             }
         """
-        import time
-        
+                
         self.logger.info("🧪 RUNTIME VERIFICATION: Re-running program to verify fix...")
         
         # Stop current test
         if tester and tester.is_running():
             tester.stop()
-            time.sleep(2)
+            sleep_with_backoff(0, 2)
         
         # Clear log file
         if tester and tester.log_file and tester.log_file.exists():
@@ -128,7 +126,7 @@ class DebuggingPhase(BasePhase):
         if tester:
             tester.start()
             self.logger.info("   Program restarted, waiting 5 seconds...")
-            time.sleep(5)  # Give it time to hit the error
+            sleep_with_backoff(0, 5)  # Give it time to hit the error
             
             # Check for errors
             new_errors = tester.get_errors()
@@ -136,7 +134,7 @@ class DebuggingPhase(BasePhase):
             # Check if SAME error persists
             same_error_persists = False
             for error in new_errors:
-                if self._is_same_error(error, original_error):
+                if is_same_error(error, original_error):
                     same_error_persists = True
                     self.logger.warning(f"   ❌ Same error persists: {error.get('type')}")
                     break
@@ -149,7 +147,7 @@ class DebuggingPhase(BasePhase):
             if not same_error_persists and new_errors:
                 # Original error is gone, but new errors appeared
                 for error in new_errors:
-                    if not self._is_same_error(error, original_error):
+                    if not is_same_error(error, original_error):
                         cascading_errors.append(error)
             
             result = {
@@ -181,44 +179,10 @@ class DebuggingPhase(BasePhase):
                 'same_error_persists': False
             }
     
-    def _is_same_error(self, error1: Dict, error2: Dict) -> bool:
-        """
-        Check if two errors are the same.
-        
-        Args:
-            error1: First error dict
-            error2: Second error dict
-            
-        Returns:
-            True if errors are the same
-        """
-        # Compare error type
-        type1 = error1.get('type', '')
-        type2 = error2.get('type', '')
-        
-        if type1 != type2:
-            return False
-        
-        # Compare error message (first 100 chars)
-        msg1 = str(error1.get('message', ''))[:100]
-        msg2 = str(error2.get('message', ''))[:100]
-        
-        if msg1 != msg2:
-            return False
-        
-        # Compare file (if available)
-        file1 = error1.get('file', '')
-        file2 = error2.get('file', '')
-        
-        if file1 and file2 and file1 != file2:
-            return False
-        
-        # Same error
-        return True
     
     def _check_for_loops(self) -> Optional[Dict]:
         """Check for loops and intervene if necessary"""
-        intervention = self.loop_intervention.check_and_intervene()
+        intervention = self.loop_detection.check_and_intervene()
         
         if intervention:
             # Log the intervention
@@ -329,7 +293,7 @@ class DebuggingPhase(BasePhase):
             )
         
         # Fall back to hardcoded
-        return self.specialist_team.consult_specialist(
+        return self.team_coordination.consult_specialist(
             specialist_type,
             thread=thread,
             tools=tools
@@ -358,43 +322,23 @@ class DebuggingPhase(BasePhase):
         
         # Fall back to hardcoded
         if prompt_type == 'debugging':
-            from ..prompts import get_debug_prompt
-            return get_debug_prompt(
+                        return get_debugging_prompt(
                 variables.get('filepath'),
                 variables.get('content'),
                 variables.get('issue')
             )
         elif prompt_type == 'retry':
-            from ..failure_prompts import get_retry_prompt
-            return get_retry_prompt(
+                        return get_failure_retry_prompt(
                 variables.get('context'),
                 variables.get('failure_analysis', {})
             )
         else:
-            from ..prompts import get_debug_prompt
-            return get_debug_prompt(
+                        return get_debugging_prompt(
                 variables.get('filepath'),
                 variables.get('content'),
                 variables.get('issue')
             )
     
-    def _assess_error_complexity(self, issue: Dict, thread: ConversationThread) -> str:
-        """
-        Assess error complexity to determine if team orchestration is needed.
-        
-        Returns:
-            'simple' - Direct fix
-            'complex' - Team orchestration
-            'novel' - Self-designing
-        """
-        # Check number of attempts
-        if len(thread.attempts) >= 3:
-            return 'complex'  # Multiple failed attempts
-        
-        # Check error type
-        error_type = issue.get('type', '')
-        if error_type in ['SyntaxError', 'IndentationError']:
-            return 'simple'
         
         # Check if multiple files involved
         if 'multiple_files' in issue.get('context', {}):
@@ -429,7 +373,7 @@ class DebuggingPhase(BasePhase):
         
         # Find issue to fix
         if issue is None:
-            issue = self._get_next_issue(state)
+            issue = get_next_issue(state)
         
         if issue is None:
             return PhaseResult(
@@ -479,7 +423,7 @@ class DebuggingPhase(BasePhase):
             self.logger.info(f"  Prompt preview: {user_prompt[:300]}...")
         
         # Get tools
-        tools = get_tools_for_phase("debugging")
+        tools = get_phase_tools("debugging")
         self.logger.debug(f"  Available tools: {[t['function']['name'] for t in tools]}")
         
         # Send request
@@ -559,7 +503,7 @@ class DebuggingPhase(BasePhase):
                     with open(activity_log, 'a') as f:
                         f.write(f"\n{'='*80}\n")
                         f.write(f"DEBUGGING PHASE - NO TOOL CALLS\n")
-                        f.write(f"Timestamp: {datetime.now().isoformat()}\n")
+                        f.write(f"Timestamp: {get_timestamp_iso()}\n")
                         f.write(f"File: {filepath}\n")
                         f.write(f"Issue: {issue.get('type')} - {issue.get('message', '')[:100]}\n")
                         f.write(f"Model: {response.get('model', 'unknown')}\n")
@@ -569,7 +513,7 @@ class DebuggingPhase(BasePhase):
                     self.logger.debug(f"Could not write to activity log: {e}")
             
             # Analyze response to understand why no tool calls
-            analysis = self._analyze_no_tool_call_response(content, issue)
+            analysis = analyze_no_tool_call_response(content, issue)
             if analysis:
                 self.logger.warning(f"  Analysis: {analysis}")
             
@@ -600,7 +544,7 @@ class DebuggingPhase(BasePhase):
             self.logger.info("Loop detected - consulting AI specialist for guidance...")
             
             # Import and create UserProxyAgent
-            from pipeline.user_proxy import UserProxyAgent
+            from pipeline.user_proxy import UserProxyAgentAgent
             user_proxy = UserProxyAgent(
                 role_registry=self.role_registry,
                 prompt_registry=self.prompt_registry,
@@ -623,7 +567,7 @@ class DebuggingPhase(BasePhase):
                     'iterations': intervention.get('iterations', 0),
                     'pattern': intervention.get('pattern', 'Unknown')
                 },
-                debugging_history=self.action_tracker.get_recent_actions(10) if hasattr(self, 'action_tracker') else [],
+                debugging_history=self.loop_detection.get_recent_actions(10) if hasattr(self, 'action_tracker') else [],
                 context={'intervention': intervention}
             )
             
@@ -790,7 +734,7 @@ Remember:
         ]
         
         # Get tools
-        tools = get_tools_for_phase("debugging")
+        tools = get_phase_tools("debugging")
         
         # Send request
         response = self.chat(messages, tools, task_type="debugging")
@@ -833,7 +777,7 @@ Remember:
             self.logger.info("Loop detected - consulting AI specialist for guidance...")
             
             # Import and create UserProxyAgent
-            from pipeline.user_proxy import UserProxyAgent
+            from pipeline.user_proxy import UserProxyAgentAgent
             user_proxy = UserProxyAgent(
                 role_registry=self.role_registry,
                 prompt_registry=self.prompt_registry,
@@ -856,7 +800,7 @@ Remember:
                     'iterations': intervention.get('iterations', 0),
                     'pattern': intervention.get('pattern', 'Unknown')
                 },
-                debugging_history=self.action_tracker.get_recent_actions(10) if hasattr(self, 'action_tracker') else [],
+                debugging_history=self.loop_detection.get_recent_actions(10) if hasattr(self, 'action_tracker') else [],
                 context={'intervention': intervention}
             )
             
@@ -989,10 +933,11 @@ Remember:
                     self.logger.info(f"  📁 Related files: {', '.join(investigation_findings['related_files'])}")
                 
                 # Add investigation findings to thread context
-                import json
+
+                
                 thread.add_message(
                     role="system",
-                    content=f"Investigation findings:\n{json.dumps(investigation_findings, indent=2)}",
+                    content=f"Investigation findings:\n{safe_json_dumps(investigation_findings, indent=2)}",
                     metadata={"investigation": True}
                 )
                 
@@ -1006,7 +951,7 @@ Remember:
         self.logger.info(f"{'='*70}\n")
         
         # Assess error complexity
-        complexity = self._assess_error_complexity(issue, thread)
+        complexity = assess_error_complexity(issue, len(thread.attempts))
         self.logger.info(f"  📊 Error complexity: {complexity}")
         
         # Use team orchestration for complex errors
@@ -1015,7 +960,7 @@ Remember:
             
             try:
                 # Create orchestration plan
-                plan = self.team_orchestrator.create_orchestration_plan(
+                plan = self.team_coordination.create_orchestration_plan(
                     problem=f"Fix {issue['type']}: {issue['message']}",
                     context={
                         'file': issue.get('filepath'),
@@ -1026,7 +971,7 @@ Remember:
                 )
                 
                 # Execute plan
-                orchestration_results = self.team_orchestrator.execute_plan(plan, thread)
+                orchestration_results = self.team_coordination.execute_plan(plan, thread)
                 
                 # Use synthesis for fix
                 if orchestration_results['success']:
@@ -1046,7 +991,7 @@ Remember:
                 self.logger.info("  Falling back to standard debugging approach")
         
         # Get tools
-        tools = get_tools_for_phase("debugging")
+        tools = get_phase_tools("debugging")
         
         # Track overall success
         overall_success = False
@@ -1066,10 +1011,10 @@ Remember:
                 # CRITICAL FIX #4: ERROR-SPECIFIC STRATEGIES
                 # Enhance prompt with error-specific strategy if available
                 error_type = issue.get('type', 'RuntimeError')
-                strategy = get_strategy(error_type)
+                strategy = get_error_strategy(error_type)
                 if strategy:
                     self.logger.info(f"  📋 Using {error_type} strategy")
-                    user_prompt = enhance_prompt_with_strategy(base_prompt, issue)
+                    user_prompt = enhance_prompt_with_error_strategy(base_prompt, issue)
                 else:
                     self.logger.debug(f"  No specific strategy for {error_type}, using generic approach")
                     user_prompt = base_prompt
@@ -1143,13 +1088,12 @@ Remember:
                     
                     self.logger.info(f"\n  {i}. {tool_name}")
                     if args:
-                        import json
-                        self.logger.info(f"     Arguments:")
-                        for key, value in args.items():
-                            if isinstance(value, str) and len(value) > 200:
-                                self.logger.info(f"       {key}: {value[:200]}... ({len(value)} chars)")
-                            else:
-                                self.logger.info(f"       {key}: {json.dumps(value, indent=8)}")
+                           self.logger.info(f"     Arguments:")
+                           for key, value in args.items():
+                               if isinstance(value, str) and len(value) > 200:
+                                   self.logger.info(f"       {key}: {value[:200]}... ({len(value)} chars)")
+                               else:
+                                   self.logger.info(f"       {key}: {safe_json_dumps(value, indent=8)}")
             else:
                 self.logger.info(f"\n⚠️  NO TOOL CALLS MADE")
             self.logger.info(f"{'='*70}\n")
@@ -1163,7 +1107,7 @@ Remember:
             
             # Filter sudo commands
             if tool_calls:
-                allowed_calls, blocked_calls, sudo_summary = filter_sudo_from_tool_calls(tool_calls)
+                allowed_calls, blocked_calls, sudo_summary = filter_sudo_commands(tool_calls)
                 
                 if blocked_calls:
                     self.logger.warning(f"  ⚠️  Blocked {len(blocked_calls)} sudo command(s)")
@@ -1182,7 +1126,7 @@ Remember:
                 # Consult specialist for guidance
                 self.logger.info("  🔬 Consulting specialists for guidance...")
                 failure_type = thread.attempts[-1].analysis.get('failure_type') if thread.attempts else 'UNKNOWN'
-                specialist_name = self.specialist_team.get_best_specialist_for_failure(failure_type)
+                specialist_name = self.team_coordination.specialist_team.get_best_specialist_for_failure(failure_type)
                 
                 specialist_analysis = self._consult_specialist(
                     specialist_name,
@@ -1337,7 +1281,7 @@ Apply the fix immediately.""",
                     self.logger.info("Loop detected - consulting AI specialist for guidance...")
                     
                     # Import and create UserProxyAgent
-                    from pipeline.user_proxy import UserProxyAgent
+                    from pipeline.user_proxy import UserProxyAgentAgent
                     user_proxy = UserProxyAgent(
                         role_registry=self.role_registry,
                         prompt_registry=self.prompt_registry,
@@ -1489,9 +1433,7 @@ Apply the fix immediately.""",
             # If AI decision is needed, ask the AI what to do
             if needs_decision:
                 self.logger.info("  🤔 AI decision required - asking AI to evaluate the change...")
-                
-                from ..prompts import get_modification_decision_prompt
-                decision_prompt = get_modification_decision_prompt(decision_context)
+                decision_prompt = get_modification_decision(decision_context)
                 
                 # Ask AI for decision
                 decision_messages = [
@@ -1550,7 +1492,7 @@ Apply the fix immediately.""",
                 
                 # Get best specialist for this failure type
                 failure_type = failure_analysis.get('failure_type', 'UNKNOWN')
-                specialist_name = self.specialist_team.get_best_specialist_for_failure(failure_type)
+                specialist_name = self.team_coordination.specialist_team.get_best_specialist_for_failure(failure_type)
                 
                 specialist_analysis = self._consult_specialist(
                     specialist_name,
@@ -1629,7 +1571,7 @@ Apply the fix immediately.""",
         all_errors = []
         
         for _ in range(max_fixes):
-            issue = self._get_next_issue(state)
+            issue = get_next_issue(state)
             if not issue:
                 break
             
@@ -1650,57 +1592,7 @@ Apply the fix immediately.""",
             files_modified=[],
         )
     
-    def _analyze_no_tool_call_response(self, content: str, issue: Dict) -> str:
-        """
-        Analyze AI response to understand why no tool calls were made.
-        
-        Returns a brief analysis string.
-        """
-        if not content:
-            return "AI returned empty response"
-        
-        content_lower = content.lower()
-        
-        # Check for common patterns
-        if "cannot" in content_lower or "can't" in content_lower or "unable" in content_lower:
-            return "AI believes it cannot fix this issue"
-        
-        if "need more" in content_lower or "require" in content_lower or "missing" in content_lower:
-            return "AI needs more information or context"
-        
-        if "not sure" in content_lower or "unclear" in content_lower or "don't know" in content_lower:
-            return "AI is uncertain about the fix"
-        
-        if "explanation" in content_lower or "because" in content_lower or "reason" in content_lower:
-            return "AI provided explanation instead of fix"
-        
-        if "tool" in content_lower or "function" in content_lower or "call" in content_lower:
-            return "AI mentioned tools but didn't call them"
-        
-        if len(content) > 1000:
-            return "AI provided lengthy response without action"
-        
-        return "AI responded but reason for no tool calls unclear"
     
-    def _get_next_issue(self, state: PipelineState) -> Optional[Dict]:
-        """Get the next issue to fix"""
-        # Check rejected files
-        for file_state in state.files.values():
-            if file_state.qa_status == FileStatus.REJECTED and file_state.issues:
-                return file_state.issues[0]
-        
-        # Check task errors
-        for task in state.tasks.values():
-            if task.status == TaskStatus.QA_FAILED and task.errors:
-                last_error = task.errors[-1]
-                return {
-                    "filepath": task.target_file,
-                    "type": last_error.error_type,
-                    "description": last_error.message,
-                    "line": last_error.line_number,
-                }
-        
-        return None
     
     def generate_state_markdown(self, state: PipelineState) -> str:
         """Generate DEBUG_STATE.md content"""

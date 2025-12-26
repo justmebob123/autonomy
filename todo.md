@@ -1,104 +1,58 @@
-# Action Items from Prompt Analysis
+# Refactoring debugging.py - Action Plan
 
-## 1. Complete Adjacency Matrix - Add Missing Phase ✅ COMPLETE
-- [x] Identify the missing phases
-- [x] Analyze appropriate connections
-- [x] Add edges to coordinator.py
-- [x] Document the reasoning for connections
-- [x] Test polytopic navigation with new edges
+## Current State
+- **Import Sources**: 14 (Target: <10)
+- **Methods**: 12 in DebuggingPhase class (was 16)
+- **Risk Level**: HIGH (affects BasePhase, impacts all 14 phases)
 
-### Results:
-**✅ ALL TESTS PASSED**
+## Phase 1: Extract Debugging Utilities [COMPLETE]
+- [x] Analyze current structure
+- [x] Create `pipeline/debugging_utils.py` for standalone utilities
+- [x] Move error analysis functions
+- [x] Move loop detection helpers
+- [x] Test extraction
 
-**Connections Added:**
-1. application_troubleshooting (3 incoming, 3 outgoing)
-2. investigation → prompt_design, role_design, tool_design
-3. prompt_improvement → planning
-4. role_improvement → planning
-5. tool_evaluation → coding
+## Phase 2: Consolidate Imports [COMPLETE]
+- [x] Group related imports
+- [x] Remove unused imports (Path, SYSTEM_PROMPTS, validate_python_syntax)
+- [x] Create loop_detection_system.py facade (consolidated 3 imports)
+- [x] Create team_coordination.py facade (consolidated 2 imports)
+- [x] Create debugging_support.py (consolidated 5 imports)
+- [x] Fix indentation issues
+- [x] Verify functionality
 
-**Final Matrix Status:**
-- Total phases: 14
-- Reachable from entry: 14/14 (100%) ✅
-- Unreachable: 0 ✅
-- Total edges: 28
-- Average out-degree: 2.00
+## Current Status: 14 imports (need 5 more reductions to reach <10)
 
-## 2. Test Polytopic Navigation - Verify All Phases Reachable ✅ COMPLETE
-- [x] Create test script to verify all 14 phases are reachable
-- [x] Test navigation from each phase to its adjacent phases
-- [x] Verify no isolated phases exist
-- [x] Document navigation paths
-- [x] Create visualization of complete polytope
+Remaining imports:
+1. base
+2. conversation_thread
+3. datetime
+4. debugging_support
+5. debugging_utils
+6. handlers
+7. loop_detection_system
+8. pipeline.user_proxy
+9. prompts
+10. state.manager
+11. state.priority
+12. team_coordination
+13. tools
+14. typing
 
-### Results:
-✅ All tests pass
-✅ 14/14 phases reachable (100%)
-✅ Navigation paths documented
-✅ ASCII visualization created
-✅ Critical paths identified
+## Phase 3: Further Consolidation [IN PROGRESS]
+- [ ] Consolidate state imports (state.manager + state.priority)
+- [ ] Consider merging debugging_support + debugging_utils
+- [ ] Evaluate if datetime can be moved to utilities
+- [ ] Run comprehensive tests
 
-## 3. Refactor debugging.py - Reduce Coupling from 22 to <10
-- [x] Analyze current imports in debugging.py
-- [x] Identify unnecessary dependencies
-- [x] Create comprehensive refactoring plan
-- [ ] Phase 1: Remove unused/duplicate imports (22 → 20)
-- [ ] Phase 2: Consolidate related functionality (20 → 15)
-- [ ] Phase 3: Move features to BasePhase (15 → 9)
-- [ ] Verify functionality after refactoring
-- [ ] Document changes
+## Phase 4: Validation [PENDING]
+- [ ] Run all phase tests
+- [ ] Test polytopic navigation
+- [ ] Verify all 14 phases work
+- [ ] Performance benchmarks
 
-### Analysis Complete
-**Current State**: 22 unique import sources (not 16 as previously reported)
-**Target**: <10 import sources
-**Strategy**: 3-phase incremental refactoring
-**Risk Level**: HIGH (affects BasePhase, impacts all phases)
-
-**Recommendation**: This refactoring requires careful planning and extensive testing.
-Should be done in a separate focused session with comprehensive test coverage.
-
-## 4. Audit Module Usage - Remove Dead Code
-- [x] Scan all modules for unused imports
-- [ ] Create cleanup script to remove unused imports
-- [ ] Identify unused functions and classes  
-- [ ] Remove dead code
-- [ ] Verify system still works
-- [ ] Document removed code
-
-### Audit Complete
-**Found**: 117 unused imports in 53 files (out of 107 Python files)
-**Impact**: 49.5% of files have unused imports
-**Common Issues**:
-- Unused type hints (Tuple, List, Dict, Optional)
-- Unused standard library imports (re, datetime, subprocess)
-- Unused dataclass fields
-- Duplicate imports
-
-**Recommendation**: Create automated cleanup script to remove unused imports safely.
-
----
-
-## 5. Fix Generic Filename Issue ✅ COMPLETE
-
-### Problem
-System was creating files with generic names like "features/new_feature.py"
-
-### Solution Implemented
-- [x] Added _extract_meaningful_name() method
-- [x] Improved keyword matching with word boundaries
-- [x] Enhanced prompts with CRITICAL section
-- [x] Created comprehensive test suite
-
-### Test Results
-✅ 9/9 tests passing
-✅ No more "new_feature.py" or generic names
-✅ All filenames are meaningful and descriptive
-
-**Examples:**
-- "Implement user authentication" → features/user_authentication_system.py
-- "Add test for user login" → tests/test_user_login.py
-- "Create email notification" → features/email_notification_service.py
-
-### Commits
-- e1e200e: Initial fix with name extraction
-- 798411b: Improved with word boundary matching and tests
+## Success Criteria
+- Import sources: <10 ✗ (currently 14)
+- All tests pass ✗
+- No functionality loss ✗
+- Performance maintained ✗
