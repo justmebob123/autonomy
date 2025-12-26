@@ -123,17 +123,32 @@ class PhaseCoordinator:
             }
         
         self.polytope['edges'] = {
-            'planning': ['coding'], 'coding': ['qa'],
+            # Core development flow
+            'planning': ['coding'],
+            'coding': ['qa', 'documentation'],
             'qa': ['debugging', 'documentation', 'application_troubleshooting'],
+            
+            # Error handling triangle
             'debugging': ['investigation', 'coding', 'application_troubleshooting'],
-            'investigation': ['debugging', 'coding', 'application_troubleshooting', 
+            'investigation': ['debugging', 'coding', 'application_troubleshooting',
                               'prompt_design', 'role_design', 'tool_design'],
-            'project_planning': ['planning'], 'documentation': ['planning'],
-            'prompt_design': ['prompt_improvement'], 'tool_design': ['tool_evaluation'],
-            'role_design': ['role_improvement'], 'tool_evaluation': ['tool_design', 'coding'],
-            'prompt_improvement': ['prompt_design', 'planning'], 
+            'application_troubleshooting': ['debugging', 'investigation', 'coding'],
+            
+            # Documentation flow
+            'documentation': ['planning', 'qa'],
+            
+            # Project management
+            'project_planning': ['planning'],
+            
+            # Self-improvement cycles
+            'prompt_design': ['prompt_improvement'],
+            'prompt_improvement': ['prompt_design', 'planning'],
+            'role_design': ['role_improvement'],
             'role_improvement': ['role_design', 'planning'],
-            'application_troubleshooting': ['debugging', 'investigation', 'coding']
+            
+            # Tool development cycle
+            'tool_design': ['tool_evaluation'],
+            'tool_evaluation': ['tool_design', 'coding']
         }
         
         self.logger.info(f"Polytopic structure: {len(self.polytope['vertices'])} vertices, 7D")

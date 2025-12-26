@@ -16,6 +16,7 @@ from .signature_extractor import SignatureExtractor
 from .context_investigator import ContextInvestigator
 from .import_analyzer import ImportAnalyzer
 from .syntax_validator import SyntaxValidator
+from .system_analyzer import SystemAnalyzer
 
 
 class ToolCallHandler:
@@ -98,6 +99,13 @@ class ToolCallHandler:
             "analyze_project_status": self._handle_analyze_project_status,
             "propose_expansion_tasks": self._handle_propose_expansion_tasks,
             "update_architecture": self._handle_update_architecture,
+            # System analysis tools
+            "analyze_connectivity": self._handle_analyze_connectivity,
+            "analyze_integration_depth": self._handle_analyze_integration_depth,
+            "trace_variable_flow": self._handle_trace_variable_flow,
+            "find_recursive_patterns": self._handle_find_recursive_patterns,
+            "assess_code_quality": self._handle_assess_code_quality,
+            "get_refactoring_suggestions": self._handle_get_refactoring_suggestions,
         }
         
         # Register custom tools from registry (Integration Fix #1)
@@ -105,6 +113,7 @@ class ToolCallHandler:
             tool_registry.set_handler(self)
             self.logger.info(f"Registered {len(tool_registry.tools)} custom tools from ToolRegistry")
         self.syntax_validator = SyntaxValidator()
+        self.system_analyzer = SystemAnalyzer(self.project_dir)
 
     def reset(self):
         """Reset tracking state"""
@@ -1636,3 +1645,219 @@ class ToolCallHandler:
             "sections_to_update": len(sections_to_update),
             "rationale": rationale
         }
+
+    # ========================================================================
+    # SYSTEM ANALYZER HANDLERS
+    # ========================================================================
+    
+    def _handle_analyze_connectivity(self, args: Dict) -> Dict:
+        """
+        Analyze polytopic connectivity.
+        
+        Returns connectivity metrics and recommendations.
+        """
+        try:
+            result = self.system_analyzer.analyze_connectivity()
+            
+            self.logger.info(f"📊 Connectivity Analysis:")
+            self.logger.info(f"   Connected: {result['connected_vertices']}/{result['total_vertices']} phases")
+            self.logger.info(f"   Edges: {result['total_edges']}")
+            self.logger.info(f"   Avg Reachability: {result['avg_reachability']:.1f} phases")
+            
+            if result['isolated_phases']:
+                self.logger.warning(f"   Isolated: {', '.join(result['isolated_phases'])}")
+            
+            return {
+                "tool": "analyze_connectivity",
+                "success": True,
+                "result": result
+            }
+        
+        except Exception as e:
+            self.logger.error(f"Connectivity analysis failed: {e}")
+            return {
+                "tool": "analyze_connectivity",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_analyze_integration_depth(self, args: Dict) -> Dict:
+        """
+        Analyze integration depth for a phase.
+        
+        Args:
+            phase_name: Name of the phase to analyze
+        """
+        phase_name = args.get('phase_name', '')
+        
+        if not phase_name:
+            return {
+                "tool": "analyze_integration_depth",
+                "success": False,
+                "error": "Missing phase_name parameter"
+            }
+        
+        try:
+            result = self.system_analyzer.analyze_integration_depth(phase_name)
+            
+            if 'error' not in result:
+                self.logger.info(f"🔗 Integration Analysis for {phase_name}:")
+                self.logger.info(f"   Total Points: {result['total_integration_points']}")
+                self.logger.info(f"   Complexity: {result['complexity_level']}")
+            
+            return {
+                "tool": "analyze_integration_depth",
+                "success": 'error' not in result,
+                "result": result
+            }
+        
+        except Exception as e:
+            self.logger.error(f"Integration analysis failed: {e}")
+            return {
+                "tool": "analyze_integration_depth",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_trace_variable_flow(self, args: Dict) -> Dict:
+        """
+        Trace variable flow through the system.
+        
+        Args:
+            variable_name: Name of the variable to trace
+        """
+        variable_name = args.get('variable_name', '')
+        
+        if not variable_name:
+            return {
+                "tool": "trace_variable_flow",
+                "success": False,
+                "error": "Missing variable_name parameter"
+            }
+        
+        try:
+            result = self.system_analyzer.trace_variable_flow(variable_name)
+            
+            if result['found']:
+                self.logger.info(f"🌊 Variable Flow for '{variable_name}':")
+                self.logger.info(f"   Flows through: {result['flows_through']} functions")
+                self.logger.info(f"   Criticality: {result['criticality']}")
+            
+            return {
+                "tool": "trace_variable_flow",
+                "success": result['found'],
+                "result": result
+            }
+        
+        except Exception as e:
+            self.logger.error(f"Variable flow analysis failed: {e}")
+            return {
+                "tool": "trace_variable_flow",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_find_recursive_patterns(self, args: Dict) -> Dict:
+        """
+        Find recursive and circular call patterns.
+        """
+        try:
+            result = self.system_analyzer.find_recursive_patterns()
+            
+            self.logger.info(f"🔄 Recursive Pattern Analysis:")
+            self.logger.info(f"   Direct recursion: {result['total_recursive']} functions")
+            self.logger.info(f"   Circular calls: {result['total_circular']} functions")
+            
+            if result['warning']:
+                self.logger.warning("   ⚠️  High number of recursive patterns detected")
+            
+            return {
+                "tool": "find_recursive_patterns",
+                "success": True,
+                "result": result
+            }
+        
+        except Exception as e:
+            self.logger.error(f"Recursive pattern analysis failed: {e}")
+            return {
+                "tool": "find_recursive_patterns",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_assess_code_quality(self, args: Dict) -> Dict:
+        """
+        Assess code quality for a file.
+        
+        Args:
+            filepath: Path to the file to analyze
+        """
+        filepath = args.get('filepath', '')
+        
+        if not filepath:
+            return {
+                "tool": "assess_code_quality",
+                "success": False,
+                "error": "Missing filepath parameter"
+            }
+        
+        try:
+            result = self.system_analyzer.assess_code_quality(filepath)
+            
+            if 'error' not in result:
+                self.logger.info(f"✨ Code Quality for {filepath}:")
+                self.logger.info(f"   Quality Score: {result['quality_score']:.1f}/100")
+                self.logger.info(f"   Lines: {result['lines']}, Functions: {result['functions']}")
+                self.logger.info(f"   Comment Ratio: {result['comment_ratio']:.1f}%")
+            
+            return {
+                "tool": "assess_code_quality",
+                "success": 'error' not in result,
+                "result": result
+            }
+        
+        except Exception as e:
+            self.logger.error(f"Code quality assessment failed: {e}")
+            return {
+                "tool": "assess_code_quality",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_get_refactoring_suggestions(self, args: Dict) -> Dict:
+        """
+        Get refactoring suggestions for a phase.
+        
+        Args:
+            phase_name: Name of the phase
+        """
+        phase_name = args.get('phase_name', '')
+        
+        if not phase_name:
+            return {
+                "tool": "get_refactoring_suggestions",
+                "success": False,
+                "error": "Missing phase_name parameter"
+            }
+        
+        try:
+            suggestions = self.system_analyzer.get_refactoring_suggestions(phase_name)
+            
+            self.logger.info(f"💡 Refactoring Suggestions for {phase_name}:")
+            for i, suggestion in enumerate(suggestions, 1):
+                self.logger.info(f"   {i}. {suggestion}")
+            
+            return {
+                "tool": "get_refactoring_suggestions",
+                "success": True,
+                "suggestions": suggestions
+            }
+        
+        except Exception as e:
+            self.logger.error(f"Refactoring suggestions failed: {e}")
+            return {
+                "tool": "get_refactoring_suggestions",
+                "success": False,
+                "error": str(e)
+            }
+
