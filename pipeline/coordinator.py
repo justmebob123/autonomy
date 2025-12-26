@@ -612,12 +612,12 @@ class PhaseCoordinator:
         
         IMPORTANT: This method NEVER returns None. It always finds work to do.
         
-        Priority order:
+        Priority order (DEVELOPMENT FIRST):
         0. Check for next_phase hint from previous phase (loop prevention)
         1. Initial planning if no tasks exist
-        2. QA for code awaiting review
-        3. Debugging for code needing fixes
-        4. Coding for new/in-progress tasks
+        2. Coding for new/in-progress tasks (DO THE WORK FIRST)
+        3. QA for completed code awaiting review
+        4. Debugging for code needing fixes
         5. Documentation update if tasks recently completed
         6. Project planning if ALL tasks complete (creates new tasks)
         
@@ -642,7 +642,23 @@ class PhaseCoordinator:
                 "reason": "initial_planning"
             }
         
-        # 2. Tasks awaiting QA review
+        # 2. CODING FIRST - New or in-progress tasks (sorted by priority)
+        pending_tasks = [
+            t for t in state.tasks.values()
+            if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]
+            and t.attempts < self.config.max_retries_per_task
+        ]
+        
+        if pending_tasks:
+            # Sort by priority (lower = higher priority)
+            task = min(pending_tasks, key=lambda t: t.priority)
+            return {
+                "phase": "coding",
+                "task": task,
+                "reason": "implement_task"
+            }
+        
+        # 3. QA - Only after no pending coding tasks
         for task in state.tasks.values():
             if task.status == TaskStatus.QA_PENDING:
                 # Validate task has valid target_file
@@ -655,10 +671,10 @@ class PhaseCoordinator:
                 return {
                     "phase": "qa",
                     "task": task,
-                    "reason": "review_new_code"
+                    "reason": "review_completed_code"
                 }
         
-        # 3. Tasks needing fixes (from QA issues)
+        # 4. Debugging - Tasks needing fixes (from QA issues)
         for task in state.tasks.values():
             if task.status == TaskStatus.NEEDS_FIXES:
                 if task.attempts < self.config.max_retries_per_task:
@@ -674,7 +690,7 @@ class PhaseCoordinator:
                     self.state_manager.save(state)
                     self.logger.warning(f"  Skipping task {task.task_id} after {task.attempts} attempts")
         
-        # 4. New or in-progress tasks (sorted by priority)
+        # 5. Check if we still have pending tasks (shouldn't reach here, but safety check)
         pending_tasks = [
             t for t in state.tasks.values()
             if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]
