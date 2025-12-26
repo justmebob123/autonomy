@@ -199,7 +199,7 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
             tool_calls, _ = self.parse_response(response, "prompt_improvement")
             
             # Check for loops
-            if self.check_for_loops(tool_calls):
+            if self.check_for_loops():
                 self.logger.warning(f"    Loop detected for prompt {prompt_name}")
                 result['error'] = 'Loop detected'
                 return result

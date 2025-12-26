@@ -85,7 +85,7 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
             )
         
         # Check for loops before processing
-        if self.check_for_loops(tool_calls):
+        if self.check_for_loops():
             self.logger.warning("  Loop detected in documentation phase")
             return PhaseResult(
                 success=False,

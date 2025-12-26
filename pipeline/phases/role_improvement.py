@@ -224,7 +224,7 @@ class RoleImprovementPhase(LoopDetectionMixin, BasePhase):
             tool_calls, _ = self.parse_response(response, "role_improvement")
             
             # Check for loops
-            if self.check_for_loops(tool_calls):
+            if self.check_for_loops():
                 self.logger.warning(f"    Loop detected for role {role_name}")
                 result['error'] = 'Loop detected'
                 return result

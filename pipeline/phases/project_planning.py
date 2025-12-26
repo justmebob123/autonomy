@@ -104,7 +104,7 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
             )
         
         # Check for loops before processing
-        if self.check_for_loops(tool_calls):
+        if self.check_for_loops():
             self.logger.warning("  Loop detected in project planning phase")
             return PhaseResult(
                 success=False,

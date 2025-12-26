@@ -213,7 +213,7 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
             tool_calls, _ = self.parse_response(response, "tool_evaluation")
             
             # Check for loops
-            if self.check_for_loops(tool_calls):
+            if self.check_for_loops():
                 self.logger.warning(f"    Loop detected for tool {tool_name}")
                 result['issues'].append('Loop detected during evaluation')
                 return result
