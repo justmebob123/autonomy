@@ -38,6 +38,25 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 task: TaskState = None, **kwargs) -> PhaseResult:
         """Execute QA review for a file or task"""
         
+        # Check no-update count BEFORE processing (loop prevention)
+        from ..state.manager import StateManager
+        state_manager = StateManager(self.project_dir)
+        no_update_count = state_manager.get_no_update_count(state, self.phase_name)
+        
+        if no_update_count >= 3:
+            self.logger.warning(f"  ⚠️ QA phase returned 'no files to review' {no_update_count} times")
+            self.logger.info("  🔄 Forcing transition to next phase to prevent loop")
+            
+            # Reset counter
+            state_manager.reset_no_update_count(state, self.phase_name)
+            
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message="QA reviewed multiple times - forcing completion to prevent loop",
+                next_phase="coding"
+            )
+        
         # CRITICAL: If task was passed from coordinator, look it up in the loaded state
         # This ensures we modify the task in the state that will be saved
         if task is not None:
@@ -49,16 +68,43 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         # Determine what to review
         if filepath is None and task is not None:
             filepath = task.target_file
+            
+            # Skip tasks with empty target_file
+            if not filepath or filepath.strip() == "":
+                self.logger.warning(f"  ⚠️ Task {task.task_id} has empty target_file, marking as SKIPPED")
+                task.status = TaskStatus.SKIPPED
+                state_manager.save(state)
+                return PhaseResult(
+                    success=True,
+                    phase=self.phase_name,
+                    message=f"Skipped task with empty target_file"
+                )
         elif filepath is None:
             # Find files needing review
             files = state.get_files_needing_qa()
             if not files:
+                # Increment no-update counter
+                count = state_manager.increment_no_update_count(state, self.phase_name)
+                self.logger.info(f"  No files need QA review (count: {count}/3)")
+                
+                # After 2 "no files", suggest moving on
+                if count >= 2:
+                    message = "No files need QA review. Ready to move to next phase."
+                    next_phase = "coding"
+                else:
+                    message = "No files need QA review"
+                    next_phase = None
+                
                 return PhaseResult(
                     success=True,
                     phase=self.phase_name,
-                    message="No files need QA review"
+                    message=message,
+                    next_phase=next_phase
                 )
             filepath = files[0]
+            
+            # If we got a file to review, reset counter (making progress)
+            state_manager.reset_no_update_count(state, self.phase_name)
         
         # Normalize filepath
         filepath = filepath.lstrip('/').replace('\\', '/')

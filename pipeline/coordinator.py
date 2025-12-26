@@ -645,6 +645,13 @@ class PhaseCoordinator:
         # 2. Tasks awaiting QA review
         for task in state.tasks.values():
             if task.status == TaskStatus.QA_PENDING:
+                # Validate task has valid target_file
+                if not task.target_file or task.target_file.strip() == "":
+                    self.logger.warning(f"Task {task.task_id} has empty target_file, marking as SKIPPED")
+                    task.status = TaskStatus.SKIPPED
+                    self.state_manager.save(state)
+                    continue
+                    
                 return {
                     "phase": "qa",
                     "task": task,
