@@ -196,7 +196,7 @@ class PhaseCoordinator:
             'current_phase': current_phase,
             'tasks': state.tasks,
             'errors': [t for t in state.tasks.values() if t.status == TaskStatus.FAILED],
-            'pending': [t for t in state.tasks.values() if t.status == TaskStatus.PENDING],
+            'pending': [t for t in state.tasks.values() if t.status in (TaskStatus.NEW, TaskStatus.IN_PROGRESS, TaskStatus.QA_PENDING, TaskStatus.DEBUG_PENDING)],
             'completed': [t for t in state.tasks.values() if t.status == TaskStatus.COMPLETED]
         }
         
