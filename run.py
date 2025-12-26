@@ -478,6 +478,21 @@ def run_debug_qa_mode(args) -> int:
                             print(f"\n⚠️  Program exited with code {exit_code} but no errors in log file")
                             print("   Checking stdout/stderr for crash information...")
                             
+                            # CRITICAL: For exit code -1, show full diagnostic report
+                            if exit_code == -1:
+                                print("\n" + "="*70)
+                                print("🚨 CRITICAL: Process failed to start (exit code -1)")
+                                print("="*70)
+                                print("\nRunning comprehensive diagnostics...\n")
+                                
+                                diagnostic_report = tester.get_diagnostic_report()
+                                print(diagnostic_report)
+                                
+                                # This is a critical failure - don't continue
+                                print("\n❌ Cannot continue - process failed to start")
+                                print("   Please fix the issues above and try again")
+                                return 1
+                            
                             stderr = tester.get_stderr()
                             stdout = tester.get_stdout()
                             

@@ -16,6 +16,7 @@ from typing import Optional, List, Dict, Callable
 from queue import Queue
 import logging
 from .process_manager import ProcessBaseline, SafeProcessManager, ResourceMonitor
+from .process_diagnostics import ProcessDiagnostics
 
 
 class ProgramRunner:
@@ -38,6 +39,9 @@ class ProgramRunner:
         self.baseline = ProcessBaseline()
         self.process_manager = SafeProcessManager(self.baseline)
         self.resource_monitor = ResourceMonitor()
+        
+        # Diagnostics
+        self.diagnostics = ProcessDiagnostics(logger)
         
         self.process: Optional[subprocess.Popen] = None
         self.thread: Optional[threading.Thread] = None
@@ -87,6 +91,12 @@ class ProgramRunner:
                 bufsize=1,
                 preexec_fn=os.setsid  # Create new process group
             )
+            
+            # CRITICAL: Check if process started successfully
+            if self.process is None:
+                self.logger.error("Failed to create process - Popen returned None")
+                self.exit_code = -1
+                return
             
             # Register this process as spawned
             pid = self.process.pid
@@ -138,6 +148,7 @@ class ProgramRunner:
         
         except Exception as e:
             import traceback
+            self.exit_code = -1  # Mark as failed
             self.logger.error(f"Error running program: {e}")
             self.logger.error(f"Traceback: {traceback.format_exc()}")
             self.exit_code = -1
@@ -264,6 +275,36 @@ class ProgramRunner:
             'stdout': self.stdout_lines[-lines:],
             'stderr': self.stderr_lines[-lines:]
         }
+    
+    def get_diagnostic_report(self) -> str:
+        """
+        Get comprehensive diagnostic report for process failures.
+        
+        Returns:
+            Formatted diagnostic report as string
+        """
+        # Run diagnostics on the command
+        diag_info = self.diagnostics.diagnose_command(self.command, self.working_dir)
+        
+        # Format report with exit code if available
+        report = self.diagnostics.format_diagnostic_report(diag_info, self.exit_code)
+        
+        # Add recent output if available
+        if self.stderr_lines:
+            report += "\n\n📋 Recent STDERR Output:\n"
+            report += "=" * 70 + "\n"
+            for line in self.stderr_lines[-20:]:  # Last 20 lines
+                report += line
+            report += "=" * 70 + "\n"
+        
+        if self.stdout_lines:
+            report += "\n\n📋 Recent STDOUT Output:\n"
+            report += "=" * 70 + "\n"
+            for line in self.stdout_lines[-20:]:  # Last 20 lines
+                report += line
+            report += "=" * 70 + "\n"
+        
+        return report
 
 
 class LogMonitor:
