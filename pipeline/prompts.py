@@ -290,6 +290,13 @@ When proposing tasks, include the specific file path:
 - "Add security monitoring to monitors/security.py"
 - "Create dashboard UI in ui/dashboard.py"
 
+CRITICAL - FILE NAMING:
+- Use DESCRIPTIVE, SPECIFIC filenames based on the feature
+- NEVER use generic names like "new_feature.py", "feature.py", "module.py"
+- BAD: features/new_feature.py
+- GOOD: features/user_authentication.py, features/data_export.py
+- The filename should clearly indicate what the feature does
+
 Propose expansion tasks now using the provided tools."""
 
 

@@ -191,12 +191,46 @@ class TextToolParser:
         elif any(word in text_lower for word in ['config', 'configuration']):
             return "config/settings.py"
         elif any(word in text_lower for word in ['test', 'testing']):
-            return "tests/test_new_feature.py"
+            # Extract meaningful test name from description
+            name = self._extract_meaningful_name(text)
+            return f"tests/test_{name}.py"
         elif any(word in text_lower for word in ['monitor', 'monitoring']):
             return "monitors/system.py"
         else:
-            # Default to a generic feature file
-            return "features/new_feature.py"
+            # Extract meaningful name from description instead of generic default
+            name = self._extract_meaningful_name(text)
+            return f"features/{name}.py"
+    
+    def _extract_meaningful_name(self, text: str) -> str:
+        """Extract a meaningful filename from task description"""
+        import re
+        
+        # Remove common words and extract key terms
+        text_lower = text.lower()
+        
+        # Remove common prefixes
+        text_lower = re.sub(r'^(implement|create|add|develop|build|design)\s+', '', text_lower)
+        text_lower = re.sub(r'^(the|a|an)\s+', '', text_lower)
+        
+        # Extract first 2-3 meaningful words
+        words = re.findall(r'\b[a-z]{3,}\b', text_lower)
+        
+        # Filter out common words
+        stop_words = {'the', 'and', 'for', 'with', 'that', 'this', 'from', 'into', 'more', 
+                      'than', 'such', 'when', 'where', 'which', 'will', 'would', 'could',
+                      'should', 'about', 'after', 'before', 'between', 'through'}
+        meaningful_words = [w for w in words if w not in stop_words][:3]
+        
+        if meaningful_words:
+            # Join with underscores
+            return '_'.join(meaningful_words)
+        else:
+            # Last resort: use first word from original text
+            first_word = re.search(r'\b[a-zA-Z]{3,}\b', text)
+            if first_word:
+                return first_word.group(0).lower()
+            else:
+                return "feature"  # Absolute fallback
     
     def _infer_category(self, description: str) -> str:
         """Infer task category from description"""
