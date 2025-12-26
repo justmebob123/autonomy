@@ -217,8 +217,8 @@ class PipelineState:
     last_planning_iteration: int = 0
     
     # Learning and intelligence fields (from unified_state integration)
-    performance_metrics: Dict[str, List[Dict]] = field(default_factory=lambda: defaultdict(list))
-    learned_patterns: Dict[str, List[Dict]] = field(default_factory=lambda: defaultdict(list))
+    performance_metrics: Dict[str, List[Dict]] = field(default_factory=dict)
+    learned_patterns: Dict[str, List[Dict]] = field(default_factory=dict)
     fix_history: List[Dict] = field(default_factory=list)
     troubleshooting_results: List[Dict] = field(default_factory=list)
     correlations: List[Dict] = field(default_factory=list)
