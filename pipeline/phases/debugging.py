@@ -1207,6 +1207,51 @@ Remember:
                 
                 continue
             
+            # CRITICAL: Detect repeated investigation without action
+            investigation_tools = ['analyze_missing_import', 'investigate_data_flow', 
+                                 'investigate_parameter_removal', 'get_function_signature',
+                                 'check_import_scope', 'check_config_structure']
+            
+            investigation_count = sum(1 for call in tool_calls 
+                                    if call.get('function', {}).get('name') in investigation_tools)
+            modification_count = sum(1 for call in tool_calls 
+                                   if call.get('function', {}).get('name') in ['modify_python_file', 'modify_file'])
+            
+            # Check if we're stuck in investigation loop
+            if investigation_count > 0 and modification_count == 0:
+                # Count recent investigation-only attempts
+                recent_investigation_only = 0
+                for attempt in thread.attempts[-3:]:  # Last 3 attempts
+                    if hasattr(attempt, 'tool_calls'):
+                        had_investigation = any(tc.get('function', {}).get('name') in investigation_tools 
+                                              for tc in attempt.tool_calls)
+                        had_modification = any(tc.get('function', {}).get('name') in ['modify_python_file', 'modify_file']
+                                             for tc in attempt.tool_calls)
+                        if had_investigation and not had_modification:
+                            recent_investigation_only += 1
+                
+                if recent_investigation_only >= 2:
+                    self.logger.warning("⚠️  INVESTIGATION LOOP DETECTED")
+                    self.logger.warning(f"   AI has investigated {recent_investigation_only} times without making a fix")
+                    self.logger.warning("   FORCING modification on next attempt")
+                    
+                    # Add emphatic instruction to thread
+                    thread.add_message(
+                        role="system",
+                        content="""⚠️ CRITICAL INTERVENTION ⚠️
+
+You have investigated multiple times without making a fix.
+You MUST now call modify_python_file to apply the fix.
+
+DO NOT call investigation tools again.
+DO NOT analyze further.
+MAKE THE FIX NOW using modify_python_file.
+
+Based on your investigation, you know what needs to be fixed.
+Apply the fix immediately.""",
+                        metadata={"intervention": "force_modification"}
+                    )
+            
             # Execute tool calls
             self.logger.info(f"  🔧 Executing {len(tool_calls)} tool call(s)...")
             verbose = getattr(self.config, 'verbose', 0) if hasattr(self, 'config') else 0

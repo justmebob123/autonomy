@@ -137,7 +137,9 @@ class ProgramRunner:
                 self.logger.info(f"Program exited with code: {self.exit_code}")
         
         except Exception as e:
+            import traceback
             self.logger.error(f"Error running program: {e}")
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
             self.exit_code = -1
         
         finally:
