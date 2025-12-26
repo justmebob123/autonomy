@@ -93,6 +93,10 @@ class ToolCallHandler:
             "inspect_process": self._handle_inspect_process,
             "get_system_resources": self._handle_get_system_resources,
             "show_process_tree": self._handle_show_process_tree,
+            # Project planning tools
+            "analyze_project_status": self._handle_analyze_project_status,
+            "propose_expansion_tasks": self._handle_propose_expansion_tasks,
+            "update_architecture": self._handle_update_architecture,
         }
         
         # Register custom tools from registry (Integration Fix #1)
@@ -1501,3 +1505,108 @@ class ToolCallHandler:
                 "success": False,
                 "error": str(e)
             }
+    
+    def _handle_analyze_project_status(self, args: Dict) -> Dict:
+        """
+        Handle analyze_project_status tool.
+        
+        Reports on current project status relative to MASTER_PLAN objectives.
+        This is informational only - doesn't create tasks.
+        """
+        objectives_completed = args.get("objectives_completed", [])
+        objectives_in_progress = args.get("objectives_in_progress", [])
+        objectives_pending = args.get("objectives_pending", [])
+        code_quality_notes = args.get("code_quality_notes", "")
+        recommended_focus = args.get("recommended_focus", "")
+        
+        self.logger.info("  📊 Project Status Analysis:")
+        self.logger.info(f"    Completed: {len(objectives_completed)} objectives")
+        self.logger.info(f"    In Progress: {len(objectives_in_progress)} objectives")
+        self.logger.info(f"    Pending: {len(objectives_pending)} objectives")
+        if recommended_focus:
+            self.logger.info(f"    Recommended Focus: {recommended_focus}")
+        
+        return {
+            "tool": "analyze_project_status",
+            "success": True,
+            "objectives_completed": objectives_completed,
+            "objectives_in_progress": objectives_in_progress,
+            "objectives_pending": objectives_pending,
+            "code_quality_notes": code_quality_notes,
+            "recommended_focus": recommended_focus
+        }
+    
+    def _handle_propose_expansion_tasks(self, args: Dict) -> Dict:
+        """
+        Handle propose_expansion_tasks tool.
+        
+        Proposes new tasks for project expansion.
+        Stores tasks in self.tasks for the phase to process.
+        """
+        tasks = args.get("tasks", [])
+        expansion_focus = args.get("expansion_focus", "")
+        
+        if not tasks:
+            return {
+                "tool": "propose_expansion_tasks",
+                "success": False,
+                "error": "No tasks provided"
+            }
+        
+        # Validate task structure
+        required_fields = ["description", "target_file", "priority", "category", "rationale"]
+        for i, task in enumerate(tasks):
+            missing = [f for f in required_fields if f not in task]
+            if missing:
+                return {
+                    "tool": "propose_expansion_tasks",
+                    "success": False,
+                    "error": f"Task {i+1} missing required fields: {missing}"
+                }
+        
+        # Store tasks for phase to process
+        self.tasks = tasks
+        
+        self.logger.info(f"  📝 Proposed {len(tasks)} expansion tasks")
+        self.logger.info(f"    Focus: {expansion_focus}")
+        for i, task in enumerate(tasks, 1):
+            self.logger.info(f"    {i}. {task['description'][:60]}... ({task['target_file']})")
+        
+        return {
+            "tool": "propose_expansion_tasks",
+            "success": True,
+            "task_count": len(tasks),
+            "expansion_focus": expansion_focus,
+            "tasks": tasks
+        }
+    
+    def _handle_update_architecture(self, args: Dict) -> Dict:
+        """
+        Handle update_architecture tool.
+        
+        Proposes updates to ARCHITECTURE.md based on implementation patterns.
+        """
+        sections_to_add = args.get("sections_to_add", [])
+        sections_to_update = args.get("sections_to_update", [])
+        rationale = args.get("rationale", "")
+        
+        self.logger.info("  📐 Architecture Update Proposed:")
+        if sections_to_add:
+            self.logger.info(f"    Sections to add: {len(sections_to_add)}")
+            for section in sections_to_add:
+                self.logger.info(f"      + {section.get('heading', 'Unknown')}")
+        if sections_to_update:
+            self.logger.info(f"    Sections to update: {len(sections_to_update)}")
+            for section in sections_to_update:
+                self.logger.info(f"      ~ {section.get('heading', 'Unknown')}")
+        
+        # For now, just log the proposal
+        # In the future, could actually update ARCHITECTURE.md
+        
+        return {
+            "tool": "update_architecture",
+            "success": True,
+            "sections_to_add": len(sections_to_add),
+            "sections_to_update": len(sections_to_update),
+            "rationale": rationale
+        }
