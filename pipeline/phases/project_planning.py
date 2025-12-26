@@ -76,6 +76,9 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         ]
         
         # Call LLM with project planning tools from centralized tools.py
+        self.logger.debug(f"  Calling LLM with {len(TOOLS_PROJECT_PLANNING)} tools")
+        self.logger.debug(f"  Tools: {[t['function']['name'] for t in TOOLS_PROJECT_PLANNING]}")
+        
         response = self.chat(
             messages=messages,
             tools=TOOLS_PROJECT_PLANNING,
@@ -90,17 +93,43 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
                 message=f"LLM error: {response['error']}"
             )
         
+        # Log response structure for debugging
+        self.logger.debug(f"  Response keys: {list(response.keys())}")
+        if "message" in response:
+            msg = response["message"]
+            self.logger.debug(f"  Message keys: {list(msg.keys()) if isinstance(msg, dict) else 'not a dict'}")
+            if isinstance(msg, dict) and "tool_calls" in msg:
+                self.logger.debug(f"  Tool calls in message: {len(msg['tool_calls']) if msg['tool_calls'] else 0}")
+            if isinstance(msg, dict) and "content" in msg:
+                content_preview = str(msg["content"])[:200] if msg["content"] else "empty"
+                self.logger.debug(f"  Content preview: {content_preview}")
+        
         # Parse response
         tool_calls, content = self.parser.parse_response(response)
         
         if not tool_calls:
             self.logger.warning("  No tool calls in response")
             if content:
-                self.logger.debug(f"  Content: {content[:500]}...")
+                self.logger.warning(f"  Response content (first 500 chars): {content[:500]}...")
+                self.logger.warning(f"  Response content (last 500 chars): ...{content[-500:]}")
+            
+            # Log the full response for debugging
+            self.logger.debug(f"  Full response: {response}")
+            
+            # Check if response contains tool-like patterns
+            if "analyze_project_status" in content or "propose_expansion_tasks" in content:
+                self.logger.error("  Response contains tool names but parser failed to extract them!")
+                self.logger.error("  This indicates a parsing issue, not a model issue")
+            
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message="Failed to generate expansion plan"
+                message="Failed to generate expansion plan - no tool calls in response",
+                metadata={
+                    "response_length": len(content) if content else 0,
+                    "has_content": bool(content),
+                    "content_preview": content[:200] if content else None
+                }
             )
         
         # Check for loops before processing
