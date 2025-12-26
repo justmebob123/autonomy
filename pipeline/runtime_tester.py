@@ -462,8 +462,8 @@ class RuntimeTester:
         command: str,
         working_dir: Path,
         log_file: Path,
-        logger: logging.Logger = None
-           ,production_mode: bool = False
+        logger: logging.Logger = None,
+        production_mode: bool = False
     ):
         """
         Initialize runtime tester.
