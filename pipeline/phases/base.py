@@ -91,6 +91,15 @@ class BasePhase(ABC):
         self.prompt_registry = PromptRegistry(self.project_dir)
         self.tool_registry = ToolRegistry(self.project_dir)
         self.role_registry = RoleRegistry(self.project_dir, self.client)
+        
+        # Self-awareness and polytopic integration
+        self.dimensional_profile = {
+            'temporal': 0.5, 'functional': 0.5, 'data': 0.5,
+            'state': 0.5, 'error': 0.5, 'context': 0.5, 'integration': 0.5
+        }
+        self.self_awareness_level = 0.0
+        self.adjacencies = []
+        self.experience_count = 0
     
     @abstractmethod
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
@@ -118,6 +127,43 @@ class BasePhase(ABC):
             Markdown string
         """
         pass
+    
+    
+    def adapt_to_situation(self, situation: Dict[str, Any]) -> Dict[str, Any]:
+        """Adapt phase behavior based on current situation."""
+        adapted_profile = self.dimensional_profile.copy()
+        
+        # Enhance relevant dimensions based on situation
+        if situation.get('has_errors'):
+            adapted_profile['error'] = min(1.0, adapted_profile['error'] * 1.5)
+            adapted_profile['context'] = min(1.0, adapted_profile['context'] * 1.3)
+        
+        if situation.get('complexity') == 'high':
+            adapted_profile['functional'] = min(1.0, adapted_profile['functional'] * 1.4)
+        
+        self.experience_count += 1
+        self.self_awareness_level = min(1.0, self.self_awareness_level + 0.001)
+        
+        return {'adapted_profile': adapted_profile, 'self_awareness': self.self_awareness_level}
+    
+    def get_adaptive_prompt_context(self, base_prompt: str, context: Dict[str, Any]) -> str:
+        """Enhance prompt with self-awareness and polytopic context."""
+        enhancements = []
+        
+        # Add self-awareness context
+        if self.self_awareness_level > 0:
+            enhancements.append(f"\n[Self-Awareness Level: {self.self_awareness_level:.3f}]")
+            enhancements.append(f"[Experience Count: {self.experience_count}]")
+        
+        # Add dimensional profile
+        dims = ", ".join(f"{k}={v:.2f}" for k, v in self.dimensional_profile.items())
+        enhancements.append(f"\n[Dimensional Profile: {dims}]")
+        
+        # Add adjacency awareness
+        if self.adjacencies:
+            enhancements.append(f"\n[Adjacent Phases: {', '.join(self.adjacencies)}]")
+        
+        return base_prompt + "\n".join(enhancements)
     
     def run(self, **kwargs) -> PhaseResult:
         """
