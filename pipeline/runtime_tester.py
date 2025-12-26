@@ -464,6 +464,7 @@ class RuntimeTester:
         log_file: Path,
         logger: logging.Logger = None
            ,production_mode: bool = False
+    ):
         """
         Initialize runtime tester.
         
@@ -471,11 +472,12 @@ class RuntimeTester:
             command: Command to execute
             working_dir: Directory to run command in
             log_file: Log file to monitor
-               production_mode: If True, removes all timeouts for continuous operation
+            production_mode: If True, removes all timeouts for continuous operation
             logger: Logger instance
+        """
         self.logger = logger or logging.getLogger(__name__)
         self.log_file = log_file  # Store log_file as attribute
-           self.production_mode = production_mode
+        self.production_mode = production_mode
         self.error_queue = Queue()
         
         self.program_runner = ProgramRunner(command, working_dir, logger)
@@ -551,117 +553,113 @@ class RuntimeTester:
         return self.program_runner.is_running()
     
     def get_stdout(self) -> List[str]:
-        """Get captured stdout lines."""
-        return self.program_runner.stdout_lines.copy()
+     """Get captured stdout lines."""
+     return self.program_runner.stdout_lines.copy()
     
     def get_stderr(self) -> List[str]:
-        """Get captured stderr lines."""
-        return self.program_runner.stderr_lines.copy()
+     """Get captured stderr lines."""
+     return self.program_runner.stderr_lines.copy()
     
     def get_exit_code(self) -> Optional[int]:
-        """Get program exit code."""
-        return self.program_runner.exit_code
-       def perform_application_troubleshooting(self, working_dir: Path) -> Dict[str, Any]:
-           """
-           Perform deep application-layer troubleshooting.
-           
-           Args:
-               working_dir: Working directory of the application
-               
-           Returns:
-               Dictionary containing troubleshooting results
-           """
-           self.logger.info("Starting application troubleshooting phase...")
-           
-           # Initialize troubleshooting tools
-           log_analyzer = LogAnalyzer(str(working_dir))
-           call_tracer = CallChainTracer(str(working_dir))
-           change_analyzer = ChangeHistoryAnalyzer(str(working_dir))
-           config_investigator = ConfigInvestigator(str(working_dir))
-           arch_analyzer = ArchitectureAnalyzer(str(working_dir))
-           
-           results = {
-               'log_analysis': None,
-               'call_chain_trace': None,
-               'change_history': None,
-               'config_investigation': None,
-               'architecture_analysis': None
-           }
-           
-           try:
-               # Analyze logs
-               self.logger.info("Analyzing logs...")
-               results['log_analysis'] = log_analyzer.analyze()
-               
-               # Trace call chains
-               self.logger.info("Tracing call chains...")
-               results['call_chain_trace'] = call_tracer.trace()
-               
-               # Analyze change history
-               self.logger.info("Analyzing change history...")
-               results['change_history'] = change_analyzer.analyze(days=7)
-               
-               # Investigate configuration
-               self.logger.info("Investigating configuration...")
-               results['config_investigation'] = config_investigator.investigate()
-               
-               # Analyze architecture
-               self.logger.info("Analyzing architecture...")
-               results['architecture_analysis'] = arch_analyzer.analyze()
-               
-           except Exception as e:
-               self.logger.error(f"Error during application troubleshooting: {e}")
-           
-           return results
-       
-       def format_troubleshooting_report(self, results: Dict[str, Any]) -> str:
-           """
-           Format troubleshooting results as a comprehensive report.
-           
-           Args:
-               results: Troubleshooting results dictionary
-               
-           Returns:
-               Formatted report string
-           """
-           report = []
-           report.append("=" * 80)
-           report.append("APPLICATION TROUBLESHOOTING REPORT")
-           report.append("=" * 80)
-           report.append("")
-           
-           # Log Analysis Section
-           if results.get('log_analysis'):
-               log_analyzer = LogAnalyzer(".")
-               report.append(log_analyzer.format_report(results['log_analysis']))
-               report.append("")
-           
-           # Call Chain Trace Section
-           if results.get('call_chain_trace'):
-               call_tracer = CallChainTracer(".")
-               report.append(call_tracer.format_report(results['call_chain_trace']))
-               report.append("")
-           
-           # Change History Section
-           if results.get('change_history'):
-               change_analyzer = ChangeHistoryAnalyzer(".")
-               report.append(change_analyzer.format_report(results['change_history']))
-               report.append("")
-           
-           # Configuration Investigation Section
-           if results.get('config_investigation'):
-               config_investigator = ConfigInvestigator(".")
-               report.append(config_investigator.format_report(results['config_investigation']))
-               report.append("")
-           
-           # Architecture Analysis Section
-           if results.get('architecture_analysis'):
-               arch_analyzer = ArchitectureAnalyzer(".")
-               report.append(arch_analyzer.format_report(results['architecture_analysis']))
-               report.append("")
-           
-           report.append("=" * 80)
-           report.append("END OF APPLICATION TROUBLESHOOTING REPORT")
-           report.append("=" * 80)
-           
-           return "\n".join(report)
+     """Get program exit code."""
+     return self.program_runner.exit_code
+    
+    def perform_application_troubleshooting(self, working_dir: Path) -> Dict[str, Any]:
+     """
+     Perform deep application-layer troubleshooting.
+     
+     Args:
+         working_dir: Working directory of the application
+         
+     Returns:
+         Dictionary containing troubleshooting results
+     """
+     self.logger.info("Starting application troubleshooting phase...")
+     
+     # Initialize troubleshooting tools
+     log_analyzer = LogAnalyzer(str(working_dir))
+     call_tracer = CallChainTracer(str(working_dir))
+     change_analyzer = ChangeHistoryAnalyzer(str(working_dir))
+     config_investigator = ConfigInvestigator(str(working_dir))
+     arch_analyzer = ArchitectureAnalyzer(str(working_dir))
+     
+     results = {}
+     
+     try:
+         # Analyze logs
+         self.logger.info("Analyzing logs...")
+         results['log_analysis'] = log_analyzer.analyze()
+         
+         # Trace call chains
+         self.logger.info("Tracing call chains...")
+         results['call_chain_trace'] = call_tracer.trace()
+         
+         # Analyze change history
+         self.logger.info("Analyzing change history...")
+         results['change_history'] = change_analyzer.analyze(days=7)
+         
+         # Investigate configuration
+         self.logger.info("Investigating configuration...")
+         results['config_investigation'] = config_investigator.investigate()
+         
+         # Analyze architecture
+         self.logger.info("Analyzing architecture...")
+         results['architecture_analysis'] = arch_analyzer.analyze()
+         
+     except Exception as e:
+         self.logger.error(f"Error during application troubleshooting: {e}")
+     
+     return results
+    
+    def format_troubleshooting_report(self, results: Dict[str, Any]) -> str:
+     """
+     Format troubleshooting results as a comprehensive report.
+     
+     Args:
+         results: Troubleshooting results dictionary
+         
+     Returns:
+         Formatted report string
+     """
+     report = []
+     report.append("=" * 80)
+     report.append("APPLICATION TROUBLESHOOTING REPORT")
+     report.append("=" * 80)
+     report.append("")
+     
+     # Log Analysis Section
+     if results.get('log_analysis'):
+         log_analyzer = LogAnalyzer(".")
+         report.append(log_analyzer.format_report(results['log_analysis']))
+         report.append("")
+     
+     # Call Chain Trace Section
+     if results.get('call_chain_trace'):
+         call_tracer = CallChainTracer(".")
+         report.append(call_tracer.format_report(results['call_chain_trace']))
+         report.append("")
+     
+     # Change History Section
+     if results.get('change_history'):
+         change_analyzer = ChangeHistoryAnalyzer(".")
+         report.append(change_analyzer.format_report(results['change_history']))
+         report.append("")
+     
+     # Configuration Investigation Section
+     if results.get('config_investigation'):
+         config_investigator = ConfigInvestigator(".")
+         report.append(config_investigator.format_report(results['config_investigation']))
+         report.append("")
+     
+     # Architecture Analysis Section
+     if results.get('architecture_analysis'):
+         arch_analyzer = ArchitectureAnalyzer(".")
+         report.append(arch_analyzer.format_report(results['architecture_analysis']))
+         report.append("")
+     
+     report.append("=" * 80)
+     report.append("END OF APPLICATION TROUBLESHOOTING REPORT")
+     report.append("=" * 80)
+     
+     return "\n".join(report)
+
