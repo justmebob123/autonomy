@@ -14,7 +14,7 @@ import logging
 from queue import Queue, Empty
 
 from .runtime_tester import RuntimeTester
-from .unified_state import UnifiedState
+from .state.manager import StateManager
 from .correlation_engine import CorrelationEngine
 
 
@@ -29,7 +29,7 @@ class ContinuousMonitor:
     def __init__(
         self,
         runtime_tester: RuntimeTester,
-        unified_state: UnifiedState,
+        state_manager: StateManager,
         check_interval: float = 1.0,
         logger: Optional[logging.Logger] = None
     ):
@@ -38,12 +38,12 @@ class ContinuousMonitor:
         
         Args:
             runtime_tester: RuntimeTester instance
-            unified_state: UnifiedState instance
+            state_manager: StateManager instance (replaces unified_state)
             check_interval: Interval between checks in seconds
             logger: Logger instance
         """
         self.runtime_tester = runtime_tester
-        self.unified_state = unified_state
+        self.state_manager = state_manager
         self.check_interval = check_interval
         self.logger = logger or logging.getLogger(__name__)
         
@@ -145,9 +145,18 @@ class ContinuousMonitor:
         self.error_count += len(errors)
         self.last_error_time = datetime.now()
         
-        # Add errors to unified state
+        # Add errors to state (load, modify, save pattern)
+        state = self.state_manager.load()
         for error in errors:
-            self.unified_state.add_error(error)
+            # Add error to task if task_id is available
+            if 'task_id' in error and error['task_id'] in state.tasks:
+                task = state.tasks[error['task_id']]
+                task.add_error(
+                    error_type=error.get('type', 'unknown'),
+                    message=error.get('message', 'No message'),
+                    phase=error.get('phase', 'unknown')
+                )
+        self.state_manager.save(state)
         
         # Log errors
         self.logger.warning(f"Detected {len(errors)} errors")
@@ -183,8 +192,9 @@ class ContinuousMonitor:
             # Run troubleshooting
             results = self.runtime_tester.perform_application_troubleshooting(working_dir)
             
-            # Add results to unified state
-            self.unified_state.update_from_troubleshooting(results)
+            # Add results to state
+            state = self.state_manager.load()
+            self.state_manager.update_from_troubleshooting(state, results)
             
             # Add findings to correlation engine
             self._add_findings_to_correlation_engine(results)
@@ -192,9 +202,10 @@ class ContinuousMonitor:
             # Run correlation analysis
             correlations = self.correlation_engine.correlate()
             
-            # Add correlations to unified state
+            # Add correlations to state
+            state = self.state_manager.load()
             for correlation in correlations:
-                self.unified_state.add_correlation(correlation)
+                self.state_manager.add_correlation(state, correlation)
             
             # Log results
             self.logger.info(f"Troubleshooting complete. Found {len(correlations)} correlations")
@@ -268,13 +279,14 @@ class ContinuousMonitor:
         """Check overall system health."""
         try:
             # Record performance metrics
+            state = self.state_manager.load()
             if self.runtime_tester.is_running():
-                self.unified_state.add_performance_metric('uptime', time.time())
+                self.state_manager.add_performance_metric(state, 'uptime', time.time())
             
             # Check error rate
             if self.last_error_time:
                 time_since_error = (datetime.now() - self.last_error_time).total_seconds()
-                self.unified_state.add_performance_metric('time_since_error', time_since_error)
+                self.state_manager.add_performance_metric(state, 'time_since_error', time_since_error)
             
         except Exception as e:
             self.logger.error(f"Error checking system health: {e}")
@@ -301,11 +313,13 @@ class ContinuousMonitor:
         Returns:
             Statistics dictionary
         """
+        state = self.state_manager.load()
         return {
             'total_errors': self.error_count,
-            'error_patterns': self.unified_state.get_error_patterns(),
-            'fix_effectiveness': self.unified_state.get_fix_effectiveness(),
-            'correlations_found': len(self.correlation_engine.correlations)
+            'fix_effectiveness': self.state_manager.get_fix_effectiveness(state),
+            'correlations_found': len(self.correlation_engine.correlations),
+            'learned_patterns': len(state.learned_patterns),
+            'performance_metrics': len(state.performance_metrics)
         }
 
 
@@ -316,14 +330,14 @@ class ContinuousMonitorManager:
     Allows monitoring multiple applications simultaneously.
     """
     
-    def __init__(self, unified_state: UnifiedState):
+    def __init__(self, state_manager: StateManager):
         """
         Initialize monitor manager.
         
         Args:
             unified_state: Shared unified state
         """
-        self.unified_state = unified_state
+        self.state_manager = unified_state
         self.monitors = {}
         self.logger = logging.getLogger(__name__)
     
