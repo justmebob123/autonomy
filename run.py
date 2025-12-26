@@ -23,6 +23,7 @@ from pathlib import Path
 from pipeline import PhaseCoordinator, PipelineConfig
 from pipeline.error_signature import ErrorSignature, ProgressTracker
 from pipeline.progress_display import print_bug_transition, print_progress_stats, print_refining_fix
+from pipeline.command_detector import CommandDetector
 
 # Global reference to runtime tester for signal handling
 _global_tester = None
@@ -164,6 +165,29 @@ def run_debug_qa_mode(args) -> int:
     print("🔍 DEBUG/QA MODE - Continuous AI-Powered Debugging & QA")
     print("="*70)
     print(f"\nProject: {project_dir}")
+    
+    # Auto-detect command if not provided
+    if not hasattr(args, 'test_command') or not args.test_command:
+        print("\n🤖 No --command provided, attempting auto-detection...")
+        detector = CommandDetector(project_dir)
+        detected_command, reason = detector.detect_command()
+        
+        if detected_command:
+            print(f"✅ Auto-detected command: {detected_command}")
+            print(f"   Reason: {reason}")
+            args.test_command = detected_command
+            
+            # Show project info
+            project_info = detector.get_project_info()
+            if project_info.get('config_files'):
+                print(f"   Config files found: {', '.join(project_info['config_files'])}")
+            if project_info.get('python_files'):
+                print(f"   Python files: {len(project_info['python_files'])} found")
+        else:
+            print(f"⚠️  Could not auto-detect command: {reason}")
+            print("   You can specify a command with --command 'your command here'")
+            print("   Continuing with static analysis only (no runtime testing).\n")
+    
     print("\nThis mode will:")
     print("  • Scan all Python files for syntax and import errors")
     print("  • Use AI pipeline (QA + Debugging) to fix issues")
@@ -173,6 +197,9 @@ def run_debug_qa_mode(args) -> int:
     
     if hasattr(args, 'follow_log') and args.follow_log:
         print(f"  • Following log file: {args.follow_log}")
+    
+    if hasattr(args, 'test_command') and args.test_command:
+        print(f"  • Running command: {args.test_command}")
     
     print("\nPress Ctrl+C to exit at any time.\n")
     
@@ -1249,7 +1276,8 @@ Examples:
         "--command",
         dest="test_command",
         metavar="COMMAND",
-        help="Command to execute for testing (use with --debug-qa)"
+        required=False,
+        help="Command to execute for testing (use with --debug-qa). If not provided, will auto-detect from project structure."
     )
     parser.add_argument(
         "--test-duration",
