@@ -521,6 +521,7 @@ def run_debug_qa_mode(args) -> int:
                             # Try to extract file and line from traceback
                             file_path = None
                             line_num = None
+                            error_msg = error.get('message', '')  # Define error_msg here
                             
                             # Strategy 1: Look in context for File line
                             for ctx in context:
@@ -820,7 +821,7 @@ def run_debug_qa_mode(args) -> int:
                         'class_definition': debug_context.get('class_definition', {}),
                         'similar_methods': debug_context.get('similar_methods', []),
                         'related_files': debug_context.get('related_files', {}),
-                        'description': f"{error['type']} at line {error_line}: {error['message']}\n\n## Local Context\n{local_context}\n\n{context_text}\n\n## Analysis Required\nThis is a runtime error that needs debugging. Analyze the full context above."
+                        'description': f"{error['type']} at line {error_line}: {error.get('message', 'No message')}\n\n## Local Context\n{local_context}\n\n{context_text}\n\n## Analysis Required\nThis is a runtime error that needs debugging. Analyze the full context above."
                     }
                     
                     try:
