@@ -136,26 +136,170 @@ class PhaseCoordinator:
         self.logger.info(f"Polytopic structure: {len(self.polytope['vertices'])} vertices, 7D")
     
     def _select_next_phase_polytopic(self, state):
-        """Select next phase using polytopic adjacency."""
+        """Select next phase using polytopic adjacency with intelligent situation analysis."""
         from .state.manager import TaskStatus
-        current_phase = state.current_phase
-        situation = {'has_errors': any(t.status == TaskStatus.FAILED for t in state.tasks.values()),
-                    'has_pending': any(t.status == TaskStatus.PENDING for t in state.tasks.values()),
-                    'needs_planning': len(state.tasks) == 0}
         
+        # Build context from state
+        context = {
+            'current_phase': state.current_phase,
+            'tasks': state.tasks,
+            'errors': [t for t in state.tasks.values() if t.status == TaskStatus.FAILED],
+            'pending': [t for t in state.tasks.values() if t.status == TaskStatus.PENDING],
+            'completed': [t for t in state.tasks.values() if t.status == TaskStatus.COMPLETED]
+        }
+        
+        # Analyze situation with intelligence
+        situation = self._analyze_situation(context)
+        
+        # Select path intelligently
+        return self._select_intelligent_path(situation, state.current_phase)
+    
+    def _analyze_situation(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Comprehensive situation analysis with error severity, complexity, and urgency assessment."""
+        situation = {
+            'has_errors': len(context.get('errors', [])) > 0,
+            'has_pending': len(context.get('pending', [])) > 0,
+            'needs_planning': len(context.get('tasks', {})) == 0,
+            'error_count': len(context.get('errors', [])),
+            'pending_count': len(context.get('pending', [])),
+            'completed_count': len(context.get('completed', []))
+        }
+        
+        # Assess error severity
+        if situation['has_errors']:
+            errors = context.get('errors', [])
+            situation['error_severity'] = self._assess_error_severity(errors)
+        else:
+            situation['error_severity'] = 'none'
+        
+        # Assess complexity
+        situation['complexity'] = self._assess_complexity(context)
+        
+        # Assess urgency
+        situation['urgency'] = self._assess_urgency(situation)
+        
+        # Determine dimensional focus
+        situation['dimensional_focus'] = self._determine_dimensional_focus(situation)
+        
+        # Determine mode
+        if situation['error_severity'] in ['high', 'critical']:
+            situation['mode'] = 'error_handling'
+        elif situation['complexity'] == 'high':
+            situation['mode'] = 'deep_analysis'
+        else:
+            situation['mode'] = 'development'
+        
+        return situation
+    
+    def _assess_error_severity(self, errors: List[Any]) -> str:
+        """Assess the severity of errors."""
+        if not errors:
+            return 'none'
+        
+        error_count = len(errors)
+        
+        # Check for repeated errors
+        repeated_errors = sum(1 for e in errors if hasattr(e, 'attempts') and e.attempts > 2)
+        
+        if error_count >= 5 or repeated_errors >= 2:
+            return 'critical'
+        elif error_count >= 3 or repeated_errors >= 1:
+            return 'high'
+        elif error_count >= 1:
+            return 'medium'
+        else:
+            return 'low'
+    
+    def _assess_complexity(self, context: Dict[str, Any]) -> str:
+        """Assess the complexity of the current situation."""
+        total_tasks = len(context.get('tasks', {}))
+        errors = len(context.get('errors', []))
+        
+        if total_tasks > 20 or errors > 5:
+            return 'high'
+        elif total_tasks > 10 or errors > 2:
+            return 'medium'
+        else:
+            return 'low'
+    
+    def _assess_urgency(self, situation: Dict[str, Any]) -> str:
+        """Assess the urgency of the situation."""
+        if situation['error_severity'] in ['critical', 'high']:
+            return 'high'
+        elif situation['has_errors']:
+            return 'medium'
+        else:
+            return 'low'
+    
+    def _determine_dimensional_focus(self, situation: Dict[str, Any]) -> List[str]:
+        """Determine which dimensions to focus on based on situation."""
+        focus = []
+        
+        if situation['has_errors']:
+            focus.extend(['error', 'context'])
+        
+        if situation['complexity'] == 'high':
+            focus.extend(['functional', 'integration'])
+        
+        if situation['urgency'] == 'high':
+            focus.append('temporal')
+        
+        return list(set(focus))  # Remove duplicates
+    
+    def _select_intelligent_path(self, situation: Dict[str, Any], current_phase: str) -> str:
+        """Select optimal execution path based on situation analysis."""
         adjacent = self.polytope['edges'].get(current_phase, ['planning'])
         best_phase, best_score = None, -1
         
         for phase_name in adjacent:
             if phase_name in self.phases:
-                score = 0.5
-                if situation['has_errors'] and phase_name in ['debugging', 'investigation']: score += 0.3
-                if situation['has_pending'] and phase_name == 'coding': score += 0.3
-                if situation['needs_planning'] and phase_name == 'planning': score += 0.4
-                if score > best_score: best_score, best_phase = score, phase_name
+                score = self._calculate_phase_priority(phase_name, situation)
+                if score > best_score:
+                    best_score, best_phase = score, phase_name
         
+        # Increase self-awareness
         self.polytope['self_awareness_level'] = min(1.0, self.polytope['self_awareness_level'] + 0.001)
-        return best_phase
+        
+        return best_phase if best_phase else 'planning'
+    
+    def _calculate_phase_priority(self, phase_name: str, situation: Dict[str, Any]) -> float:
+        """Calculate priority score for a phase based on situation."""
+        score = 0.5  # Base score
+        
+        # Error-driven routing
+        if situation['has_errors']:
+            if phase_name in ['debugging', 'investigation']:
+                score += 0.4
+            if situation['error_severity'] == 'critical' and phase_name == 'investigation':
+                score += 0.3
+        
+        # Complexity-based routing
+        if situation['complexity'] == 'high':
+            if phase_name in ['investigation', 'debugging']:
+                score += 0.2
+        
+        # Pending work routing
+        if situation['has_pending']:
+            if phase_name == 'coding':
+                score += 0.3
+        
+        # Planning routing
+        if situation['needs_planning']:
+            if phase_name == 'planning':
+                score += 0.4
+        
+        return score
+    
+    def expand_dimensions(self, new_dimension: str, description: str):
+        """Dynamically expand the dimensional space."""
+        self.polytope['dimensions'] += 1
+        
+        # Add new dimension to all vertices
+        for vertex_name in self.polytope['vertices']:
+            if 'dimensions' in self.polytope['vertices'][vertex_name]:
+                self.polytope['vertices'][vertex_name]['dimensions'][new_dimension] = 0.5
+        
+        self.logger.info(f"Expanded to {self.polytope['dimensions']} dimensions: added '{new_dimension}' - {description}")
        
     
     def run(self, resume: bool = True) -> bool:

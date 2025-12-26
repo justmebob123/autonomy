@@ -215,6 +215,13 @@ class PipelineState:
     project_maturity: str = "initial"  # initial, developing, mature
     last_planning_iteration: int = 0
     
+    # Learning and intelligence fields (from unified_state integration)
+    performance_metrics: Dict[str, List[Dict]] = field(default_factory=lambda: defaultdict(list))
+    learned_patterns: Dict[str, List[Dict]] = field(default_factory=lambda: defaultdict(list))
+    fix_history: List[Dict] = field(default_factory=list)
+    troubleshooting_results: List[Dict] = field(default_factory=list)
+    correlations: List[Dict] = field(default_factory=list)
+    
     def __post_init__(self):
         if not self.updated:
             self.updated = datetime.now().isoformat()
@@ -527,6 +534,95 @@ class StateManager:
                     "runs": p.runs,
                     "successes": p.successes,
                     "failures": p.failures,
+                }
+                for name, p in state.phases.items()
+            }
+        }
+    
+    def add_performance_metric(self, state: PipelineState, metric_name: str, value: float):
+        """Add a performance metric to state."""
+        from collections import defaultdict
+        if not isinstance(state.performance_metrics, defaultdict):
+            state.performance_metrics = defaultdict(list, state.performance_metrics)
+        
+        state.performance_metrics[metric_name].append({
+            'value': value,
+            'timestamp': datetime.now().isoformat()
+        })
+        self.save(state)
+    
+    def learn_pattern(self, state: PipelineState, pattern_name: str, pattern_data: Dict[str, Any]):
+        """Learn a new pattern."""
+        from collections import defaultdict
+        if not isinstance(state.learned_patterns, defaultdict):
+            state.learned_patterns = defaultdict(list, state.learned_patterns)
+        
+        pattern_data['timestamp'] = datetime.now().isoformat()
+        pattern_data['id'] = len(state.learned_patterns[pattern_name])
+        state.learned_patterns[pattern_name].append(pattern_data)
+        self.save(state)
+    
+    def add_fix(self, state: PipelineState, fix: Dict[str, Any]):
+        """Add a fix to history."""
+        fix['timestamp'] = datetime.now().isoformat()
+        fix['id'] = len(state.fix_history)
+        state.fix_history.append(fix)
+        self.save(state)
+    
+    def get_fix_effectiveness(self, state: PipelineState) -> Dict[str, float]:
+        """Calculate fix effectiveness."""
+        if not state.fix_history:
+            return {}
+        
+        effectiveness = {}
+        for fix in state.fix_history:
+            fix_type = fix.get('type', 'unknown')
+            success = fix.get('success', False)
+            
+            if fix_type not in effectiveness:
+                effectiveness[fix_type] = {'total': 0, 'successful': 0}
+            
+            effectiveness[fix_type]['total'] += 1
+            if success:
+                effectiveness[fix_type]['successful'] += 1
+        
+        return {
+            fix_type: data['successful'] / data['total'] if data['total'] > 0 else 0.0
+            for fix_type, data in effectiveness.items()
+        }
+    
+    def update_from_troubleshooting(self, state: PipelineState, results: Dict[str, Any]):
+        """Update state from troubleshooting results."""
+        results['timestamp'] = datetime.now().isoformat()
+        results['id'] = len(state.troubleshooting_results)
+        state.troubleshooting_results.append(results)
+        self.save(state)
+    
+    def add_correlation(self, state: PipelineState, correlation: Dict[str, Any]):
+        """Add a correlation between components."""
+        correlation['timestamp'] = datetime.now().isoformat()
+        correlation['id'] = len(state.correlations)
+        state.correlations.append(correlation)
+        self.save(state)
+    
+    def get_full_context(self, state: PipelineState) -> Dict[str, Any]:
+        """Get full context including all learning and metrics."""
+        return {
+            'pipeline_state': {
+                'run_id': state.pipeline_run_id,
+                'tasks': len(state.tasks),
+                'maturity': state.project_maturity
+            },
+            'performance_metrics': dict(state.performance_metrics),
+            'learned_patterns': dict(state.learned_patterns),
+            'fix_history': state.fix_history,
+            'troubleshooting_results': state.troubleshooting_results,
+            'correlations': state.correlations,
+            'phases': {
+                name: {
+                    'runs': p.runs,
+                    'successes': p.successes,
+                    'failures': p.failures
                 }
                 for name, p in state.phases.items()
             }

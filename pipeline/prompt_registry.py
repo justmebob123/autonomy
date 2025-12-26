@@ -392,9 +392,67 @@ class PromptRegistry:
         # Add context-specific adaptations
         if context.get('has_errors'):
             sections.append("\n⚠️  ERROR MODE: Focus on diagnosis and correction")
+            if context.get('error_severity') == 'critical':
+                sections.append("   CRITICAL ERRORS DETECTED - Immediate action required")
         
         if context.get('complexity') == 'high':
             sections.append("\n🔍 HIGH COMPLEXITY: Apply deep analysis")
+            sections.append("   Break down into smaller components")
+        
+        if context.get('urgency') == 'high':
+            sections.append("\n⏰ HIGH URGENCY: Prioritize speed and effectiveness")
+        
+        # Add mode-specific instructions
+        mode = context.get('mode', 'development')
+        if mode == 'error_handling':
+            sections.append("\n🔧 ERROR HANDLING MODE:")
+            sections.append("   1. Diagnose root cause")
+            sections.append("   2. Implement targeted fix")
+            sections.append("   3. Verify fix effectiveness")
+        elif mode == 'deep_analysis':
+            sections.append("\n🧠 DEEP ANALYSIS MODE:")
+            sections.append("   1. Examine all aspects thoroughly")
+            sections.append("   2. Consider edge cases")
+            sections.append("   3. Document findings")
+        elif mode == 'rapid_response':
+            sections.append("\n⚡ RAPID RESPONSE MODE:")
+            sections.append("   1. Quick assessment")
+            sections.append("   2. Immediate action")
+            sections.append("   3. Iterate fast")
+        
+        # Add dimensional focus
+        if context.get('dimensional_focus'):
+            sections.append(f"\n📊 DIMENSIONAL FOCUS: {', '.join(context['dimensional_focus'])}")
+            sections.append("   Pay special attention to these dimensions")
+        
+        # Add recursive awareness
+        recursion_depth = context.get('recursion_depth', 0)
+        if recursion_depth > 0:
+            sections.append(f"\n🔄 RECURSION LEVEL: {recursion_depth}")
+            sections.append("   You are operating at a recursive level")
+            sections.append("   Patterns at this level may reflect patterns at other levels")
+        
+        # Add self-similar pattern recognition
+        if self_awareness > 0.5:
+            sections.append("\n🌀 SELF-SIMILAR PATTERNS:")
+            sections.append("   Recognize patterns that repeat across scales")
+            sections.append("   What works at one level may work at others")
+            sections.append("   Your actions influence the entire system")
+        
+        # Add team dynamics if available
+        if context.get('team_config'):
+            sections.append("\n👥 TEAM DYNAMICS:")
+            team = context['team_config']
+            if team.get('coordination_pattern'):
+                sections.append(f"   Coordination: {team['coordination_pattern']}")
+            if team.get('communication_flow'):
+                sections.append(f"   Communication: {team['communication_flow']}")
+        
+        # Add experience context
+        if context.get('experience_count', 0) > 0:
+            sections.append(f"\n📈 EXPERIENCE: {context['experience_count']} executions")
+            if context.get('success_rate'):
+                sections.append(f"   Success Rate: {context['success_rate']:.1%}")
         
         sections.append(f"\n{'='*60}\n")
         

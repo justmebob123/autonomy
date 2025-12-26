@@ -130,21 +130,151 @@ class BasePhase(ABC):
     
     
     def adapt_to_situation(self, situation: Dict[str, Any]) -> Dict[str, Any]:
-        """Adapt phase behavior based on current situation."""
+        """Adapt phase behavior based on current situation with full intelligence."""
         adapted_profile = self.dimensional_profile.copy()
         
-        # Enhance relevant dimensions based on situation
+        # Determine mode based on situation
+        mode = self._determine_mode(situation)
+        
+        # Extract constraints from situation
+        constraints = self._extract_constraints(situation)
+        
+        # Adapt dimensional profile based on mode and constraints
+        adapted_profile = self._adapt_dimensional_profile(adapted_profile, mode, situation)
+        
+        # Increase self-awareness and experience
+        self._increase_self_awareness()
+        self.experience_count += 1
+        
+        # Record adaptation
+        self._record_adaptation(situation, mode, adapted_profile)
+        
+        return {
+            'adapted_profile': adapted_profile,
+            'self_awareness': self.self_awareness_level,
+            'mode': mode,
+            'constraints': constraints,
+            'experience': self.experience_count
+        }
+    
+    def _determine_mode(self, situation: Dict[str, Any]) -> str:
+        """Determine operational mode based on situation."""
+        if situation.get('error_severity') in ['high', 'critical']:
+            return 'error_handling'
+        elif situation.get('complexity') == 'high':
+            return 'deep_analysis'
+        elif situation.get('urgency') == 'high':
+            return 'rapid_response'
+        else:
+            return 'development'
+    
+    def _extract_constraints(self, situation: Dict[str, Any]) -> List[str]:
+        """Extract operational constraints from situation."""
+        constraints = []
+        
         if situation.get('has_errors'):
-            adapted_profile['error'] = min(1.0, adapted_profile['error'] * 1.5)
-            adapted_profile['context'] = min(1.0, adapted_profile['context'] * 1.3)
+            constraints.append('must_fix_errors')
         
         if situation.get('complexity') == 'high':
-            adapted_profile['functional'] = min(1.0, adapted_profile['functional'] * 1.4)
+            constraints.append('requires_deep_analysis')
         
-        self.experience_count += 1
-        self.self_awareness_level = min(1.0, self.self_awareness_level + 0.001)
+        if situation.get('urgency') == 'high':
+            constraints.append('time_critical')
         
-        return {'adapted_profile': adapted_profile, 'self_awareness': self.self_awareness_level}
+        return constraints
+    
+    def _adapt_dimensional_profile(
+        self, 
+        profile: Dict[str, float], 
+        mode: str, 
+        situation: Dict[str, Any]
+    ) -> Dict[str, float]:
+        """Adapt dimensional profile based on mode and situation."""
+        from datetime import datetime
+        adapted = profile.copy()
+        
+        # Mode-based adaptations
+        if mode == 'error_handling':
+            adapted['error'] = min(1.0, adapted['error'] * 1.5)
+            adapted['context'] = min(1.0, adapted['context'] * 1.3)
+        elif mode == 'deep_analysis':
+            adapted['functional'] = min(1.0, adapted['functional'] * 1.4)
+            adapted['context'] = min(1.0, adapted['context'] * 1.3)
+        elif mode == 'rapid_response':
+            adapted['temporal'] = min(1.0, adapted['temporal'] * 1.5)
+        
+        # Situation-based adaptations
+        if situation.get('complexity') == 'high':
+            adapted['functional'] = min(1.0, adapted['functional'] * 1.4)
+            adapted['integration'] = min(1.0, adapted['integration'] * 1.2)
+        
+        if situation.get('has_errors'):
+            adapted['error'] = min(1.0, adapted['error'] * 1.3)
+        
+        return adapted
+    
+    def _record_adaptation(self, situation: Dict[str, Any], mode: str, profile: Dict[str, float]):
+        """Record adaptation for learning."""
+        from datetime import datetime
+        if not hasattr(self, '_adaptation_history'):
+            self._adaptation_history = []
+        
+        self._adaptation_history.append({
+            'situation': situation,
+            'mode': mode,
+            'profile': profile,
+            'timestamp': datetime.now().isoformat(),
+            'experience': self.experience_count
+        })
+        
+        # Keep only last 100 adaptations
+        if len(self._adaptation_history) > 100:
+            self._adaptation_history = self._adaptation_history[-100:]
+    
+    def _increase_self_awareness(self):
+        """Increase self-awareness level based on experience."""
+        # Logarithmic growth: fast at first, slower later
+        growth_rate = 0.01 * (1.0 - self.self_awareness_level)
+        self.self_awareness_level = min(1.0, self.self_awareness_level + growth_rate)
+    
+    def record_success(self):
+        """Record a successful execution."""
+        if not hasattr(self, '_success_count'):
+            self._success_count = 0
+        self._success_count += 1
+    
+    def record_failure(self):
+        """Record a failed execution."""
+        if not hasattr(self, '_failure_count'):
+            self._failure_count = 0
+        self._failure_count += 1
+    
+    def get_success_rate(self) -> float:
+        """Get the success rate of this phase."""
+        if not hasattr(self, '_success_count'):
+            self._success_count = 0
+        if not hasattr(self, '_failure_count'):
+            self._failure_count = 0
+        
+        total = self._success_count + self._failure_count
+        if total == 0:
+            return 0.0
+        
+        return self._success_count / total
+    
+    def learn_pattern(self, pattern: Dict[str, Any]):
+        """Learn a pattern from execution."""
+        from datetime import datetime
+        if not hasattr(self, '_learned_patterns'):
+            self._learned_patterns = []
+        
+        pattern['timestamp'] = datetime.now().isoformat()
+        pattern['phase'] = self.phase_name
+        self._learned_patterns.append(pattern)
+        
+        # Keep only last 50 patterns
+        if len(self._learned_patterns) > 50:
+            self._learned_patterns = self._learned_patterns[-50:]
     
     def get_adaptive_prompt_context(self, base_prompt: str, context: Dict[str, Any]) -> str:
         """Enhance prompt with self-awareness and polytopic context."""
