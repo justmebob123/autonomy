@@ -29,11 +29,11 @@ class PipelineConfig:
     servers: List[ServerConfig] = field(default_factory=lambda: [
         ServerConfig(
             name="ollama01",
-               host="ollama01.thiscluster.net",
+            host="ollama01.thiscluster.net",
             capabilities=["coding", "planning", "qa", "debugging"]
         ),
         ServerConfig(
-            name="ollama02", 
+            name="ollama02",
             host="ollama02.thiscluster.net",
             capabilities=["routing", "quick_fix", "tool_formatting"]
         ),
