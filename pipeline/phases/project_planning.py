@@ -112,12 +112,12 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
                 message="Loop detected - stopping to prevent infinite cycle"
             )
         
-        # Track tool calls for loop detection
-        self.track_tool_calls(tool_calls)
-        
         # Process tool calls using ToolCallHandler
-        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
-        results = handler.process_tool_calls(tool_calls)
+       handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+       results = handler.process_tool_calls(tool_calls)
+
+       # Track tool calls for loop detection
+       self.track_tool_calls(tool_calls, results)
         
         # Extract new tasks from handler results
         new_tasks = []

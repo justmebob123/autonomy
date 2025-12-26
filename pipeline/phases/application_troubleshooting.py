@@ -103,7 +103,7 @@ class ApplicationTroubleshootingPhase(BasePhase, LoopDetectionMixin):
         self.logger.info(f"Location: {error_location}")
         
         # Track tool calls for loop detection
-        self.track_tool_calls("application_troubleshooting")
+        # self.track_tool_calls(tool_calls, results)  # TODO: Add when tool calls are implemented
         
         # Build comprehensive analysis
         findings = {

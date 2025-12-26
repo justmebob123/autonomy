@@ -205,7 +205,7 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
                 return result
             
             # Track tool calls
-            self.track_tool_calls(tool_calls)
+            self.track_tool_calls(tool_calls, results)
             
             if tool_calls:
                 for call in tool_calls:

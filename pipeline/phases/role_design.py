@@ -139,7 +139,7 @@ class RoleDesignPhase(LoopDetectionMixin, BasePhase):
             )
         
         # Track tool calls for loop detection
-        self.track_tool_calls(tool_calls)
+        self.track_tool_calls(tool_calls, results)
         
         # Process tool calls
         from ..handlers import ToolCallHandler
