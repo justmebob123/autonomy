@@ -33,17 +33,19 @@ class ErrorStrategy:
         )
         
         enhancement = f"""
+## ⚠️ ERROR-SPECIFIC STRATEGY: {self.error_type} ⚠️
 
-## ERROR-SPECIFIC STRATEGY: {self.error_type}
-
-### Investigation Steps:
+### MANDATORY Investigation Steps (DO THESE FIRST):
 {investigation}
 
 ### Recommended Fix Approaches:
 {approaches}
 
+## ⚠️ YOU MUST FOLLOW THE STRATEGY ABOVE BEFORE MAKING ANY CHANGES ⚠️
+
 """
-        return base_prompt + enhancement
+        # CRITICAL: Prepend strategy at the BEGINNING so AI sees it first
+        return enhancement + base_prompt
 
 
 class UnboundLocalErrorStrategy(ErrorStrategy):

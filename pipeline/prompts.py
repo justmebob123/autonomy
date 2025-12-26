@@ -356,17 +356,17 @@ def _get_runtime_debug_prompt(filepath: str, code: str, issue: dict) -> str:
     
     # Build SIMPLE, DIRECT prompt
     prompt = f"""
-YOU MUST FIX THIS ERROR BY CALLING modify_python_file
+FIX THIS ERROR IN {filepath}
 
-File: {filepath}
 Error Line: {line_num}
 
 ERROR:
 {error_msg}
 
-THE FILE CONTENT IS BELOW. Find line {line_num}, understand the error, and call modify_python_file to fix it.
+THE FILE CONTENT IS BELOW. 
 
-DO NOT call search_code or read_file - you already have everything you need below.
+IMPORTANT: If an ERROR-SPECIFIC STRATEGY appears above, you MUST follow it first.
+Otherwise, find line {line_num}, understand the error, and call modify_python_file to fix it.
 
 """
     
