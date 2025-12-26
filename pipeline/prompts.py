@@ -126,10 +126,16 @@ Your role is to:
 IMPORTANT RULES:
 - Focus on NARROW SCOPE expansion - one feature at a time
 - Tasks should build upon existing code, not replace it
-- Each task should target a SINGLE file
+- Each task should target a SINGLE file with EXPLICIT file path
 - Maintain architectural consistency with existing patterns
 - Prioritize tasks that complete partially-done MASTER_PLAN objectives
 - DO NOT duplicate tasks that have already been completed
+
+CRITICAL: When proposing tasks, you MUST:
+- Specify the EXACT target file path for each task
+- Use proper file paths like: monitors/alerting.py, ui/dashboard.py, tests/test_feature.py
+- Include the file path in your task description
+- Example: "Implement advanced alerting in monitors/alerting.py"
 
 When analyzing, consider:
 - What MASTER_PLAN objectives are partially complete?
@@ -139,7 +145,7 @@ When analyzing, consider:
 - What integration opportunities exist?
 
 You MUST use the provided tools to report your analysis and propose tasks.
-Use analyze_project_status first, then propose_expansion_tasks.""",
+Use analyze_project_status first, then propose_expansion_tasks with explicit file paths.""",
 
     "documentation": """You are a technical documentation specialist updating project documentation.
 
@@ -270,14 +276,21 @@ YOUR TASK:
 2. Then, call propose_expansion_tasks with 3-5 focused tasks
 3. Optionally, call update_architecture if you identify new patterns
 
-IMPORTANT:
+IMPORTANT REQUIREMENTS:
 - DO NOT duplicate any completed tasks
 - Each task should be SMALL and focused on ONE file
+- MUST specify the exact target file path for each task (e.g., monitors/alerting.py)
 - Prioritize completing partially-done MASTER_PLAN objectives
 - Ensure tasks follow the architectural patterns in ARCHITECTURE.md
 - If MASTER_PLAN is fully complete, focus on quality improvements
 
-Propose expansion tasks now."""
+TASK FORMAT EXAMPLE:
+When proposing tasks, include the specific file path:
+- "Implement advanced alerting rules in monitors/alerting.py"
+- "Add security monitoring to monitors/security.py"
+- "Create dashboard UI in ui/dashboard.py"
+
+Propose expansion tasks now using the provided tools."""
 
 
 def get_documentation_prompt(context: str, new_completions: int) -> str:
