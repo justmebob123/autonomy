@@ -48,6 +48,23 @@ class PhaseCoordinator:
         
         # Initialize phases (lazy import to avoid circular deps)
         self.phases = self._init_phases()
+        
+        # Hyperdimensional polytopic structure
+        self.polytope = {
+            'vertices': {},  # phase_name -> {type, dimensions}
+            'edges': {},     # phase_name -> [adjacent_phases]
+            'dimensions': 7,
+            'self_awareness_level': 0.0,
+            'recursion_depth': 0,
+            'max_recursion_depth': 61
+        }
+        
+        # Initialize polytopic structure from phases
+        self._initialize_polytopic_structure()
+        
+        # Correlation engine for cross-phase analysis
+        from .correlation_engine import CorrelationEngine
+        self.correlation_engine = CorrelationEngine()
     
     def _init_phases(self) -> Dict:
         """Initialize all pipeline phases"""
@@ -86,6 +103,60 @@ class PhaseCoordinator:
             "prompt_improvement": PromptImprovementPhase(self.config, self.client),
             "role_improvement": RoleImprovementPhase(self.config, self.client),
         }
+    
+    def _initialize_polytopic_structure(self):
+        """Initialize hyperdimensional polytopic structure from existing phases."""
+        phase_types = {
+            'planning': 'planning', 'coding': 'execution', 'qa': 'validation',
+            'debugging': 'correction', 'investigation': 'analysis',
+            'project_planning': 'planning', 'documentation': 'documentation',
+            'prompt_design': 'meta', 'tool_design': 'meta', 'role_design': 'meta',
+            'tool_evaluation': 'improvement', 'prompt_improvement': 'improvement',
+            'role_improvement': 'improvement'
+        }
+        
+        for phase_name in self.phases.keys():
+            self.polytope['vertices'][phase_name] = {
+                'type': phase_types.get(phase_name, 'unknown'),
+                'dimensions': {'temporal': 0.5, 'functional': 0.5, 'data': 0.5,
+                              'state': 0.5, 'error': 0.5, 'context': 0.5, 'integration': 0.5}
+            }
+        
+        self.polytope['edges'] = {
+            'planning': ['coding'], 'coding': ['qa'],
+            'qa': ['debugging', 'documentation'],
+            'debugging': ['investigation', 'coding'],
+            'investigation': ['debugging', 'coding'],
+            'project_planning': ['planning'], 'documentation': ['planning'],
+            'prompt_design': ['prompt_improvement'], 'tool_design': ['tool_evaluation'],
+            'role_design': ['role_improvement'], 'tool_evaluation': ['tool_design'],
+            'prompt_improvement': ['prompt_design'], 'role_improvement': ['role_design']
+        }
+        
+        self.logger.info(f"Polytopic structure: {len(self.polytope['vertices'])} vertices, 7D")
+    
+    def _select_next_phase_polytopic(self, state):
+        """Select next phase using polytopic adjacency."""
+        from .state.manager import TaskStatus
+        current_phase = state.current_phase
+        situation = {'has_errors': any(t.status == TaskStatus.FAILED for t in state.tasks.values()),
+                    'has_pending': any(t.status == TaskStatus.PENDING for t in state.tasks.values()),
+                    'needs_planning': len(state.tasks) == 0}
+        
+        adjacent = self.polytope['edges'].get(current_phase, ['planning'])
+        best_phase, best_score = None, -1
+        
+        for phase_name in adjacent:
+            if phase_name in self.phases:
+                score = 0.5
+                if situation['has_errors'] and phase_name in ['debugging', 'investigation']: score += 0.3
+                if situation['has_pending'] and phase_name == 'coding': score += 0.3
+                if situation['needs_planning'] and phase_name == 'planning': score += 0.4
+                if score > best_score: best_score, best_phase = score, phase_name
+        
+        self.polytope['self_awareness_level'] = min(1.0, self.polytope['self_awareness_level'] + 0.001)
+        return best_phase
+       
     
     def run(self, resume: bool = True) -> bool:
         """
