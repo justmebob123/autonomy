@@ -217,8 +217,8 @@ class PipelineState:
     last_planning_iteration: int = 0
     
     # Learning and intelligence fields (from unified_state integration)
-    performance_metrics: Dict[str, List[Dict]] = field(default_factory=dict)
-    learned_patterns: Dict[str, List[Dict]] = field(default_factory=dict)
+    performance_metrics: Dict[str, List[Dict]] = field(default_factory=lambda: defaultdict(list))
+    learned_patterns: Dict[str, List[Dict]] = field(default_factory=lambda: defaultdict(list))
     fix_history: List[Dict] = field(default_factory=list)
     troubleshooting_results: List[Dict] = field(default_factory=list)
     correlations: List[Dict] = field(default_factory=list)
@@ -291,22 +291,10 @@ class PipelineState:
             "last_doc_update_count": self.last_doc_update_count,
             "project_maturity": self.project_maturity,
             "last_planning_iteration": self.last_planning_iteration,
-            # Learning and intelligence fields
-            "performance_metrics": self.performance_metrics,
-            "learned_patterns": self.learned_patterns,
-            "fix_history": self.fix_history,
-            "troubleshooting_results": self.troubleshooting_results,
-            "correlations": self.correlations,
         }
     
     @classmethod
     def from_dict(cls, data: Dict) -> "PipelineState":
-        # Handle missing fields for backward compatibility
-        data.setdefault("performance_metrics", {})
-        data.setdefault("learned_patterns", {})
-        data.setdefault("fix_history", [])
-        data.setdefault("troubleshooting_results", [])
-        data.setdefault("correlations", [])
         return cls(**data)
     
     def get_task(self, task_id: str) -> Optional[TaskState]:
