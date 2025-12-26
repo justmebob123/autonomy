@@ -463,7 +463,7 @@ class RuntimeTester:
         working_dir: Path,
         log_file: Path,
         logger: logging.Logger = None
-    ):
+           ,production_mode: bool = False
         """
         Initialize runtime tester.
         
@@ -471,11 +471,11 @@ class RuntimeTester:
             command: Command to execute
             working_dir: Directory to run command in
             log_file: Log file to monitor
+               production_mode: If True, removes all timeouts for continuous operation
             logger: Logger instance
-        """
         self.logger = logger or logging.getLogger(__name__)
         self.log_file = log_file  # Store log_file as attribute
-        
+           self.production_mode = production_mode
         self.error_queue = Queue()
         
         self.program_runner = ProgramRunner(command, working_dir, logger)
