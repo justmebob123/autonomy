@@ -75,3 +75,30 @@ Should be done in a separate focused session with comprehensive test coverage.
 - Duplicate imports
 
 **Recommendation**: Create automated cleanup script to remove unused imports safely.
+
+---
+
+## 5. Fix Generic Filename Issue ✅ COMPLETE
+
+### Problem
+System was creating files with generic names like "features/new_feature.py"
+
+### Solution Implemented
+- [x] Added _extract_meaningful_name() method
+- [x] Improved keyword matching with word boundaries
+- [x] Enhanced prompts with CRITICAL section
+- [x] Created comprehensive test suite
+
+### Test Results
+✅ 9/9 tests passing
+✅ No more "new_feature.py" or generic names
+✅ All filenames are meaningful and descriptive
+
+**Examples:**
+- "Implement user authentication" → features/user_authentication_system.py
+- "Add test for user login" → tests/test_user_login.py
+- "Create email notification" → features/email_notification_service.py
+
+### Commits
+- e1e200e: Initial fix with name extraction
+- 798411b: Improved with word boundary matching and tests
