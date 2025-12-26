@@ -70,7 +70,7 @@ class ToolAnalyzer:
             handlers_path: Path to handlers.py containing built-in tools
             custom_tools_dir: Directory containing custom tools
         """
-        self.logger = get_logger(__name__)
+        self.logger = get_logger()
         self.handlers_path = Path(handlers_path)
         self.custom_tools_dir = Path(custom_tools_dir)
         
