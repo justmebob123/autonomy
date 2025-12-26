@@ -15,6 +15,7 @@ from .failure_analyzer import FailureAnalyzer, ModificationFailure, create_failu
 from .signature_extractor import SignatureExtractor
 from .context_investigator import ContextInvestigator
 from .import_analyzer import ImportAnalyzer
+from .syntax_validator import SyntaxValidator
 
 
 class ToolCallHandler:
@@ -103,7 +104,8 @@ class ToolCallHandler:
         if tool_registry:
             tool_registry.set_handler(self)
             self.logger.info(f"Registered {len(tool_registry.tools)} custom tools from ToolRegistry")
-    
+        self.syntax_validator = SyntaxValidator()
+
     def reset(self):
         """Reset tracking state"""
         self.files_created = []
@@ -341,19 +343,25 @@ class ToolCallHandler:
             return {"tool": "create_file", "success": False, "error": "Invalid filepath after normalization", "original_path": original_filepath}
         
         # Validate Python syntax
-        if filepath.endswith('.py'):
-            valid, error = validate_python_syntax(code)
-            if not valid:
-                self.logger.warning(f"  ⚠️ Syntax error in {filepath}: {error}")
-                return {
-                    "tool": "create_file", 
-                    "success": False,
-                    "error": f"Syntax error: {error}", 
-                    "filepath": filepath,
-                    "error_type": "syntax_error"
-                }
+        # Validate and fix syntax
+        is_valid, fixed_code, error_msg = self.syntax_validator.validate_and_fix(code, filepath)
         
-        # Create directory and file
+        if not is_valid:
+            self.logger.error(f"Syntax validation failed for {filepath}")
+            self.logger.error(error_msg)
+            return {
+                "tool": "create_file",
+                "success": False,
+                "error": f"Syntax error: {error_msg}",
+                "filepath": filepath
+            }
+        
+        # Use fixed code if it was modified
+        if fixed_code != code:
+            self.logger.info(f"Using auto-fixed code for {filepath}")
+            code = fixed_code
+        
+# Create directory and file
         full_path = self.project_dir / filepath
         
         try:
@@ -617,6 +625,24 @@ class ToolCallHandler:
                 self.logger.info(f"  💾 Saved patch: {patch_filename}")
         except Exception as e:
             self.logger.warning(f"  ⚠️  Could not save patch: {e}")
+        
+        # Validate syntax before writing
+        is_valid, fixed_content, error_msg = self.syntax_validator.validate_and_fix(new_content, filepath)
+        
+        if not is_valid:
+            self.logger.error(f"Syntax validation failed for modified {filepath}")
+            self.logger.error(error_msg)
+            return {
+                "tool": "modify_file",
+                "success": False,
+                "error": f"Syntax error after modification: {error_msg}",
+                "filepath": filepath
+            }
+        
+        # Use fixed content if it was modified
+        if fixed_content != new_content:
+            self.logger.info(f"Using auto-fixed code for {filepath}")
+            new_content = fixed_content
         
         full_path.write_text(new_content)
         
