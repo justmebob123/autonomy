@@ -341,6 +341,66 @@ class PhaseCoordinator:
             self.logger.info("\n\n⚠️ Pipeline interrupted by user")
             return False
     
+    def _develop_tool(self, tool_name: str, tool_args: dict, 
+                     usage_context: dict, state: PipelineState) -> 'PhaseResult':
+        """
+        Develop a new tool through tool_design and tool_evaluation phases.
+        
+        Args:
+            tool_name: Name of the tool to create
+            tool_args: Arguments that were passed to the unknown tool
+            usage_context: Context about how/where the tool was used
+            state: Current pipeline state
+            
+        Returns:
+            PhaseResult from tool_evaluation phase
+        """
+        from .phases.base import PhaseResult
+        
+        self.logger.info(f"📐 Designing tool: {tool_name}")
+        
+        # Step 1: Design the tool
+        if 'tool_design' not in self.phases:
+            self.logger.error("tool_design phase not available")
+            return PhaseResult(
+                success=False,
+                phase='tool_development',
+                message="tool_design phase not available"
+            )
+        
+        design_result = self.phases['tool_design'].execute(
+            state,
+            tool_name=tool_name,
+            tool_args=tool_args,
+            usage_context=usage_context
+        )
+        
+        if not design_result.success:
+            self.logger.error(f"Tool design failed: {design_result.message}")
+            return design_result
+        
+        self.logger.info(f"✓ Tool designed: {tool_name}")
+        
+        # Step 2: Evaluate the tool
+        if 'tool_evaluation' not in self.phases:
+            self.logger.warning("tool_evaluation phase not available, skipping validation")
+            return design_result
+        
+        self.logger.info(f"🧪 Evaluating tool: {tool_name}")
+        
+        eval_result = self.phases['tool_evaluation'].execute(
+            state,
+            tool_name=tool_name,
+            tool_spec=design_result.data.get('tool_spec')
+        )
+        
+        if eval_result.success:
+            self.logger.info(f"✓ Tool validated: {tool_name}")
+        else:
+            self.logger.warning(f"Tool validation failed: {eval_result.message}")
+        
+        return eval_result
+    
     def _run_loop(self) -> bool:
         """
         Main execution loop - NEVER returns None for next action.
@@ -387,7 +447,39 @@ class PhaseCoordinator:
             task = action.get("task")
             
             try:
+                # Execute the phase with unknown tool detection
                 result = phase.run(task=task)
+                
+                # Check for unknown tool errors
+                if not result.success and result.data.get('requires_tool_development'):
+                    self.logger.info(f"🔧 Unknown tools detected, initiating tool development")
+                    
+                    unknown_tools = result.data.get('unknown_tools', [])
+                    tool_calls = result.data.get('original_tool_calls', [])
+                    
+                    # Develop each unknown tool
+                    all_tools_developed = True
+                    for unknown_tool in unknown_tools:
+                        tool_result = self._develop_tool(
+                            tool_name=unknown_tool['tool_name'],
+                            tool_args=unknown_tool.get('args', {}),
+                            usage_context={
+                                'phase': phase_name,
+                                'original_tool_calls': tool_calls
+                            },
+                            state=state
+                        )
+                        
+                        if not tool_result.success:
+                            self.logger.error(f"Failed to develop tool: {unknown_tool['tool_name']}")
+                            all_tools_developed = False
+                            break
+                    
+                    # Retry original phase if all tools were developed
+                    if all_tools_developed:
+                        self.logger.info(f"🔄 Retrying {phase_name} with newly developed tools")
+                        result = phase.run(task=task)
+
                 
                 # Record phase run
                 state = self.state_manager.load()  # Reload in case phase modified it

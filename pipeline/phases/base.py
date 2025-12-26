@@ -231,6 +231,43 @@ class BasePhase(ABC):
         if len(self._adaptation_history) > 100:
             self._adaptation_history = self._adaptation_history[-100:]
     
+    def check_for_unknown_tools(self, results: List[Dict]) -> Optional[List[Dict]]:
+        """
+        Check tool call results for unknown tools.
+        
+        Args:
+            results: List of tool call results
+            
+        Returns:
+            List of unknown tool errors if any, None otherwise
+        """
+        unknown_tools = [r for r in results if r.get('error_type') == 'unknown_tool']
+        return unknown_tools if unknown_tools else None
+    
+    def create_unknown_tool_result(self, unknown_tools: List[Dict], 
+                                    tool_calls: List[Dict]) -> PhaseResult:
+        """
+        Create a PhaseResult for unknown tool errors.
+        
+        Args:
+            unknown_tools: List of unknown tool errors
+            tool_calls: Original tool calls
+            
+        Returns:
+            PhaseResult indicating unknown tools need development
+        """
+        tool_names = [t['tool_name'] for t in unknown_tools]
+        return PhaseResult(
+            success=False,
+            phase=self.phase_name,
+            message=f"Unknown tools detected: {tool_names}",
+            data={
+                'unknown_tools': unknown_tools,
+                'requires_tool_development': True,
+                'original_tool_calls': tool_calls
+            }
+        )
+    
     def _increase_self_awareness(self):
         """Increase self-awareness level based on experience."""
         # Logarithmic growth: fast at first, slower later

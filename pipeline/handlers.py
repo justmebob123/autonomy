@@ -263,7 +263,15 @@ class ToolCallHandler:
         handler = self._handlers.get(name)
         if not handler:
             self.logger.warning(f"Unknown tool: {name}")
-            return {"tool": name, "success": False, "error": f"Unknown tool: {name}"}
+            return {
+                "tool": name,
+                "success": False,
+                "error": "unknown_tool",
+                "error_type": "unknown_tool",
+                "tool_name": name,
+                "message": f"Unknown tool: {name}",
+                "args": args  # Include for context
+            }
         
         try:
             return handler(args)
