@@ -153,13 +153,47 @@ class PhaseCoordinator:
         
         self.logger.info(f"Polytopic structure: {len(self.polytope['vertices'])} vertices, 7D")
     
-    def _select_next_phase_polytopic(self, state):
+    def _should_force_transition(self, state, current_phase: str) -> bool:
+        """
+        Check if we should force a phase transition due to lack of progress.
+        
+        Returns True if:
+        - Same phase has run 5+ times consecutively
+        - Phase keeps returning "no updates needed"
+        - No state changes in last 3 iterations
+        
+        Args:
+            state: Pipeline state
+            current_phase: Current phase name
+            
+        Returns:
+            True if forced transition needed
+        """
+        # Check phase repetition
+        recent_phases = state.phase_history[-5:] if len(state.phase_history) >= 5 else []
+        if len(recent_phases) == 5 and all(p == current_phase for p in recent_phases):
+            self.logger.warning(f"Phase {current_phase} has run 5 times consecutively")
+            return True
+        
+        # Check no-update count
+        no_update_count = state.no_update_counts.get(current_phase, 0)
+        if no_update_count >= 3:
+            self.logger.warning(f"Phase {current_phase} returned 'no updates' {no_update_count} times")
+            return True
+        
+        return False
+    
+    def _select_next_phase_polytopic(self, state, current_phase: str = None):
         """Select next phase using polytopic adjacency with intelligent situation analysis."""
         from .state.manager import TaskStatus
         
+        # Use provided current_phase or get from state
+        if current_phase is None:
+            current_phase = state.current_phase
+        
         # Build context from state
         context = {
-            'current_phase': state.current_phase,
+            'current_phase': current_phase,
             'tasks': state.tasks,
             'errors': [t for t in state.tasks.values() if t.status == TaskStatus.FAILED],
             'pending': [t for t in state.tasks.values() if t.status == TaskStatus.PENDING],
@@ -170,7 +204,7 @@ class PhaseCoordinator:
         situation = self._analyze_situation(context)
         
         # Select path intelligently
-        return self._select_intelligent_path(situation, state.current_phase)
+        return self._select_intelligent_path(situation, current_phase)
     
     def _analyze_situation(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """Comprehensive situation analysis with error severity, complexity, and urgency assessment."""
@@ -460,6 +494,33 @@ class PhaseCoordinator:
             if not phase:
                 self.logger.error(f"Unknown phase: {phase_name}")
                 continue
+            
+            # Check if we should force transition due to lack of progress
+            if self._should_force_transition(state, phase_name):
+                self.logger.warning(f"⚠️  Forcing transition from {phase_name} due to lack of progress")
+                
+                # Reset counters
+                self.state_manager.reset_no_update_count(state, phase_name)
+                
+                # Select next phase based on adjacency
+                next_phase = self._select_next_phase_polytopic(state, phase_name)
+                
+                self.logger.info(f"🔄 Transitioning to {next_phase}")
+                
+                # Update action to use next phase
+                action = {
+                    "phase": next_phase,
+                    "reason": f"Forced transition from {phase_name} to break loop"
+                }
+                phase_name = next_phase
+                phase = self.phases.get(phase_name)
+            
+            # Track phase in history
+            if not hasattr(state, 'phase_history'):
+                state.phase_history = []
+            state.phase_history.append(phase_name)
+            state.current_phase = phase_name
+            self.state_manager.save(state)
             
             # Execute the phase
             task = action.get("task")

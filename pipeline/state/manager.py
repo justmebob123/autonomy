@@ -223,6 +223,10 @@ class PipelineState:
     troubleshooting_results: List[Dict] = field(default_factory=list)
     correlations: List[Dict] = field(default_factory=list)
     
+    # Loop prevention fields
+    no_update_counts: Dict[str, int] = field(default_factory=dict)
+    phase_history: List[str] = field(default_factory=list)
+    
     def __post_init__(self):
         if not self.updated:
             self.updated = datetime.now().isoformat()
@@ -291,6 +295,15 @@ class PipelineState:
             "last_doc_update_count": self.last_doc_update_count,
             "project_maturity": self.project_maturity,
             "last_planning_iteration": self.last_planning_iteration,
+            # Learning and intelligence
+            "performance_metrics": dict(self.performance_metrics),
+            "learned_patterns": dict(self.learned_patterns),
+            "fix_history": self.fix_history,
+            "troubleshooting_results": self.troubleshooting_results,
+            "correlations": self.correlations,
+            # Loop prevention
+            "no_update_counts": self.no_update_counts,
+            "phase_history": self.phase_history,
         }
     
     @classmethod
@@ -628,3 +641,44 @@ class StateManager:
                 for name, p in state.phases.items()
             }
         }
+    
+    def increment_no_update_count(self, state: PipelineState, phase: str) -> int:
+        """
+        Increment and return no-update count for a phase.
+        
+        Args:
+            state: Pipeline state
+            phase: Phase name
+            
+        Returns:
+            Current count after increment
+        """
+        if phase not in state.no_update_counts:
+            state.no_update_counts[phase] = 0
+        state.no_update_counts[phase] += 1
+        self.save(state)
+        return state.no_update_counts[phase]
+    
+    def reset_no_update_count(self, state: PipelineState, phase: str):
+        """
+        Reset no-update count when phase makes progress.
+        
+        Args:
+            state: Pipeline state
+            phase: Phase name
+        """
+        state.no_update_counts[phase] = 0
+        self.save(state)
+    
+    def get_no_update_count(self, state: PipelineState, phase: str) -> int:
+        """
+        Get current no-update count for a phase.
+        
+        Args:
+            state: Pipeline state
+            phase: Phase name
+            
+        Returns:
+            Current count
+        """
+        return state.no_update_counts.get(phase, 0)

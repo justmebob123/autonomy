@@ -118,6 +118,7 @@ class PatternDetector:
         detections.extend(self.detect_circular_dependencies())
         detections.extend(self.detect_state_cycles())
         detections.extend(self.detect_pattern_repetition())
+        detections.extend(self.detect_no_progress_loop())
         
         # Filter out false positives based on phase context
         detections = self._filter_phase_aware(detections)
@@ -560,3 +561,48 @@ class PatternDetector:
         high_count = sum(1 for d in detections if d.severity == 'high')
         
         return critical_count > 0 or high_count >= 2
+    
+    def detect_no_progress_loop(self) -> List[LoopDetection]:
+        """
+        Detect when system is stuck returning 'no updates needed' repeatedly.
+        
+        This is a specific type of loop where:
+        - Same phase runs multiple times
+        - Each time returns "no updates needed" or similar
+        - No actual work is being done
+        
+        Returns:
+            List of detected no-progress loops
+        """
+        detections = []
+        
+        recent = self.tracker.get_recent_actions(20)
+        
+        # Group by phase
+        phase_actions = defaultdict(list)
+        for action in recent:
+            phase_actions[action.phase].append(action)
+        
+        for phase, actions in phase_actions.items():
+            if len(actions) >= 5:
+                # Check if all actions are "read-only" (no modifications)
+                modification_tools = {'str_replace', 'full_file_rewrite', 'create_file', 'delete_file'}
+                modifications = [a for a in actions if a.tool in modification_tools]
+                
+                # If less than 20% are modifications, likely stuck in analysis loop
+                if len(modifications) < len(actions) * 0.2:
+                    detections.append(LoopDetection(
+                        loop_type='no_progress_loop',
+                        severity='high',
+                        description=f'{phase} phase running repeatedly without making changes',
+                        evidence=[
+                            f'Phase: {phase}',
+                            f'Iterations: {len(actions)}',
+                            f'Modifications: {len(modifications)} ({len(modifications)/len(actions)*100:.0f}%)',
+                            f'Read-only actions: {len(actions) - len(modifications)}'
+                        ],
+                        suggestion=f'Phase {phase} is stuck in analysis. Force transition to next phase or ask user for guidance.',
+                        actions_involved=actions
+                    ))
+        
+        return detections

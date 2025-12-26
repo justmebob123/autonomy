@@ -43,6 +43,25 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         
         self.logger.info("  📝 Reviewing documentation...")
         
+        # Check no-update count BEFORE processing
+        from ..state.manager import StateManager
+        state_manager = StateManager(self.project_dir)
+        no_update_count = state_manager.get_no_update_count(state, self.phase_name)
+        
+        if no_update_count >= 3:
+            self.logger.warning(f"  ⚠️  Documentation phase returned 'no updates' {no_update_count} times")
+            self.logger.info("  🔄 Forcing transition to next phase to prevent loop")
+            
+            # Reset counter
+            state_manager.reset_no_update_count(state, self.phase_name)
+            
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message="Documentation reviewed multiple times - forcing completion to prevent loop",
+                next_phase="project_planning"  # Explicit transition
+            )
+        
         # Gather context
         context = self._gather_documentation_context(state)
         
@@ -76,13 +95,28 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         tool_calls, content = self.parser.parse_response(response)
         
         if not tool_calls:
-            # No updates needed or couldn't parse
-            self.logger.info("  Documentation appears current")
+            # Increment no-update counter
+            count = state_manager.increment_no_update_count(state, self.phase_name)
+            
+            self.logger.info(f"  Documentation appears current (count: {count}/3)")
+            
+            # After 2 "no updates", suggest moving on
+            if count >= 2:
+                message = "Documentation reviewed - no updates needed. Ready to move to next phase."
+                next_phase = "project_planning"
+            else:
+                message = "Documentation reviewed - no updates needed"
+                next_phase = None
+            
             return PhaseResult(
                 success=True,
                 phase=self.phase_name,
-                message="Documentation reviewed - no updates needed"
+                message=message,
+                next_phase=next_phase
             )
+        
+        # If we got tool calls, reset counter (making progress)
+        state_manager.reset_no_update_count(state, self.phase_name)
         
         # Check for loops before processing
         if self.check_for_loops():
