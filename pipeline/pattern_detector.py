@@ -119,11 +119,80 @@ class PatternDetector:
         detections.extend(self.detect_state_cycles())
         detections.extend(self.detect_pattern_repetition())
         
+        # Filter out false positives based on phase context
+        detections = self._filter_phase_aware(detections)
+        
         # Sort by severity
         severity_order = {'critical': 0, 'high': 1, 'medium': 2, 'low': 3}
         detections.sort(key=lambda d: severity_order.get(d.severity, 4))
         
         return detections
+    
+    def _filter_phase_aware(self, detections: List[LoopDetection]) -> List[LoopDetection]:
+        """
+        Filter out false positives based on phase context.
+        
+        Different phases have different expected patterns:
+        - QA: Reading multiple files and searching code is NORMAL
+        - Investigation: Gathering context from multiple sources is NORMAL
+        - Debugging: Trying 2-3 different approaches is NORMAL
+        
+        Args:
+            detections: Raw loop detections
+            
+        Returns:
+            Filtered detections with false positives removed
+        """
+        filtered = []
+        recent_actions = self.tracker.get_recent_actions(20)
+        
+        # Determine current phase
+        current_phase = recent_actions[-1].phase if recent_actions else 'unknown'
+        
+        for detection in detections:
+            # Get actions involved in this detection
+            actions = detection.actions_involved if detection.actions_involved else recent_actions
+            
+            # Check if this is a false positive
+            is_false_positive = False
+            
+            # QA Phase: Reading/searching multiple files is normal
+            if current_phase == 'qa' and detection.loop_type in ['conversation_loop', 'pattern_repetition', 'state_cycle']:
+                # Check if actions are just reading different files
+                tools_used = set(a.tool for a in actions)
+                files_accessed = set(a.file_path for a in actions if a.file_path)
+                
+                # If using read/search tools on different files, it's normal QA work
+                if tools_used <= {'read_file', 'search_code', 'list_directory'} and len(files_accessed) > 1:
+                    is_false_positive = True
+            
+            # Investigation Phase: Gathering context is normal
+            if current_phase == 'investigation' and detection.loop_type in ['conversation_loop', 'pattern_repetition']:
+                tools_used = set(a.tool for a in actions)
+                investigation_tools = {'read_file', 'search_code', 'list_directory', 'execute_command', 
+                                     'investigate_data_flow', 'investigate_parameter_removal', 'get_function_signature'}
+                
+                # If using investigation tools, it's normal
+                if tools_used <= investigation_tools:
+                    is_false_positive = True
+            
+            # Debugging Phase: Only flag if SAME fix attempted 3+ times
+            if current_phase == 'debugging' and detection.loop_type == 'modification_loop':
+                # Check if modifications are on SAME code
+                modifications = [a for a in actions if a.tool in ['str_replace', 'full_file_rewrite']]
+                if modifications:
+                    old_strs = [m.args.get('old_str', '')[:100] for m in modifications if 'old_str' in m.args]
+                    unique_targets = len(set(old_strs))
+                    
+                    # If targeting different code each time, it's trying different approaches (good)
+                    if unique_targets >= len(modifications) * 0.7:  # 70% unique
+                        is_false_positive = True
+            
+            # Only keep real loops
+            if not is_false_positive:
+                filtered.append(detection)
+        
+        return filtered
     
     def detect_action_loops(self) -> List[LoopDetection]:
         """
