@@ -31,6 +31,7 @@ class PhaseResult:
     errors: List[Dict] = field(default_factory=list)
     data: Dict[str, Any] = field(default_factory=dict)
     timestamp: str = ""
+    next_phase: Optional[str] = None  # Hint for coordinator about which phase to run next
     
     def __post_init__(self):
         if not self.timestamp:
@@ -47,6 +48,7 @@ class PhaseResult:
             "errors": self.errors,
             "data": self.data,
             "timestamp": self.timestamp,
+            "next_phase": self.next_phase,
         }
 
 

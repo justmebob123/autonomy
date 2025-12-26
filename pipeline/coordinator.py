@@ -560,6 +560,16 @@ class PhaseCoordinator:
                         result = phase.run(task=task)
 
                 
+                # Check if phase suggests next phase (loop prevention hint)
+                if result.next_phase:
+                    self.logger.info(f"  💡 Phase suggests next: {result.next_phase}")
+                    # Store hint for next iteration
+                    state = self.state_manager.load()
+                    if not hasattr(state, '_next_phase_hint'):
+                        state._next_phase_hint = None
+                    state._next_phase_hint = result.next_phase
+                    self.state_manager.save(state)
+                
                 # Record phase run
                 state = self.state_manager.load()  # Reload in case phase modified it
                 if phase_name in state.phases:
@@ -603,6 +613,7 @@ class PhaseCoordinator:
         IMPORTANT: This method NEVER returns None. It always finds work to do.
         
         Priority order:
+        0. Check for next_phase hint from previous phase (loop prevention)
         1. Initial planning if no tasks exist
         2. QA for code awaiting review
         3. Debugging for code needing fixes
@@ -613,6 +624,16 @@ class PhaseCoordinator:
         Returns:
             Dict with 'phase', 'reason', and optionally 'task'
         """
+        
+        # 0. Check for next_phase hint (loop prevention)
+        if hasattr(state, '_next_phase_hint') and state._next_phase_hint:
+            next_phase = state._next_phase_hint
+            state._next_phase_hint = None  # Clear hint after using
+            self.state_manager.save(state)
+            return {
+                "phase": next_phase,
+                "reason": "phase_hint_from_loop_prevention"
+            }
         
         # 1. Initial planning needed (no tasks at all)
         if state.needs_planning:
