@@ -263,14 +263,17 @@ class ToolCallHandler:
         handler = self._handlers.get(name)
         if not handler:
             self.logger.warning(f"Unknown tool: {name}")
+            self.logger.warning(f"  Available tools: {', '.join(sorted(self._handlers.keys()))}")
+            self.logger.warning(f"  Args provided: {list(args.keys())}")
             return {
                 "tool": name,
                 "success": False,
                 "error": "unknown_tool",
                 "error_type": "unknown_tool",
                 "tool_name": name,
-                "message": f"Unknown tool: {name}",
-                "args": args  # Include for context
+                "message": f"Unknown tool: {name}. Available tools: {', '.join(sorted(self._handlers.keys())[:5])}...",
+                "args": args,  # Include for context
+                "available_tools": list(self._handlers.keys())
             }
         
         try:
@@ -319,15 +322,19 @@ class ToolCallHandler:
         code = args.get("code", args.get("content", ""))
         
         if not filepath:
-            return {"tool": "create_file", "success": False, "error": "Missing filepath"}
+            self.logger.error(f"create_file called with missing filepath. Args: {args.keys()}")
+            return {"tool": "create_file", "success": False, "error": "Missing filepath", "args_received": list(args.keys())}
         if not code:
-            return {"tool": "create_file", "success": False, "error": "Missing code/content"}
+            self.logger.error(f"create_file called with missing code for {filepath}")
+            return {"tool": "create_file", "success": False, "error": "Missing code/content", "filepath": filepath}
         
         # CRITICAL: Normalize path to prevent absolute path issues
+        original_filepath = filepath
         filepath = self._normalize_filepath(filepath)
         
         if not filepath:
-            return {"tool": "create_file", "success": False, "error": "Invalid filepath after normalization"}
+            self.logger.error(f"Path normalization failed: '{original_filepath}' -> empty string")
+            return {"tool": "create_file", "success": False, "error": "Invalid filepath after normalization", "original_path": original_filepath}
         
         # Validate Python syntax
         if filepath.endswith('.py'):
@@ -346,8 +353,12 @@ class ToolCallHandler:
         full_path = self.project_dir / filepath
         
         try:
+            self.logger.debug(f"Creating directory: {full_path.parent}")
             full_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            self.logger.debug(f"Writing file: {full_path} ({len(code)} bytes)")
             full_path.write_text(code)
+            
             self.files_created.append(filepath)
             self.logger.info(f"  📝 Created: {filepath} ({len(code)} bytes)")
             
@@ -355,23 +366,34 @@ class ToolCallHandler:
                 "tool": "create_file", 
                 "success": True,
                 "filepath": filepath, 
-                "size": len(code)
+                "size": len(code),
+                "full_path": str(full_path)
             }
         except PermissionError as e:
             self.logger.error(f"  ✗ Permission denied for {filepath}: {e}")
+            self.logger.error(f"     Full path: {full_path}")
+            self.logger.error(f"     Project dir: {self.project_dir}")
             return {
                 "tool": "create_file", 
                 "success": False,
                 "error": f"Permission denied: {filepath}", 
-                "filepath": filepath
+                "filepath": filepath,
+                "full_path": str(full_path),
+                "error_details": str(e)
             }
         except Exception as e:
             self.logger.error(f"  ✗ Failed to write {filepath}: {e}")
+            self.logger.error(f"     Full path: {full_path}")
+            self.logger.error(f"     Error type: {type(e).__name__}")
+            import traceback
+            self.logger.error(f"     Traceback: {traceback.format_exc()}")
             return {
                 "tool": "create_file", 
                 "success": False,
                 "error": str(e), 
-                "filepath": filepath
+                "filepath": filepath,
+                "full_path": str(full_path),
+                "error_type": type(e).__name__
             }
     
     def _handle_modify_file(self, args: Dict) -> Dict:
