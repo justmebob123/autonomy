@@ -10,6 +10,7 @@ Contains all tool definitions used by pipeline phases:
 """
 
 from typing import List, Dict
+from .system_analyzer_tools import SYSTEM_ANALYZER_TOOLS
 
 
 # =============================================================================
@@ -929,6 +930,9 @@ def get_tools_for_phase(phase: str, tool_registry=None) -> List[Dict]:
     
     # Add monitoring tools to all phases for resource awareness
     tools = tools + TOOLS_MONITORING
+    
+    # Add system analyzer tools to all phases for self-analysis
+    tools = tools + SYSTEM_ANALYZER_TOOLS
     
     # Add custom tools from registry (Integration Point #3)
     if tool_registry:
