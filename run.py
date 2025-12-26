@@ -494,6 +494,36 @@ def run_debug_qa_mode(args) -> int:
                         # Convert runtime errors to format expected by error processing
                         # Extract file and line info from traceback
                         import re
+                        
+                        # CRITICAL: Detect environment issues (curses errors)
+                        curses_error_count = 0
+                        for error in runtime_errors_found:
+                            error_msg = error.get('line', '')
+                            if 'curses' in error_msg.lower() and ('returned ERR' in error_msg or 'error:' in error_msg.lower()):
+                                curses_error_count += 1
+                        
+                        # If we have multiple curses errors, this is an environment issue
+                        if curses_error_count >= 3:
+                            print("\n" + "="*70)
+                            print("⚠️  ENVIRONMENT ISSUE DETECTED ⚠️")
+                            print("="*70)
+                            print("\nThe curses UI cannot initialize. This is NOT a code problem.")
+                            print("The terminal environment is not suitable for curses.")
+                            print("\n🔧 SOLUTIONS:")
+                            print("\n1. Run with --no-ui flag (RECOMMENDED):")
+                            print("   ./autonomous ../my_project/ --no-ui")
+                            print("\n2. Fix terminal environment:")
+                            print("   export TERM=xterm-256color")
+                            print("\n3. Use screen/tmux:")
+                            print("   screen -S test")
+                            print("   ./autonomous ../my_project/")
+                            print("\n" + "="*70)
+                            print("\n⚠️  Skipping code fixes - environment must be fixed first")
+                            print("="*70 + "\n")
+                            
+                            # Skip processing these errors
+                            continue
+                        
                         for error in runtime_errors_found:
                             error_type = error.get('type', 'error')
                             context = error.get('context', [])
