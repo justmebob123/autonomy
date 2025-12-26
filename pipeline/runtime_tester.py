@@ -95,9 +95,9 @@ class ProgramRunner:
             self.logger.info(f"Spawned process: PID={pid}, PGID={pgid}")
             
             # Read output in real-time
-            while self.running and self.process.poll() is None:
+            while self.running and self.process and self.process.poll() is None:
                 # Read stdout
-                if self.process.stdout:
+                if self.process and self.process.stdout:
                     line = self.process.stdout.readline()
                     if line:
                         self.stdout_lines.append(line)
@@ -105,7 +105,7 @@ class ProgramRunner:
                             self.stdout_lines.pop(0)
                 
                 # Read stderr
-                if self.process.stderr:
+                if self.process and self.process.stderr:
                     line = self.process.stderr.readline()
                     if line:
                         self.stderr_lines.append(line)
@@ -120,14 +120,14 @@ class ProgramRunner:
                 
                 # CRITICAL: Read any remaining output after process exits
                 # This catches error messages that were buffered
-                if self.process.stdout:
+                if self.process and self.process.stdout:
                     remaining_stdout = self.process.stdout.read()
                     if remaining_stdout:
                         for line in remaining_stdout.splitlines():
                             if line:
                                 self.stdout_lines.append(line + '\n')
                 
-                if self.process.stderr:
+                if self.process and self.process.stderr:
                     remaining_stderr = self.process.stderr.read()
                     if remaining_stderr:
                         for line in remaining_stderr.splitlines():

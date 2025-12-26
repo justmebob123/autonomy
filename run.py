@@ -296,6 +296,11 @@ def run_debug_qa_mode(args) -> int:
     # Initialize progress tracker
     progress_tracker = ProgressTracker()
     
+    # Progressive test duration tracking
+    consecutive_successes = 0
+    current_test_duration = getattr(args, 'test_duration', 300)  # Start with 5 minutes
+    max_test_duration = 48 * 60 * 60  # 48 hours in seconds
+    
     try:
         while True:
             iteration += 1
@@ -440,13 +445,14 @@ def run_debug_qa_mode(args) -> int:
                     print("\n▶️  Starting program execution...")
                     tester.start()
                     
-                    # Monitor for errors (configurable duration, default 5 minutes)
-                    test_duration = getattr(args, 'test_duration', 300)  # Default 5 minutes
-                    print(f"   Monitoring for runtime errors ({test_duration} seconds)...")
+                    # Monitor for errors (progressive duration)
+                    print(f"   Monitoring for runtime errors ({current_test_duration} seconds)...")
+                    if consecutive_successes > 0:
+                        print(f"   📈 Progressive testing: {consecutive_successes} consecutive successes, duration doubled")
                     start_time = time.time()
                     runtime_errors_found = []
                     
-                    while time.time() - start_time < test_duration:
+                    while time.time() - start_time < current_test_duration:
                         errors = tester.get_errors()
                         if errors:
                             runtime_errors_found.extend(errors)
@@ -644,7 +650,30 @@ def run_debug_qa_mode(args) -> int:
                         all_errors = syntax_errors + import_errors + runtime_errors
                         # Don't break - we want to continue to error processing below
                     else:
-                        print(f"\n✅ No runtime errors detected in {int(time.time() - start_time)} seconds")
+                        actual_duration = int(time.time() - start_time)
+                        print(f"\n✅ No runtime errors detected in {actual_duration} seconds")
+                        
+                        # Progressive testing: increase duration on success
+                        consecutive_successes += 1
+                        
+                        # Double the test duration (up to 48 hours)
+                        if current_test_duration < max_test_duration:
+                            previous_duration = current_test_duration
+                            current_test_duration = min(current_test_duration * 2, max_test_duration)
+                            
+                            hours = current_test_duration / 3600
+                            if hours >= 1:
+                                duration_str = f"{hours:.1f} hours"
+                            else:
+                                duration_str = f"{current_test_duration} seconds"
+                            
+                            print(f"\n📈 Progressive Testing Success!")
+                            print(f"   Consecutive successes: {consecutive_successes}")
+                            print(f"   Next test duration: {duration_str}")
+                            print(f"   (Will continue doubling until reaching 48 hours)")
+                        else:
+                            print(f"\n🏆 Maximum test duration reached (48 hours)")
+                            print(f"   Consecutive successes: {consecutive_successes}")
                         
                         # Check if we should extend monitoring or detach
                         success_timeout = getattr(args, 'success_timeout', 999999)  # UNLIMITED by default
@@ -658,7 +687,7 @@ def run_debug_qa_mode(args) -> int:
                             return 0
                         elif success_timeout > test_duration:
                             # Extend monitoring
-                            extended_duration = success_timeout - test_duration
+                            extended_duration = success_timeout - current_test_duration
                             print(f"\n⏱️  Extending monitoring for {extended_duration} more seconds...")
                             print(f"   (Use --detach to exit immediately on success)")
                             
@@ -668,6 +697,10 @@ def run_debug_qa_mode(args) -> int:
                                 if errors:
                                     print(f"\n⚠️  Errors appeared during extended monitoring!")
                                     runtime_errors_found.extend(errors)
+                                    # Reset progressive testing on error
+                                    consecutive_successes = 0
+                                    current_test_duration = getattr(args, 'test_duration', 300)
+                                    print(f"\n🔄 Progressive testing reset to {current_test_duration} seconds")
                                     break
                                 
                                 if not tester.is_running():
@@ -682,14 +715,15 @@ def run_debug_qa_mode(args) -> int:
                             if not runtime_errors_found:
                                 print("\n🎉 All tests passed!")
                                 print(f"✅ Program ran successfully for {int(time.time() - start_time)} seconds")
-                                return 0
+                                # Continue to next iteration with increased duration
+                                continue
                             else:
                                 # Errors found during extended monitoring - continue to process them
                                 print(f"\n🔄 Processing errors found during extended monitoring...")
                                 # The error processing logic below will handle these
                         else:
-                            print("\n🎉 All tests passed!")
-                            return 0
+                            # Continue to next iteration with increased duration
+                            continue
                 else:
                     # No test command, just report success
                     if iteration == 1:
@@ -700,6 +734,13 @@ def run_debug_qa_mode(args) -> int:
                     print("\nYou can now run the application normally.")
                     print("\n💡 Tip: Use --command to run runtime tests automatically")
                     return 0
+            
+            # Reset progressive testing when errors are found
+            if all_errors:
+                consecutive_successes = 0
+                current_test_duration = getattr(args, 'test_duration', 300)
+                if iteration > 1:  # Only show reset message after first iteration
+                    print(f"\n🔄 Progressive testing reset to {current_test_duration} seconds due to errors")
             
             # Deduplicate errors before processing
             from pipeline.error_dedup import deduplicate_errors, format_deduplicated_summary
