@@ -21,6 +21,7 @@ from ..prompts import SYSTEM_PROMPTS, get_project_planning_prompt
 from ..tools import TOOLS_PROJECT_PLANNING
 from ..handlers import ToolCallHandler
 from ..logging_setup import get_logger
+from ..text_tool_parser import TextToolParser
 
 
 class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
@@ -45,6 +46,7 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         """Initialize with loop detection"""
         BasePhase.__init__(self, *args, **kwargs)
         self.init_loop_detection()
+        self.text_parser = TextToolParser()
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """Execute project planning phase"""
@@ -121,16 +123,40 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
                 self.logger.error("  Response contains tool names but parser failed to extract them!")
                 self.logger.error("  This indicates a parsing issue, not a model issue")
             
-            return PhaseResult(
-                success=False,
-                phase=self.phase_name,
-                message="Failed to generate expansion plan - no tool calls in response",
-                data={
-                    "response_length": len(content) if content else 0,
-                    "has_content": bool(content),
-                    "content_preview": content[:200] if content else None
-                }
-            )
+            # FALLBACK: Try to extract tasks from text response
+            if content:
+                self.logger.info("  🔄 Attempting to extract tasks from text response...")
+                tasks = self.text_parser.parse_project_planning_response(content)
+                
+                if tasks:
+                    self.logger.info(f"  ✓ Extracted {len(tasks)} tasks from text response")
+                    # Convert to tool call format
+                    tool_calls = self.text_parser.create_tool_calls_from_tasks(tasks)
+                    self.logger.info("  ✓ Converted to tool call format, continuing with normal flow")
+                    # Continue with normal processing below
+                else:
+                    self.logger.warning("  ✗ Could not extract tasks from text response")
+                    return PhaseResult(
+                        success=False,
+                        phase=self.phase_name,
+                        message="Failed to generate expansion plan - no tool calls in response",
+                        data={
+                            "response_length": len(content) if content else 0,
+                            "has_content": bool(content),
+                            "content_preview": content[:200] if content else None
+                        }
+                    )
+            else:
+                return PhaseResult(
+                    success=False,
+                    phase=self.phase_name,
+                    message="Failed to generate expansion plan - no tool calls and no content",
+                    data={
+                        "response_length": 0,
+                        "has_content": False,
+                        "content_preview": None
+                    }
+                )
         
         # Check for loops before processing
         if self.check_for_loops():
