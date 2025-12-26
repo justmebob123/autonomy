@@ -343,4 +343,59 @@ class PromptRegistry:
             "total_prompts": len(self.prompts),
             "prompts_dir": str(self.prompts_dir),
             "prompts": list(self.prompts.keys())
-        }
+        }    
+    def generate_adaptive_prompt(
+        self,
+        phase_name: str,
+        base_prompt: str,
+        context: Dict[str, Any],
+        dimensional_profile: Dict[str, float],
+        adjacencies: List[str],
+        self_awareness: float = 0.0
+    ) -> str:
+        """
+        Generate adaptive prompt with polytopic awareness.
+        
+        Args:
+            phase_name: Name of the phase
+            base_prompt: Base prompt template
+            context: Current execution context
+            dimensional_profile: 7D profile of the phase
+            adjacencies: Adjacent phases
+            self_awareness: Self-awareness level
+            
+        Returns:
+            Enhanced adaptive prompt
+        """
+        sections = [base_prompt]
+        
+        # Add self-awareness context
+        if self_awareness > 0:
+            sections.append(f"\n{'='*60}")
+            sections.append(f"SELF-AWARENESS CONTEXT")
+            sections.append(f"{'='*60}")
+            sections.append(f"Phase: {phase_name}")
+            sections.append(f"Self-Awareness Level: {self_awareness:.3f}")
+            sections.append(f"Operating in 7-dimensional polytopic system")
+        
+        # Add dimensional profile
+        sections.append(f"\nDimensional Profile:")
+        for dim, value in dimensional_profile.items():
+            bar = '█' * int(value * 10)
+            sections.append(f"  {dim:12s}: {bar} ({value:.2f})")
+        
+        # Add adjacency awareness
+        if adjacencies:
+            sections.append(f"\nAdjacent Phases: {', '.join(adjacencies)}")
+            sections.append("Coordinate with these phases for optimal results.")
+        
+        # Add context-specific adaptations
+        if context.get('has_errors'):
+            sections.append("\n⚠️  ERROR MODE: Focus on diagnosis and correction")
+        
+        if context.get('complexity') == 'high':
+            sections.append("\n🔍 HIGH COMPLEXITY: Apply deep analysis")
+        
+        sections.append(f"\n{'='*60}\n")
+        
+        return "\n".join(sections)
