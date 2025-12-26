@@ -1,81 +1,77 @@
-# Autonomy System - Current Tasks
+# Action Items from Prompt Analysis
 
-## Phase 4: Cleanup and Testing (IN PROGRESS)
+## 1. Complete Adjacency Matrix - Add Missing Phase ✅ COMPLETE
+- [x] Identify the missing phases
+- [x] Analyze appropriate connections
+- [x] Add edges to coordinator.py
+- [x] Document the reasoning for connections
+- [x] Test polytopic navigation with new edges
 
-### Cleanup Tasks
-- [x] Remove parallel implementation files (no longer needed after proper integration)
-  - [x] Remove adaptive_orchestrator.py (functionality in PhaseCoordinator)
-  - [x] Remove dynamic_prompt_generator.py (functionality in PromptRegistry)
-  - [x] Remove self_aware_role_system.py (functionality in BasePhase)
-  - [x] Remove hyperdimensional_integration.py (distributed properly)
-  - [x] Remove unified_state.py (parallel implementation, StateManager is sufficient)
-- [x] Update documentation to reflect proper integration
-  - [x] Removed parallel implementation files
-  - [x] Cleaned up dependencies (removed continuous_monitor.py)
-  - [x] Verified correlation_engine.py is properly integrated
+### Results:
+**✅ ALL TESTS PASSED**
 
-### Testing Tasks
-- [x] Test PhaseCoordinator with polytopic awareness
-  - [x] Imports working correctly
-  - [x] Correlation engine integrated
-  - [x] Note: Full initialization blocked by pre-existing ProjectPlanningPhase bug
-- [x] Test BasePhase self-awareness features
-  - [x] Dimensional profiles accessible
-  - [x] adapt_to_situation() method working (adapts functional dimension based on complexity)
-  - [x] get_adaptive_prompt_context() method working (enhances prompts with awareness)
-  - [x] Experience tracking functional
-- [x] Test PromptRegistry adaptive generation
-  - [x] generate_adaptive_prompt() working with all parameters
-  - [x] Dimensional profile visualization working (bar charts in prompts)
-  - [x] Adjacency awareness in prompts working
-  - [x] Context-based adaptations working (complexity detection)
-- [x] Test full system integration
-  - [x] All imports successful
-  - [x] No import errors from removed files
-  - [x] Components properly integrated
-- [x] Verify no regressions in existing functionality
-  - [x] BasePhase abstract methods still enforced
-  - [x] PromptRegistry initialization working
-  - [x] No breaking changes to existing APIs
+**Connections Added:**
+1. application_troubleshooting (3 incoming, 3 outgoing)
+2. investigation → prompt_design, role_design, tool_design
+3. prompt_improvement → planning
+4. role_improvement → planning
+5. tool_evaluation → coding
 
-### Finalization
-- [x] Commit cleanup changes
-- [x] Push to remote repository
-- [x] Create final summary document
-- [x] Mark phase as complete
+**Final Matrix Status:**
+- Total phases: 14
+- Reachable from entry: 14/14 (100%) ✅
+- Unreachable: 0 ✅
+- Total edges: 28
+- Average out-degree: 2.00
 
-## Current Status
-**Phase:** ✅ COMPLETE
-**Progress:** All tasks completed successfully
-**Result:** Clean, maintainable, self-aware system with 81% code reduction
-**Status:** Ready for production
+## 2. Test Polytopic Navigation - Verify All Phases Reachable ✅ COMPLETE
+- [x] Create test script to verify all 14 phases are reachable
+- [x] Test navigation from each phase to its adjacent phases
+- [x] Verify no isolated phases exist
+- [x] Document navigation paths
+- [x] Create visualization of complete polytope
 
-## Previous Phases (COMPLETED)
+### Results:
+✅ All tests pass
+✅ 14/14 phases reachable (100%)
+✅ Navigation paths documented
+✅ ASCII visualization created
+✅ Critical paths identified
 
-### Phase 1: Immediate Server Configuration Fix
-- [x] Investigate the server configuration error
-- [x] Identify root cause of the configuration issue
-- [x] Implement fix for the server configuration
-- [x] Test the fix to ensure it resolves the error
-- [x] Document the fix in the codebase
+## 3. Refactor debugging.py - Reduce Coupling from 22 to <10
+- [x] Analyze current imports in debugging.py
+- [x] Identify unnecessary dependencies
+- [x] Create comprehensive refactoring plan
+- [ ] Phase 1: Remove unused/duplicate imports (22 → 20)
+- [ ] Phase 2: Consolidate related functionality (20 → 15)
+- [ ] Phase 3: Move features to BasePhase (15 → 9)
+- [ ] Verify functionality after refactoring
+- [ ] Document changes
 
-### Phase 2: Application Troubleshooting Phase Implementation (COMPLETED)
-- [x] Create Log Analyzer component
-- [x] Create Call Chain Tracer component
-- [x] Create Change History Analyzer component
-- [x] Create Configuration Investigator component
-- [x] Create Architecture Analyzer component
-- [x] Integrate troubleshooting tools into RuntimeTester
-- [x] Add troubleshooting phase trigger to run.py
-- [x] Create comprehensive documentation
+### Analysis Complete
+**Current State**: 22 unique import sources (not 16 as previously reported)
+**Target**: <10 import sources
+**Strategy**: 3-phase incremental refactoring
+**Risk Level**: HIGH (affects BasePhase, impacts all phases)
 
-### Phase 3: Hyperdimensional Self-Aware System (COMPLETED - PROPERLY INTEGRATED)
-- [x] Enhanced PhaseCoordinator with polytopic awareness
-- [x] Enhanced BasePhase with self-awareness
-- [x] Enhanced PromptRegistry with adaptive generation
-- [x] Created correlation_engine.py utility
-- [x] Created continuous_monitor.py utility
-- [x] All changes committed and pushed to main branch
+**Recommendation**: This refactoring requires careful planning and extensive testing.
+Should be done in a separate focused session with comprehensive test coverage.
 
-## Summary
-The system now has self-awareness built into its existing architecture through proper enhancement of core components. No parallel systems exist - only clean enhancements of existing code. Ready for cleanup and testing phase.
+## 4. Audit Module Usage - Remove Dead Code
+- [x] Scan all modules for unused imports
+- [ ] Create cleanup script to remove unused imports
+- [ ] Identify unused functions and classes  
+- [ ] Remove dead code
+- [ ] Verify system still works
+- [ ] Document removed code
+
+### Audit Complete
+**Found**: 117 unused imports in 53 files (out of 107 Python files)
+**Impact**: 49.5% of files have unused imports
+**Common Issues**:
+- Unused type hints (Tuple, List, Dict, Optional)
+- Unused standard library imports (re, datetime, subprocess)
+- Unused dataclass fields
+- Duplicate imports
+
+**Recommendation**: Create automated cleanup script to remove unused imports safely.
