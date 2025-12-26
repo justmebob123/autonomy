@@ -173,28 +173,28 @@ class TextToolParser:
     
     def _infer_file_path(self, text: str) -> str:
         """Infer a reasonable file path based on task description"""
+        import re
         text_lower = text.lower()
         
+        # Use word boundaries for more precise matching
         # Check for specific keywords to determine file location
-        if any(word in text_lower for word in ['alert', 'alerting', 'notification']):
+        if re.search(r'\b(alert|alerting)\b', text_lower):
             return "monitors/alerting.py"
-        elif any(word in text_lower for word in ['security', 'threat', 'vulnerability']):
+        elif re.search(r'\b(security|threat|vulnerability)\b', text_lower):
             return "monitors/security.py"
-        elif any(word in text_lower for word in ['performance', 'metric', 'optimize']):
+        elif re.search(r'\b(performance|metric|optimize)\b', text_lower):
             return "monitors/performance.py"
-        elif any(word in text_lower for word in ['dashboard', 'ui', 'interface', 'web']):
+        elif re.search(r'\b(dashboard|interface)\b', text_lower):
+            # Dashboard or interface implies UI
             return "ui/dashboard.py"
-        elif any(word in text_lower for word in ['integration', 'external', 'api']):
-            return "integrations/external.py"
-        elif any(word in text_lower for word in ['log', 'logging']):
-            return "utils/logging.py"
-        elif any(word in text_lower for word in ['config', 'configuration']):
+        elif re.search(r'\b(config|configuration)\b', text_lower):
             return "config/settings.py"
-        elif any(word in text_lower for word in ['test', 'testing']):
-            # Extract meaningful test name from description
-            name = self._extract_meaningful_name(text)
+        elif re.search(r'\btest\b', text_lower) and not re.search(r'\b(testing|latest)\b', text_lower):
+            # Extract meaningful test name from description (remove "test" from extraction)
+            text_without_test = re.sub(r'\btest\b', '', text_lower)
+            name = self._extract_meaningful_name(text_without_test)
             return f"tests/test_{name}.py"
-        elif any(word in text_lower for word in ['monitor', 'monitoring']):
+        elif re.search(r'\b(monitor|monitoring)\b', text_lower) and not re.search(r'\b(email|notification)\b', text_lower):
             return "monitors/system.py"
         else:
             # Extract meaningful name from description instead of generic default
