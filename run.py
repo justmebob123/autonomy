@@ -488,9 +488,37 @@ def run_debug_qa_mode(args) -> int:
                                 diagnostic_report = tester.get_diagnostic_report()
                                 print(diagnostic_report)
                                 
+                                   
+                                   # Run application troubleshooting phase
+                                   print("\n" + "="*70)
+                                   print("🔍 RUNNING APPLICATION TROUBLESHOOTING PHASE")
+                                   print("="*70)
+                                   print("\nPerforming deep application-layer analysis...\n")
+                                   
+                                   try:
+                                       troubleshooting_results = tester.perform_application_troubleshooting(
+                                           working_dir=Path(args.project_dir)
+                                       )
+                                       
+                                       # Format and display the report
+                                       troubleshooting_report = tester.format_troubleshooting_report(
+                                           troubleshooting_results
+                                       )
+                                       print(troubleshooting_report)
+                                       
+                                       # Save report to file
+                                       report_file = Path(args.project_dir) / "troubleshooting_report.txt"
+                                       report_file.write_text(troubleshooting_report)
+                                       print(f"\n📄 Full troubleshooting report saved to: {report_file}")
+                                       
+                                   except Exception as e:
+                                       print(f"\n⚠️  Error during application troubleshooting: {e}")
+                                       print("   Continuing with standard diagnostics...")
+                                   
                                 # This is a critical failure - don't continue
                                 print("\n❌ Cannot continue - process failed to start")
-                                print("   Please fix the issues above and try again")
+                                   print("   Please review the diagnostic and troubleshooting reports above")
+                                   print("   and fix the issues before trying again")
                                 return 1
                             
                             stderr = tester.get_stderr()

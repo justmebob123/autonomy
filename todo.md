@@ -1,114 +1,84 @@
-# Implementation Roadmap: Application Troubleshooting Phase
+# Autonomy System - Current Tasks
 
-## IMMEDIATE PRIORITY (Next 24 Hours)
+## Phase 1: Immediate Server Configuration Fix
+- [ ] Investigate the server configuration error (`ollama01: 0 models at None`)
+- [ ] Identify root cause of the configuration issue
+- [ ] Implement fix for the server configuration
+- [ ] Test the fix to ensure it resolves the error
+- [ ] Document the fix in the codebase
 
-### [ ] 1. Fix Server Configuration Error
-- [ ] Investigate `/home/ai/AI/my_project/config.yaml`
-- [ ] Check if `servers.yaml` exists
-- [ ] Create proper server configuration
-- [ ] Verify fix works
-- [ ] Document root cause
+## Phase 2: Application Troubleshooting Phase Implementation
 
-### [ ] 2. Create Basic Log Analysis Tools
-- [ ] `parse_application_log` - Parse custom log formats
-- [ ] `extract_error_patterns` - Find error patterns
-- [ ] `analyze_log_context` - Get context around errors
-- [ ] Test with actual application logs
+### Core Components (COMPLETED)
+- [x] Create Log Analyzer component (`pipeline/log_analyzer.py`)
+  - [x] Extract errors and warnings from logs
+  - [x] Identify patterns in log files
+  - [x] Build timeline of events
+  - [x] Calculate statistics
+  - [x] Search functionality
 
-### [ ] 3. Create Patch File Management
-- [ ] Implement `.patch/` directory structure in project
-- [ ] Save all modifications as patch files
-- [ ] `list_patch_files` tool
-- [ ] `analyze_patch_file` tool
+- [x] Create Call Chain Tracer component (`pipeline/call_chain_tracer.py`)
+  - [x] Build call graph from Python code
+  - [x] Trace function calls
+  - [x] Identify critical execution paths
+  - [x] Find error-prone functions
+  - [x] Analyze import dependencies
 
-## SHORT-TERM (Week 1)
+- [x] Create Change History Analyzer component (`pipeline/change_history_analyzer.py`)
+  - [x] Analyze git commit history
+  - [x] Identify risky changes
+  - [x] Track file modifications
+  - [x] Analyze blame information
+  - [x] Compare commits
 
-### [ ] 4. Implement Call Chain Tracing Tools
-- [ ] `build_call_graph` - AST-based call graph
-- [ ] `trace_import_chain` - Follow imports
-- [ ] `find_function_callers` - Find call sites
-- [ ] `trace_data_flow` - Follow variables
+- [x] Create Configuration Investigator component (`pipeline/config_investigator.py`)
+  - [x] Find and analyze config files
+  - [x] Detect configuration issues
+  - [x] Analyze environment variables
+  - [x] Generate recommendations
+  - [x] Investigate specific config keys
 
-### [ ] 5. Create Configuration Analysis Tools
-- [ ] `parse_config_file` - YAML/JSON/INI parser
-- [ ] `validate_config_schema` - Schema validation
-- [ ] `trace_config_usage` - Find config usage in code
-- [ ] `compare_configs` - Compare configurations
+- [x] Create Architecture Analyzer component (`pipeline/architecture_analyzer.py`)
+  - [x] Analyze project structure
+  - [x] Identify architectural patterns
+  - [x] Detect architectural issues
+  - [x] Generate recommendations
+  - [x] Analyze dependencies
 
-### [ ] 6. Implement ApplicationTroubleshootingPhase
-- [ ] Create phase class
-- [ ] Integrate with pipeline coordinator
-- [ ] Define trigger conditions
-- [ ] Implement workflow
+- [x] Integrate troubleshooting tools into RuntimeTester
+  - [x] Add imports for all troubleshooting components
+  - [x] Add `perform_application_troubleshooting` method
+  - [x] Add `format_troubleshooting_report` method
 
-## MEDIUM-TERM (Week 2)
+### Integration Tasks (COMPLETED)
+- [x] Add troubleshooting phase trigger to run.py
+  - [x] Detect when application troubleshooting is needed (exit code -1)
+  - [x] Call RuntimeTester.perform_application_troubleshooting()
+  - [x] Display troubleshooting report
+  - [x] Save report to file (troubleshooting_report.txt)
 
-### [ ] 7. Architecture Analysis Tools
-- [ ] `parse_master_plan` - Extract architecture
-- [ ] `compare_architecture` - Actual vs. intended
-- [ ] `suggest_architectural_fix` - Recommend fixes
-- [ ] Integration with MASTER_PLAN.md
+- [x] Create comprehensive documentation
+  - [x] Created APPLICATION_TROUBLESHOOTING_SYSTEM.md
+  - [x] Document each component's API
+  - [x] Add usage examples
+  - [x] Create troubleshooting workflow guide
 
-### [ ] 8. Advanced Change History Tools
-- [ ] `correlate_patch_to_error` - Match patches to errors
-- [ ] `suggest_rollback` - Recommend rollbacks
-- [ ] `analyze_change_impact` - Predict impact
-- [ ] Git integration for history
+### Testing Tasks
+- [ ] Test Log Analyzer with real logs
+- [ ] Test Call Chain Tracer on autonomy codebase
+- [ ] Test Change History Analyzer with git history
+- [ ] Test Configuration Investigator with config files
+- [ ] Test Architecture Analyzer on project structure
+- [ ] Test full troubleshooting workflow end-to-end
 
-### [ ] 9. Enhanced Error Detection
-- [ ] Custom error pattern recognition
-- [ ] Cascading failure detection
-- [ ] Configuration error detection
-- [ ] Architectural violation detection
+### Finalization
+- [ ] Commit all changes to git
+- [ ] Push to remote repository
+- [ ] Update MASTER_PLAN.md if needed
+- [ ] Mark phase as complete
 
-## LONG-TERM (Week 3+)
-
-### [ ] 10. Full Integration
-- [ ] Integrate with all existing phases
-- [ ] Coordinate with DEBUG phase
-- [ ] Share findings with DEVELOPMENT
-- [ ] Update MASTER_PLAN.md automatically
-
-### [ ] 11. Advanced Features
-- [ ] Machine learning for error patterns
-- [ ] Predictive failure detection
-- [ ] Automated rollback on critical errors
-- [ ] Self-healing capabilities
-
-### [ ] 12. Documentation & Testing
-- [ ] Complete user documentation
-- [ ] API documentation
-- [ ] Integration tests
-- [ ] Performance benchmarks
-
-## CURRENT STATUS
-
-**Phase:** Planning & Design Complete
-**Next Action:** Fix immediate server configuration error
+## Current Status
+**Phase:** Application Troubleshooting Phase Implementation
+**Progress:** Core components complete (5/5), Integration in progress (0/2)
+**Next Action:** Add troubleshooting phase trigger to run.py
 **Blockers:** None
-**ETA:** Week 1 tools ready in 7 days
-
-## SUCCESS CRITERIA
-
-### Week 1
-- [ ] Server configuration error fixed
-- [ ] 5 log analysis tools working
-- [ ] Patch file system operational
-- [ ] Can trace simple call chains
-
-### Week 2
-- [ ] 5 call chain tools working
-- [ ] 3 config analysis tools working
-- [ ] ApplicationTroubleshootingPhase integrated
-- [ ] Can solve server config error automatically
-
-### Week 3
-- [ ] 3 architecture tools working
-- [ ] 4 change history tools working
-- [ ] Full end-to-end workflow
-- [ ] Can solve complex application errors
-
----
-
-**Last Updated:** December 26, 2024
-**Status:** Awaiting user approval to proceed
