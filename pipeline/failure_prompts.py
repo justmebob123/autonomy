@@ -10,6 +10,19 @@ from typing import Dict
 def get_code_not_found_prompt(context: Dict) -> str:
     """Prompt for when original code is not found in file"""
     
+    error_msg = context.get('error_message', '')
+    suggestion_section = ""
+    if "Did you mean" in error_msg:
+        # Extract the suggestion
+        suggestion_section = f"""
+## ⚠️ SYSTEM SUGGESTION (USE THIS!)
+The system found similar code in the file:
+{error_msg.split('Did you mean:')[1] if 'Did you mean:' in error_msg else ''}
+
+**CRITICAL:** Use the code shown above as your `original_code`. 
+This is the ACTUAL code in the file with EXACT indentation.
+"""
+    
     return f"""# CODE NOT FOUND - Specialized Analysis
 
 ## Problem
@@ -17,10 +30,12 @@ The code you're trying to replace was not found in the file.
 
 ## Context
 - **File:** {context.get('filepath')}
+- **Error:** {error_msg}
 - **Attempted to find:** 
 ```python
 {context.get('intended_original', 'N/A')}
 ```
+{suggestion_section}
 
 ## Current File Content
 ```python
