@@ -153,33 +153,61 @@ class PhaseCoordinator:
         
         self.logger.info(f"Polytopic structure: {len(self.polytope['vertices'])} vertices, 7D")
     
-    def _should_force_transition(self, state, current_phase: str) -> bool:
+    def _should_force_transition(self, state, current_phase: str, last_result=None) -> bool:
         """
         Check if we should force a phase transition due to lack of progress.
         
+        CRITICAL: Only force transition on REPEATED FAILURES or NO PROGRESS.
+        NEVER force transition after successful operations.
+        
         Returns True if:
-        - Same phase has run 5+ times consecutively
-        - Phase keeps returning "no updates needed"
-        - No state changes in last 3 iterations
+        - Phase keeps returning "no updates needed" 3+ times
+        - Phase has very low success rate (< 30%) over last 5 runs
+        
+        Does NOT force transition if:
+        - Last result was successful with actual work done
+        - Files were created or modified
+        - Task was completed
         
         Args:
             state: Pipeline state
             current_phase: Current phase name
+            last_result: Last PhaseResult (if available)
             
         Returns:
             True if forced transition needed
         """
-        # Check phase repetition
-        recent_phases = state.phase_history[-5:] if len(state.phase_history) >= 5 else []
-        if len(recent_phases) == 5 and all(p == current_phase for p in recent_phases):
-            self.logger.warning(f"Phase {current_phase} has run 5 times consecutively")
-            return True
+        # NEVER force transition after success with actual work
+        if last_result and last_result.success:
+            # Check if actual work was done
+            if last_result.files_created or last_result.files_modified:
+                # Reset counters on progress
+                if hasattr(state, 'no_update_counts'):
+                    state.no_update_counts[current_phase] = 0
+                return False
         
-        # Check no-update count
-        no_update_count = state.no_update_counts.get(current_phase, 0)
+        # Check no-update count (only for phases that explicitly report no updates)
+        no_update_count = state.no_update_counts.get(current_phase, 0) if hasattr(state, 'no_update_counts') else 0
         if no_update_count >= 3:
             self.logger.warning(f"Phase {current_phase} returned 'no updates' {no_update_count} times")
             return True
+        
+        # Check success rate over recent runs
+        # Only force transition if phase is consistently failing
+        if hasattr(state, 'phases') and current_phase in state.phases:
+            phase_state = state.phases[current_phase]
+            
+            # Need at least 3 runs to judge
+            if phase_state.runs >= 3:
+                success_rate = phase_state.successes / phase_state.runs
+                
+                # If success rate is very low (< 30%), force transition
+                if success_rate < 0.3:
+                    self.logger.warning(
+                        f"Phase {current_phase} has low success rate: "
+                        f"{phase_state.successes}/{phase_state.runs} ({success_rate:.1%})"
+                    )
+                    return True
         
         return False
     
@@ -495,26 +523,6 @@ class PhaseCoordinator:
                 self.logger.error(f"Unknown phase: {phase_name}")
                 continue
             
-            # Check if we should force transition due to lack of progress
-            if self._should_force_transition(state, phase_name):
-                self.logger.warning(f"⚠️  Forcing transition from {phase_name} due to lack of progress")
-                
-                # Reset counters
-                self.state_manager.reset_no_update_count(state, phase_name)
-                
-                # Select next phase based on adjacency
-                next_phase = self._select_next_phase_polytopic(state, phase_name)
-                
-                self.logger.info(f"🔄 Transitioning to {next_phase}")
-                
-                # Update action to use next phase
-                action = {
-                    "phase": next_phase,
-                    "reason": f"Forced transition from {phase_name} to break loop"
-                }
-                phase_name = next_phase
-                phase = self.phases.get(phase_name)
-            
             # Track phase in history
             if not hasattr(state, 'phase_history'):
                 state.phase_history = []
@@ -589,6 +597,26 @@ class PhaseCoordinator:
                 
                 # Show project status
                 self._show_project_status(state)
+                
+                # Check if we should force transition AFTER execution
+                # This allows us to check the actual result for success/progress
+                if self._should_force_transition(state, phase_name, result):
+                    self.logger.warning(f"⚠️  Forcing transition from {phase_name} due to repeated failures")
+                    
+                    # Reset counters
+                    self.state_manager.reset_no_update_count(state, phase_name)
+                    
+                    # Select next phase based on adjacency
+                    next_phase = self._select_next_phase_polytopic(state, phase_name)
+                    
+                    self.logger.info(f"🔄 Next iteration will use: {next_phase}")
+                    
+                    # Store hint for next iteration
+                    state = self.state_manager.load()
+                    if not hasattr(state, '_next_phase_hint'):
+                        state._next_phase_hint = None
+                    state._next_phase_hint = next_phase
+                    self.state_manager.save(state)
                 
             except Exception as e:
                 self.logger.error(f"  ❌ Phase error: {e}")
