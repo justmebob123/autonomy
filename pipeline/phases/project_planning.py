@@ -126,16 +126,31 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
             # FALLBACK: Try to extract tasks from text response
             if content:
                 self.logger.info("  🔄 Attempting to extract tasks from text response...")
+                self.logger.debug(f"  Content length: {len(content)} chars")
+                
                 tasks = self.text_parser.parse_project_planning_response(content)
                 
                 if tasks:
                     self.logger.info(f"  ✓ Extracted {len(tasks)} tasks from text response")
+                    for i, task in enumerate(tasks, 1):
+                        self.logger.debug(f"    Task {i}: {task['description'][:50]}... -> {task['target_file']}")
+                    
                     # Convert to tool call format
                     tool_calls = self.text_parser.create_tool_calls_from_tasks(tasks)
-                    self.logger.info("  ✓ Converted to tool call format, continuing with normal flow")
+                    self.logger.info(f"  ✓ Converted to {len(tool_calls)} tool call(s), continuing with normal flow")
                     # Continue with normal processing below
                 else:
                     self.logger.warning("  ✗ Could not extract tasks from text response")
+                    self.logger.debug("  Debugging extraction failure:")
+                    
+                    # Debug: Check for patterns
+                    import re
+                    numbered = re.findall(r'(?:^|\n)\s*\d+\.\s*', content, re.MULTILINE)
+                    files = re.findall(r'([a-zA-Z0-9_/]+\.py)', content)
+                    self.logger.debug(f"    Numbered items found: {len(numbered)}")
+                    self.logger.debug(f"    Python files found: {len(files)}")
+                    if files:
+                        self.logger.debug(f"    Files: {files[:5]}")
                     return PhaseResult(
                         success=False,
                         phase=self.phase_name,

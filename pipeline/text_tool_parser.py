@@ -100,6 +100,17 @@ class TextToolParser:
         description = re.sub(r'^[-:]\s*', '', description)
         description = re.sub(r'\s*[-:]\s*$', '', description)
         
+        # Clean up markdown formatting
+        description = re.sub(r'\*\*([^*]+)\*\*', r'\1', description)  # Remove **bold**
+        description = re.sub(r'\*([^*]+)\*', r'\1', description)      # Remove *italic*
+        description = re.sub(r'`([^`]+)`', r'\1', description)        # Remove `code`
+        
+        # Remove common phrases
+        description = re.sub(r'\s+in\s+``\s*$', '', description)      # Remove trailing "in ``"
+        description = re.sub(r'\s+in\s+$', '', description)           # Remove trailing "in "
+        
+        description = description.strip()
+        
         if not description or len(description) < 10:
             return None
         
