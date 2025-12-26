@@ -700,7 +700,7 @@ def run_debug_qa_mode(args) -> int:
                             print(f"🔓 Detaching - program will continue running in background")
                             print(f"\nTo stop the program, use: pkill -f '{args.test_command}'")
                             return 0
-                        elif success_timeout > test_duration:
+                        elif success_timeout > current_test_duration:
                             # Extend monitoring
                             extended_duration = success_timeout - current_test_duration
                             print(f"\n⏱️  Extending monitoring for {extended_duration} more seconds...")
