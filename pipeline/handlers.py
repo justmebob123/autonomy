@@ -14,6 +14,7 @@ from .process_manager import ProcessBaseline, SafeProcessManager, ResourceMonito
 from .failure_analyzer import FailureAnalyzer, ModificationFailure, create_failure_report
 from .signature_extractor import SignatureExtractor
 from .context_investigator import ContextInvestigator
+from .import_analyzer import ImportAnalyzer
 
 
 class ToolCallHandler:
@@ -55,6 +56,9 @@ class ToolCallHandler:
         # Context investigation for understanding intent
         self.context_investigator = ContextInvestigator(str(self.project_dir))
         
+        # Import analysis for proper import placement
+        self.import_analyzer = ImportAnalyzer(str(self.project_dir))
+        
         # Failure analysis
         self.failure_analyzer = FailureAnalyzer(logger=self.logger)
         self.failures_dir = self.project_dir / "failures"
@@ -80,6 +84,9 @@ class ToolCallHandler:
             "investigate_parameter_removal": self._handle_investigate_parameter_removal,
             "investigate_data_flow": self._handle_investigate_data_flow,
             "check_config_structure": self._handle_check_config_structure,
+            # Import analysis tools
+            "analyze_missing_import": self._handle_analyze_missing_import,
+            "check_import_scope": self._handle_check_import_scope,
             # Monitoring tools
             "get_memory_profile": self._handle_get_memory_profile,
             "get_cpu_profile": self._handle_get_cpu_profile,
@@ -1377,6 +1384,90 @@ class ToolCallHandler:
         except Exception as e:
             return {
                 "tool": "check_config_structure",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_analyze_missing_import(self, args: Dict) -> Dict:
+        """
+        Handle analyze_missing_import tool.
+        
+        Analyzes where an import should be added.
+        """
+        filepath = args.get("filepath")
+        module_name = args.get("module_name")
+        usage_line = args.get("usage_line", 0)
+        
+        if not filepath or not module_name:
+            return {
+                "tool": "analyze_missing_import",
+                "success": False,
+                "error": "Missing required arguments: filepath, module_name"
+            }
+        
+        try:
+            analysis = self.import_analyzer.analyze_missing_import(
+                filepath, module_name, usage_line
+            )
+            
+            if "error" in analysis:
+                return {
+                    "tool": "analyze_missing_import",
+                    "success": False,
+                    "error": analysis["error"]
+                }
+            
+            return {
+                "tool": "analyze_missing_import",
+                "success": True,
+                **analysis
+            }
+            
+        except Exception as e:
+            return {
+                "tool": "analyze_missing_import",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_check_import_scope(self, args: Dict) -> Dict:
+        """
+        Handle check_import_scope tool.
+        
+        Checks if an import is in the correct scope.
+        """
+        filepath = args.get("filepath")
+        import_statement = args.get("import_statement")
+        line_number = args.get("line_number", 0)
+        
+        if not filepath or not import_statement:
+            return {
+                "tool": "check_import_scope",
+                "success": False,
+                "error": "Missing required arguments: filepath, import_statement"
+            }
+        
+        try:
+            analysis = self.import_analyzer.check_import_scope(
+                filepath, import_statement, line_number
+            )
+            
+            if "error" in analysis:
+                return {
+                    "tool": "check_import_scope",
+                    "success": False,
+                    "error": analysis["error"]
+                }
+            
+            return {
+                "tool": "check_import_scope",
+                "success": True,
+                **analysis
+            }
+            
+        except Exception as e:
+            return {
+                "tool": "check_import_scope",
                 "success": False,
                 "error": str(e)
             }

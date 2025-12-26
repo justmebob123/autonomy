@@ -237,6 +237,56 @@ TOOLS_DEBUGGING = [
     {
         "type": "function",
         "function": {
+            "name": "analyze_missing_import",
+            "description": "CRITICAL for import errors! Analyzes where an import should be added. Shows existing imports, suggests proper location (top of file), and provides the correct import statement.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath", "module_name"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to file with missing import"
+                    },
+                    "module_name": {
+                        "type": "string",
+                        "description": "Name of the module to import (e.g., 'yaml', 'json')"
+                    },
+                    "usage_line": {
+                        "type": "integer",
+                        "description": "Line number where module is used"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_import_scope",
+            "description": "Check if an import is in the correct scope. Detects imports inside functions or try blocks that should be at module level.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath", "import_statement"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to file"
+                    },
+                    "import_statement": {
+                        "type": "string",
+                        "description": "The import statement to check (e.g., 'import yaml')"
+                    },
+                    "line_number": {
+                        "type": "integer",
+                        "description": "Line number of the import"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "investigate_parameter_removal",
             "description": "CRITICAL: MUST USE BEFORE removing parameters! Investigates what happens if you remove a parameter from a function call. Shows where data comes from, what breaks, and recommends the correct fix.",
             "parameters": {

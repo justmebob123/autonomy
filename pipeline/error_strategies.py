@@ -56,6 +56,19 @@ class UnboundLocalErrorStrategy(ErrorStrategy):
         """Investigation steps for UnboundLocalError."""
         variable_name = self._extract_variable_name(issue)
         line_num = issue.get('line', 'unknown')
+        error_msg = issue.get('message', '')
+        
+        # Check if this is an import-related error
+        # Common pattern: "cannot access local variable 'yaml'" when import is in wrong scope
+        common_modules = ['yaml', 'json', 'os', 'sys', 're', 'datetime', 'pathlib']
+        if variable_name in common_modules:
+            return [
+                f"CRITICAL: '{variable_name}' is a common module name - this is likely an IMPORT ERROR",
+                f"STEP 1: Use analyze_missing_import to check where '{variable_name}' should be imported",
+                f"STEP 2: Check if import exists but is in wrong scope (inside function/try block)",
+                f"STEP 3: Add 'import {variable_name}' at the TOP of the file (module level)",
+                f"DO NOT add import inside functions or try blocks"
+            ]
         
         return [
             f"READ THE FILE to see the complete code structure",
@@ -70,6 +83,33 @@ class UnboundLocalErrorStrategy(ErrorStrategy):
         """Fix approaches for UnboundLocalError."""
         variable_name = self._extract_variable_name(issue)
         line_num = issue.get('line', 'unknown')
+        
+        # Check if this is an import-related error
+        common_modules = ['yaml', 'json', 'os', 'sys', 're', 'datetime', 'pathlib', 'logging', 'time']
+        
+        if variable_name in common_modules:
+            return [
+                {
+                    'name': 'Add Missing Import at Module Level (CORRECT FIX)',
+                    'description': f"Add 'import {variable_name}' at the TOP of the file",
+                    'steps': [
+                        f"Use analyze_missing_import to find the correct location",
+                        f"Add 'import {variable_name}' at module level (top of file)",
+                        "Place it after existing imports",
+                        "DO NOT add inside functions or try blocks"
+                    ]
+                },
+                {
+                    'name': 'Move Existing Import to Module Level',
+                    'description': f"If import exists in wrong scope, move it to top",
+                    'steps': [
+                        f"Find where 'import {variable_name}' currently is",
+                        "Remove it from inside function/try block",
+                        "Add it at module level (top of file)",
+                        "Verify it works in all code paths"
+                    ]
+                }
+            ]
         
         return [
             {
