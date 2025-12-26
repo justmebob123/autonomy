@@ -29,16 +29,22 @@ class TextToolParser:
         """
         tasks = []
         
-        # Pattern 1: Look for numbered task lists
-        # Example: "1. Implement X in file.py"
+        # Pattern 1: Look for numbered task lists (with or without file paths)
+        # Example: "1. **Implement X**: Description..." or "1. Implement X in file.py"
         task_pattern = r'(?:^|\n)\s*\d+\.\s*(.+?)(?=\n\s*\d+\.|$)'
         matches = re.finditer(task_pattern, content, re.MULTILINE | re.DOTALL)
         
         for match in matches:
             task_text = match.group(1).strip()
+            # Try to extract with file path first
             task = self._extract_task_info(task_text)
             if task:
                 tasks.append(task)
+            else:
+                # If no file path found, extract task without file path
+                task = self._extract_task_without_file(task_text)
+                if task:
+                    tasks.append(task)
         
         # Pattern 2: Look for explicit task proposals
         # Example: "Task: Implement X\nFile: file.py\nPriority: 50"
@@ -127,6 +133,70 @@ class TextToolParser:
             "category": self._infer_category(description),
             "rationale": "Extracted from text response"
         }
+    
+    def _extract_task_without_file(self, task_text: str) -> Optional[Dict]:
+        """
+        Extract task information when no file path is present.
+        Infer a reasonable file path based on the task description.
+        """
+        # Clean up markdown formatting
+        description = re.sub(r'\*\*([^*]+)\*\*', r'\1', task_text)  # Remove **bold**
+        description = re.sub(r'\*([^*]+)\*', r'\1', description)      # Remove *italic*
+        description = re.sub(r'`([^`]+)`', r'\1', description)        # Remove `code`
+        
+        # Split on colon if present (e.g., "**Task Name**: Description")
+        if ':' in description:
+            parts = description.split(':', 1)
+            task_name = parts[0].strip()
+            task_desc = parts[1].strip() if len(parts) > 1 else task_name
+        else:
+            task_name = description.strip()
+            task_desc = description.strip()
+        
+        # Limit description length
+        if len(task_desc) > 200:
+            task_desc = task_desc[:200] + "..."
+        
+        if len(task_desc) < 10:
+            return None
+        
+        # Infer file path based on task content
+        target_file = self._infer_file_path(task_name + " " + task_desc)
+        
+        return {
+            "description": task_desc,
+            "target_file": target_file,
+            "priority": 50,
+            "category": self._infer_category(task_desc),
+            "rationale": "Extracted from text response (file path inferred)"
+        }
+    
+    def _infer_file_path(self, text: str) -> str:
+        """Infer a reasonable file path based on task description"""
+        text_lower = text.lower()
+        
+        # Check for specific keywords to determine file location
+        if any(word in text_lower for word in ['alert', 'alerting', 'notification']):
+            return "monitors/alerting.py"
+        elif any(word in text_lower for word in ['security', 'threat', 'vulnerability']):
+            return "monitors/security.py"
+        elif any(word in text_lower for word in ['performance', 'metric', 'optimize']):
+            return "monitors/performance.py"
+        elif any(word in text_lower for word in ['dashboard', 'ui', 'interface', 'web']):
+            return "ui/dashboard.py"
+        elif any(word in text_lower for word in ['integration', 'external', 'api']):
+            return "integrations/external.py"
+        elif any(word in text_lower for word in ['log', 'logging']):
+            return "utils/logging.py"
+        elif any(word in text_lower for word in ['config', 'configuration']):
+            return "config/settings.py"
+        elif any(word in text_lower for word in ['test', 'testing']):
+            return "tests/test_new_feature.py"
+        elif any(word in text_lower for word in ['monitor', 'monitoring']):
+            return "monitors/system.py"
+        else:
+            # Default to a generic feature file
+            return "features/new_feature.py"
     
     def _infer_category(self, description: str) -> str:
         """Infer task category from description"""
