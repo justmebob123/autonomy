@@ -13,6 +13,7 @@ from .utils import validate_python_syntax
 from .process_manager import ProcessBaseline, SafeProcessManager, ResourceMonitor
 from .failure_analyzer import FailureAnalyzer, ModificationFailure, create_failure_report
 from .signature_extractor import SignatureExtractor
+from .context_investigator import ContextInvestigator
 
 
 class ToolCallHandler:
@@ -51,6 +52,9 @@ class ToolCallHandler:
         # Signature extraction for parameter validation
         self.signature_extractor = SignatureExtractor(str(self.project_dir))
         
+        # Context investigation for understanding intent
+        self.context_investigator = ContextInvestigator(str(self.project_dir))
+        
         # Failure analysis
         self.failure_analyzer = FailureAnalyzer(logger=self.logger)
         self.failures_dir = self.project_dir / "failures"
@@ -72,6 +76,10 @@ class ToolCallHandler:
             # Signature validation tools
             "get_function_signature": self._handle_get_function_signature,
             "validate_function_call": self._handle_validate_function_call,
+            # Context investigation tools
+            "investigate_parameter_removal": self._handle_investigate_parameter_removal,
+            "investigate_data_flow": self._handle_investigate_data_flow,
+            "check_config_structure": self._handle_check_config_structure,
             # Monitoring tools
             "get_memory_profile": self._handle_get_memory_profile,
             "get_cpu_profile": self._handle_get_cpu_profile,
@@ -1243,6 +1251,132 @@ class ToolCallHandler:
         except Exception as e:
             return {
                 "tool": "validate_function_call",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_investigate_parameter_removal(self, args: Dict) -> Dict:
+        """
+        Handle investigate_parameter_removal tool.
+        
+        CRITICAL: Use this BEFORE removing parameters from function calls.
+        """
+        filepath = args.get("filepath")
+        function_name = args.get("function_name")
+        parameter_name = args.get("parameter_name")
+        class_name = args.get("class_name")
+        
+        if not filepath or not function_name or not parameter_name:
+            return {
+                "tool": "investigate_parameter_removal",
+                "success": False,
+                "error": "Missing required arguments: filepath, function_name, parameter_name"
+            }
+        
+        try:
+            investigation = self.context_investigator.investigate_parameter_removal(
+                filepath, function_name, parameter_name, class_name
+            )
+            
+            if "error" in investigation:
+                return {
+                    "tool": "investigate_parameter_removal",
+                    "success": False,
+                    "error": investigation["error"]
+                }
+            
+            return {
+                "tool": "investigate_parameter_removal",
+                "success": True,
+                **investigation
+            }
+            
+        except Exception as e:
+            return {
+                "tool": "investigate_parameter_removal",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_investigate_data_flow(self, args: Dict) -> Dict:
+        """
+        Handle investigate_data_flow tool.
+        
+        Traces where data comes from and where it goes.
+        """
+        filepath = args.get("filepath")
+        variable_name = args.get("variable_name")
+        line_number = args.get("line_number")
+        
+        if not filepath or not variable_name:
+            return {
+                "tool": "investigate_data_flow",
+                "success": False,
+                "error": "Missing required arguments: filepath, variable_name"
+            }
+        
+        try:
+            investigation = self.context_investigator.investigate_data_flow(
+                filepath, variable_name, line_number or 0
+            )
+            
+            if "error" in investigation:
+                return {
+                    "tool": "investigate_data_flow",
+                    "success": False,
+                    "error": investigation["error"]
+                }
+            
+            return {
+                "tool": "investigate_data_flow",
+                "success": True,
+                **investigation
+            }
+            
+        except Exception as e:
+            return {
+                "tool": "investigate_data_flow",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_check_config_structure(self, args: Dict) -> Dict:
+        """
+        Handle check_config_structure tool.
+        
+        Checks if configuration file has expected structure.
+        """
+        config_file = args.get("config_file")
+        expected_keys = args.get("expected_keys", [])
+        
+        if not config_file:
+            return {
+                "tool": "check_config_structure",
+                "success": False,
+                "error": "Missing required argument: config_file"
+            }
+        
+        try:
+            investigation = self.context_investigator.check_configuration_structure(
+                config_file, expected_keys
+            )
+            
+            if "error" in investigation:
+                return {
+                    "tool": "check_config_structure",
+                    "success": False,
+                    "error": investigation["error"]
+                }
+            
+            return {
+                "tool": "check_config_structure",
+                "success": True,
+                **investigation
+            }
+            
+        except Exception as e:
+            return {
+                "tool": "check_config_structure",
                 "success": False,
                 "error": str(e)
             }

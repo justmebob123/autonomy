@@ -287,12 +287,17 @@ class TypeErrorStrategy(ErrorStrategy):
         
         # Check if it's a function call parameter error
         if 'unexpected keyword argument' in error_msg or 'got an unexpected' in error_msg:
+            # Extract parameter name
+            import re
+            match = re.search(r"unexpected keyword argument '(\w+)'", error_msg)
+            param_name = match.group(1) if match else 'unknown'
+            
             return [
                 "CRITICAL: This is a function call parameter error",
-                "STEP 1: Use get_function_signature to extract the target function's signature",
-                "STEP 2: Compare the signature with the actual function call",
-                "STEP 3: Identify which parameters are INVALID (not in signature)",
-                "STEP 4: Determine if parameters should be REMOVED or if function signature needs updating"
+                f"STEP 1: Use investigate_parameter_removal to understand what '{param_name}' does",
+                "STEP 2: Check where the data comes from and what breaks if removed",
+                "STEP 3: Use get_function_signature to see what parameters are actually valid",
+                "STEP 4: Based on investigation, either fix data source OR remove parameter"
             ]
         elif 'missing' in error_msg and 'required' in error_msg:
             return [
@@ -320,9 +325,20 @@ class TypeErrorStrategy(ErrorStrategy):
             
             return [
                 {
-                    'name': 'Remove Invalid Parameter (MOST COMMON)',
-                    'description': f"Remove the '{param_name}' parameter from the function call",
+                    'name': 'Investigate Before Removing (REQUIRED FIRST STEP)',
+                    'description': f"MUST investigate what '{param_name}' does before removing it",
                     'steps': [
+                        f"CRITICAL: Call investigate_parameter_removal(parameter_name='{param_name}')",
+                        "Read the investigation results carefully",
+                        "Check 'recommended_action' field",
+                        "Only proceed if investigation says it's safe to remove"
+                    ]
+                },
+                {
+                    'name': 'Remove Invalid Parameter (ONLY IF INVESTIGATION APPROVES)',
+                    'description': f"Remove the '{param_name}' parameter ONLY if investigation shows it's not used",
+                    'steps': [
+                        f"Verify investigation showed '{param_name}' is not used",
                         f"Find the function call that passes '{param_name}'",
                         f"Remove the '{param_name}=...' line from the call",
                         "Ensure proper syntax (remove trailing comma if needed)",
@@ -373,18 +389,35 @@ This is a TypeError caused by passing an INVALID parameter to a function.
 - The function call passes parameter '{param_name}'
 - But the function definition does NOT accept '{param_name}'
 
-**What You MUST Do:**
+**⚠️ STOP! DO NOT REMOVE THE PARAMETER YET! ⚠️**
 
-1. **You already called get_function_signature** - Review the results
-2. **Compare the signature with the function call** - Which parameters are invalid?
-3. **IMMEDIATELY call modify_python_file** to remove the invalid parameter
+**MANDATORY FIRST STEP:**
+
+Call investigate_parameter_removal to understand what '{param_name}' does:
+
+```json
+{{
+    "name": "investigate_parameter_removal",
+    "arguments": {{
+        "filepath": "src/main.py",
+        "function_name": "JobExecutor",
+        "parameter_name": "{param_name}"
+    }}
+}}
+```
+
+**This will tell you:**
+- Where '{param_name}' data comes from
+- What breaks if you remove it
+- What the CORRECT fix is
+
+**ONLY AFTER investigation shows it's safe:**
+- Then call modify_python_file to remove the parameter
 
 **DO NOT:**
-- Call get_function_signature again (you already have the signature)
-- Just explain what to do (you must CALL the tool)
-- Add more investigation (you have all the information)
-
-**CALL modify_python_file NOW** to remove '{param_name}' from the function call.
+- Remove parameters without investigating first
+- Assume removing parameters is always safe
+- Just fix syntax without understanding intent
 
 Example:
 ```json

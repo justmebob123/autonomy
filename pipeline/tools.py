@@ -237,8 +237,84 @@ TOOLS_DEBUGGING = [
     {
         "type": "function",
         "function": {
+            "name": "investigate_parameter_removal",
+            "description": "CRITICAL: MUST USE BEFORE removing parameters! Investigates what happens if you remove a parameter from a function call. Shows where data comes from, what breaks, and recommends the correct fix.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath", "function_name", "parameter_name"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to file with the function call"
+                    },
+                    "function_name": {
+                        "type": "string",
+                        "description": "Name of the function being called"
+                    },
+                    "parameter_name": {
+                        "type": "string",
+                        "description": "Name of the parameter you're considering removing (e.g., 'servers')"
+                    },
+                    "class_name": {
+                        "type": "string",
+                        "description": "Optional: Class name if it's a method"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "investigate_data_flow",
+            "description": "Trace where data comes from and where it goes. CRITICAL for KeyError and missing data issues. Shows data source, transformations, and expected structure.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath", "variable_name"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to file"
+                    },
+                    "variable_name": {
+                        "type": "string",
+                        "description": "Name of the variable to trace (e.g., 'servers')"
+                    },
+                    "line_number": {
+                        "type": "integer",
+                        "description": "Optional: Line number where error occurs"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "check_config_structure",
+            "description": "Check if configuration file exists and has expected structure. CRITICAL for KeyError issues related to configuration.",
+            "parameters": {
+                "type": "object",
+                "required": ["config_file"],
+                "properties": {
+                    "config_file": {
+                        "type": "string",
+                        "description": "Path to config file (e.g., 'config.yaml')"
+                    },
+                    "expected_keys": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of keys that should exist in config (e.g., ['servers', 'database'])"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "get_function_signature",
-            "description": "CRITICAL: Extract function signature to verify what parameters it accepts. USE THIS BEFORE modifying function calls to ensure parameters are valid.",
+            "description": "Extract function signature to verify what parameters it accepts. USE THIS to check if parameters are valid.",
             "parameters": {
                 "type": "object",
                 "required": ["filepath", "function_name"],
@@ -263,7 +339,7 @@ TOOLS_DEBUGGING = [
         "type": "function",
         "function": {
             "name": "validate_function_call",
-            "description": "CRITICAL: Validate that a function call uses valid parameters. USE THIS to prevent TypeError from invalid parameters.",
+            "description": "Validate that a function call uses valid parameters. USE THIS to prevent TypeError from invalid parameters.",
             "parameters": {
                 "type": "object",
                 "required": ["filepath", "function_name", "call_kwargs"],
