@@ -39,7 +39,7 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
     
     def __init__(self, config: PipelineConfig, client: OllamaClient):
         BasePhase.__init__(self, config, client)
-        LoopDetectionMixin.__init__(self, self.project_dir, self.phase_name)
+        self.init_loop_detection()
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """

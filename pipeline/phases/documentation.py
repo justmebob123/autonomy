@@ -36,7 +36,7 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
     def __init__(self, *args, **kwargs):
         """Initialize with loop detection"""
         BasePhase.__init__(self, *args, **kwargs)
-        LoopDetectionMixin.__init__(self, self.project_dir, self.phase_name)
+        self.init_loop_detection()
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """Execute documentation phase"""

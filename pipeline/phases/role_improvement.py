@@ -33,7 +33,7 @@ class RoleImprovementPhase(LoopDetectionMixin, BasePhase):
     
     def __init__(self, *args, **kwargs):
         BasePhase.__init__(self, *args, **kwargs)
-        LoopDetectionMixin.__init__(self, self.project_dir, self.phase_name)
+        self.init_loop_detection()
         self.custom_roles_dir = self.project_dir / "pipeline" / "roles" / "custom"
         self.custom_roles_dir.mkdir(parents=True, exist_ok=True)
         self.improvement_results_dir = self.project_dir / ".pipeline" / "role_improvements"

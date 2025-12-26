@@ -35,7 +35,7 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
     
     def __init__(self, *args, **kwargs):
         BasePhase.__init__(self, *args, **kwargs)
-        LoopDetectionMixin.__init__(self, self.project_dir, self.phase_name)
+        self.init_loop_detection()
         self.custom_tools_dir = self.project_dir / "pipeline" / "tools" / "custom"
         self.custom_tools_dir.mkdir(parents=True, exist_ok=True)
         self.evaluation_results_dir = self.project_dir / ".pipeline" / "tool_evaluations"

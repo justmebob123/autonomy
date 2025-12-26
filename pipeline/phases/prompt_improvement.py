@@ -32,7 +32,7 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
     
     def __init__(self, *args, **kwargs):
         BasePhase.__init__(self, *args, **kwargs)
-        LoopDetectionMixin.__init__(self, self.project_dir, self.phase_name)
+        self.init_loop_detection()
         self.custom_prompts_dir = self.project_dir / "pipeline" / "prompts" / "custom"
         self.custom_prompts_dir.mkdir(parents=True, exist_ok=True)
         self.improvement_results_dir = self.project_dir / ".pipeline" / "prompt_improvements"

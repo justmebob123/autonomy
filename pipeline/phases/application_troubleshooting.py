@@ -35,7 +35,7 @@ class ApplicationTroubleshootingPhase(BasePhase, LoopDetectionMixin):
     
     def __init__(self, config, client):
         super().__init__(config, client)
-        LoopDetectionMixin.__init__(self)
+        self.init_loop_detection()
         self.logger = logging.getLogger(__name__)
         
         # Will initialize analyzers when needed (lazy loading)
