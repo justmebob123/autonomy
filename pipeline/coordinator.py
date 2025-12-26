@@ -124,13 +124,16 @@ class PhaseCoordinator:
         
         self.polytope['edges'] = {
             'planning': ['coding'], 'coding': ['qa'],
-            'qa': ['debugging', 'documentation'],
-            'debugging': ['investigation', 'coding'],
-            'investigation': ['debugging', 'coding'],
+            'qa': ['debugging', 'documentation', 'application_troubleshooting'],
+            'debugging': ['investigation', 'coding', 'application_troubleshooting'],
+            'investigation': ['debugging', 'coding', 'application_troubleshooting', 
+                              'prompt_design', 'role_design', 'tool_design'],
             'project_planning': ['planning'], 'documentation': ['planning'],
             'prompt_design': ['prompt_improvement'], 'tool_design': ['tool_evaluation'],
-            'role_design': ['role_improvement'], 'tool_evaluation': ['tool_design'],
-            'prompt_improvement': ['prompt_design'], 'role_improvement': ['role_design']
+            'role_design': ['role_improvement'], 'tool_evaluation': ['tool_design', 'coding'],
+            'prompt_improvement': ['prompt_design', 'planning'], 
+            'role_improvement': ['role_design', 'planning'],
+            'application_troubleshooting': ['debugging', 'investigation', 'coding']
         }
         
         self.logger.info(f"Polytopic structure: {len(self.polytope['vertices'])} vertices, 7D")
