@@ -125,7 +125,7 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
                 success=False,
                 phase=self.phase_name,
                 message="Failed to generate expansion plan - no tool calls in response",
-                metadata={
+                data={
                     "response_length": len(content) if content else 0,
                     "has_content": bool(content),
                     "content_preview": content[:200] if content else None
