@@ -339,6 +339,29 @@ class DebuggingPhase(BasePhase):
                 variables.get('issue')
             )
     
+    def _build_debug_message(self, filepath: str, content: str, issue: Dict) -> str:
+        """
+        Build a simple, focused debugging message.
+        
+        The conversation history provides context, so we keep this simple.
+        """
+        parts = []
+        
+        # Issue description
+        issue_type = issue.get('type', 'unknown')
+        issue_desc = issue.get('description', 'No description')
+        parts.append(f"Fix this issue in {filepath}:")
+        parts.append(f"Issue type: {issue_type}")
+        parts.append(f"Description: {issue_desc}")
+        
+        # Current code
+        parts.append(f"\nCurrent code:\n```\n{content}\n```")
+        
+        # Instructions
+        parts.append("\nPlease fix the issue using the appropriate tools.")
+        
+        return "\n".join(parts)
+    
         
         # Check if multiple files involved
         if 'multiple_files' in issue.get('context', {}):
@@ -410,73 +433,30 @@ class DebuggingPhase(BasePhase):
                 files_modified=[],
             )
         
-        # Build messages
-        user_prompt = self._get_prompt('debugging', filepath=filepath, content=content, issue=issue)
-        messages = [
-            {"role": "system", "content": self._get_system_prompt("debugging")},
-            {"role": "user", "content": user_prompt}
-        ]
+        # Build simple debugging message
+        user_message = self._build_debug_message(filepath, content, issue)
         
         # Log prompt in verbose mode
         if hasattr(self, 'config') and self.config.verbose:
-            self.logger.info(f"  Prompt length: {len(user_prompt)} chars")
-            self.logger.info(f"  Prompt preview: {user_prompt[:300]}...")
+            self.logger.info(f"  Prompt length: {len(user_message)} chars")
+            self.logger.info(f"  Prompt preview: {user_message[:300]}...")
         
-        # Use reasoning specialist for debugging
-        from ..orchestration.specialists.reasoning_specialist import ReasoningTask
+        # Get tools for debugging phase
+        tools = get_tools_for_phase("debugging")
         
-        self.logger.info(f"  Using ReasoningSpecialist for debugging")
-        reasoning_task = ReasoningTask(
-            task_type="debug_analysis",
-            description=f"Debug issue in {filepath}",
-            context={
-                'filepath': filepath,
-                'content': content,
-                'issue': issue,
-                'prompt': user_prompt
-            }
-        )
+        # Call model with conversation history
+        self.logger.info(f"  Calling model with conversation history")
+        response = self.chat_with_history(user_message, tools)
         
-        specialist_result = self.reasoning_specialist.execute_task(reasoning_task)
-        
-        if not specialist_result.get("success", False):
-            error_msg = specialist_result.get("response", "Specialist debugging failed")
-            return PhaseResult(
-                success=False,
-                phase=self.phase_name,
-                message=f"Debug failed: {error_msg}",
-                files_modified=[],
-            )
-        
-        # Convert specialist result to response format
-        response = {
-            "message": {
-                "content": specialist_result.get("response", "")
-            }
-        }
-        
-        # Check for empty response from specialist
-        content = response.get('message', {}).get('content', '')
-        if not content:
-            self.logger.error("  Specialist returned empty response")
-            return PhaseResult(
-                success=False,
-                phase=self.phase_name,
-                message="Specialist returned empty response",
-                files_modified=[],
-            )
-        
-        # Parse response
-        tool_calls, _ = self.parser.parse_response(response)
+        # Extract tool calls
+        tool_calls = response.get("tool_calls", [])
         
         if not tool_calls:
             self.logger.warning("  No fix applied")
             
-            # ENHANCED LOGGING: Always log full response to understand why no tool calls
-            content = response.get('content', '')
-            
-            # Log to console (truncated)
-            if content:
+            # Log response content
+            text_content = response.get('content', '')
+            if text_content:
                 self.logger.warning(f"  AI responded but made no tool calls.")
                 self.logger.warning(f"  Response preview: {content[:300]}...")
             else:

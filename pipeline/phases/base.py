@@ -83,6 +83,14 @@ class BasePhase(ABC):
         # Response parsing - pass client for functiongemma support
         self.parser = ResponseParser(client)
         
+        # Conversation thread for maintaining history
+        from ..orchestration.conversation_manager import ConversationThread
+        self.conversation = ConversationThread(
+            model=config.model,
+            role=self.phase_name,
+            max_context_tokens=config.context_window
+        )
+        
         # Cache tools for functiongemma fallback
         
         
@@ -483,3 +491,42 @@ class BasePhase(ABC):
         
         # Fallback to hardcoded
         return SYSTEM_PROMPTS.get(phase_name, SYSTEM_PROMPTS.get("base", ""))
+    
+    def chat_with_history(self, user_message: str, tools: List[Dict] = None) -> Dict:
+        """
+        Call model with conversation history.
+        
+        This maintains conversation context so the model can reference
+        previous exchanges and learn from history.
+        
+        Args:
+            user_message: The user message to send
+            tools: Optional tools for the model to use
+        
+        Returns:
+            Dict with 'content' and optionally 'tool_calls'
+        """
+        # Add user message to conversation
+        self.conversation.add_message("user", user_message)
+        
+        # Get conversation context (respects token limits)
+        messages = self.conversation.get_context()
+        
+        # Call model with conversation history
+        response = self.client.chat(
+            messages=messages,
+            tools=tools
+        )
+        
+        # Add assistant response to conversation
+        content = response.get("message", {}).get("content", "")
+        self.conversation.add_message("assistant", content)
+        
+        # Parse response for tool calls
+        parsed = self.parser.parse_response(response, tools or [])
+        
+        return {
+            "content": content,
+            "tool_calls": parsed.get("tool_calls", []),
+            "raw_response": response
+        }

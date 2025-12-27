@@ -123,25 +123,19 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 errors=[{"type": "file_not_found", "filepath": filepath}]
             )
         
-        # Use analysis specialist for QA review
-        self.logger.info(f"  Using AnalysisSpecialist for QA review")
-        specialist_result = self.analysis_specialist.review_code(
-            file_path=filepath,
-            code=content
-        )
+        # Build simple review message
+        user_message = f"Please review this code for quality issues:\n\nFile: {filepath}\n\n```\n{content}\n```\n\nIf you find issues, use the report_qa_issue tool to report them.\nIf the code looks good, just say &quot;APPROVED&quot; (no tool calls needed)."
         
-        if not specialist_result.get("success", False):
-            error_msg = specialist_result.get("response", "Specialist review failed")
-            return PhaseResult(
-                success=False,
-                phase=self.phase_name,
-                message=f"QA failed: {error_msg}",
-                errors=[{"type": "specialist_error", "message": error_msg}]
-            )
+        # Get tools for QA phase
+        tools = get_tools_for_phase("qa")
         
-        # Extract tool calls and content from specialist result
-        tool_calls = specialist_result.get("tool_calls", [])
-        text_content = specialist_result.get("response", "")
+        # Call model with conversation history
+        self.logger.info(f"  Calling model with conversation history")
+        response = self.chat_with_history(user_message, tools)
+        
+        # Extract tool calls and content
+        tool_calls = response.get("tool_calls", [])
+        text_content = response.get("content", "")
         
         # Debug logging: Show what we got from the model
         self.logger.debug(f"QA Response Analysis:")

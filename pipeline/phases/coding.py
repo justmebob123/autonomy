@@ -75,43 +75,19 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         context = self._build_context(state, task)
         error_context = task.get_error_context()
         
-        # Use coding specialist instead of direct chat
-        from ..orchestration.specialists.coding_specialist import CodingTask
+        # Build user message with task details
+        user_message = self._build_user_message(task, context, error_context)
         
-        # Create coding task for specialist
-        coding_task = CodingTask(
-            task_type="implement",
-            file_path=task.target_file,
-            description=task.description,
-            context={
-                'project_context': context,
-                'error_context': error_context,
-                'task_id': task.task_id,
-                'attempts': task.attempts
-            },
-            dependencies=[]
-        )
+        # Get tools for this phase
+        tools = get_tools_for_phase("coding")
         
-        # Execute with specialist
-        self.logger.info(f"  Using CodingSpecialist for {task.target_file}")
-        specialist_result = self.coding_specialist.execute_task(coding_task)
+        # Call model with conversation history
+        self.logger.info(f"  Calling model with conversation history")
+        response = self.chat_with_history(user_message, tools)
         
-        if not specialist_result.get("success", False):
-            error_msg = specialist_result.get("response", "Specialist execution failed")
-            task.add_error("specialist_error", error_msg, phase="coding")
-            task.status = TaskStatus.FAILED
-            
-            return PhaseResult(
-                success=False,
-                phase=self.phase_name,
-                task_id=task.task_id,
-                message=f"Specialist error: {error_msg}",
-                errors=[{"type": "specialist_error", "message": error_msg}]
-            )
-        
-        # Extract tool calls from specialist result
-        tool_calls = specialist_result.get("tool_calls", [])
-        content = specialist_result.get("response", "")
+        # Extract tool calls and content
+        tool_calls = response.get("tool_calls", [])
+        content = response.get("content", "")
         
         if not tool_calls:
             task.add_error("no_tool_call", "Model did not use tools", phase="coding")
@@ -224,6 +200,29 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 parts.append(dep_content[:1000])
         
         return "\n\n".join(parts)
+    
+    def _build_user_message(self, task: TaskState, context: str, error_context: str) -> str:
+        """
+        Build a simple, focused user message for the task.
+        
+        The conversation history provides context, so we keep this simple.
+        """
+        parts = []
+        
+        # Task description
+        parts.append(f"Task: {task.description}")
+        parts.append(f"Target file: {task.target_file}")
+        
+        # Add context if available
+        if context:
+            parts.append(f"\nRelated code:\n{context}")
+        
+        # Add error context if this is a retry
+        if error_context and task.attempts > 1:
+            parts.append(f"\nPrevious attempt failed:\n{error_context}")
+            parts.append("\nPlease fix the issues and try again.")
+        
+        return "\n".join(parts)
     
     def generate_state_markdown(self, state: PipelineState) -> str:
         """Generate CODING_STATE.md content"""
