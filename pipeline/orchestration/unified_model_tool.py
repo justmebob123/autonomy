@@ -142,12 +142,15 @@ class UnifiedModelTool:
                 if not messages or messages[0].get('role') != 'system':
                     messages = [{'role': 'system', 'content': system_prompt}] + messages
             
-            # Call client
-            response = self.client.generate(
+            # Call client using chat() method
+            # Extract host and model from initialization
+            response = self.client.chat(
+                host=self.host,
+                model=self.model_name,
                 messages=messages,
                 tools=tools,
                 temperature=temperature,
-                max_tokens=max_tokens
+                timeout=None  # No timeout for specialist calls
             )
             
             # Track success
@@ -225,25 +228,16 @@ class UnifiedModelTool:
             message: Message dict from response
             
         Returns:
-            List of tool call dicts
+            List of tool call dicts in the format expected by ToolCallHandler
         """
         tool_calls = message.get('tool_calls', [])
         
         if not tool_calls:
             return []
         
-        parsed_calls = []
-        for tc in tool_calls:
-            # Handle different tool call formats
-            if isinstance(tc, dict):
-                parsed_calls.append({
-                    'name': tc.get('function', {}).get('name', tc.get('name', '')),
-                    'parameters': tc.get('function', {}).get('arguments', tc.get('parameters', {}))
-                })
-            else:
-                logger.warning(f"Unexpected tool call format: {tc}")
-        
-        return parsed_calls
+        # Return tool calls in the exact format from the client
+        # ToolCallHandler expects: {"function": {"name": "...", "arguments": {...}}}
+        return tool_calls
     
     def get_stats(self) -> Dict[str, Any]:
         """
