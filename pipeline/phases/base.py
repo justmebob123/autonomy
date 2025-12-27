@@ -94,6 +94,24 @@ class BasePhase(ABC):
         self.tool_registry = ToolRegistry(self.project_dir)
         self.role_registry = RoleRegistry(self.project_dir, self.client)
         
+        # INTEGRATION: Initialize UnifiedModelTool and Specialists
+        from ..orchestration.unified_model_tool import UnifiedModelTool
+        from ..orchestration.specialists import (
+            create_coding_specialist,
+            create_reasoning_specialist,
+            create_analysis_specialist
+        )
+        
+        # Create unified model tools for specialists
+        self.coding_tool = UnifiedModelTool("qwen2.5-coder:32b", "http://ollama02:11434")
+        self.reasoning_tool = UnifiedModelTool("qwen2.5:32b", "http://ollama02:11434")
+        self.analysis_tool = UnifiedModelTool("qwen2.5:14b", "http://localhost:11434")
+        
+        # Create specialists
+        self.coding_specialist = create_coding_specialist(self.coding_tool)
+        self.reasoning_specialist = create_reasoning_specialist(self.reasoning_tool)
+        self.analysis_specialist = create_analysis_specialist(self.analysis_tool)
+        
         # Self-awareness and polytopic integration
         self.dimensional_profile = {
             'temporal': 0.5, 'functional': 0.5, 'data': 0.5,
