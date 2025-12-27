@@ -57,31 +57,19 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         ]
         
         # Use reasoning specialist for planning
-        from ..orchestration.specialists.reasoning_specialist import ReasoningTask
+        # Build simple planning message
+        user_message = self._build_planning_message(master_plan, existing_files)
         
-        self.logger.info("  Using ReasoningSpecialist for planning...")
-        reasoning_task = ReasoningTask(
-            task_type="planning",
-            description="Create task plan from master plan",
-            context={
-                'master_plan': master_plan,
-                'existing_files': existing_files
-            }
-        )
+        # Get tools for planning phase
+        tools = get_tools_for_phase("planning")
         
-        specialist_result = self.reasoning_specialist.execute_task(reasoning_task)
-        
-        if not specialist_result.get("success", False):
-            error_msg = specialist_result.get("response", "Specialist planning failed")
-            return PhaseResult(
-                success=False,
-                phase=self.phase_name,
-                message=f"Planning failed: {error_msg}"
-            )
+        # Call model with conversation history
+        self.logger.info("  Calling model with conversation history")
+        response = self.chat_with_history(user_message, tools)
         
         # Extract tool calls and content
-        tool_calls = specialist_result.get("tool_calls", [])
-        content = specialist_result.get("response", "")
+        tool_calls = response.get("tool_calls", [])
+        content = response.get("content", "")
         
         tasks = []
         
@@ -161,6 +149,29 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
             if task.description[:50] == desc or task.target_file == target:
                 return task
         return None
+    
+    def _build_planning_message(self, master_plan: str, existing_files: List[str]) -> str:
+        """
+        Build a simple, focused planning message.
+        
+        The conversation history provides context, so we keep this simple.
+        """
+        parts = []
+        
+        # Master plan
+        parts.append(f"Master Plan:\n{master_plan}")
+        
+        # Existing files context
+        if existing_files:
+            parts.append(f"\nExisting files in project:\n" + "\n".join(f"- {f}" for f in existing_files[:10]))
+            if len(existing_files) > 10:
+                parts.append(f"... and {len(existing_files) - 10} more files")
+        
+        # Instructions
+        parts.append("\nPlease create a detailed task plan using the create_task tool for each task needed.")
+        parts.append("Break down the master plan into specific, actionable tasks.")
+        
+        return "\n".join(parts)
     
     def generate_state_markdown(self, state: PipelineState) -> str:
         """Generate PLANNING_STATE.md content"""

@@ -75,33 +75,19 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         last_update = getattr(state, 'last_doc_update_count', 0)
         new_completions = completed_count - last_update
         
-        # Build messages using centralized prompts
-        messages = [
-            {"role": "system", "content": self._get_system_prompt("documentation")},
-            {"role": "user", "content": get_documentation_prompt(context, new_completions)}
-        ]
+        # Build simple documentation message
+        user_message = self._build_documentation_message(context, new_completions)
         
-        # Use analysis specialist for documentation
-        self.logger.info("  Using AnalysisSpecialist for documentation...")
-        specialist_result = self.analysis_specialist.analyze_code(
-            file_path="PROJECT_DOCUMENTATION",
-            code=str(context),
-            analysis_type="documentation",
-            context={'new_completions': new_completions}
-        )
+        # Get tools for documentation phase
+        tools = get_tools_for_phase("documentation")
         
-        if not specialist_result.get("success", False):
-            error_msg = specialist_result.get("response", "Specialist documentation failed")
-            self.logger.error(f"  Specialist error: {error_msg}")
-            return PhaseResult(
-                success=False,
-                phase=self.phase_name,
-                message=f"Documentation failed: {error_msg}"
-            )
+        # Call model with conversation history
+        self.logger.info("  Calling model with conversation history")
+        response = self.chat_with_history(user_message, tools)
         
         # Extract tool calls and content
-        tool_calls = specialist_result.get("tool_calls", [])
-        content = specialist_result.get("response", "")
+        tool_calls = response.get("tool_calls", [])
+        content = response.get("content", "")
         
         if not tool_calls:
             # Increment no-update counter
@@ -372,6 +358,37 @@ This project uses an AI-assisted development pipeline that:
             self.logger.info(f"      New features to document: {len(new_features)}")
             for feat in new_features[:3]:
                 self.logger.info(f"        - {feat[:50]}")
+    
+    def _build_documentation_message(self, context: Dict, new_completions: int) -> str:
+        """
+        Build a simple, focused documentation message.
+        
+        The conversation history provides context, so we keep this simple.
+        """
+        parts = []
+        
+        # Project context
+        parts.append(f"Project: {context.get('project_name', 'Unknown')}")
+        parts.append(f"Description: {context.get('description', 'No description')}")
+        
+        # New completions
+        if new_completions > 0:
+            parts.append(f"\n{new_completions} new tasks have been completed since last documentation update.")
+        
+        # Completed tasks
+        completed = context.get('completed_tasks', [])
+        if completed:
+            parts.append(f"\nCompleted tasks ({len(completed)}):")
+            for task in completed[:5]:
+                parts.append(f"- {task.get('description', 'No description')[:80]}")
+            if len(completed) > 5:
+                parts.append(f"... and {len(completed) - 5} more")
+        
+        # Instructions
+        parts.append("\nPlease update project documentation (README.md, ARCHITECTURE.md, etc.) to reflect the current state.")
+        parts.append("Use the appropriate tools to create or update documentation files.")
+        
+        return "\n".join(parts)
     
     def generate_state_markdown(self, state: PipelineState) -> str:
         """Generate markdown state file"""

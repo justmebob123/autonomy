@@ -68,31 +68,19 @@ class InvestigationPhase(BasePhase):
         # Build investigation prompt
         investigation_prompt = self._build_investigation_prompt(filepath, content, issue)
         
-        messages = [
-            {"role": "system", "content": self._get_system_prompt()},
-            {"role": "user", "content": investigation_prompt}
-        ]
+        # Build simple investigation message
+        user_message = self._build_investigation_message(filepath, content, issue)
         
-        # Use analysis specialist for investigation
-        self.logger.info("  Using AnalysisSpecialist for investigation...")
-        specialist_result = self.analysis_specialist.analyze_code(
-            file_path=filepath,
-            code=content,
-            analysis_type="investigation",
-            context={'issue': issue}
-        )
+        # Get tools for investigation phase
+        tools = get_tools_for_phase("investigation")
         
-        if not specialist_result.get("success", False):
-            error_msg = specialist_result.get("response", "Specialist investigation failed")
-            return PhaseResult(
-                success=False,
-                phase=self.phase_name,
-                message=f"Investigation failed: {error_msg}"
-            )
+        # Call model with conversation history
+        self.logger.info("  Calling model with conversation history")
+        response = self.chat_with_history(user_message, tools)
         
         # Extract tool calls and content
-        tool_calls = specialist_result.get("tool_calls", [])
-        content = specialist_result.get("response", "")
+        tool_calls = response.get("tool_calls", [])
+        response_content = response.get("content", "")
         
         # Execute tool calls to gather context
         if tool_calls:
@@ -290,6 +278,30 @@ Start your investigation now by using the available tools."""
         findings["related_files"] = list(set(files))
         
         return findings
+    
+    def _build_investigation_message(self, filepath: str, content: str, issue: Dict) -> str:
+        """
+        Build a simple, focused investigation message.
+        
+        The conversation history provides context, so we keep this simple.
+        """
+        parts = []
+        
+        # Issue description
+        issue_type = issue.get('type', 'unknown')
+        issue_desc = issue.get('description', 'No description')
+        parts.append(f"Investigate this issue in {filepath}:")
+        parts.append(f"Issue type: {issue_type}")
+        parts.append(f"Description: {issue_desc}")
+        
+        # Current code
+        parts.append(f"\nCurrent code:\n```\n{content}\n```")
+        
+        # Instructions
+        parts.append("\nPlease investigate the issue and use tools to gather relevant context.")
+        parts.append("Look for related files, dependencies, and potential causes.")
+        
+        return "\n".join(parts)
     
     def generate_state_markdown(self, state: PipelineState) -> str:
         """
