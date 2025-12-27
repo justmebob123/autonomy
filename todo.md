@@ -47,14 +47,20 @@
   - CodingPhase now calls model directly with conversation
   - QAPhase now calls model directly with conversation
   - DebuggingPhase now calls model directly with conversation
-- [ ] Add specialist request mechanism (Future)
-  - Detect when model requests help (e.g., "I need to validate this")
-  - Call appropriate specialist
-  - Add specialist response to conversation
-  - Continue with model
+  - PlanningPhase now calls model directly with conversation
+  - InvestigationPhase now calls model directly with conversation
+  - DocumentationPhase now calls model directly with conversation
+- [x] Add specialist request mechanism
+  - ✅ Created SpecialistRequestHandler
+  - ✅ Detects when model requests help (regex patterns)
+  - ✅ Routes to appropriate specialist (coding, reasoning, analysis)
+  - ✅ Adds specialist response to conversation
+  - ✅ Model continues with specialist input
+  - ✅ Comprehensive test suite (100% pass rate)
 - [x] Keep specialists as available tools
   - Specialist infrastructure still exists
   - Made optional, not mandatory
+  - Called only when model explicitly requests help
 
 ## Phase 3: Simplify Phase Progression
 - [x] Review coordinator's `_determine_next_action()`
