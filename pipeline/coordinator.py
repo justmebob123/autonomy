@@ -551,6 +551,20 @@ class PhaseCoordinator:
             phase_name = action["phase"]
             reason = action.get("reason", "")
             
+            # Special case: specialist consultation completed
+            if phase_name == "_specialist_consultation_complete":
+                self.logger.info(f"\n{'='*70}")
+                self.logger.info(f"  ITERATION {iteration} - SPECIALIST CONSULTATION")
+                self.logger.info(f"  Reason: {reason}")
+                self.logger.info(f"{'='*70}")
+                
+                # Consultation result is in action
+                consultation_result = action.get("result", {})
+                self.logger.info(f"  Consultation complete, continuing...")
+                
+                # Continue to next iteration (arbiter will decide next action)
+                continue
+            
             self.logger.info(f"\n{'='*70}")
             self.logger.info(f"  ITERATION {iteration} - {phase_name.upper()}")
             self.logger.info(f"  Reason: {reason}")
@@ -774,37 +788,99 @@ class PhaseCoordinator:
             reason = decision.get('parameters', {}).get('reason', 'arbiter_decision')
             return {"phase": new_phase, "reason": reason}
         
-        elif action in ['consult_coding_specialist', 'consult_reasoning_specialist', 'consult_analysis_specialist']:
-            # Map specialist consultation to appropriate phase
-            specialist_to_phase = {
-                'consult_coding_specialist': 'coding',
-                'consult_reasoning_specialist': 'planning',
-                'consult_analysis_specialist': 'qa'
-            }
-            phase = specialist_to_phase.get(action, 'coding')
+        elif action == 'consult_specialist':
+            # CORRECT: Execute specialist consultation directly
+            # This allows model-to-model calling through the application
+            specialist_name = decision.get('specialist', '')
+            query = decision.get('query', '')
+            context = decision.get('context', {})
             
-            # Find appropriate task
-            task = None
-            if phase == 'coding':
-                for t in state.tasks.values():
-                    if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]:
-                        task = t
-                        break
-            elif phase == 'qa':
-                for t in state.tasks.values():
-                    if t.status == TaskStatus.QA_PENDING:
-                        task = t
-                        break
+            self.logger.info(f"🔧 Executing specialist consultation: {specialist_name}")
             
-            result = {"phase": phase, "reason": f"arbiter_{action}"}
-            if task:
-                result["task"] = task
-            return result
+            # Execute the consultation
+            result = self._execute_specialist_consultation(
+                specialist_name, query, context, state
+            )
+            
+            # After consultation, let arbiter decide next action
+            # Return a special marker to continue the loop
+            return {"phase": "_specialist_consultation_complete", "reason": "specialist_consulted", "result": result}
         
         else:
             # Unknown action, default to planning
             self.logger.warning(f"Unknown arbiter action: {action}, defaulting to planning")
             return {"phase": "planning", "reason": "arbiter_unknown_action"}
+    
+    def _execute_specialist_consultation(self, specialist_name: str, query: str, 
+                                        context: dict, state: PipelineState) -> dict:
+        """
+        Execute a specialist consultation (model-to-model call).
+        
+        This is the correct implementation where:
+        1. Arbiter calls specialist as a tool
+        2. Application executes the specialist (runs the model)
+        3. Specialist returns tool_calls
+        4. Application executes those tool_calls
+        5. Results are available for arbiter's next decision
+        
+        Args:
+            specialist_name: Name of specialist (coding, reasoning, analysis)
+            query: Query for the specialist
+            context: Additional context
+            state: Current pipeline state
+            
+        Returns:
+            Dict with consultation results
+        """
+        self.logger.info(f"  Consulting {specialist_name} specialist...")
+        
+        # Add state to context
+        context['state'] = {
+            'phase': state.current_phase,
+            'tasks': len(state.tasks),
+            'pending': sum(1 for t in state.tasks.values() 
+                          if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS])
+        }
+        
+        # Call specialist through arbiter (model-to-model call)
+        result = self.arbiter.consult_specialist(specialist_name, query, context)
+        
+        if not result.get('success', False):
+            self.logger.error(f"  ✗ Specialist consultation failed")
+            return result
+        
+        # Extract tool calls from specialist
+        tool_calls = result.get('tool_calls', [])
+        
+        if tool_calls:
+            self.logger.info(f"  Processing {len(tool_calls)} tool call(s) from specialist...")
+            
+            # Execute tool calls (application provides the scaffolding)
+            from .handlers import ToolCallHandler
+            handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+            tool_results = handler.process_tool_calls(tool_calls)
+            
+            # Add results to consultation result
+            result['tool_results'] = tool_results
+            result['files_created'] = handler.files_created
+            result['files_modified'] = handler.files_modified
+            
+            # Update state based on tool results
+            for tool_result in tool_results:
+                if tool_result.get('success'):
+                    # Track file changes
+                    filepath = tool_result.get('filepath')
+                    if filepath:
+                        if tool_result.get('tool') in ['create_file', 'create_python_file']:
+                            self.logger.info(f"  ✓ Created: {filepath}")
+                        elif tool_result.get('tool') in ['write_file', 'str_replace']:
+                            self.logger.info(f"  ✓ Modified: {filepath}")
+            
+            self.logger.info(f"  ✓ Specialist consultation complete")
+        else:
+            self.logger.info(f"  ✓ Specialist provided guidance (no tool calls)")
+        
+        return result
     
     def _should_run_improvement_cycle(self, state: PipelineState) -> bool:
         """
