@@ -69,20 +69,27 @@
   - Not used for phase transitions
 
 ## Phase 4: Test and Verify
-- [ ] Test conversation history works
-  - Model can reference previous exchanges
-  - Context builds from history
-- [ ] Test optional specialists
-  - Phases work without specialists
-  - Specialists called only when needed
-- [ ] Test simple progression
-  - Phases transition based on task status
-  - No complex decision logic
+- [x] Test conversation history works
+  - ConversationThread initializes correctly
+  - Messages can be added to conversation
+  - Context can be retrieved with token limits
+  - chat_with_history() method works
+- [x] Test initialization
+  - All phases initialize with conversation thread
+  - Correct model assigned from config.model_assignments
+  - Context window set correctly (8192 default)
+- [ ] Test with real tasks (needs live Ollama servers)
+  - Run actual coding task with conversation
+  - Verify model sees previous exchanges
+  - Confirm specialists not called by default
 
 ## Phase 5: Documentation
-- [ ] Document conversation-based architecture
-- [ ] Document specialist invocation mechanism
-- [ ] Update README with new approach
+- [x] Document conversation-based architecture
+  - Created ARCHITECTURE_CLARIFICATION.md
+  - Created IMPLEMENTATION_PLAN_CONVERSATION_ARCHITECTURE.md
+  - Created CONVERSATION_ARCHITECTURE_COMPLETE.md
+- [ ] Update README with new approach (if needed)
+- [ ] Document specialist invocation mechanism (future work)
 
 ## Future Work (Not Now)
 - Background arbiter observer (separate thread)
