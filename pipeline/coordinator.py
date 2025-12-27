@@ -52,7 +52,7 @@ class PhaseCoordinator:
         # INTEGRATION: Initialize Arbiter for intelligent decision-making
         from .orchestration.arbiter import ArbiterModel
         
-        self.arbiter = ArbiterModel(project_dir)
+        self.arbiter = ArbiterModel(self.project_dir)
         self.logger.info("🧠 Arbiter initialized for intelligent orchestration")
         
         # Hyperdimensional polytopic structure
