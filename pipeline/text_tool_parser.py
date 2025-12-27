@@ -196,10 +196,18 @@ class TextToolParser:
             return f"tests/test_{name}.py"
         elif re.search(r'\b(monitor|monitoring)\b', text_lower) and not re.search(r'\b(email|notification)\b', text_lower):
             return "monitors/system.py"
-        else:
-            # Extract meaningful name from description instead of generic default
+        elif re.search(r'\b(phase|workflow)\b', text_lower):
+            # Extract meaningful name from description
             name = self._extract_meaningful_name(text)
-            return f"features/{name}.py"
+            return f"pipeline/phases/{name}.py"
+        elif re.search(r'\b(tool|utility|helper)\b', text_lower):
+            # Extract meaningful name from description
+            name = self._extract_meaningful_name(text)
+            return f"pipeline/tools/{name}.py"
+        else:
+            # Default to pipeline directory for general code
+            name = self._extract_meaningful_name(text)
+            return f"pipeline/{name}.py"
     
     def _extract_meaningful_name(self, text: str) -> str:
         """Extract a meaningful filename from task description"""

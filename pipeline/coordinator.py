@@ -208,7 +208,7 @@ class PhaseCoordinator:
             # Check for consecutive failures - FORCE transition
             if hasattr(phase_state, 'get_consecutive_failures'):
                 consecutive_failures = phase_state.get_consecutive_failures()
-                if consecutive_failures >= 3:
+                if consecutive_failures >= 2:
                     self.logger.warning(
                         f"⚠️  Phase {current_phase} has {consecutive_failures} consecutive failures"
                     )
@@ -912,34 +912,38 @@ class PhaseCoordinator:
         return True
     
     def _show_project_status(self, state: PipelineState) -> None:
-        """Show current project file status"""
+        """Show current project file status - only files with active tasks"""
+        # Only show files that have active tasks (not all files)
+        active_files = set()
+        for task in state.tasks.values():
+            if task.target_file and task.status in [
+                TaskStatus.NEW, TaskStatus.IN_PROGRESS, 
+                TaskStatus.QA_PENDING, TaskStatus.NEEDS_FIXES
+            ]:
+                active_files.add(task.target_file)
+        
+        if not active_files:
+            return  # Don't show anything if no active tasks
+        
         self.logger.info(f"\n📁 PROJECT: {self.project_dir}")
         self.logger.info("─" * 50)
         
-        # List project files
-        py_files = sorted(self.project_dir.rglob("*.py"))
-        
-        for py_file in py_files:
-            if ".pipeline" in str(py_file) or "__pycache__" in str(py_file):
-                continue
-            
-            rel_path = py_file.relative_to(self.project_dir)
-            size = py_file.stat().st_size
-            
-            # Check if this file has a completed task
-            completed = any(
-                t.target_file == str(rel_path) and t.status == TaskStatus.COMPLETED
-                for t in state.tasks.values()
-            )
-            
-            # Check if it's new (QA pending or just created)
-            is_new = any(
-                t.target_file == str(rel_path) and t.status == TaskStatus.QA_PENDING
-                for t in state.tasks.values()
-            )
-            
-            icon = "✓" if completed else ("○" if is_new else "✓")
-            self.logger.info(f"   {icon} {rel_path} ({size} bytes)")
+        for file_path in sorted(active_files):
+            full_path = self.project_dir / file_path
+            if full_path.exists():
+                size = full_path.stat().st_size
+                
+                # Find task for this file
+                task = next((t for t in state.tasks.values() if t.target_file == file_path), None)
+                if task:
+                    status_icon = {
+                        TaskStatus.NEW: "○",
+                        TaskStatus.IN_PROGRESS: "⋯",
+                        TaskStatus.QA_PENDING: "○",
+                        TaskStatus.NEEDS_FIXES: "⚠",
+                    }.get(task.status, "○")
+                    
+                    self.logger.info(f"   {status_icon} {file_path} ({size} bytes)")
         
         self.logger.info("─" * 50)
     

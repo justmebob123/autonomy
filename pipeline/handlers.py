@@ -256,6 +256,21 @@ class ToolCallHandler:
         """Execute a single tool call"""
         func = call.get("function", {})
         name = func.get("name", "unknown")
+        
+        # Handle empty string names (common AI model error)
+        if not name or name.strip() == "":
+            name = "unknown"
+            self.logger.warning(f"Tool call has empty name field")
+            self.logger.warning(f"  Full call structure: {call}")
+            return {
+                "tool": "unknown",
+                "success": False,
+                "error": "empty_tool_name",
+                "error_type": "empty_tool_name",
+                "message": "Tool call has empty name field",
+                "call_structure": call
+            }
+        
         args = func.get("arguments", {})
         
         # Handle arguments that might be a string (JSON)

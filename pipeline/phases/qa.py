@@ -234,6 +234,17 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         if successful_tools == 0 and len(tool_calls) > 0:
             # Tool calls were made but none succeeded - this is a failure
             self.logger.warning(f"  ⚠️  {len(tool_calls)} tool calls made but none succeeded")
+            
+            # If this task has failed multiple times, mark it as SKIPPED to prevent infinite loops
+            if task:
+                task.attempts += 1
+                if task.attempts >= 3:
+                    self.logger.warning(f"  ⚠️  Task {task.task_id} has failed QA {task.attempts} times, marking as SKIPPED")
+                    task.status = TaskStatus.SKIPPED
+                    from ..state.manager import StateManager
+                    state_manager = StateManager(self.project_dir)
+                    state_manager.save(state)
+            
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
