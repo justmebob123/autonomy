@@ -375,25 +375,31 @@ CRITICAL: You MUST call exactly ONE tool from the available tools.
     
     def _get_arbiter_system_prompt(self) -> str:
         """Get system prompt for arbiter."""
-        return """You are an arbiter coordinating AI specialists in a development pipeline.
+        return """You are an arbiter that ONLY communicates through tool calls.
 
-Your role is to:
-1. Analyze the current situation
-2. Decide which specialists to consult
-3. Coordinate their work
-4. Make strategic decisions about workflow
+YOU CANNOT WRITE TEXT RESPONSES. YOU CAN ONLY CALL TOOLS.
 
-IMPORTANT: You MUST use the provided tools to make decisions. Always call exactly ONE tool:
+Every single response MUST be a tool call. No exceptions.
+
+Available tools:
 - consult_coding_specialist: For implementation tasks
-- consult_reasoning_specialist: For strategic analysis
+- consult_reasoning_specialist: For strategic analysis  
 - consult_analysis_specialist: For quick checks
-- consult_interpreter_specialist: For clarifying tool calls
 - change_phase: To change pipeline phase
 - request_user_input: To ask user for guidance
 - continue_current_phase: To continue current work
 
-CRITICAL: Every response MUST include a tool call with a valid tool name from the list above.
-Do NOT generate tool calls with empty names or invalid tool names."""
+CRITICAL RULES:
+1. NEVER write explanatory text
+2. ALWAYS call exactly ONE tool
+3. NEVER leave tool name empty
+4. If unsure, call request_user_input
+
+Example correct response:
+<tool_call>
+<name>consult_reasoning_specialist</name>
+<arguments>{"query": "Should we focus on documentation or failures?"}</arguments>
+</tool_call>"""
     
     def _get_arbiter_tools(self) -> List[Dict]:
         """Get tools available to the arbiter."""
@@ -520,15 +526,31 @@ Based on the arguments, which tool should be called? Return ONLY the tool name."
                 
                 self.logger.info(f"📥 FunctionGemma Response:\n{clarified}")
                 
-                if clarified.get("success") and clarified.get("tool_calls"):
-                    fixed_call = clarified["tool_calls"][0]
-                    fixed_func = fixed_call.get("function", {})
-                    name = fixed_func.get("name", "")
-                    if name:
-                        self.logger.info(f"✓ FunctionGemma fixed tool call: {name}")
-                        args = fixed_func.get("arguments", args)  # Use fixed args if available
+                # FunctionGemma might return tool calls OR plain text with the tool name
+                if clarified.get("success"):
+                    # Try to get tool name from tool_calls first
+                    if clarified.get("tool_calls"):
+                        fixed_call = clarified["tool_calls"][0]
+                        fixed_func = fixed_call.get("function", {})
+                        name = fixed_func.get("name", "")
+                        if name:
+                            self.logger.info(f"✓ FunctionGemma fixed tool call: {name}")
+                            args = fixed_func.get("arguments", args)
                     else:
-                        self.logger.warning(f"✗ FunctionGemma returned empty name. Full response: {clarified}")
+                        # Try to extract tool name from text content
+                        content = clarified.get("response", {}).get("message", {}).get("content", "")
+                        self.logger.info(f"📝 FunctionGemma text response: {content}")
+                        
+                        # Look for tool name in the content
+                        available_tools = [t['name'] for t in self._get_arbiter_tools()]
+                        for tool_name in available_tools:
+                            if tool_name in content:
+                                name = tool_name
+                                self.logger.info(f"✓ FunctionGemma suggested tool: {name}")
+                                break
+                        
+                        if not name:
+                            self.logger.warning(f"✗ Could not extract tool name from FunctionGemma response: {content}")
                 else:
                     self.logger.warning(f"✗ FunctionGemma clarification failed. Response: {clarified}")
             except Exception as e:
