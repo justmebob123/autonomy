@@ -404,6 +404,12 @@ Use tools to communicate your decisions."""
         name = func.get("name", "")
         args = func.get("arguments", {})
         
+        # Log the raw tool call for debugging
+        if not name:
+            self.logger.warning(f"Empty tool name in tool call. Full tool_call: {first_call}")
+            self.logger.warning(f"Function dict: {func}")
+            self.logger.warning(f"All tool_calls: {tool_calls}")
+        
         # Parse based on tool name
         if name.startswith("consult_"):
             specialist = name.replace("consult_", "").replace("_specialist", "")

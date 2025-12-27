@@ -292,7 +292,7 @@ class SpecialistRegistry:
             model_tool: ModelTool instance
         """
         self.specialists[name] = model_tool
-        self.logger.debug(f"  Registered {name} specialist: {model_tool.model}")
+        self.logger.info(f"  ✓ Registered {name} specialist: {model_tool.model} on {model_tool.server}")
     
     def get(self, name: str) -> Optional[ModelTool]:
         """

@@ -135,6 +135,9 @@ class UnifiedModelTool:
         self.usage_stats['total_calls'] += 1
         start_time = time.time()
         
+        # Log which model and server we're using
+        self.logger.info(f"🤖 Calling {self.model_name} on {self.host}")
+        
         try:
             # Prepare messages with system prompt
             if system_prompt:
