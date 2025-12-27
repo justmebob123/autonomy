@@ -159,8 +159,18 @@ class OllamaClient:
             self.logger.debug(f"  [{i}] {role}: {preview}")
         
         try:
+            # Parse host to handle both "hostname" and "http://hostname:port" formats
+            if host.startswith("http://") or host.startswith("https://"):
+                # Host already includes protocol and possibly port
+                base_url = host
+                if ":11434" not in host and not host.endswith("/"):
+                    base_url = f"{host}:11434"
+            else:
+                # Host is just hostname, add protocol and port
+                base_url = f"http://{host}:11434"
+            
             response = requests.post(
-                f"http://{host}:11434/api/chat",
+                f"{base_url}/api/chat",
                 json=payload,
                 timeout=timeout
             )

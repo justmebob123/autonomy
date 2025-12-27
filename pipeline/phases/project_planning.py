@@ -119,7 +119,7 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
                 self.logger.warning(f"  Response content (last 500 chars): ...{content[-500:]}")
             
             # Log the full response for debugging
-            self.logger.debug(f"  Full response: {response}")
+            self.logger.debug(f"  Full specialist result: {specialist_result}")
             
             # Check if response contains tool-like patterns
             if "analyze_project_status" in content or "propose_expansion_tasks" in content:
