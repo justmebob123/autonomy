@@ -327,13 +327,13 @@ If failures exist ({len(prompt_context.recent_failures)} failures):
 → Call: consult_reasoning_specialist with query "Diagnose recent failures"
 
 If needs fixes exist ({needs_fixes} tasks):
-→ Call: change_phase with new_phase "debugging"
+→ Call: change_phase with phase "debugging" and reason "Tasks need fixes"
 
 If documentation needed (context shows needs_documentation: {context.get('needs_documentation', False)}):
-→ Call: change_phase with new_phase "documentation"
+→ Call: change_phase with phase "documentation" and reason "Documentation is needed"
 
 If no pending work and phase is complete:
-→ Call: change_phase with new_phase "<next_logical_phase>"
+→ Call: change_phase with phase "<next_logical_phase>" and reason "Current phase complete"
 
 Otherwise:
 → Call: continue_current_phase
@@ -561,14 +561,29 @@ Example BAD response (asking instead of deciding):
             if not name:
                 self.logger.info("🔍 Inferring tool name from arguments...")
                 
-                # Infer tool based on argument keys
-                if "new_phase" in args:
+                # Infer tool based on argument keys and content
+                if "new_phase" in args or "phase" in args:
                     name = "change_phase"
-                    self.logger.info(f"✓ Inferred tool from 'new_phase' argument: {name}")
+                    # Normalize the argument name
+                    if "new_phase" in args and "phase" not in args:
+                        args["phase"] = args.pop("new_phase")
+                    self.logger.info(f"✓ Inferred tool from 'phase' argument: {name}")
                 elif "query" in args:
-                    # Could be any consult_* tool, default to reasoning
-                    name = "consult_reasoning_specialist"
-                    self.logger.info(f"✓ Inferred tool from 'query' argument: {name}")
+                    # Infer which specialist based on query content
+                    query = args.get("query", "").lower()
+                    if "review" in query or "qa" in query or "check" in query or "quality" in query:
+                        name = "consult_analysis_specialist"
+                        self.logger.info(f"✓ Inferred analysis specialist from query: {query[:50]}")
+                    elif "diagnose" in query or "failure" in query or "error" in query or "debug" in query:
+                        name = "consult_reasoning_specialist"
+                        self.logger.info(f"✓ Inferred reasoning specialist from query: {query[:50]}")
+                    elif "implement" in query or "code" in query or "write" in query or "create" in query:
+                        name = "consult_coding_specialist"
+                        self.logger.info(f"✓ Inferred coding specialist from query: {query[:50]}")
+                    else:
+                        # Default to reasoning for strategic questions
+                        name = "consult_reasoning_specialist"
+                        self.logger.info(f"✓ Defaulting to reasoning specialist for query: {query[:50]}")
                 elif "message" in args or "question" in args:
                     name = "request_user_input"
                     self.logger.info(f"✓ Inferred tool from message/question argument: {name}")
