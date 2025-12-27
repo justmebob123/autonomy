@@ -321,11 +321,24 @@ CRITICAL: You MUST call exactly ONE tool from the available tools.
         return min(complexity, 10)
     
     def _get_recent_failures(self, state: PipelineState) -> list:
-        """Get recent failures from state."""
+        """Get recent failures from state as dicts."""
         failures = []
         for task in state.tasks.values():
             if task.errors:
-                failures.extend(task.errors[-3:])
+                # Convert TaskError objects to dicts
+                for error in task.errors[-3:]:
+                    if hasattr(error, 'to_dict'):
+                        failures.append(error.to_dict())
+                    elif isinstance(error, dict):
+                        failures.append(error)
+                    else:
+                        # Fallback: convert to dict manually
+                        failures.append({
+                            'error_type': getattr(error, 'error_type', 'unknown'),
+                            'message': getattr(error, 'message', str(error)),
+                            'timestamp': getattr(error, 'timestamp', ''),
+                            'phase': getattr(error, 'phase', 'unknown')
+                        })
         return failures
     
     def _format_context(self, context: Dict[str, Any]) -> str:
