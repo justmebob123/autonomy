@@ -8,5 +8,52 @@ Each specialist is an expert in a specific domain:
 - FunctionGemmaMediator: Tool call interpretation
 """
 
-# Specialists will be implemented in future iterations
-# For now, they are accessed through the ModelTool framework
+from .coding_specialist import (
+    CodingSpecialist,
+    CodingTask,
+    create_coding_specialist
+)
+
+from .reasoning_specialist import (
+    ReasoningSpecialist,
+    ReasoningTask,
+    ReasoningType,
+    create_reasoning_specialist
+)
+
+from .analysis_specialist import (
+    AnalysisSpecialist,
+    AnalysisTask,
+    AnalysisType,
+    create_analysis_specialist
+)
+
+from .function_gemma_mediator import (
+    FunctionGemmaMediator,
+    InterpretationRequest,
+    create_function_gemma_mediator
+)
+
+__all__ = [
+    # Coding Specialist
+    'CodingSpecialist',
+    'CodingTask',
+    'create_coding_specialist',
+    
+    # Reasoning Specialist
+    'ReasoningSpecialist',
+    'ReasoningTask',
+    'ReasoningType',
+    'create_reasoning_specialist',
+    
+    # Analysis Specialist
+    'AnalysisSpecialist',
+    'AnalysisTask',
+    'AnalysisType',
+    'create_analysis_specialist',
+    
+    # FunctionGemma Mediator
+    'FunctionGemmaMediator',
+    'InterpretationRequest',
+    'create_function_gemma_mediator',
+]
