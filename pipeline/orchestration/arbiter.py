@@ -83,17 +83,26 @@ class ArbiterModel:
         # Get arbiter tools
         tools = self._get_arbiter_tools()
         
+        # Log the request details
+        system_prompt = self._get_arbiter_system_prompt()
+        self.logger.info(f"📝 Arbiter System Prompt:\n{system_prompt}")
+        self.logger.info(f"📝 Arbiter User Prompt:\n{prompt}")
+        self.logger.info(f"🔧 Available tools: {[t['name'] for t in tools]}")
+        
         # Call arbiter model
         response = self.client.chat(
             host=self.server,
             model=self.model,
             messages=[
-                {"role": "system", "content": self._get_arbiter_system_prompt()},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ],
             tools=tools,
             temperature=0.3
         )
+        
+        # Log the raw response
+        self.logger.info(f"📥 Arbiter Raw Response:\n{response}")
         
         # Parse decision
         decision = self._parse_decision(response)
