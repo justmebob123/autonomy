@@ -50,14 +50,9 @@ class PhaseCoordinator:
         self.phases = self._init_phases()
         
         # INTEGRATION: Initialize Arbiter for intelligent decision-making
-        from .orchestration.unified_model_tool import UnifiedModelTool
         from .orchestration.arbiter import ArbiterModel
         
-        arbiter_tool = UnifiedModelTool(
-            model_name="qwen2.5:14b",
-            host="http://localhost:11434"
-        )
-        self.arbiter = ArbiterModel(arbiter_tool)
+        self.arbiter = ArbiterModel(project_dir)
         self.logger.info("🧠 Arbiter initialized for intelligent orchestration")
         
         # Hyperdimensional polytopic structure
@@ -701,7 +696,7 @@ class PhaseCoordinator:
         context = self._build_arbiter_context(state)
         
         # Let arbiter decide the next action
-        decision = self.arbiter.decide_action(context)
+        decision = self.arbiter.decide_action(state, context)
         
         # Convert arbiter decision to coordinator format
         return self._convert_arbiter_decision(decision, state)
