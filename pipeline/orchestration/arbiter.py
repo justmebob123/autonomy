@@ -146,7 +146,12 @@ class ArbiterModel:
         # Call specialist
         result = specialist(query, context)
         
-        # Review the response
+        # CRITICAL: Do NOT review interpreter responses to avoid infinite loops
+        # The interpreter (FunctionGemma) is used FOR reviewing, not to be reviewed
+        if specialist_name == "interpreter":
+            return result
+        
+        # Review the response for other specialists
         reviewed = self.review_specialist_response(specialist_name, result)
         
         return reviewed
@@ -158,7 +163,7 @@ class ArbiterModel:
         
         The arbiter can:
         - Approve the response as-is
-        - Request clarification via FunctionGemma
+        - Request clarification via FunctionGemma (max 1 attempt)
         - Consult another specialist for a second opinion
         
         Args:
@@ -173,6 +178,10 @@ class ArbiterModel:
             self.logger.warning(f"  ⚠️ Specialist {specialist_name} failed")
             return response
         
+        # Check if already clarified (prevent infinite loops)
+        if response.get("clarified_by_functiongemma"):
+            return response
+        
         # Check if tool calls are clear
         tool_calls = response.get("tool_calls", [])
         
@@ -180,7 +189,7 @@ class ArbiterModel:
             # No tool calls - might need clarification
             self.logger.debug(f"  No tool calls from {specialist_name}")
             
-            # Try FunctionGemma to extract tool calls
+            # Try FunctionGemma to extract tool calls (ONCE only)
             content = response.get("response", {}).get("message", {}).get("content", "")
             if content:
                 self.logger.info(f"  Attempting tool call extraction with FunctionGemma...")
@@ -190,23 +199,32 @@ class ArbiterModel:
                 if clarified.get("success") and clarified.get("tool_calls"):
                     response["tool_calls"] = clarified["tool_calls"]
                     response["clarified_by_functiongemma"] = True
+                else:
+                    self.logger.warning("  ✗ FunctionGemma could not extract tool calls")
         
         # Check for empty tool names
+        has_empty_names = False
         for tc in tool_calls:
             func = tc.get("function", {})
             name = func.get("name", "")
             
             if not name or name.strip() == "":
-                self.logger.warning(f"  ⚠️ Empty tool name detected, requesting clarification...")
-                
-                # Use FunctionGemma to fix
-                clarified = self.consult_specialist("interpreter",
-                    f"Fix this tool call with empty name:\n\n{tc}")
-                
-                if clarified.get("success"):
-                    # Replace with clarified version
-                    response["tool_calls"] = clarified.get("tool_calls", [])
-                    response["clarified_by_functiongemma"] = True
+                has_empty_names = True
+                break
+        
+        if has_empty_names:
+            self.logger.warning(f"  ⚠️ Empty tool name detected, requesting clarification...")
+            
+            # Use FunctionGemma to fix (ONCE only)
+            clarified = self.consult_specialist("interpreter",
+                f"Fix this tool call with empty name. Available tools: {[t['name'] for t in self._get_arbiter_tools()]}. Tool calls: {tool_calls}")
+            
+            if clarified.get("success") and clarified.get("tool_calls"):
+                # Replace with clarified version
+                response["tool_calls"] = clarified.get("tool_calls", [])
+                response["clarified_by_functiongemma"] = True
+            else:
+                self.logger.warning("  ✗ FunctionGemma could not fix empty tool names")
         
         return response
     

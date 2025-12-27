@@ -53,7 +53,7 @@ class RoleRegistry:
         # Load existing roles
         self._load_roles()
         
-        self.logger.info(f"RoleRegistry initialized with {len(self.specialists)} specialists")
+        # Removed verbose initialization logging
     
     def _load_roles(self):
         """Load all role specifications and instantiate specialists"""

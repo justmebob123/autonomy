@@ -105,7 +105,7 @@ class BasePhase(ABC):
         # Create unified model tools for specialists
         self.coding_tool = UnifiedModelTool("qwen2.5-coder:32b", "http://ollama02:11434")
         self.reasoning_tool = UnifiedModelTool("qwen2.5:32b", "http://ollama02:11434")
-        self.analysis_tool = UnifiedModelTool("qwen2.5:14b", "http://localhost:11434")
+        self.analysis_tool = UnifiedModelTool("qwen2.5:14b", "http://ollama01.thiscluster.net:11434")
         
         # Create specialists
         self.coding_specialist = create_coding_specialist(self.coding_tool)

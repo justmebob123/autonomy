@@ -80,10 +80,7 @@ class UnifiedModelTool:
             'total_time': 0.0
         }
         
-        logger.info(
-            f"UnifiedModelTool initialized: {model_name} @ {host} "
-            f"(context: {self.context_window})"
-        )
+        # Removed verbose initialization logging to reduce spam
     
     def _get_context_window(self) -> int:
         """

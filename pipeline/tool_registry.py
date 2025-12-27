@@ -51,7 +51,7 @@ class ToolRegistry:
         # Load existing tools
         self._load_tools()
         
-        self.logger.info(f"ToolRegistry initialized with {len(self.tools)} tools")
+        # Removed verbose initialization logging
     
     def set_handler(self, handler):
         """

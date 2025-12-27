@@ -47,7 +47,7 @@ class PromptRegistry:
         # Load existing prompts
         self._load_prompts()
         
-        self.logger.info(f"PromptRegistry initialized with {len(self.prompts)} prompts")
+        # Removed verbose initialization logging
     
     def _load_prompts(self):
         """Load all prompt specifications from custom directory"""
