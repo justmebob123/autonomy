@@ -159,13 +159,17 @@ class PhaseCoordinator:
         
         CRITICAL: Only force transition on REPEATED FAILURES or NO PROGRESS.
         NEVER force transition after successful operations.
+        Uses run history for intelligent pattern detection.
         
         Returns True if:
         - Phase keeps returning "no updates needed" 3+ times
-        - Phase has very low success rate (< 30%) over last 5 runs
+        - Phase has 3+ consecutive failures
+        - Phase is oscillating (unstable)
+        - Phase has very low success rate (< 30%) as fallback
         
         Does NOT force transition if:
         - Last result was successful with actual work done
+        - Phase is improving (recent success rate > older success rate)
         - Files were created or modified
         - Task was completed
         
@@ -192,12 +196,30 @@ class PhaseCoordinator:
             self.logger.warning(f"Phase {current_phase} returned 'no updates' {no_update_count} times")
             return True
         
-        # Check success rate over recent runs
-        # Only force transition if phase is consistently failing
+        # Enhanced checks with run history
         if hasattr(state, 'phases') and current_phase in state.phases:
             phase_state = state.phases[current_phase]
             
-            # Need at least 3 runs to judge
+            # Check if phase is improving - DON'T force transition
+            if hasattr(phase_state, 'is_improving') and phase_state.is_improving():
+                self.logger.info(f"✅ Phase {current_phase} is improving, continuing")
+                return False
+            
+            # Check for consecutive failures - FORCE transition
+            if hasattr(phase_state, 'get_consecutive_failures'):
+                consecutive_failures = phase_state.get_consecutive_failures()
+                if consecutive_failures >= 3:
+                    self.logger.warning(
+                        f"⚠️  Phase {current_phase} has {consecutive_failures} consecutive failures"
+                    )
+                    return True
+            
+            # Check if oscillating - FORCE transition (unstable)
+            if hasattr(phase_state, 'is_oscillating') and phase_state.is_oscillating():
+                self.logger.warning(f"⚠️  Phase {current_phase} is oscillating (unstable)")
+                return True
+            
+            # Fallback to aggregate success rate (for backward compatibility)
             if phase_state.runs >= 3:
                 success_rate = phase_state.successes / phase_state.runs
                 
@@ -578,10 +600,15 @@ class PhaseCoordinator:
                     state._next_phase_hint = result.next_phase
                     self.state_manager.save(state)
                 
-                # Record phase run
+                # Record phase run with full details
                 state = self.state_manager.load()  # Reload in case phase modified it
                 if phase_name in state.phases:
-                    state.phases[phase_name].record_run(result.success)
+                    state.phases[phase_name].record_run(
+                        success=result.success,
+                        task_id=result.task_id,
+                        files_created=result.files_created,
+                        files_modified=result.files_modified
+                    )
                 self.state_manager.save(state)
                 
                 # Write phase state markdown
@@ -627,7 +654,10 @@ class PhaseCoordinator:
                 # Record failure
                 state = self.state_manager.load()
                 if phase_name in state.phases:
-                    state.phases[phase_name].record_run(False)
+                    state.phases[phase_name].record_run(
+                        success=False,
+                        task_id=task.task_id if task else None
+                    )
                 self.state_manager.save(state)
         
         # Reached max iterations

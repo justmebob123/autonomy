@@ -169,6 +169,10 @@ class PhaseState:
     successes: int = 0
     failures: int = 0
     
+    # Run history (limited to last N runs for temporal pattern detection)
+    run_history: List[Dict[str, Any]] = field(default_factory=list)
+    max_history: int = 20  # Keep last 20 runs
+    
     # Aliases for compatibility
     @property
     def run_count(self) -> int:
@@ -189,14 +193,101 @@ class PhaseState:
     def from_dict(cls, data: Dict) -> "PhaseState":
         return cls(**data)
     
-    def record_run(self, success: bool):
-        """Record a phase run"""
+    def record_run(self, success: bool, task_id: str = None, 
+                   files_created: List[str] = None, 
+                   files_modified: List[str] = None):
+        """Record a phase run with full details"""
         self.last_run = datetime.now().isoformat()
         self.runs += 1
+        
         if success:
             self.successes += 1
         else:
             self.failures += 1
+        
+        # Record in history
+        run_record = {
+            'timestamp': self.last_run,
+            'success': success,
+            'task_id': task_id,
+            'files_created': files_created or [],
+            'files_modified': files_modified or []
+        }
+        
+        self.run_history.append(run_record)
+        
+        # Limit history size
+        if len(self.run_history) > self.max_history:
+            self.run_history = self.run_history[-self.max_history:]
+    
+    def get_consecutive_failures(self) -> int:
+        """Count consecutive failures from end of history"""
+        count = 0
+        for run in reversed(self.run_history):
+            if not run['success']:
+                count += 1
+            else:
+                break
+        return count
+    
+    def get_consecutive_successes(self) -> int:
+        """Count consecutive successes from end of history"""
+        count = 0
+        for run in reversed(self.run_history):
+            if run['success']:
+                count += 1
+            else:
+                break
+        return count
+    
+    def get_recent_success_rate(self, n: int = 5) -> float:
+        """Get success rate over last N runs"""
+        recent = self.run_history[-n:] if len(self.run_history) >= n else self.run_history
+        if not recent:
+            return 0.0
+        successes = sum(1 for r in recent if r['success'])
+        return successes / len(recent)
+    
+    def is_improving(self, window: int = 5) -> bool:
+        """Check if success rate is improving"""
+        if len(self.run_history) < window * 2:
+            return False
+        
+        older = self.run_history[-window*2:-window]
+        recent = self.run_history[-window:]
+        
+        older_rate = sum(1 for r in older if r['success']) / len(older)
+        recent_rate = sum(1 for r in recent if r['success']) / len(recent)
+        
+        return recent_rate > older_rate
+    
+    def is_degrading(self, window: int = 5) -> bool:
+        """Check if success rate is degrading"""
+        if len(self.run_history) < window * 2:
+            return False
+        
+        older = self.run_history[-window*2:-window]
+        recent = self.run_history[-window:]
+        
+        older_rate = sum(1 for r in older if r['success']) / len(older)
+        recent_rate = sum(1 for r in recent if r['success']) / len(recent)
+        
+        return recent_rate < older_rate
+    
+    def is_oscillating(self, threshold: int = 3) -> bool:
+        """Check if alternating between success and failure"""
+        if len(self.run_history) < threshold * 2:
+            return False
+        
+        recent = self.run_history[-threshold*2:]
+        changes = 0
+        
+        for i in range(1, len(recent)):
+            if recent[i]['success'] != recent[i-1]['success']:
+                changes += 1
+        
+        # If changes >= threshold, it's oscillating
+        return changes >= threshold
 
 
 @dataclass
