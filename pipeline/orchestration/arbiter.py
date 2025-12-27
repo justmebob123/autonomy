@@ -89,7 +89,8 @@ class ArbiterModel:
         self.logger.info(f"📝 Arbiter User Prompt:\n{prompt}")
         self.logger.info(f"🔧 Available tools: {[t['name'] for t in tools]}")
         
-        # Call arbiter model
+        # Call arbiter model WITHOUT tools (model can't handle them properly)
+        # Instead, we'll parse the text response
         response = self.client.chat(
             host=self.server,
             model=self.model,
@@ -97,15 +98,15 @@ class ArbiterModel:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": prompt}
             ],
-            tools=tools,
+            tools=None,
             temperature=0.3
         )
         
         # Log the raw response
         self.logger.info(f"📥 Arbiter Raw Response:\n{response}")
         
-        # Parse decision
-        decision = self._parse_decision(response)
+        # Parse decision from TEXT response (not tool calls)
+        decision = self._parse_text_decision(response, state, context)
         
         # Record decision
         self.decision_history.append({
@@ -500,6 +501,65 @@ Example BAD response (asking instead of deciding):
         })
         
         return tools
+    
+    def _parse_text_decision(self, response: Dict[str, Any], state: PipelineState, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Parse decision from TEXT response (not tool calls).
+        
+        The model can't generate proper tool calls, so we parse the text.
+        """
+        content = response.get("message", {}).get("content", "").lower()
+        
+        self.logger.info(f"📝 Parsing text decision from: {content[:200]}")
+        
+        # Check for phase change
+        if "change_phase" in content or "change to" in content or "move to" in content:
+            # Extract phase name
+            for phase in ["coding", "qa", "debugging", "documentation", "planning"]:
+                if phase in content:
+                    return {
+                        "action": "change_phase",
+                        "phase": phase,
+                        "reason": "Arbiter decided to change phase"
+                    }
+        
+        # Check for specialist consultation
+        if "consult" in content or "ask" in content or "get help" in content:
+            if "analysis" in content or "review" in content or "qa" in content:
+                return {
+                    "action": "consult_specialist",
+                    "specialist": "analysis",
+                    "query": "Review current tasks",
+                    "context": {}
+                }
+            elif "reasoning" in content or "diagnose" in content or "failure" in content:
+                return {
+                    "action": "consult_specialist",
+                    "specialist": "reasoning",
+                    "query": "Diagnose issues",
+                    "context": {}
+                }
+            elif "coding" in content or "implement" in content:
+                return {
+                    "action": "consult_specialist",
+                    "specialist": "coding",
+                    "query": "Help with implementation",
+                    "context": {}
+                }
+        
+        # Check for user input request
+        if "user" in content or "ask user" in content or "need input" in content:
+            return {
+                "action": "request_user_input",
+                "question": "What should happen next?",
+                "context": "Arbiter needs guidance"
+            }
+        
+        # Default: continue current phase
+        return {
+            "action": "continue_current_phase",
+            "reason": "No clear action in response"
+        }
     
     def _parse_decision(self, response: Dict[str, Any]) -> Dict[str, Any]:
         """

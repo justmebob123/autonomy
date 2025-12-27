@@ -441,8 +441,11 @@ class PhaseCoordinator:
         if resume:
             state = self.state_manager.load()
         else:
-            # Start fresh - create new state
-            self.logger.info("  Starting fresh (ignoring saved state)...")
+            # Start fresh - DELETE old state and create new
+            self.logger.info("  Starting fresh (deleting saved state)...")
+            if self.state_manager.state_file.exists():
+                self.state_manager.state_file.unlink()
+                self.logger.info("  ✓ Deleted old state file")
             state = PipelineState()
             self.state_manager.save(state)
         
