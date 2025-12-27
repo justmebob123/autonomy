@@ -426,6 +426,60 @@ Scan for:
         
         return findings
     
+    def review_code(self, file_path: str, code: str) -> Dict[str, Any]:
+        """
+        Review code for QA phase.
+        
+        Args:
+            file_path: Path to the code file
+            code: Code content to review
+            
+        Returns:
+            Review result with tool calls
+        """
+        logger.info(f"AnalysisSpecialist reviewing {file_path}")
+        
+        task = AnalysisTask(
+            analysis_type=AnalysisType.CODE_REVIEW,
+            target=code,
+            context={"file_path": file_path},
+            quick_mode=False  # Thorough review for QA
+        )
+        
+        return self.execute_task(task)
+    
+    def analyze_code(self, file_path: str, code: str, analysis_type: str = "investigation", context: Dict[str, Any] = None) -> Dict[str, Any]:
+        """
+        Analyze code for investigation or documentation.
+        
+        Args:
+            file_path: Path to the code file
+            code: Code content to analyze
+            analysis_type: Type of analysis (investigation, documentation, etc.)
+            context: Additional context
+            
+        Returns:
+            Analysis result with tool calls
+        """
+        logger.info(f"AnalysisSpecialist analyzing {file_path} ({analysis_type})")
+        
+        # Map string analysis types to AnalysisType enum
+        type_map = {
+            "investigation": AnalysisType.CODE_REVIEW,
+            "documentation": AnalysisType.CODE_REVIEW,
+            "quality": AnalysisType.QUALITY_CHECK,
+            "pattern": AnalysisType.PATTERN_DETECTION
+        }
+        
+        task = AnalysisTask(
+            analysis_type=type_map.get(analysis_type, AnalysisType.CODE_REVIEW),
+            target=code,
+            context={"file_path": file_path, **(context or {})},
+            quick_mode=False
+        )
+        
+        return self.execute_task(task)
+    
     def quick_code_review(self, file_path: str, code: str) -> Dict[str, Any]:
         """
         Perform quick code review.
