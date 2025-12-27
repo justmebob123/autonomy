@@ -238,7 +238,7 @@ class ArbiterModel:
     
     def _build_decision_prompt(self, state: PipelineState, context: Dict[str, Any]) -> str:
         """
-        Build prompt for decision-making.
+        Build prompt for decision-making using DynamicPromptBuilder.
         
         Args:
             state: Pipeline state
@@ -247,34 +247,39 @@ class ArbiterModel:
         Returns:
             Prompt string
         """
-        # Get pending tasks
-        pending_tasks = [
-            t for t in state.tasks.values()
-            if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]
-        ]
+        # Use DynamicPromptBuilder for context-aware prompts
+        prompt_context = PromptContext(
+            task_type="arbiter_decision",
+            complexity=self._assess_decision_complexity(state),
+            recent_failures=self._get_recent_failures(state),
+            available_context={
+                "state": state,
+                "context": context,
+                "pending_tasks": len([t for t in state.tasks.values() 
+                                     if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]]),
+                "specialists": {
+                    "coding": "Expert Python developer (32b model, ollama02)",
+                    "reasoning": "Strategic thinker (32b model, ollama02)",
+                    "analysis": "Quick analyzer (14b model, ollama01)",
+                    "interpreter": "Tool call clarifier (FunctionGemma, ollama01)"
+                }
+            }
+        )
         
-        # Get recent failures
-        recent_failures = []
-        for task in state.tasks.values():
-            if task.errors:
-                recent_failures.extend(task.errors[-3:])  # Last 3 errors per task
+        # Build dynamic prompt
+        prompt = self.prompt_builder.build(prompt_context)
         
-        prompt = f"""You are coordinating an AI development pipeline.
+        # Add arbiter-specific instructions
+        prompt += f"""
 
 CURRENT STATE:
 - Phase: {getattr(state, "current_phase", state.phase_history[-1] if hasattr(state, "phase_history") and state.phase_history else "unknown")}
 - Total tasks: {len(state.tasks)}
-- Pending tasks: {len(pending_tasks)}
-- Recent failures: {len(recent_failures)}
+- Pending tasks: {prompt_context.available_context['pending_tasks']}
+- Recent failures: {len(prompt_context.recent_failures)}
 
 CONTEXT:
 {self._format_context(context)}
-
-AVAILABLE SPECIALISTS:
-- coding: Expert Python developer (32b model, ollama02)
-- reasoning: Strategic thinker (32b model, ollama02)
-- analysis: Quick analyzer (14b model, ollama01)
-- interpreter: Tool call clarifier (FunctionGemma, ollama01)
 
 DECIDE:
 What should happen next? Consider:
@@ -283,10 +288,38 @@ What should happen next? Consider:
 3. Do we need user input?
 4. Are there failures that need diagnosis?
 
-Use tools to make your decision.
+CRITICAL: You MUST call exactly ONE tool from the available tools.
 """
         
         return prompt
+    
+    def _assess_decision_complexity(self, state: PipelineState) -> int:
+        """Assess complexity of current decision (1-10)."""
+        complexity = 1
+        
+        # More pending tasks = more complex
+        pending = len([t for t in state.tasks.values() 
+                      if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]])
+        complexity += min(pending // 2, 3)
+        
+        # Recent failures increase complexity
+        failures = self._get_recent_failures(state)
+        complexity += min(len(failures), 3)
+        
+        # Phase transitions are complex
+        if hasattr(state, "phase_history") and len(state.phase_history) > 1:
+            if state.phase_history[-1] != state.phase_history[-2]:
+                complexity += 2
+        
+        return min(complexity, 10)
+    
+    def _get_recent_failures(self, state: PipelineState) -> list:
+        """Get recent failures from state."""
+        failures = []
+        for task in state.tasks.values():
+            if task.errors:
+                failures.extend(task.errors[-3:])
+        return failures
     
     def _format_context(self, context: Dict[str, Any]) -> str:
         """Format context for prompt."""
@@ -416,11 +449,35 @@ Do NOT generate tool calls with empty names or invalid tool names."""
         name = func.get("name", "")
         args = func.get("arguments", {})
         
-        # Log the raw tool call for debugging
+        # If tool name is empty, use FunctionGemma to fix it
         if not name:
             self.logger.warning(f"Empty tool name in tool call. Full tool_call: {first_call}")
             self.logger.warning(f"Function dict: {func}")
             self.logger.warning(f"All tool_calls: {tool_calls}")
+            
+            # Try to use FunctionGemma to extract the correct tool call
+            self.logger.info("🔧 Attempting to fix malformed tool call with FunctionGemma...")
+            try:
+                clarified = self.consult_specialist("interpreter",
+                    f"Fix this malformed tool call. The tool name is empty but arguments suggest intent: {args}. "
+                    f"Available tools: {[t['name'] for t in self._get_arbiter_tools()]}. "
+                    f"Return the correct tool name.",
+                    {"malformed_call": first_call, "available_tools": self._get_arbiter_tools()}
+                )
+                
+                if clarified.get("success") and clarified.get("tool_calls"):
+                    fixed_call = clarified["tool_calls"][0]
+                    fixed_func = fixed_call.get("function", {})
+                    name = fixed_func.get("name", "")
+                    if name:
+                        self.logger.info(f"✓ FunctionGemma fixed tool call: {name}")
+                        args = fixed_func.get("arguments", args)  # Use fixed args if available
+                    else:
+                        self.logger.warning("✗ FunctionGemma could not fix tool call")
+                else:
+                    self.logger.warning("✗ FunctionGemma clarification failed")
+            except Exception as e:
+                self.logger.error(f"✗ Error using FunctionGemma: {e}")
         
         # Parse based on tool name
         if name.startswith("consult_"):
