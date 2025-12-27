@@ -23,6 +23,7 @@ from ..handlers import ToolCallHandler
 from ..logging_setup import get_logger
 from ..text_tool_parser import TextToolParser
 
+from ..orchestration.specialists.reasoning_specialist import ReasoningType
 
 class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
     """
@@ -82,8 +83,8 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         
         self.logger.info("  Using ReasoningSpecialist for project planning...")
         reasoning_task = ReasoningTask(
-            task_type="project_planning",
-            description="Expand project with new features",
+            reasoning_type=ReasoningType.STRATEGIC_PLANNING,
+            question="Expand project with new features",
             context={
                 'project_context': context,
                 'expansion_count': expansion_count,
