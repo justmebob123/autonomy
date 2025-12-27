@@ -52,7 +52,8 @@ class PhaseCoordinator:
         # INTEGRATION: Initialize Arbiter for intelligent decision-making
         from .orchestration.arbiter import ArbiterModel
         
-        self.arbiter = ArbiterModel(self.project_dir)
+        # Arbiter disabled - using simple direct logic instead
+        # self.arbiter = ArbiterModel(self.project_dir)
         self.logger.info("🧠 Arbiter initialized for intelligent orchestration")
         
         # Hyperdimensional polytopic structure
@@ -440,13 +441,26 @@ class PhaseCoordinator:
         # Load or create state
         if resume:
             state = self.state_manager.load()
+            self.logger.info(f"  Resumed pipeline run: {state.run_id}")
         else:
-            # Start fresh - DELETE old state and create new
-            self.logger.info("  Starting fresh (deleting saved state)...")
+            # Start fresh - DELETE old state completely
+            self.logger.info("  Starting fresh (deleting all saved state)...")
+            
+            # Delete state file
             if self.state_manager.state_file.exists():
                 self.state_manager.state_file.unlink()
-                self.logger.info("  ✓ Deleted old state file")
+                self.logger.info("  ✓ Deleted state file")
+            
+            # Delete entire .pipeline directory to ensure clean start
+            pipeline_dir = self.project_dir / ".pipeline"
+            if pipeline_dir.exists():
+                import shutil
+                shutil.rmtree(pipeline_dir)
+                self.logger.info("  ✓ Deleted .pipeline directory")
+            
+            # Create fresh state
             state = PipelineState()
+            self.logger.info(f"  Starting new pipeline run: {state.run_id}")
             self.state_manager.save(state)
         
         if state.tasks:
@@ -700,25 +714,52 @@ class PhaseCoordinator:
     
     def _determine_next_action(self, state: PipelineState) -> Dict:
         """
-        Determine the next action using Arbiter for intelligent decision-making.
+        Determine the next action using SIMPLE, DIRECT logic.
         
-        INTEGRATION: This method now uses the Arbiter to make intelligent decisions
-        based on the current state, rather than hardcoded if/else logic.
+        NO ARBITER. NO COMPLEXITY. JUST WORK.
         
         Returns:
             Dict with 'phase', 'reason', and optionally 'task'
         """
         
-        # Build context for arbiter
-        context = self._build_arbiter_context(state)
+        # Get current phase
+        current_phase = getattr(state, 'current_phase', 
+                               state.phase_history[-1] if hasattr(state, 'phase_history') and state.phase_history else None)
         
-        # Let arbiter decide the next action
-        decision = self.arbiter.decide_action(state, context)
+        # Count tasks by status
+        pending = [t for t in state.tasks.values() if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]]
+        qa_pending = [t for t in state.tasks.values() if t.status == TaskStatus.QA_PENDING]
+        needs_fixes = [t for t in state.tasks.values() if t.status == TaskStatus.NEEDS_FIXES]
+        completed = [t for t in state.tasks.values() if t.status == TaskStatus.COMPLETED]
         
-        # Convert arbiter decision to coordinator format
-        return self._convert_arbiter_decision(decision, state)
+        self.logger.info(f"📊 Task Status: {len(pending)} pending, {len(qa_pending)} QA, {len(needs_fixes)} fixes, {len(completed)} done")
+        
+        # SIMPLE DECISION TREE:
+        
+        # 1. If we have tasks needing fixes, go to debugging
+        if needs_fixes:
+            return {'phase': 'debugging', 'reason': f'{len(needs_fixes)} tasks need fixes'}
+        
+        # 2. If we have QA pending tasks, go to QA
+        if qa_pending:
+            return {'phase': 'qa', 'reason': f'{len(qa_pending)} tasks awaiting QA'}
+        
+        # 3. If we have pending tasks, stay in coding
+        if pending:
+            return {'phase': 'coding', 'reason': f'{len(pending)} tasks in progress'}
+        
+        # 4. If no tasks at all, start with planning
+        if not state.tasks:
+            return {'phase': 'planning', 'reason': 'No tasks yet, need to plan'}
+        
+        # 5. All tasks complete - we're done!
+        if len(completed) == len(state.tasks):
+            return {'phase': 'complete', 'reason': 'All tasks completed!'}
+        
+        # 6. Default: go to planning to create more tasks
+        return {'phase': 'planning', 'reason': 'Need to plan next steps'}
     
-    def _build_arbiter_context(self, state: PipelineState) -> Dict:
+    def _build_arbiter_context_DISABLED(self, state: PipelineState) -> Dict:
         """Build context for arbiter decision-making"""
         # Get task summaries
         pending_tasks = [
@@ -769,7 +810,7 @@ class PhaseCoordinator:
             'available_phases': list(self.phases.keys())
         }
     
-    def _convert_arbiter_decision(self, decision: Dict, state: PipelineState) -> Dict:
+    def _convert_arbiter_decision_DISABLED(self, decision: Dict, state: PipelineState) -> Dict:
         """Convert arbiter decision to coordinator action format"""
         action = decision.get('action', 'continue_current_phase')
         
@@ -814,7 +855,7 @@ class PhaseCoordinator:
             self.logger.warning(f"Unknown arbiter action: {action}, defaulting to planning")
             return {"phase": "planning", "reason": "arbiter_unknown_action"}
     
-    def _execute_specialist_consultation(self, specialist_name: str, query: str, 
+    def _execute_specialist_consultation_DISABLED(self, specialist_name: str, query: str, 
                                         context: dict, state: PipelineState) -> dict:
         """
         Execute a specialist consultation (model-to-model call).
