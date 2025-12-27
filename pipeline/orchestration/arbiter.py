@@ -282,7 +282,7 @@ class ArbiterModel:
 CURRENT STATE:
 - Phase: {getattr(state, "current_phase", state.phase_history[-1] if hasattr(state, "phase_history") and state.phase_history else "unknown")}
 - Total tasks: {len(state.tasks)}
-- Pending tasks: {prompt_context.available_context['pending_tasks']}
+- Pending tasks: {prompt_context.task['pending_tasks']}
 - Recent failures: {len(prompt_context.recent_failures)}
 
 CONTEXT:
