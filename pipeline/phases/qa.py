@@ -227,7 +227,23 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 data={"issues": handler.issues, "filepath": filepath}
             )
         
-        # No explicit approval or issues - treat as pass
+        # No explicit approval or issues - this is ambiguous
+        # Check if tool calls were actually processed
+        successful_tools = sum(1 for r in results if r.get('success', False))
+        
+        if successful_tools == 0 and len(tool_calls) > 0:
+            # Tool calls were made but none succeeded - this is a failure
+            self.logger.warning(f"  ⚠️  {len(tool_calls)} tool calls made but none succeeded")
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message=f"QA failed: {len(tool_calls)} tool calls failed",
+                errors=[{"type": "tool_failure", "message": "All tool calls failed"}]
+            )
+        
+        # If we got here with successful tool calls but no explicit approval/issues,
+        # treat as implicit approval (AI reviewed but didn't find issues)
+        self.logger.info("  ✓ Review completed (implicit approval)")
         state.mark_file_reviewed(filepath, approved=True)
         
         if task:
@@ -237,7 +253,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         return PhaseResult(
             success=True,
             phase=self.phase_name,
-            message="Review completed"
+            message="Review completed (implicit approval)"
         )
     
     def review_multiple(self, state: PipelineState, 
