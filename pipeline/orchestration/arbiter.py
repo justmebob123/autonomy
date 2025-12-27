@@ -101,7 +101,7 @@ class ArbiterModel:
         # Record decision
         self.decision_history.append({
             "decision": decision,
-            "state": state.current_phase,
+            "state": getattr(state, "current_phase", state.phase_history[-1] if hasattr(state, "phase_history") and state.phase_history else "unknown"),
             "timestamp": datetime.now().isoformat()
         })
         
@@ -253,7 +253,7 @@ class ArbiterModel:
         prompt = f"""You are coordinating an AI development pipeline.
 
 CURRENT STATE:
-- Phase: {state.current_phase}
+- Phase: {getattr(state, "current_phase", state.phase_history[-1] if hasattr(state, "phase_history") and state.phase_history else "unknown")}
 - Total tasks: {len(state.tasks)}
 - Pending tasks: {len(pending_tasks)}
 - Recent failures: {len(recent_failures)}
