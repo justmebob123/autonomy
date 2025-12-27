@@ -260,8 +260,14 @@ class ToolCallHandler:
         # Handle empty string names (common AI model error)
         if not name or name.strip() == "":
             name = "unknown"
-            self.logger.warning(f"Tool call has empty name field")
-            self.logger.warning(f"  Full call structure: {call}")
+            self.logger.error(f"=" * 70)
+            self.logger.error(f"TOOL CALL FAILURE: Empty tool name")
+            self.logger.error(f"=" * 70)
+            self.logger.error(f"Full call structure:")
+            self.logger.error(json.dumps(call, indent=2))
+            self.logger.error(f"Function object:")
+            self.logger.error(json.dumps(func, indent=2))
+            self.logger.error(f"=" * 70)
             return {
                 "tool": "unknown",
                 "success": False,
@@ -292,9 +298,14 @@ class ToolCallHandler:
         
         handler = self._handlers.get(name)
         if not handler:
-            self.logger.warning(f"Unknown tool: {name}")
-            self.logger.warning(f"  Available tools: {', '.join(sorted(self._handlers.keys()))}")
-            self.logger.warning(f"  Args provided: {list(args.keys())}")
+            self.logger.error(f"=" * 70)
+            self.logger.error(f"TOOL CALL FAILURE: Unknown tool '{name}'")
+            self.logger.error(f"=" * 70)
+            self.logger.error(f"Full call structure:")
+            self.logger.error(json.dumps(call, indent=2))
+            self.logger.error(f"Available tools: {', '.join(sorted(self._handlers.keys()))}")
+            self.logger.error(f"Args provided: {list(args.keys())}")
+            self.logger.error(f"=" * 70)
             return {
                 "tool": name,
                 "success": False,

@@ -127,11 +127,21 @@ class OllamaClient:
         Send a chat request with optional tool calling.
         """
         
+        # Determine context window size based on model
+        num_ctx = 8192  # Default for most models
+        if "32b" in model or "70b" in model:
+            num_ctx = 16384  # Larger context for bigger models
+        elif "7b" in model or "3b" in model:
+            num_ctx = 4096  # Smaller context for smaller models
+        
         payload = {
             "model": model,
             "messages": messages,
             "stream": False,
-            "options": {"temperature": temperature}
+            "options": {
+                "temperature": temperature,
+                "num_ctx": num_ctx
+            }
         }
         
         if tools:

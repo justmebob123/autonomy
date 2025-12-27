@@ -231,16 +231,35 @@ FILE: {filepath}
 {code}
 ```
 
-Check for:
-1. Syntax errors
-2. Missing or incorrect imports  
+CRITICAL: You MUST use tools to report your findings. Do NOT just describe issues.
+
+TOOL USAGE EXAMPLES:
+
+1. If you find a syntax error:
+   Call: report_issue
+   Args: {{"type": "SyntaxError", "description": "Missing colon after if statement", "line": 42}}
+
+2. If you find a missing import:
+   Call: report_issue
+   Args: {{"type": "ImportError", "description": "Module 'os' is used but not imported", "line": 10}}
+
+3. If you find incomplete code:
+   Call: report_issue
+   Args: {{"type": "incomplete", "description": "Function contains only 'pass' statement", "line": 25}}
+
+4. If the code is perfect:
+   Call: approve_code
+   Args: {{"filepath": "{filepath}"}}
+
+CHECK FOR:
+1. Syntax errors - Code must be valid Python
+2. Missing or incorrect imports
 3. Logic errors
 4. Incomplete code (TODO, pass, NotImplementedError, ...)
 5. Type hint issues
 6. Missing error handling
 
-Use report_issue for EACH problem found.
-Use approve_code ONLY if the code passes ALL checks."""
+REMEMBER: Use the tools! Every issue needs a report_issue call. Perfect code needs approve_code call."""
 
 
 def get_debug_prompt(filepath: str, code: str, issue: dict) -> str:

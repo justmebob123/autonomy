@@ -146,6 +146,17 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         # Parse response
         tool_calls, text_content = self.parser.parse_response(response)
         
+        # Debug logging: Show what we got from the model
+        self.logger.debug(f"QA Response Analysis:")
+        self.logger.debug(f"  - Tool calls found: {len(tool_calls)}")
+        self.logger.debug(f"  - Text content length: {len(text_content)}")
+        if tool_calls:
+            for i, tc in enumerate(tool_calls):
+                func = tc.get("function", {})
+                self.logger.debug(f"  - Tool[{i}]: name='{func.get('name', '')}', args={list(func.get('arguments', {}).keys())}")
+        if text_content and not tool_calls:
+            self.logger.debug(f"  - Text content preview: {text_content[:500]}")
+        
         if not tool_calls:
             # No tool calls = implicit approval
             self.logger.info("  No issues reported (implicit approval)")
