@@ -55,6 +55,11 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
             # Reset counter
             state_manager.reset_no_update_count(state, self.phase_name)
             
+            # CRITICAL: Update last_doc_update_count to prevent re-entry
+            completed_count = sum(1 for t in state.tasks.values() if t.status == TaskStatus.COMPLETED)
+            state.last_doc_update_count = completed_count
+            state_manager.save(state)
+            
             return PhaseResult(
                 success=True,
                 phase=self.phase_name,
@@ -99,6 +104,11 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
             count = state_manager.increment_no_update_count(state, self.phase_name)
             
             self.logger.info(f"  Documentation appears current (count: {count}/3)")
+            
+            # CRITICAL: Update last_doc_update_count even when no updates needed
+            # This prevents the system from re-entering documentation phase
+            state.last_doc_update_count = completed_count
+            state_manager.save(state)
             
             # After 2 "no updates", suggest moving on
             if count >= 2:
