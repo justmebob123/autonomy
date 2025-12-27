@@ -79,6 +79,11 @@ class ModelTool:
             self.logger.info(f"🔧 Consulting {self.role} specialist ({self.model})")
             self.logger.debug(f"  Query: {query[:100]}...")
             
+            # For interpreter (FunctionGemma), log full details
+            if self.role == "interpreter":
+                self.logger.info(f"📝 FunctionGemma Full Query:\n{query}")
+                self.logger.info(f"📝 FunctionGemma Messages:\n{messages}")
+            
             # Call model
             response = self.client.chat(
                 host=self.server,
@@ -87,6 +92,10 @@ class ModelTool:
                 tools=tools,
                 temperature=self.temperature
             )
+            
+            # For interpreter (FunctionGemma), log full response
+            if self.role == "interpreter":
+                self.logger.info(f"📥 FunctionGemma Raw Response:\n{response}")
             
             # Extract tool calls
             tool_calls = self._extract_tool_calls(response)

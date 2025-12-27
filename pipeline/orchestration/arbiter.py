@@ -495,13 +495,30 @@ Do NOT generate tool calls with empty names or invalid tool names."""
             
             # Try to use FunctionGemma to extract the correct tool call
             self.logger.info("🔧 Attempting to fix malformed tool call with FunctionGemma...")
+            
+            # Build detailed prompt for FunctionGemma
+            available_tools = [t['name'] for t in self._get_arbiter_tools()]
+            fg_prompt = f"""Fix this malformed tool call. The tool name is empty but the arguments suggest the intent.
+
+MALFORMED TOOL CALL:
+{first_call}
+
+AVAILABLE TOOLS:
+{available_tools}
+
+ARGUMENTS PROVIDED:
+{args}
+
+Based on the arguments, which tool should be called? Return ONLY the tool name."""
+            
+            self.logger.info(f"📝 FunctionGemma Prompt:\n{fg_prompt}")
+            
             try:
-                clarified = self.consult_specialist("interpreter",
-                    f"Fix this malformed tool call. The tool name is empty but arguments suggest intent: {args}. "
-                    f"Available tools: {[t['name'] for t in self._get_arbiter_tools()]}. "
-                    f"Return the correct tool name.",
+                clarified = self.consult_specialist("interpreter", fg_prompt,
                     {"malformed_call": first_call, "available_tools": self._get_arbiter_tools()}
                 )
+                
+                self.logger.info(f"📥 FunctionGemma Response:\n{clarified}")
                 
                 if clarified.get("success") and clarified.get("tool_calls"):
                     fixed_call = clarified["tool_calls"][0]
@@ -511,11 +528,11 @@ Do NOT generate tool calls with empty names or invalid tool names."""
                         self.logger.info(f"✓ FunctionGemma fixed tool call: {name}")
                         args = fixed_func.get("arguments", args)  # Use fixed args if available
                     else:
-                        self.logger.warning("✗ FunctionGemma could not fix tool call")
+                        self.logger.warning(f"✗ FunctionGemma returned empty name. Full response: {clarified}")
                 else:
-                    self.logger.warning("✗ FunctionGemma clarification failed")
+                    self.logger.warning(f"✗ FunctionGemma clarification failed. Response: {clarified}")
             except Exception as e:
-                self.logger.error(f"✗ Error using FunctionGemma: {e}")
+                self.logger.error(f"✗ Error using FunctionGemma: {e}", exc_info=True)
         
         # Parse based on tool name
         if name.startswith("consult_"):
