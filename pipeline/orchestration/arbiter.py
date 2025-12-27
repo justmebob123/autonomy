@@ -375,30 +375,39 @@ CRITICAL: You MUST call exactly ONE tool from the available tools.
     
     def _get_arbiter_system_prompt(self) -> str:
         """Get system prompt for arbiter."""
-        return """You are an arbiter that ONLY communicates through tool calls.
+        return """You are an arbiter that makes DECISIONS, not asks questions.
 
-YOU CANNOT WRITE TEXT RESPONSES. YOU CAN ONLY CALL TOOLS.
+YOU MUST DECIDE what to do next. DO NOT ask what should happen - YOU decide.
 
-Every single response MUST be a tool call. No exceptions.
+Your ONLY way to communicate is through tool calls. No text allowed.
 
 Available tools:
-- consult_coding_specialist: For implementation tasks
-- consult_reasoning_specialist: For strategic analysis  
-- consult_analysis_specialist: For quick checks
-- change_phase: To change pipeline phase
-- request_user_input: To ask user for guidance
-- continue_current_phase: To continue current work
+- consult_coding_specialist: Get expert help with implementation
+- consult_reasoning_specialist: Get strategic analysis and recommendations
+- consult_analysis_specialist: Get quick code review or assessment
+- change_phase: Move to a different phase (coding, qa, debugging, etc.)
+- request_user_input: Ask user for clarification ONLY when you cannot decide
+- continue_current_phase: Keep working on current phase
 
-CRITICAL RULES:
-1. NEVER write explanatory text
-2. ALWAYS call exactly ONE tool
-3. NEVER leave tool name empty
-4. If unsure, call request_user_input
+DECISION RULES:
+1. If there are QA pending tasks → consult_analysis_specialist to review them
+2. If there are failures → consult_reasoning_specialist to diagnose
+3. If documentation is needed → change_phase to "documentation"
+4. If no pending work → change_phase to next logical phase
+5. If truly stuck → request_user_input
 
-Example correct response:
+NEVER ask "what should happen?" - YOU DECIDE what happens.
+
+Example GOOD response:
+<tool_call>
+<name>consult_analysis_specialist</name>
+<arguments>{"query": "Review the 2 QA pending tasks and determine if they pass quality checks"}</arguments>
+</tool_call>
+
+Example BAD response (asking instead of deciding):
 <tool_call>
 <name>consult_reasoning_specialist</name>
-<arguments>{"query": "Should we focus on documentation or failures?"}</arguments>
+<arguments>{"query": "What should we do next?"}</arguments>
 </tool_call>"""
     
     def _get_arbiter_tools(self) -> List[Dict]:
@@ -526,10 +535,10 @@ Example correct response:
             # If still no name, try FunctionGemma
             if not name:
                 self.logger.info("🔧 Attempting to fix malformed tool call with FunctionGemma...")
-            
-            # Build detailed prompt for FunctionGemma
-            available_tools = [t['name'] for t in self._get_arbiter_tools()]
-            fg_prompt = f"""Fix this malformed tool call. The tool name is empty but the arguments suggest the intent.
+                
+                # Build detailed prompt for FunctionGemma
+                available_tools = [t['name'] for t in self._get_arbiter_tools()]
+                fg_prompt = f"""Fix this malformed tool call. The tool name is empty but the arguments suggest the intent.
 
 MALFORMED TOOL CALL:
 {first_call}
@@ -541,45 +550,45 @@ ARGUMENTS PROVIDED:
 {args}
 
 Based on the arguments, which tool should be called? Return ONLY the tool name."""
-            
-            self.logger.info(f"📝 FunctionGemma Prompt:\n{fg_prompt}")
-            
-            try:
-                clarified = self.consult_specialist("interpreter", fg_prompt,
-                    {"malformed_call": first_call, "available_tools": self._get_arbiter_tools()}
-                )
                 
-                self.logger.info(f"📥 FunctionGemma Response:\n{clarified}")
+                self.logger.info(f"📝 FunctionGemma Prompt:\n{fg_prompt}")
                 
-                # FunctionGemma might return tool calls OR plain text with the tool name
-                if clarified.get("success"):
-                    # Try to get tool name from tool_calls first
-                    if clarified.get("tool_calls"):
-                        fixed_call = clarified["tool_calls"][0]
-                        fixed_func = fixed_call.get("function", {})
-                        name = fixed_func.get("name", "")
-                        if name:
-                            self.logger.info(f"✓ FunctionGemma fixed tool call: {name}")
-                            args = fixed_func.get("arguments", args)
+                try:
+                    clarified = self.consult_specialist("interpreter", fg_prompt,
+                        {"malformed_call": first_call, "available_tools": self._get_arbiter_tools()}
+                    )
+                    
+                    self.logger.info(f"📥 FunctionGemma Response:\n{clarified}")
+                    
+                    # FunctionGemma might return tool calls OR plain text with the tool name
+                    if clarified.get("success"):
+                        # Try to get tool name from tool_calls first
+                        if clarified.get("tool_calls"):
+                            fixed_call = clarified["tool_calls"][0]
+                            fixed_func = fixed_call.get("function", {})
+                            name = fixed_func.get("name", "")
+                            if name:
+                                self.logger.info(f"✓ FunctionGemma fixed tool call: {name}")
+                                args = fixed_func.get("arguments", args)
+                        else:
+                            # Try to extract tool name from text content
+                            content = clarified.get("response", {}).get("message", {}).get("content", "")
+                            self.logger.info(f"📝 FunctionGemma text response: {content}")
+                            
+                            # Look for tool name in the content
+                            available_tools = [t['name'] for t in self._get_arbiter_tools()]
+                            for tool_name in available_tools:
+                                if tool_name in content:
+                                    name = tool_name
+                                    self.logger.info(f"✓ FunctionGemma suggested tool: {name}")
+                                    break
+                            
+                            if not name:
+                                self.logger.warning(f"✗ Could not extract tool name from FunctionGemma response: {content}")
                     else:
-                        # Try to extract tool name from text content
-                        content = clarified.get("response", {}).get("message", {}).get("content", "")
-                        self.logger.info(f"📝 FunctionGemma text response: {content}")
-                        
-                        # Look for tool name in the content
-                        available_tools = [t['name'] for t in self._get_arbiter_tools()]
-                        for tool_name in available_tools:
-                            if tool_name in content:
-                                name = tool_name
-                                self.logger.info(f"✓ FunctionGemma suggested tool: {name}")
-                                break
-                        
-                        if not name:
-                            self.logger.warning(f"✗ Could not extract tool name from FunctionGemma response: {content}")
-                else:
-                    self.logger.warning(f"✗ FunctionGemma clarification failed. Response: {clarified}")
-            except Exception as e:
-                self.logger.error(f"✗ Error using FunctionGemma: {e}", exc_info=True)
+                        self.logger.warning(f"✗ FunctionGemma clarification failed. Response: {clarified}")
+                except Exception as e:
+                    self.logger.error(f"✗ Error using FunctionGemma: {e}", exc_info=True)
         
         # Parse based on tool name
         if name.startswith("consult_"):

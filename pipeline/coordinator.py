@@ -836,7 +836,7 @@ class PhaseCoordinator:
         
         # Add state to context
         context['state'] = {
-            'phase': state.current_phase,
+            'phase': getattr(state, 'current_phase', state.phase_history[-1] if hasattr(state, 'phase_history') and state.phase_history else 'unknown'),
             'tasks': len(state.tasks),
             'pending': sum(1 for t in state.tasks.values() 
                           if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS])
