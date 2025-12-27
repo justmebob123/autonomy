@@ -493,14 +493,39 @@ Example correct response:
         name = func.get("name", "")
         args = func.get("arguments", {})
         
-        # If tool name is empty, use FunctionGemma to fix it
+        # If tool name is empty, try to extract from content first
         if not name:
             self.logger.warning(f"Empty tool name in tool call. Full tool_call: {first_call}")
             self.logger.warning(f"Function dict: {func}")
             self.logger.warning(f"All tool_calls: {tool_calls}")
             
-            # Try to use FunctionGemma to extract the correct tool call
-            self.logger.info("🔧 Attempting to fix malformed tool call with FunctionGemma...")
+            # FIRST: Try to extract tool name from the content field (arbiter often writes it there)
+            content = response.get("message", {}).get("content", "")
+            if content:
+                self.logger.info(f"📝 Checking arbiter content for tool name: {content[:200]}")
+                available_tools = [t['name'] for t in self._get_arbiter_tools()]
+                for tool_name in available_tools:
+                    if tool_name in content:
+                        name = tool_name
+                        self.logger.info(f"✓ Found tool name in content: {name}")
+                        # Try to extract arguments from content if present
+                        import json
+                        try:
+                            # Look for JSON in the content
+                            if "{" in content and "}" in content:
+                                json_start = content.index("{")
+                                json_end = content.rindex("}") + 1
+                                json_str = content[json_start:json_end]
+                                extracted_args = json.loads(json_str)
+                                args = extracted_args
+                                self.logger.info(f"✓ Extracted arguments from content: {args}")
+                        except Exception as e:
+                            self.logger.debug(f"Could not extract JSON from content: {e}")
+                        break
+            
+            # If still no name, try FunctionGemma
+            if not name:
+                self.logger.info("🔧 Attempting to fix malformed tool call with FunctionGemma...")
             
             # Build detailed prompt for FunctionGemma
             available_tools = [t['name'] for t in self._get_arbiter_tools()]
