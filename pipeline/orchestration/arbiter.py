@@ -249,21 +249,28 @@ class ArbiterModel:
         """
         # Use DynamicPromptBuilder for context-aware prompts
         prompt_context = PromptContext(
-            task_type="arbiter_decision",
-            complexity=self._assess_decision_complexity(state),
+            phase="arbiter_decision",
+            task={
+                "type": "decision_making",
+                "complexity": self._assess_decision_complexity(state),
+                "pending_tasks": len([t for t in state.tasks.values() 
+                                     if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]])
+            },
+            model_size="14b",
+            model_capabilities=["tool_calling", "reasoning", "decision_making"],
+            context_window=8192,
             recent_failures=self._get_recent_failures(state),
-            available_context={
+            project_context={
                 "state": state,
                 "context": context,
-                "pending_tasks": len([t for t in state.tasks.values() 
-                                     if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]]),
                 "specialists": {
                     "coding": "Expert Python developer (32b model, ollama02)",
                     "reasoning": "Strategic thinker (32b model, ollama02)",
                     "analysis": "Quick analyzer (14b model, ollama01)",
                     "interpreter": "Tool call clarifier (FunctionGemma, ollama01)"
                 }
-            }
+            },
+            available_tools=self._get_arbiter_tools()
         )
         
         # Build dynamic prompt
