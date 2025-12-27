@@ -129,6 +129,14 @@ class BasePhase(ABC):
         self.reasoning_specialist = create_reasoning_specialist(self.reasoning_tool)
         self.analysis_specialist = create_analysis_specialist(self.analysis_tool)
         
+        # Initialize specialist request handler
+        from ..specialist_request_handler import SpecialistRequestHandler
+        self.specialist_request_handler = SpecialistRequestHandler({
+            'coding': self.coding_specialist,
+            'reasoning': self.reasoning_specialist,
+            'analysis': self.analysis_specialist
+        })
+        
         # Self-awareness and polytopic integration
         self.dimensional_profile = {
             'temporal': 0.5, 'functional': 0.5, 'data': 0.5,
@@ -501,16 +509,19 @@ class BasePhase(ABC):
         # Fallback to hardcoded
         return SYSTEM_PROMPTS.get(phase_name, SYSTEM_PROMPTS.get("base", ""))
     
-    def chat_with_history(self, user_message: str, tools: List[Dict] = None) -> Dict:
+    def chat_with_history(self, user_message: str, tools: List[Dict] = None, task_context: Dict = None) -> Dict:
         """
         Call model with conversation history.
         
         This maintains conversation context so the model can reference
         previous exchanges and learn from history.
         
+        Optionally detects and handles specialist requests in the conversation.
+        
         Args:
             user_message: The user message to send
             tools: Optional tools for the model to use
+            task_context: Optional context about current task (for specialist requests)
         
         Returns:
             Dict with 'content' and optionally 'tool_calls'
@@ -530,6 +541,23 @@ class BasePhase(ABC):
         # Add assistant response to conversation
         content = response.get("message", {}).get("content", "")
         self.conversation.add_message("assistant", content)
+        
+        # Check if model is requesting specialist help
+        if hasattr(self, 'specialist_request_handler') and task_context:
+            request = self.specialist_request_handler.detect_request(content)
+            if request:
+                # Handle specialist request
+                specialist_result = self.specialist_request_handler.handle_request(request, task_context)
+                
+                # Format and add specialist response to conversation
+                specialist_response = self.specialist_request_handler.format_specialist_response(
+                    request['specialist'],
+                    specialist_result
+                )
+                self.conversation.add_message("assistant", specialist_response)
+                
+                # Update content to include specialist response
+                content = f"{content}\n\n{specialist_response}"
         
         # Parse response for tool calls
         parsed = self.parser.parse_response(response, tools or [])
