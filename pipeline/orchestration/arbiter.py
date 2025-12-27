@@ -303,14 +303,17 @@ Your role is to:
 3. Coordinate their work
 4. Make strategic decisions about workflow
 
-You have access to specialist models:
-- Coding specialist: For implementation tasks
-- Reasoning specialist: For strategic analysis
-- Analysis specialist: For quick checks
-- Interpreter specialist: For clarifying tool calls
+IMPORTANT: You MUST use the provided tools to make decisions. Always call exactly ONE tool:
+- consult_coding_specialist: For implementation tasks
+- consult_reasoning_specialist: For strategic analysis
+- consult_analysis_specialist: For quick checks
+- consult_interpreter_specialist: For clarifying tool calls
+- change_phase: To change pipeline phase
+- request_user_input: To ask user for guidance
+- continue_current_phase: To continue current work
 
-Make decisions efficiently and delegate to specialists when appropriate.
-Use tools to communicate your decisions."""
+CRITICAL: Every response MUST include a tool call with a valid tool name from the list above.
+Do NOT generate tool calls with empty names or invalid tool names."""
     
     def _get_arbiter_tools(self) -> List[Dict]:
         """Get tools available to the arbiter."""

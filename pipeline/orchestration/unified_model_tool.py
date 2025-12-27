@@ -49,6 +49,10 @@ class UnifiedModelTool:
         self.model_name = model_name
         self.host = host
         
+        # Initialize logger
+        from pipeline.logging_setup import get_logger
+        self.logger = get_logger()
+        
         # Import OllamaClient here to avoid circular imports
         if client_class is None:
             from pipeline.client import OllamaClient
