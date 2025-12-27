@@ -85,10 +85,19 @@ class BasePhase(ABC):
         
         # Conversation thread for maintaining history
         from ..orchestration.conversation_manager import ConversationThread
+        
+        # Get model for this phase from config
+        phase_model = "qwen2.5:14b"  # default
+        if hasattr(config, 'model_assignments') and self.phase_name in config.model_assignments:
+            phase_model = config.model_assignments[self.phase_name][0]
+        
+        # Get context window (default 8192)
+        context_window = getattr(config, 'context_window', 8192)
+        
         self.conversation = ConversationThread(
-            model=config.model,
+            model=phase_model,
             role=self.phase_name,
-            max_context_tokens=config.context_window
+            max_context_tokens=context_window
         )
         
         # Cache tools for functiongemma fallback
