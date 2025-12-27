@@ -422,20 +422,38 @@ class DebuggingPhase(BasePhase):
             self.logger.info(f"  Prompt length: {len(user_prompt)} chars")
             self.logger.info(f"  Prompt preview: {user_prompt[:300]}...")
         
-        # Get tools
-        tools = get_phase_tools("debugging")
-        self.logger.debug(f"  Available tools: {[t['function']['name'] for t in tools]}")
+        # Use reasoning specialist for debugging
+        from ..orchestration.specialists.reasoning_specialist import ReasoningTask
         
-        # Send request
-        response = self.chat(messages, tools, task_type="debugging")
+        self.logger.info(f"  Using ReasoningSpecialist for debugging")
+        reasoning_task = ReasoningTask(
+            task_type="debug_analysis",
+            description=f"Debug issue in {filepath}",
+            context={
+                'filepath': filepath,
+                'content': content,
+                'issue': issue,
+                'prompt': user_prompt
+            }
+        )
         
-        if "error" in response:
+        specialist_result = self.reasoning_specialist.execute_task(reasoning_task)
+        
+        if not specialist_result.get("success", False):
+            error_msg = specialist_result.get("response", "Specialist debugging failed")
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"Debug failed: {response['error']}",
+                message=f"Debug failed: {error_msg}",
                 files_modified=[],
             )
+        
+        # Convert specialist result to response format
+        response = {
+            "message": {
+                "content": specialist_result.get("response", "")
+            }
+        }
         
         # CRITICAL: Check for empty response
         message = response.get('message', {}) if response else {}
@@ -733,22 +751,33 @@ Remember:
             {"role": "user", "content": retry_prompt}
         ]
         
-        # Get tools
-        tools = get_phase_tools("debugging")
+        # Use reasoning specialist for retry
+        from ..orchestration.specialists.reasoning_specialist import ReasoningTask
         
-        # Send request
-        response = self.chat(messages, tools, task_type="debugging")
+        self.logger.info(f"  Using ReasoningSpecialist for retry")
+        reasoning_task = ReasoningTask(
+            task_type="debug_retry",
+            description=f"Retry fix for {filepath}",
+            context={
+                'filepath': filepath,
+                'retry_prompt': retry_prompt,
+                'previous_attempts': previous_attempts
+            }
+        )
         
-        if "error" in response:
+        specialist_result = self.reasoning_specialist.execute_task(reasoning_task)
+        
+        if not specialist_result.get("success", False):
+            error_msg = specialist_result.get("response", "Specialist retry failed")
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"Retry failed: {response['error']}",
+                message=f"Retry failed: {error_msg}",
                 files_modified=[],
             )
         
-        # Parse response
-        tool_calls, _ = self.parser.parse_response(response)
+        # Extract tool calls from specialist result
+        tool_calls = specialist_result.get("tool_calls", [])
         
         if not tool_calls:
             self.logger.warning("  No fix applied in retry attempt")
@@ -1047,20 +1076,34 @@ Remember:
                 {"role": "system", "content": self._get_system_prompt("debugging")}
             ] + thread.get_conversation_history()
             
-            # Send request
-            self.logger.info(f"  🤖 Requesting fix from AI...")
-            response = self.chat(messages, tools, task_type="debugging")
+            # Use reasoning specialist for conversation-based debugging
+            from ..orchestration.specialists.reasoning_specialist import ReasoningTask
             
-            if "error" in response:
+            self.logger.info(f"  🤖 Using ReasoningSpecialist for conversational debugging...")
+            reasoning_task = ReasoningTask(
+                task_type="conversational_debug",
+                description=f"Debug with conversation history",
+                context={
+                    'filepath': filepath,
+                    'conversation_history': thread.get_conversation_history(),
+                    'attempt': attempt
+                }
+            )
+            
+            specialist_result = self.reasoning_specialist.execute_task(reasoning_task)
+            
+            if not specialist_result.get("success", False):
+                error_msg = specialist_result.get("response", "Specialist failed")
                 thread.add_message(
                     role="assistant",
-                    content=f"Error: {response['error']}",
+                    content=f"Error: {error_msg}",
                     metadata={"error": True}
                 )
                 break
             
-            # Parse response
-            tool_calls, text_response = self.parser.parse_response(response)
+            # Extract tool calls and response
+            tool_calls = specialist_result.get("tool_calls", [])
+            text_response = specialist_result.get("response", "")
             
             # LOG AI RESPONSE AND TOOL CALLS
             self.logger.info(f"\n{'='*70}")
@@ -1435,16 +1478,25 @@ Apply the fix immediately.""",
                 self.logger.info("  🤔 AI decision required - asking AI to evaluate the change...")
                 decision_prompt = get_modification_decision(decision_context)
                 
-                # Ask AI for decision
-                decision_messages = [
-                    {"role": "system", "content": self._get_system_prompt("debugging")},
-                    {"role": "user", "content": decision_prompt}
-                ]
+                # Use reasoning specialist for decision
+                from ..orchestration.specialists.reasoning_specialist import ReasoningTask
                 
-                decision_response = self.chat(decision_messages, tools, task_type="debugging")
+                self.logger.info(f"  Using ReasoningSpecialist for modification decision")
+                reasoning_task = ReasoningTask(
+                    task_type="modification_decision",
+                    description="Evaluate modification decision",
+                    context=decision_context
+                )
                 
-                if "error" not in decision_response:
-                    decision_text = decision_response.get('message', {}).get('content', '')
+                specialist_result = self.reasoning_specialist.execute_task(reasoning_task)
+                
+                if specialist_result.get("success", False):
+                    decision_text = specialist_result.get('response', '')
+                    # Create response format for compatibility
+                    decision_response = {
+                        "message": {"content": decision_text}
+                    }
+                    
                     self.logger.info(f"  💭 AI Decision: {decision_text[:200]}...")
                     
                     # Parse decision
@@ -1480,7 +1532,7 @@ Apply the fix immediately.""",
                     else:
                         self.logger.warning("  ⚠️  Could not parse AI decision, treating as failure")
                 else:
-                    self.logger.error(f"  ❌ Error getting AI decision: {decision_response.get('error')}")
+                    self.logger.error(f"  ❌ Specialist decision failed")
             
             if success:
                 overall_success = True

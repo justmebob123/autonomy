@@ -213,15 +213,20 @@ class RoleImprovementPhase(LoopDetectionMixin, BasePhase):
                 }
             ]
             
-            messages = [
-                {"role": "system", "content": "You are a role design specialist."},
-                {"role": "user", "content": analysis_prompt}
-            ]
+            # Use reasoning specialist for role improvement
+            from ..orchestration.specialists.reasoning_specialist import ReasoningTask
             
-            response = self.chat(messages, tools, task_type="role_improvement")
+            self.logger.info(f"  Using ReasoningSpecialist for role improvement...")
+            reasoning_task = ReasoningTask(
+                task_type="role_improvement",
+                description=analysis_prompt,
+                context={'role_name': role_name}
+            )
             
-            # Parse response
-            tool_calls, _ = self.parse_response(response, "role_improvement")
+            specialist_result = self.reasoning_specialist.execute_task(reasoning_task)
+            
+            # Extract tool calls
+            tool_calls = specialist_result.get("tool_calls", []) if specialist_result.get("success", False) else []
             
             # Check for loops
             if self.check_for_loops():

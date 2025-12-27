@@ -75,37 +75,43 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         context = self._build_context(state, task)
         error_context = task.get_error_context()
         
-        # Build messages
-        messages = [
-            {"role": "system", "content": self._get_system_prompt("coding")},
-            {"role": "user", "content": get_coding_prompt(
-                task.description,
-                task.target_file,
-                context,
-                error_context
-            )}
-        ]
+        # Use coding specialist instead of direct chat
+        from ..orchestration.specialists.coding_specialist import CodingTask
         
-        # Get tools
-        tools = get_tools_for_phase("coding")
+        # Create coding task for specialist
+        coding_task = CodingTask(
+            task_type="implement",
+            file_path=task.target_file,
+            description=task.description,
+            context={
+                'project_context': context,
+                'error_context': error_context,
+                'task_id': task.task_id,
+                'attempts': task.attempts
+            },
+            dependencies=[]
+        )
         
-        # Send request
-        response = self.chat(messages, tools, task_type="coding")
+        # Execute with specialist
+        self.logger.info(f"  Using CodingSpecialist for {task.target_file}")
+        specialist_result = self.coding_specialist.execute_task(coding_task)
         
-        if "error" in response:
-            task.add_error("api_error", response["error"], phase="coding")
+        if not specialist_result.get("success", False):
+            error_msg = specialist_result.get("response", "Specialist execution failed")
+            task.add_error("specialist_error", error_msg, phase="coding")
             task.status = TaskStatus.FAILED
             
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
                 task_id=task.task_id,
-                message=f"API error: {response['error']}",
-                errors=[{"type": "api_error", "message": response["error"]}]
+                message=f"Specialist error: {error_msg}",
+                errors=[{"type": "specialist_error", "message": error_msg}]
             )
         
-        # Parse response
-        tool_calls, content = self.parser.parse_response(response)
+        # Extract tool calls from specialist result
+        tool_calls = specialist_result.get("tool_calls", [])
+        content = specialist_result.get("response", "")
         
         if not tool_calls:
             task.add_error("no_tool_call", "Model did not use tools", phase="coding")

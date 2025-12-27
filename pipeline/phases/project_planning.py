@@ -77,37 +77,39 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
             )}
         ]
         
-        # Call LLM with project planning tools from centralized tools.py
-        self.logger.debug(f"  Calling LLM with {len(TOOLS_PROJECT_PLANNING)} tools")
-        self.logger.debug(f"  Tools: {[t['function']['name'] for t in TOOLS_PROJECT_PLANNING]}")
+        # Use reasoning specialist for project planning
+        from ..orchestration.specialists.reasoning_specialist import ReasoningTask
         
-        response = self.chat(
-            messages=messages,
-            tools=TOOLS_PROJECT_PLANNING,
-            task_type="planning"  # Use planning model (qwen2.5:14b)
+        self.logger.info("  Using ReasoningSpecialist for project planning...")
+        reasoning_task = ReasoningTask(
+            task_type="project_planning",
+            description="Expand project with new features",
+            context={
+                'project_context': context,
+                'expansion_count': expansion_count,
+                'completed_count': completed_count,
+                'total_tasks': total_tasks
+            }
         )
         
-        if "error" in response:
-            self.logger.error(f"  LLM error: {response['error']}")
+        specialist_result = self.reasoning_specialist.execute_task(reasoning_task)
+        
+        if not specialist_result.get("success", False):
+            error_msg = specialist_result.get("response", "Specialist project planning failed")
+            self.logger.error(f"  Specialist error: {error_msg}")
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"LLM error: {response['error']}"
+                message=f"Project planning failed: {error_msg}"
             )
         
-        # Log response structure for debugging
-        self.logger.debug(f"  Response keys: {list(response.keys())}")
-        if "message" in response:
-            msg = response["message"]
-            self.logger.debug(f"  Message keys: {list(msg.keys()) if isinstance(msg, dict) else 'not a dict'}")
-            if isinstance(msg, dict) and "tool_calls" in msg:
-                self.logger.debug(f"  Tool calls in message: {len(msg['tool_calls']) if msg['tool_calls'] else 0}")
-            if isinstance(msg, dict) and "content" in msg:
-                content_preview = str(msg["content"])[:200] if msg["content"] else "empty"
-                self.logger.debug(f"  Content preview: {content_preview}")
+        # Extract tool calls and content
+        tool_calls = specialist_result.get("tool_calls", [])
+        content = specialist_result.get("response", "")
         
-        # Parse response
-        tool_calls, content = self.parser.parse_response(response)
+        self.logger.debug(f"  Tool calls from specialist: {len(tool_calls)}")
+        if content:
+            self.logger.debug(f"  Content preview: {content[:200]}")
         
         if not tool_calls:
             self.logger.warning("  No tool calls in response")

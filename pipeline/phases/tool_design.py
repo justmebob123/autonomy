@@ -360,19 +360,29 @@ The specification must include:
             {"role": "user", "content": user_message}
         ]
         
-        # Call the AI
-        self.logger.info("🤖 Calling AI for tool creation...")
-        response = self.chat(messages, tools, task_type="tool_design")
+        # Use reasoning specialist for tool design
+        from ..orchestration.specialists.reasoning_specialist import ReasoningTask
         
-        if "error" in response:
+        self.logger.info("🤖 Using ReasoningSpecialist for tool creation...")
+        reasoning_task = ReasoningTask(
+            task_type="tool_design",
+            description=user_message,
+            context={'system_prompt': system_prompt}
+        )
+        
+        specialist_result = self.reasoning_specialist.execute_task(reasoning_task)
+        
+        if not specialist_result.get("success", False):
+            error_msg = specialist_result.get("response", "Specialist tool design failed")
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"AI call failed: {response['error']}"
+                message=f"Tool design failed: {error_msg}"
             )
         
-        # Parse response
-        tool_calls, text_response = self.parser.parse_response(response, tools)
+        # Extract tool calls and response
+        tool_calls = specialist_result.get("tool_calls", [])
+        text_response = specialist_result.get("response", "")
         
         if not tool_calls:
             return PhaseResult(

@@ -81,23 +81,27 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
             {"role": "user", "content": get_documentation_prompt(context, new_completions)}
         ]
         
-        # Call LLM with documentation tools from centralized tools.py
-        response = self.chat(
-            messages=messages,
-            tools=TOOLS_DOCUMENTATION,
-            task_type="qa"  # Use QA model for review-type work
+        # Use analysis specialist for documentation
+        self.logger.info("  Using AnalysisSpecialist for documentation...")
+        specialist_result = self.analysis_specialist.analyze_code(
+            file_path="PROJECT_DOCUMENTATION",
+            code=str(context),
+            analysis_type="documentation",
+            context={'new_completions': new_completions}
         )
         
-        if "error" in response:
-            self.logger.error(f"  LLM error: {response['error']}")
+        if not specialist_result.get("success", False):
+            error_msg = specialist_result.get("response", "Specialist documentation failed")
+            self.logger.error(f"  Specialist error: {error_msg}")
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"LLM error: {response['error']}"
+                message=f"Documentation failed: {error_msg}"
             )
         
-        # Parse response
-        tool_calls, content = self.parser.parse_response(response)
+        # Extract tool calls and content
+        tool_calls = specialist_result.get("tool_calls", [])
+        content = specialist_result.get("response", "")
         
         if not tool_calls:
             # Increment no-update counter

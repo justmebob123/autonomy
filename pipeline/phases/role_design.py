@@ -108,18 +108,29 @@ class RoleDesignPhase(LoopDetectionMixin, BasePhase):
             }
         ]
         
-        # Call the AI
-        response = self.chat(messages, tools, task_type="role_design")
+        # Use reasoning specialist for role design
+        from ..orchestration.specialists.reasoning_specialist import ReasoningTask
         
-        if "error" in response:
+        self.logger.info("  Using ReasoningSpecialist for role design...")
+        reasoning_task = ReasoningTask(
+            task_type="role_design",
+            description=f"Design a specialist role for: {role_description}",
+            context={'role_description': role_description}
+        )
+        
+        specialist_result = self.reasoning_specialist.execute_task(reasoning_task)
+        
+        if not specialist_result.get("success", False):
+            error_msg = specialist_result.get("response", "Specialist role design failed")
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"AI call failed: {response['error']}"
+                message=f"Role design failed: {error_msg}"
             )
         
-        # Parse response
-        tool_calls, text_response = self.parser.parse_response(response, tools)
+        # Extract tool calls and response
+        tool_calls = specialist_result.get("tool_calls", [])
+        text_response = specialist_result.get("response", "")
         
         if not tool_calls:
             return PhaseResult(

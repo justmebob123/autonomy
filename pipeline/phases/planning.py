@@ -56,22 +56,32 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
             {"role": "user", "content": get_planning_prompt(master_plan, existing_files)}
         ]
         
-        # Get tools
-        tools = get_tools_for_phase("planning")
+        # Use reasoning specialist for planning
+        from ..orchestration.specialists.reasoning_specialist import ReasoningTask
         
-        # Send request
-        self.logger.info("  Waiting for response (no timeout)...")
-        response = self.chat(messages, tools, task_type="planning")
+        self.logger.info("  Using ReasoningSpecialist for planning...")
+        reasoning_task = ReasoningTask(
+            task_type="planning",
+            description="Create task plan from master plan",
+            context={
+                'master_plan': master_plan,
+                'existing_files': existing_files
+            }
+        )
         
-        if "error" in response:
+        specialist_result = self.reasoning_specialist.execute_task(reasoning_task)
+        
+        if not specialist_result.get("success", False):
+            error_msg = specialist_result.get("response", "Specialist planning failed")
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"Planning failed: {response['error']}"
+                message=f"Planning failed: {error_msg}"
             )
         
-        # Parse response
-        tool_calls, content = self.parser.parse_response(response)
+        # Extract tool calls and content
+        tool_calls = specialist_result.get("tool_calls", [])
+        content = specialist_result.get("response", "")
         
         tasks = []
         

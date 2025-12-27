@@ -188,15 +188,20 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
                 }
             ]
             
-            messages = [
-                {"role": "system", "content": "You are a prompt engineering specialist."},
-                {"role": "user", "content": analysis_prompt}
-            ]
+            # Use reasoning specialist for prompt improvement
+            from ..orchestration.specialists.reasoning_specialist import ReasoningTask
             
-            response = self.chat(messages, tools, task_type="prompt_improvement")
+            self.logger.info(f"  Using ReasoningSpecialist for prompt improvement...")
+            reasoning_task = ReasoningTask(
+                task_type="prompt_improvement",
+                description=analysis_prompt,
+                context={'prompt_name': prompt_name}
+            )
             
-            # Parse response
-            tool_calls, _ = self.parse_response(response, "prompt_improvement")
+            specialist_result = self.reasoning_specialist.execute_task(reasoning_task)
+            
+            # Extract tool calls
+            tool_calls = specialist_result.get("tool_calls", []) if specialist_result.get("success", False) else []
             
             # Check for loops
             if self.check_for_loops():

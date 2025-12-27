@@ -123,28 +123,25 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 errors=[{"type": "file_not_found", "filepath": filepath}]
             )
         
-        # Build messages
-        messages = [
-            {"role": "system", "content": self._get_system_prompt("qa")},
-            {"role": "user", "content": get_qa_prompt(filepath, content)}
-        ]
+        # Use analysis specialist for QA review
+        self.logger.info(f"  Using AnalysisSpecialist for QA review")
+        specialist_result = self.analysis_specialist.review_code(
+            file_path=filepath,
+            code=content
+        )
         
-        # Get tools
-        tools = get_tools_for_phase("qa")
-        
-        # Send request
-        response = self.chat(messages, tools, task_type="qa")
-        
-        if "error" in response:
+        if not specialist_result.get("success", False):
+            error_msg = specialist_result.get("response", "Specialist review failed")
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"QA failed: {response['error']}",
-                errors=[{"type": "api_error", "message": response["error"]}]
+                message=f"QA failed: {error_msg}",
+                errors=[{"type": "specialist_error", "message": error_msg}]
             )
         
-        # Parse response
-        tool_calls, text_content = self.parser.parse_response(response)
+        # Extract tool calls and content from specialist result
+        tool_calls = specialist_result.get("tool_calls", [])
+        text_content = specialist_result.get("response", "")
         
         # Debug logging: Show what we got from the model
         self.logger.debug(f"QA Response Analysis:")

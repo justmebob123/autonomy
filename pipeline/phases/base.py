@@ -84,7 +84,7 @@ class BasePhase(ABC):
         self.parser = ResponseParser(client)
         
         # Cache tools for functiongemma fallback
-        self._tools_cache: Dict[str, List[Dict]] = {}
+        
         
         # Dynamic registries (Integration Point #2)
         from ..prompt_registry import PromptRegistry
@@ -403,57 +403,7 @@ class BasePhase(ABC):
                 errors=[{"type": type(e).__name__, "message": str(e)}]
             )
     
-    def get_model_for_task(self, task_type: str) -> Optional[tuple]:
-        """Get the appropriate model for a task type"""
-        return self.client.get_model_for_task(task_type)
     
-    def chat(self, messages: List[Dict], tools: List[Dict] = None,
-             task_type: str = None) -> Dict:
-        """Send a chat request to the LLM"""
-        model_info = self.get_model_for_task(task_type or self.phase_name)
-        
-        if not model_info:
-            self.logger.error(f"No model available for {task_type or self.phase_name}")
-            return {"error": "No model available"}
-        
-        host, model = model_info
-        self.logger.info(f"  Using: {model} on {host}")
-        
-        temperature = self.config.temperatures.get(
-            task_type or self.phase_name, 0.3
-        )
-        
-        # Get timeout from config (None = no timeout)
-        timeout_map = {
-            "planning": self.config.planning_timeout,
-            "coding": self.config.coding_timeout,
-            "qa": self.config.qa_timeout,
-            "debug": self.config.debug_timeout,
-            "debugging": self.config.debug_timeout,
-        }
-        timeout = timeout_map.get(task_type or self.phase_name, 
-                                   self.config.request_timeout)
-        
-        # Cache tools for functiongemma fallback in parse_response
-        if tools:
-            self._tools_cache[task_type or self.phase_name] = tools
-        
-        return self.client.chat(host, model, messages, tools, temperature, timeout)
-    
-    def parse_response(self, response: Dict, task_type: str = None) -> tuple:
-        """
-        Parse response with tools context for functiongemma fallback.
-        
-        Args:
-            response: Raw response from LLM
-            task_type: Task type to look up cached tools
-        
-        Returns:
-            Tuple of (tool_calls, content)
-        """
-        task_type = task_type or self.phase_name
-        tools = self._tools_cache.get(task_type, [])
-        return self.parser.parse_response(response, tools)
     
     def read_file(self, filepath: str) -> Optional[str]:
         """Read a file from the project"""

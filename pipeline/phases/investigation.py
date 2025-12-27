@@ -73,21 +73,26 @@ class InvestigationPhase(BasePhase):
             {"role": "user", "content": investigation_prompt}
         ]
         
-        # Get tools for investigation
-        tools = self._get_investigation_tools()
+        # Use analysis specialist for investigation
+        self.logger.info("  Using AnalysisSpecialist for investigation...")
+        specialist_result = self.analysis_specialist.analyze_code(
+            file_path=filepath,
+            code=content,
+            analysis_type="investigation",
+            context={'issue': issue}
+        )
         
-        # Send request
-        response = self.chat(messages, tools, task_type="investigation")
-        
-        if "error" in response:
+        if not specialist_result.get("success", False):
+            error_msg = specialist_result.get("response", "Specialist investigation failed")
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"Investigation failed: {response['error']}"
+                message=f"Investigation failed: {error_msg}"
             )
         
-        # Parse response
-        tool_calls, content = self.parser.parse_response(response)
+        # Extract tool calls and content
+        tool_calls = specialist_result.get("tool_calls", [])
+        content = specialist_result.get("response", "")
         
         # Execute tool calls to gather context
         if tool_calls:
