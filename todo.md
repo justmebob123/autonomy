@@ -30,11 +30,13 @@
   - Uses chat_with_history() instead
   - Builds simple, focused user message
   - Model sees previous exchanges in conversation
-- [ ] Update other phases to use conversation
-  - QAPhase
-  - DebuggingPhase
-  - PlanningPhase
-  - (others as needed)
+- [x] Update other phases to use conversation
+  - CodingPhase ✅
+  - QAPhase ✅
+  - DebuggingPhase ✅
+  - PlanningPhase ✅
+  - InvestigationPhase ✅
+  - DocumentationPhase ✅
 - [x] Simplify prompts
   - Created _build_user_message() with simple, focused prompts
   - Removed specialist overhead
