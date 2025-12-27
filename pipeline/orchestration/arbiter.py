@@ -274,7 +274,7 @@ class ArbiterModel:
         )
         
         # Build dynamic prompt
-        prompt = self.prompt_builder.build(prompt_context)
+        prompt = self.prompt_builder.build_prompt(prompt_context)
         
         # Add arbiter-specific instructions
         prompt += f"""
