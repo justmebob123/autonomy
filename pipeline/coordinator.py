@@ -49,6 +49,17 @@ class PhaseCoordinator:
         # Initialize phases (lazy import to avoid circular deps)
         self.phases = self._init_phases()
         
+        # INTEGRATION: Initialize Arbiter for intelligent decision-making
+        from .orchestration.unified_model_tool import UnifiedModelTool
+        from .orchestration.arbiter import ArbiterModel
+        
+        arbiter_tool = UnifiedModelTool(
+            model_name="qwen2.5:14b",
+            host="http://localhost:11434"
+        )
+        self.arbiter = ArbiterModel(arbiter_tool)
+        self.logger.info("🧠 Arbiter initialized for intelligent orchestration")
+        
         # Hyperdimensional polytopic structure
         self.polytope = {
             'vertices': {},  # phase_name -> {type, dimensions}
@@ -677,131 +688,128 @@ class PhaseCoordinator:
     
     def _determine_next_action(self, state: PipelineState) -> Dict:
         """
-        Determine the next action to take based on current state.
+        Determine the next action using Arbiter for intelligent decision-making.
         
-        IMPORTANT: This method NEVER returns None. It always finds work to do.
-        
-        Priority order (DEVELOPMENT FIRST):
-        0. Check for next_phase hint from previous phase (loop prevention)
-        1. Initial planning if no tasks exist
-        2. Coding for new/in-progress tasks (DO THE WORK FIRST)
-        3. QA for completed code awaiting review
-        4. Debugging for code needing fixes
-        5. Documentation update if tasks recently completed
-        6. Project planning if ALL tasks complete (creates new tasks)
+        INTEGRATION: This method now uses the Arbiter to make intelligent decisions
+        based on the current state, rather than hardcoded if/else logic.
         
         Returns:
             Dict with 'phase', 'reason', and optionally 'task'
         """
         
-        # 0. Check for next_phase hint (loop prevention)
-        if hasattr(state, '_next_phase_hint') and state._next_phase_hint:
-            next_phase = state._next_phase_hint
-            state._next_phase_hint = None  # Clear hint after using
-            self.state_manager.save(state)
-            return {
-                "phase": next_phase,
-                "reason": "phase_hint_from_loop_prevention"
-            }
+        # Build context for arbiter
+        context = self._build_arbiter_context(state)
         
-        # 1. Initial planning needed (no tasks at all)
-        if state.needs_planning:
-            return {
-                "phase": "planning",
-                "reason": "initial_planning"
-            }
+        # Let arbiter decide the next action
+        decision = self.arbiter.decide_action(context)
         
-        # 2. CODING FIRST - New or in-progress tasks (sorted by priority)
+        # Convert arbiter decision to coordinator format
+        return self._convert_arbiter_decision(decision, state)
+    
+    def _build_arbiter_context(self, state: PipelineState) -> Dict:
+        """Build context for arbiter decision-making"""
+        # Get task summaries
         pending_tasks = [
-            t for t in state.tasks.values()
+            {
+                'task_id': t.task_id,
+                'description': t.description,
+                'status': t.status.value,
+                'priority': t.priority,
+                'attempts': t.attempts,
+                'target_file': t.target_file
+            }
+            for t in state.tasks.values()
             if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]
-            and t.attempts < self.config.max_retries_per_task
         ]
         
-        if pending_tasks:
-            # Sort by priority (lower = higher priority)
-            task = min(pending_tasks, key=lambda t: t.priority)
-            return {
-                "phase": "coding",
-                "task": task,
-                "reason": "implement_task"
+        qa_pending = [
+            {
+                'task_id': t.task_id,
+                'description': t.description,
+                'target_file': t.target_file
             }
-        
-        # 3. QA - Only after no pending coding tasks
-        for task in state.tasks.values():
-            if task.status == TaskStatus.QA_PENDING:
-                # Validate task has valid target_file
-                if not task.target_file or task.target_file.strip() == "":
-                    self.logger.warning(f"Task {task.task_id} has empty target_file, marking as SKIPPED")
-                    task.status = TaskStatus.SKIPPED
-                    self.state_manager.save(state)
-                    continue
-                    
-                return {
-                    "phase": "qa",
-                    "task": task,
-                    "reason": "review_completed_code"
-                }
-        
-        # 4. Debugging - Tasks needing fixes (from QA issues)
-        for task in state.tasks.values():
-            if task.status == TaskStatus.NEEDS_FIXES:
-                if task.attempts < self.config.max_retries_per_task:
-                    return {
-                        "phase": "debugging",
-                        "task": task,
-                        "reason": "fix_issues"
-                    }
-                else:
-                    # Max retries exceeded, skip this task
-                    task.status = TaskStatus.SKIPPED
-                    task.updated_at = datetime.now().isoformat()
-                    self.state_manager.save(state)
-                    self.logger.warning(f"  Skipping task {task.task_id} after {task.attempts} attempts")
-        
-        # 5. Check if we still have pending tasks (shouldn't reach here, but safety check)
-        pending_tasks = [
-            t for t in state.tasks.values()
-            if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]
-            and t.attempts < self.config.max_retries_per_task
+            for t in state.tasks.values()
+            if t.status == TaskStatus.QA_PENDING
         ]
         
-        if pending_tasks:
-            # Sort by priority (lower = higher priority)
-            pending_tasks.sort(key=lambda t: (t.priority, t.task_id))
-            
-            for task in pending_tasks:
-                if self._dependencies_met(state, task):
-                    return {
-                        "phase": "coding",
-                        "task": task,
-                        "reason": "implement_new"
-                    }
-            
-            # If we have pending tasks but dependencies not met, wait
-            self.logger.debug("  Pending tasks waiting on dependencies")
-        
-        # 5. All tasks complete - check if documentation needs update
-        if state.needs_documentation_update:
-            return {
-                "phase": "documentation",
-                "reason": "update_docs_after_completion"
+        needs_fixes = [
+            {
+                'task_id': t.task_id,
+                'description': t.description,
+                'attempts': t.attempts,
+                'errors': t.errors[-3:] if t.errors else []
             }
+            for t in state.tasks.values()
+            if t.status == TaskStatus.NEEDS_FIXES
+        ]
         
-        # 6. Self-improvement cycle - evaluate and improve custom tools/prompts/roles
-        # Check if we should run improvement phases
-        if self._should_run_improvement_cycle(state):
-            # Determine which improvement phase to run
-            improvement_phase = self._get_next_improvement_phase(state)
-            if improvement_phase:
-                return improvement_phase
+        completed = sum(1 for t in state.tasks.values() if t.status == TaskStatus.COMPLETED)
         
-        # 7. ALL tasks complete and docs updated - trigger project planning
-        # This is the KEY change: instead of returning None/exiting, we plan expansion
         return {
-            "phase": "project_planning",
-            "reason": "expand_project"
+            'needs_planning': state.needs_planning,
+            'pending_tasks': pending_tasks,
+            'qa_pending_tasks': qa_pending,
+            'needs_fixes_tasks': needs_fixes,
+            'completed_tasks': completed,
+            'total_tasks': len(state.tasks),
+            'needs_documentation': state.needs_documentation_update,
+            'phase_history': state.phase_history[-10:] if hasattr(state, 'phase_history') else [],
+            'available_phases': list(self.phases.keys())
         }
+    
+    def _convert_arbiter_decision(self, decision: Dict, state: PipelineState) -> Dict:
+        """Convert arbiter decision to coordinator action format"""
+        action = decision.get('action', 'continue_current_phase')
+        
+        # Handle different arbiter actions
+        if action == 'continue_current_phase':
+            # Fallback to simple logic if arbiter says continue
+            if state.needs_planning:
+                return {"phase": "planning", "reason": "arbiter_continue_planning"}
+            
+            # Get first pending task
+            for task in state.tasks.values():
+                if task.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]:
+                    return {"phase": "coding", "task": task, "reason": "arbiter_continue_coding"}
+            
+            return {"phase": "project_planning", "reason": "arbiter_continue_expansion"}
+        
+        elif action == 'change_phase':
+            new_phase = decision.get('parameters', {}).get('new_phase', 'planning')
+            reason = decision.get('parameters', {}).get('reason', 'arbiter_decision')
+            return {"phase": new_phase, "reason": reason}
+        
+        elif action in ['consult_coding_specialist', 'consult_reasoning_specialist', 'consult_analysis_specialist']:
+            # Map specialist consultation to appropriate phase
+            specialist_to_phase = {
+                'consult_coding_specialist': 'coding',
+                'consult_reasoning_specialist': 'planning',
+                'consult_analysis_specialist': 'qa'
+            }
+            phase = specialist_to_phase.get(action, 'coding')
+            
+            # Find appropriate task
+            task = None
+            if phase == 'coding':
+                for t in state.tasks.values():
+                    if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]:
+                        task = t
+                        break
+            elif phase == 'qa':
+                for t in state.tasks.values():
+                    if t.status == TaskStatus.QA_PENDING:
+                        task = t
+                        break
+            
+            result = {"phase": phase, "reason": f"arbiter_{action}"}
+            if task:
+                result["task"] = task
+            return result
+        
+        else:
+            # Unknown action, default to planning
+            self.logger.warning(f"Unknown arbiter action: {action}, defaulting to planning")
+            return {"phase": "planning", "reason": "arbiter_unknown_action"}
     
     def _should_run_improvement_cycle(self, state: PipelineState) -> bool:
         """
