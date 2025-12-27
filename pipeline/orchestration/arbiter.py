@@ -294,26 +294,51 @@ class ArbiterModel:
         # Build dynamic prompt
         prompt = self.prompt_builder.build_prompt(prompt_context)
         
-        # Add arbiter-specific instructions
+        # Get current phase safely
+        current_phase = getattr(state, "current_phase", 
+                               state.phase_history[-1] if hasattr(state, "phase_history") and state.phase_history else "unknown")
+        
+        # Get QA pending count
+        qa_pending = len([t for t in state.tasks.values() 
+                         if t.status == TaskStatus.QA_PENDING])
+        
+        # Get needs fixes count
+        needs_fixes = len([t for t in state.tasks.values() 
+                          if t.status == TaskStatus.NEEDS_FIXES])
+        
+        # Add arbiter-specific decision context
         prompt += f"""
 
-CURRENT STATE:
-- Phase: {getattr(state, "current_phase", state.phase_history[-1] if hasattr(state, "phase_history") and state.phase_history else "unknown")}
-- Total tasks: {len(state.tasks)}
-- Pending tasks: {prompt_context.task['pending_tasks']}
-- Recent failures: {len(prompt_context.recent_failures)}
+PROJECT STATUS:
+- Current Phase: {current_phase}
+- Total Tasks: {len(state.tasks)}
+- Completed: {len([t for t in state.tasks.values() if t.status == TaskStatus.COMPLETED])}
+- In Progress: {prompt_context.task['pending_tasks']}
+- QA Pending: {qa_pending}
+- Needs Fixes: {needs_fixes}
+- Recent Failures: {len(prompt_context.recent_failures)}
 
-CONTEXT:
-{self._format_context(context)}
+YOUR DECISION (choose ONE action):
 
-DECIDE:
-What should happen next? Consider:
-1. Are there tasks that need specialist attention?
-2. Should we change phases?
-3. Do we need user input?
-4. Are there failures that need diagnosis?
+If QA pending tasks exist ({qa_pending} tasks):
+→ Call: consult_analysis_specialist with query "Review QA pending tasks"
 
-CRITICAL: You MUST call exactly ONE tool from the available tools.
+If failures exist ({len(prompt_context.recent_failures)} failures):
+→ Call: consult_reasoning_specialist with query "Diagnose recent failures"
+
+If needs fixes exist ({needs_fixes} tasks):
+→ Call: change_phase with new_phase "debugging"
+
+If documentation needed (context shows needs_documentation: {context.get('needs_documentation', False)}):
+→ Call: change_phase with new_phase "documentation"
+
+If no pending work and phase is complete:
+→ Call: change_phase with new_phase "<next_logical_phase>"
+
+Otherwise:
+→ Call: continue_current_phase
+
+MAKE YOUR DECISION NOW. Call exactly ONE tool.
 """
         
         return prompt
@@ -532,63 +557,25 @@ Example BAD response (asking instead of deciding):
                             self.logger.debug(f"Could not extract JSON from content: {e}")
                         break
             
-            # If still no name, try FunctionGemma
+            # If still no name, infer from arguments
             if not name:
-                self.logger.info("🔧 Attempting to fix malformed tool call with FunctionGemma...")
+                self.logger.info("🔍 Inferring tool name from arguments...")
                 
-                # Build detailed prompt for FunctionGemma
-                available_tools = [t['name'] for t in self._get_arbiter_tools()]
-                fg_prompt = f"""Fix this malformed tool call. The tool name is empty but the arguments suggest the intent.
-
-MALFORMED TOOL CALL:
-{first_call}
-
-AVAILABLE TOOLS:
-{available_tools}
-
-ARGUMENTS PROVIDED:
-{args}
-
-Based on the arguments, which tool should be called? Return ONLY the tool name."""
-                
-                self.logger.info(f"📝 FunctionGemma Prompt:\n{fg_prompt}")
-                
-                try:
-                    clarified = self.consult_specialist("interpreter", fg_prompt,
-                        {"malformed_call": first_call, "available_tools": self._get_arbiter_tools()}
-                    )
-                    
-                    self.logger.info(f"📥 FunctionGemma Response:\n{clarified}")
-                    
-                    # FunctionGemma might return tool calls OR plain text with the tool name
-                    if clarified.get("success"):
-                        # Try to get tool name from tool_calls first
-                        if clarified.get("tool_calls"):
-                            fixed_call = clarified["tool_calls"][0]
-                            fixed_func = fixed_call.get("function", {})
-                            name = fixed_func.get("name", "")
-                            if name:
-                                self.logger.info(f"✓ FunctionGemma fixed tool call: {name}")
-                                args = fixed_func.get("arguments", args)
-                        else:
-                            # Try to extract tool name from text content
-                            content = clarified.get("response", {}).get("message", {}).get("content", "")
-                            self.logger.info(f"📝 FunctionGemma text response: {content}")
-                            
-                            # Look for tool name in the content
-                            available_tools = [t['name'] for t in self._get_arbiter_tools()]
-                            for tool_name in available_tools:
-                                if tool_name in content:
-                                    name = tool_name
-                                    self.logger.info(f"✓ FunctionGemma suggested tool: {name}")
-                                    break
-                            
-                            if not name:
-                                self.logger.warning(f"✗ Could not extract tool name from FunctionGemma response: {content}")
-                    else:
-                        self.logger.warning(f"✗ FunctionGemma clarification failed. Response: {clarified}")
-                except Exception as e:
-                    self.logger.error(f"✗ Error using FunctionGemma: {e}", exc_info=True)
+                # Infer tool based on argument keys
+                if "new_phase" in args:
+                    name = "change_phase"
+                    self.logger.info(f"✓ Inferred tool from 'new_phase' argument: {name}")
+                elif "query" in args:
+                    # Could be any consult_* tool, default to reasoning
+                    name = "consult_reasoning_specialist"
+                    self.logger.info(f"✓ Inferred tool from 'query' argument: {name}")
+                elif "message" in args or "question" in args:
+                    name = "request_user_input"
+                    self.logger.info(f"✓ Inferred tool from message/question argument: {name}")
+                else:
+                    # Default fallback
+                    name = "continue_current_phase"
+                    self.logger.warning(f"⚠️ Could not infer tool, defaulting to: {name}")
         
         # Parse based on tool name
         if name.startswith("consult_"):
