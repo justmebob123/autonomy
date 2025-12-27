@@ -36,7 +36,11 @@ class ArbiterModel:
         self.project_dir = project_dir
         self.model = "qwen2.5:14b"
         self.server = "ollama01.thiscluster.net"
-        self.client = OllamaClient()
+        
+        # Import config
+        from ..config import PipelineConfig
+        config = PipelineConfig()
+        self.client = OllamaClient(config)
         self.logger = get_logger()
         
         # Get specialist registry

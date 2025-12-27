@@ -8,16 +8,21 @@ This module implements a revolutionary architecture where:
 - The application provides capabilities, models make decisions
 """
 
-from .model_tool import ModelTool, SpecialistRegistry
+from .model_tool import ModelTool, SpecialistRegistry, get_specialist_registry
 from .conversation_manager import ConversationThread, MultiModelConversationManager
 from .arbiter import ArbiterModel
-from .orchestrated_pipeline import OrchestratedPipeline
+from .orchestrated_pipeline import OrchestratedPipeline, create_orchestrated_pipeline
+from .dynamic_prompts import DynamicPromptBuilder, PromptContext
 
 __all__ = [
     'ModelTool',
     'SpecialistRegistry',
+    'get_specialist_registry',
     'ConversationThread',
     'MultiModelConversationManager',
     'ArbiterModel',
     'OrchestratedPipeline',
+    'create_orchestrated_pipeline',
+    'DynamicPromptBuilder',
+    'PromptContext',
 ]

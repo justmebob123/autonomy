@@ -42,7 +42,11 @@ class ModelTool:
         self.role = role
         self.context_window = context_window
         self.temperature = temperature
-        self.client = OllamaClient()
+        
+        # Import config
+        from ..config import PipelineConfig
+        config = PipelineConfig()
+        self.client = OllamaClient(config)
         self.logger = get_logger()
         
         # Track usage
