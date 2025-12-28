@@ -176,6 +176,94 @@ class PhaseCoordinator:
             "role_improvement": RoleImprovementPhase(self.config, self.client, **shared_kwargs),
         }
     
+    
+    def _calculate_initial_dimensions(self, phase_name: str, phase_type: str) -> Dict[str, float]:
+        """
+        Calculate initial dimensional values based on phase characteristics.
+        
+        Different phases have different dimensional profiles:
+        - Planning phases: high temporal, low error
+        - Execution phases: high functional, medium error
+        - Validation phases: high context, low temporal
+        - Meta phases: high integration, medium functional
+        
+        Args:
+            phase_name: Name of the phase
+            phase_type: Type of phase (planning, execution, validation, etc.)
+        
+        Returns:
+            Dictionary of dimension values (0.0 to 1.0)
+        """
+        # Base dimensions (neutral starting point)
+        dims = {
+            'temporal': 0.5,
+            'functional': 0.5,
+            'data': 0.5,
+            'state': 0.5,
+            'error': 0.5,
+            'context': 0.5,
+            'integration': 0.5
+        }
+        
+        # Adjust based on phase type
+        if phase_type == 'planning':
+            dims['temporal'] = 0.7  # Planning takes time
+            dims['context'] = 0.8   # Needs lots of context
+            dims['error'] = 0.2     # Low error rate
+            dims['functional'] = 0.3  # Not much execution
+        
+        elif phase_type == 'execution':
+            dims['functional'] = 0.8  # High functionality
+            dims['error'] = 0.5       # Medium error potential
+            dims['integration'] = 0.6  # Integrates with system
+            dims['temporal'] = 0.4    # Relatively fast
+        
+        elif phase_type == 'validation':
+            dims['context'] = 0.9     # Needs full context
+            dims['error'] = 0.3       # Low error rate
+            dims['functional'] = 0.6  # Moderate functionality
+            dims['temporal'] = 0.3    # Quick validation
+        
+        elif phase_type == 'correction':
+            dims['error'] = 0.9       # High error focus
+            dims['context'] = 0.8     # Needs context
+            dims['functional'] = 0.7  # Fixes functionality
+            dims['temporal'] = 0.6    # Takes time
+        
+        elif phase_type == 'analysis':
+            dims['context'] = 0.9     # Needs full context
+            dims['data'] = 0.8        # Data-intensive
+            dims['temporal'] = 0.7    # Takes time
+            dims['error'] = 0.4       # Medium error focus
+        
+        elif phase_type == 'meta':
+            dims['integration'] = 0.9  # High integration
+            dims['context'] = 0.7      # Needs context
+            dims['functional'] = 0.6   # Moderate functionality
+            dims['temporal'] = 0.5     # Medium time
+        
+        elif phase_type == 'improvement':
+            dims['functional'] = 0.8   # Improves functionality
+            dims['integration'] = 0.7  # Integrates improvements
+            dims['context'] = 0.6      # Needs some context
+            dims['error'] = 0.3        # Low error rate
+        
+        # Phase-specific adjustments
+        if 'debug' in phase_name.lower():
+            dims['error'] = 0.9
+            dims['context'] = 0.8
+        
+        if 'investigation' in phase_name.lower():
+            dims['context'] = 0.9
+            dims['data'] = 0.8
+        
+        if 'documentation' in phase_name.lower():
+            dims['context'] = 0.8
+            dims['temporal'] = 0.4
+            dims['error'] = 0.2
+        
+        return dims
+
     def _initialize_polytopic_structure(self):
         """Initialize hyperdimensional polytopic structure from existing phases."""
         phase_types = {
@@ -190,8 +278,7 @@ class PhaseCoordinator:
         for phase_name in self.phases.keys():
             self.polytope['vertices'][phase_name] = {
                 'type': phase_types.get(phase_name, 'unknown'),
-                'dimensions': {'temporal': 0.5, 'functional': 0.5, 'data': 0.5,
-                              'state': 0.5, 'error': 0.5, 'context': 0.5, 'integration': 0.5}
+                   'dimensions': self._calculate_initial_dimensions(phase_name, phase_types.get(phase_name, 'unknown'))
             }
         
         self.polytope['edges'] = {
@@ -483,6 +570,93 @@ class PhaseCoordinator:
                 self.polytope['vertices'][vertex_name]['dimensions'][new_dimension] = 0.5
         
         self.logger.info(f"Expanded to {self.polytope['dimensions']} dimensions: added '{new_dimension}' - {description}")
+
+    def _update_polytope_dimensions(self, phase_name: str, result) -> None:
+        """
+        Update polytope dimensions based on phase execution results.
+        
+        This makes the polytope adaptive - dimensions change based on:
+        - Success/failure rates
+        - Error patterns
+        - Execution time
+        - Complexity indicators
+        """
+        if phase_name not in self.polytope['vertices']:
+            return
+        
+        vertex = self.polytope['vertices'][phase_name]
+        dims = vertex['dimensions']
+        
+        # Update temporal dimension based on execution time
+        if hasattr(result, 'execution_time'):
+            # Normalize to 0-1 range (assuming max 60 seconds)
+            temporal_score = min(1.0, result.execution_time / 60.0)
+            dims['temporal'] = 0.7 * dims['temporal'] + 0.3 * temporal_score
+        
+        # Update error dimension based on success/failure
+        if hasattr(result, 'success'):
+            error_score = 0.0 if result.success else 1.0
+            dims['error'] = 0.8 * dims['error'] + 0.2 * error_score
+        
+        # Update functional dimension based on task completion
+        if hasattr(result, 'tasks_completed'):
+            functional_score = min(1.0, result.tasks_completed / max(1, result.total_tasks))
+            dims['functional'] = 0.7 * dims['functional'] + 0.3 * functional_score
+        
+        # Update context dimension based on message length (complexity indicator)
+        if hasattr(result, 'message') and result.message:
+            context_score = min(1.0, len(result.message) / 1000.0)
+            dims['context'] = 0.8 * dims['context'] + 0.2 * context_score
+        
+        # Update integration dimension based on file operations
+        if hasattr(result, 'files_modified'):
+            integration_score = min(1.0, result.files_modified / 10.0)
+            dims['integration'] = 0.7 * dims['integration'] + 0.3 * integration_score
+        
+        self.logger.debug(f"Updated polytope dimensions for {phase_name}: {dims}")
+
+    def _analyze_correlations(self, state) -> List[Dict[str, Any]]:
+        """
+        Use CorrelationEngine to find correlations across components.
+        
+        This is called during investigation/debugging phases to identify
+        deeper relationships between errors, changes, and system state.
+        
+        Returns:
+            List of correlation findings with recommendations
+        """
+        try:
+            # Add findings from state to correlation engine
+            from .state.manager import TaskStatus
+            
+            # Add error findings
+            for task in state.tasks.values():
+                if task.status == TaskStatus.FAILED:
+                    self.correlation_engine.add_finding('task_errors', {
+                        'type': 'error',
+                        'task_id': task.id,
+                        'message': task.description,
+                        'file': task.target_file,
+                        'timestamp': datetime.now().isoformat()
+                    })
+            
+            # Run correlation analysis
+            correlations = self.correlation_engine.correlate()
+            
+            # Log high-confidence correlations
+            high_confidence = [c for c in correlations if c.get('confidence', 0) > 0.7]
+            if high_confidence:
+                self.logger.info(f"🔗 Found {len(high_confidence)} high-confidence correlations")
+                for corr in high_confidence[:3]:  # Show top 3
+                    self.logger.info(f"   • {corr.get('description', 'Unknown correlation')}")
+                    if 'recommendation' in corr:
+                        self.logger.info(f"     → {corr['recommendation']}")
+            
+            return correlations
+            
+        except Exception as e:
+            self.logger.debug(f"Correlation analysis failed: {e}")
+            return []
        
     
     def run(self, resume: bool = True) -> bool:
@@ -668,6 +842,12 @@ class PhaseCoordinator:
             
             try:
                 # Execute the phase with unknown tool detection
+                # Run correlation analysis for investigation/debugging phases BEFORE execution
+                if phase_name in ['investigation', 'debugging', 'debug']:
+                    correlations = self._analyze_correlations(state)
+                    if correlations:
+                        self.logger.info('Found %d correlations to guide %s' % (len(correlations), phase_name))
+                   
                 result = phase.run(task=task)
                 
                 # Check for unknown tool errors
@@ -1173,6 +1353,9 @@ class PhaseCoordinator:
             
             # Record the execution
             self.pattern_recognition.record_execution(execution_data)
+                
+            # Update polytope dimensions based on results
+            self._update_polytope_dimensions(phase_name, result)
             
             # Get recommendations for current context
             recommendations = self.pattern_recognition.get_recommendations({
