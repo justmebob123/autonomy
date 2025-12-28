@@ -787,13 +787,13 @@ class PhaseCoordinator:
             # Load current state
             state = self.state_manager.load()
             
-            # Determine next action (NEVER returns None)
-            action = self._determine_next_action(state)
+            # Determine next phase decision (NEVER returns None)
+            phase_decision = self._determine_next_action(state)
             
             # Log iteration
             iteration += 1
-            phase_name = action["phase"]
-            reason = action.get("reason", "")
+            phase_name = phase_decision["phase"]
+            reason = phase_decision.get("reason", "")
             
             # Special case: specialist consultation completed
             if phase_name == "_specialist_consultation_complete":
@@ -802,8 +802,8 @@ class PhaseCoordinator:
                 self.logger.info(f"  Reason: {reason}")
                 self.logger.info(f"{'='*70}")
                 
-                # Consultation result is in action
-                consultation_result = action.get("result", {})
+                # Consultation result is in phase_decision
+                consultation_result = phase_decision.get("result", {})
                 self.logger.info(f"  Consultation complete, continuing...")
                 
                 # Continue to next iteration (arbiter will decide next action)
@@ -828,7 +828,7 @@ class PhaseCoordinator:
             self.state_manager.save(state)
             
             # Execute the phase
-            task = action.get("task")
+            task = phase_decision.get("task")
             
             try:
                 # Execute the phase with unknown tool detection
