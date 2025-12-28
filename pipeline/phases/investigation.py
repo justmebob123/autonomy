@@ -111,7 +111,7 @@ class InvestigationPhase(BasePhase):
             }
         )
     
-    def _get_system_prompt(self) -> str:
+    def _get_system_prompt(self, phase_name: str = None) -> str:
         """Get system prompt for investigation phase"""
         return """You are a senior software engineer investigating a code issue.
 
