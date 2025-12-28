@@ -318,7 +318,7 @@ class AutoPruningConversationThread:
     """
     Conversation thread with automatic pruning.
     
-    Wraps a standard ConversationThread and automatically prunes
+    Wraps a standard OrchestrationConversationThread and automatically prunes
     when message count exceeds threshold.
     """
     
@@ -327,7 +327,7 @@ class AutoPruningConversationThread:
         Initialize auto-pruning thread.
         
         Args:
-            thread: ConversationThread to wrap
+            thread: OrchestrationConversationThread to wrap
             pruner: ConversationPruner instance
         """
         self.thread = thread

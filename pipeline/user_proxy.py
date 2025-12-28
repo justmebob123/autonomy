@@ -161,8 +161,8 @@ Pattern: {loop_info.get('pattern', 'Unknown')}
 """
         
         # Create a conversation thread for the specialist
-        from pipeline.conversation_thread import ConversationThread
-        thread = ConversationThread(
+        from pipeline.conversation_thread import DebuggingConversationThread
+        thread = DebuggingConversationThread(
             filepath=error_info.get('file', 'unknown'),
             error_type=error_info.get('type', 'Unknown'),
             error_message=error_info.get('message', 'Unknown'),

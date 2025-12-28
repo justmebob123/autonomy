@@ -10,7 +10,7 @@ from pathlib import Path
 import logging
 from dataclasses import dataclass
 
-from .conversation_thread import ConversationThread, Message
+from .conversation_thread import DebuggingConversationThread, Message
 
 
 @dataclass
@@ -40,7 +40,7 @@ class SpecialistAgent:
         self.client = client
         self.logger = logger
     
-    def analyze(self, thread: ConversationThread, tools: List[Dict]) -> Dict:
+    def analyze(self, thread: DebuggingConversationThread, tools: List[Dict]) -> Dict:
         """
         Analyze the issue using full conversation context.
         
@@ -101,7 +101,7 @@ class SpecialistAgent:
         
         return analysis
     
-    def _build_analysis_prompt(self, thread: ConversationThread) -> str:
+    def _build_analysis_prompt(self, thread: DebuggingConversationThread) -> str:
         """Build analysis prompt with full context"""
         
         prompt = f"""# Specialist Analysis Request
@@ -341,7 +341,7 @@ Provide strategic, high-level analysis and recommendations."""
         self.specialists[config.name] = specialist
     
     def consult_specialist(self, specialist_name: str, 
-                          thread: ConversationThread,
+                          thread: DebuggingConversationThread,
                           tools: List[Dict]) -> Dict:
         """Consult a specific specialist"""
         
@@ -361,7 +361,7 @@ Provide strategic, high-level analysis and recommendations."""
         
         return analysis
     
-    def consult_team(self, thread: ConversationThread, 
+    def consult_team(self, thread: DebuggingConversationThread, 
                     tools: List[Dict],
                     specialists: Optional[List[str]] = None) -> Dict:
         """

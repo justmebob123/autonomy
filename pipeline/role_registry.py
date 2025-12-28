@@ -13,7 +13,7 @@ from datetime import datetime
 from .logging_setup import get_logger
 from .specialist_agents import SpecialistAgent, SpecialistConfig
 from .client import OllamaClient
-from .conversation_thread import ConversationThread
+from .conversation_thread import DebuggingConversationThread
 
 
 class RoleRegistry:
@@ -241,19 +241,19 @@ class RoleRegistry:
         """
         return name in self.specialists
     
-    def consult_specialist(self, name: str, thread: ConversationThread, 
+    def consult_specialist(self, name: str, thread: DebuggingConversationThread, 
                           tools: List[Dict]) -> Dict:
         """
         Consult a specialist for analysis.
         
         Integration:
         - Uses existing SpecialistAgent.analyze() method
-        - Passes ConversationThread for context
+        - Passes DebuggingConversationThread for context
         - Returns analysis dict
         
         Args:
             name: Specialist name
-            thread: ConversationThread with issue context
+            thread: DebuggingConversationThread with issue context
             tools: List of tools available to specialist
             
         Returns:

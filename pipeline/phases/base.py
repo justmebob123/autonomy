@@ -87,7 +87,7 @@ class BasePhase(ABC):
         self.parser = ResponseParser(client)
         
         # Conversation thread for maintaining history with auto-pruning
-        from ..orchestration.conversation_manager import ConversationThread
+        from ..orchestration.conversation_manager import OrchestrationConversationThread
         from ..orchestration.conversation_pruning import (
             AutoPruningConversationThread,
             PruningConfig
@@ -102,7 +102,7 @@ class BasePhase(ABC):
         context_window = getattr(config, 'context_window', 8192)
         
         # Create base conversation thread
-        thread = ConversationThread(
+        thread = OrchestrationConversationThread(
             model=phase_model,
             role=self.phase_name,
             max_context_tokens=context_window

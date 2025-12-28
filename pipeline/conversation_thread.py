@@ -64,16 +64,19 @@ class AttemptRecord:
         }
 
 
-class ConversationThread:
+class DebuggingConversationThread:
     """
     Manages a persistent conversation thread for debugging a single issue.
     
-    Maintains:
+    This is a specialized conversation manager for debugging workflows that tracks:
     - Full message history
     - All attempt records
     - File state snapshots
     - Specialist consultations
     - Tool call history
+    
+    Note: This is distinct from OrchestrationConversationThread which handles
+    multi-model orchestration. This class is specifically for debugging phases.
     """
     
     def __init__(self, issue: Dict, project_dir: Path):

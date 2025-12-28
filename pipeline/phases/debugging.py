@@ -16,7 +16,7 @@ from .base import BasePhase, PhaseResult
 from ..state.manager import PipelineState, TaskState, TaskStatus, FileStatus
 from ..handlers import ToolCallHandler
 from ..phase_resources import get_phase_tools, get_debugging_prompt, get_modification_decision
-from ..conversation_thread import ConversationThread
+from ..conversation_thread import DebuggingConversationThread
 from .loop_detection_mixin import LoopDetectionMixin
 from ..team_coordination import TeamCoordinationFacade
 from ..debugging_utils import (
@@ -196,7 +196,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         
         return None
     
-    def _check_for_loops_and_enforce(self, intervention_count: int, thread: 'ConversationThread') -> Dict:
+    def _check_for_loops_and_enforce(self, intervention_count: int, thread: 'DebuggingConversationThread') -> Dict:
         """
         CRITICAL FIX #3: ENFORCED LOOP BREAKING
         Check for loops and ENFORCE intervention based on count.
@@ -270,7 +270,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                 'message': f'Multiple loop interventions failed ({intervention_count} attempts) - user help required'
             }
     
-    def _consult_specialist(self, specialist_type: str, thread: ConversationThread, tools: List) -> Dict:
+    def _consult_specialist(self, specialist_type: str, thread: DebuggingConversationThread, tools: List) -> Dict:
         """
         Consult specialist from registry or fall back to hardcoded.
         
@@ -885,7 +885,7 @@ Remember:
         self.logger.info(f"  ✅ Read file: {filepath} ({len(file_content)} chars, {len(issue['file_lines'])} lines)")
         
         # Create conversation thread
-        thread = ConversationThread(issue, self.project_dir)
+        thread = DebuggingConversationThread(issue, self.project_dir)
         self.logger.info(f"  💬 Started conversation thread: {thread.thread_id}")
         
         # CRITICAL: Run investigation phase FIRST to diagnose the problem

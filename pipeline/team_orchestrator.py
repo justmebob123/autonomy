@@ -18,7 +18,7 @@ from datetime import datetime
 from .client import OllamaClient
 from .specialist_agents import SpecialistTeam
 from .prompts.team_orchestrator import get_team_orchestrator_prompt
-from .conversation_thread import ConversationThread
+from .conversation_thread import DebuggingConversationThread
 
 
 @dataclass
@@ -185,7 +185,7 @@ class TeamOrchestrator:
     def execute_plan(
         self,
         plan: OrchestrationPlan,
-        thread: Optional[ConversationThread] = None
+        thread: Optional[DebuggingConversationThread] = None
     ) -> Dict[str, Any]:
         """
         Execute an orchestration plan.
@@ -246,7 +246,7 @@ class TeamOrchestrator:
     def _execute_wave(
         self,
         wave: ExecutionWave,
-        thread: Optional[ConversationThread] = None
+        thread: Optional[DebuggingConversationThread] = None
     ) -> Dict[str, Any]:
         """
         Execute all tasks in a wave in parallel.
@@ -286,7 +286,7 @@ class TeamOrchestrator:
     def _execute_task(
         self,
         task: Task,
-        thread: Optional[ConversationThread] = None
+        thread: Optional[DebuggingConversationThread] = None
     ) -> Dict[str, Any]:
         """
         Execute a single task.

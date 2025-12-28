@@ -13,15 +13,19 @@ import json
 from ..logging_setup import get_logger
 
 
-class ConversationThread:
+class OrchestrationConversationThread:
     """
-    Manages a conversation thread for a single model.
+    Manages a conversation thread for a single model in multi-model orchestration.
     
-    Each model has its own thread that can include:
+    This is a specialized conversation manager for orchestrating multiple models
+    that can include:
     - Messages from the user
     - Messages from other models
     - System messages
     - Tool results
+    
+    Note: This is distinct from DebuggingConversationThread which handles
+    debugging-specific workflows with attempt tracking and patches.
     """
     
     def __init__(self, model: str, role: str, max_context_tokens: int = 8192):
@@ -159,7 +163,7 @@ class MultiModelConversationManager:
         Args:
             arbiter_model: Name of the arbiter model (if any)
         """
-        self.threads: Dict[str, ConversationThread] = {}
+        self.threads: Dict[str, OrchestrationConversationThread] = {}
         self.shared_context: List[Dict] = []
         self.arbiter_model = arbiter_model
         self.logger = get_logger()
@@ -168,7 +172,7 @@ class MultiModelConversationManager:
         self.routing_history: List[Dict] = []
     
     def create_thread(self, model: str, role: str, 
-                     max_context_tokens: int = 8192) -> ConversationThread:
+                     max_context_tokens: int = 8192) -> OrchestrationConversationThread:
         """
         Create a new conversation thread for a model.
         
@@ -178,16 +182,16 @@ class MultiModelConversationManager:
             max_context_tokens: Maximum context tokens
         
         Returns:
-            ConversationThread instance
+            OrchestrationConversationThread instance
         """
-        thread = ConversationThread(model, role, max_context_tokens)
+        thread = OrchestrationConversationThread(model, role, max_context_tokens)
         self.threads[model] = thread
         
         self.logger.info(f"Created conversation thread for {model} ({role})")
         
         return thread
     
-    def get_thread(self, model: str) -> Optional[ConversationThread]:
+    def get_thread(self, model: str) -> Optional[OrchestrationConversationThread]:
         """
         Get a conversation thread by model name.
         
@@ -195,7 +199,7 @@ class MultiModelConversationManager:
             model: Model name
         
         Returns:
-            ConversationThread or None
+            OrchestrationConversationThread or None
         """
         return self.threads.get(model)
     

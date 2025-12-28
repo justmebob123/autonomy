@@ -9,7 +9,7 @@ This module implements a revolutionary architecture where:
 """
 
 from .model_tool import ModelTool, SpecialistRegistry, get_specialist_registry
-from .conversation_manager import ConversationThread, MultiModelConversationManager
+from .conversation_manager import OrchestrationConversationThread, MultiModelConversationManager
 from .arbiter import ArbiterModel
 from .dynamic_prompts import DynamicPromptBuilder, PromptContext
 
@@ -17,7 +17,7 @@ __all__ = [
     'ModelTool',
     'SpecialistRegistry',
     'get_specialist_registry',
-    'ConversationThread',
+    'OrchestrationConversationThread',
     'MultiModelConversationManager',
     'ArbiterModel',
     'DynamicPromptBuilder',
