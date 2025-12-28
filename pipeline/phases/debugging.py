@@ -17,7 +17,7 @@ from ..state.manager import PipelineState, TaskState, TaskStatus, FileStatus
 from ..handlers import ToolCallHandler
 from ..phase_resources import get_phase_tools, get_debugging_prompt, get_modification_decision
 from ..conversation_thread import ConversationThread
-from ..loop_detection_system import LoopDetectionFacade
+from .loop_detection_mixin import LoopDetectionMixin
 from ..team_coordination import TeamCoordinationFacade
 from ..debugging_utils import (
     get_timestamp_iso,
@@ -38,7 +38,7 @@ from ..debugging_utils import (
 from ..user_proxy import UserProxyAgent
 
 
-class DebuggingPhase(BasePhase):
+class DebuggingPhase(LoopDetectionMixin, BasePhase):
     """
     Debugging phase that fixes code issues.
     
@@ -57,8 +57,7 @@ class DebuggingPhase(BasePhase):
         self.threads_dir = self.project_dir / "conversation_threads"
         self.threads_dir.mkdir(exist_ok=True)
         
-        # Initialize loop detection system
-        self.loop_detection = LoopDetectionFacade(self.project_dir, self.logger)
+        # Loop detection is initialized by LoopDetectionMixin
         
         # Initialize team coordination system
         self.team_coordination = TeamCoordinationFacade(
@@ -81,7 +80,7 @@ class DebuggingPhase(BasePhase):
                 file_path = args['filepath']
             
             # Track the action
-            self.loop_detection.track_action(
+            self.action_tracker.track_action(
                 phase=self.phase_name,
                 agent=agent,
                 tool=tool_name,
@@ -182,7 +181,7 @@ class DebuggingPhase(BasePhase):
     
     def _check_for_loops(self) -> Optional[Dict]:
         """Check for loops and intervene if necessary"""
-        intervention = self.loop_detection.check_and_intervene()
+        intervention = self.check_for_loops()
         
         if intervention:
             # Log the intervention
@@ -533,7 +532,7 @@ class DebuggingPhase(BasePhase):
                     'iterations': intervention.get('iterations', 0),
                     'pattern': intervention.get('pattern', 'Unknown')
                 },
-                debugging_history=self.loop_detection.get_recent_actions(10) if hasattr(self, 'action_tracker') else [],
+                debugging_history=self.action_tracker.get_recent_actions(10) if hasattr(self, 'action_tracker') else [],
                 context={'intervention': intervention}
             )
             
@@ -777,7 +776,7 @@ Remember:
                     'iterations': intervention.get('iterations', 0),
                     'pattern': intervention.get('pattern', 'Unknown')
                 },
-                debugging_history=self.loop_detection.get_recent_actions(10) if hasattr(self, 'action_tracker') else [],
+                debugging_history=self.action_tracker.get_recent_actions(10) if hasattr(self, 'action_tracker') else [],
                 context={'intervention': intervention}
             )
             
