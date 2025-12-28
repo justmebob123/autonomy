@@ -77,7 +77,7 @@ REMEMBER:
 - Each task must be specific and actionable
 - File paths must be exact and complete
 - Dependencies must reference other tasks' target files
-- Do NOT output JSON as text - USE THE TOOL!"""
+- Do NOT output JSON as text - USE THE TOOL!""",
 
     "coding": """You are an expert Python developer implementing production code.
 
@@ -222,7 +222,7 @@ REMEMBER:
 - You MUST call create_python_file or modify_python_file with non-empty name!
 - File content must be COMPLETE with all imports
 - No partial implementations or placeholders
-- Do NOT show code as text - USE THE TOOL!"""
+- Do NOT show code as text - USE THE TOOL!""",
 
     "qa": """You are a senior code reviewer performing thorough quality checks.
 
