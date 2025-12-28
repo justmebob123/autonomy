@@ -21,11 +21,92 @@
 - [x] Test that patterns are being recorded and used
 - [x] Fix all import errors (pattern_detector, loop_intervention, progress_display, team_orchestrator, debugging)
 
-## Phase 3: Clean Up Dead Code (Future Work)
-- [ ] Review the 17 "dead" modules identified in previous analysis
-- [ ] Verify each is truly unused (not just missed in dependency analysis)
-- [ ] Delete only what's genuinely unused after verification
-- [ ] Ensure no valuable functionality is lost
+## Phase 3: Deep File-by-File Analysis of "Dead" Modules
+
+### Modules Analyzed So Far:
+
+#### 1. pipeline/__main__.py - KEEP
+- **Status**: Valid CLI entry point
+- **Purpose**: Allows `python -m pipeline` execution
+- **Verdict**: Keep - it's an alternative entry point to run.py
+
+#### 2. agents/consultation.py - DELETE
+- **Status**: Exported from agents/__init__.py but never imported
+- **Purpose**: Multi-agent consultation system
+- **Verdict**: Delete - completely unused
+
+#### 3. background_arbiter.py - DELETE
+- **Status**: Not imported anywhere
+- **Purpose**: Background thread for conversation monitoring
+- **Verdict**: Delete - never integrated
+
+#### 4. call_graph_builder.py - KEEP
+- **Status**: Used by phases/application_troubleshooting.py
+- **Purpose**: Builds call graphs for debugging
+- **Verdict**: Keep - used by application_troubleshooting phase
+- **Note**: application_troubleshooting phase itself is NOT initialized in coordinator
+
+#### 5. continuous_monitor.py - DELETE
+- **Status**: Not imported anywhere
+- **Purpose**: Continuous monitoring system
+- **Verdict**: Delete - never integrated
+
+#### 6. debugging_support.py - DELETE
+- **Status**: Not imported anywhere
+- **Purpose**: Consolidates debugging utilities
+- **Verdict**: Delete - wrapper functions never used
+
+#### 7. orchestration/orchestrated_pipeline.py - DELETE
+- **Status**: Exported but never imported
+- **Purpose**: Alternative pipeline using arbiter
+- **Verdict**: Delete - alternative implementation never used
+
+#### 8. patch_analyzer.py - KEEP (but phase is dead)
+- **Status**: Used by phases/application_troubleshooting.py
+- **Purpose**: Analyzes patch history to correlate with errors
+- **Verdict**: Keep for now - used by application_troubleshooting
+- **Note**: application_troubleshooting phase is NOT initialized
+
+#### 9. project.py - DELETE
+- **Status**: Only used by tracker.py (which is also unused)
+- **Purpose**: Project file management utilities
+- **Verdict**: Delete - functionality duplicated in handlers
+
+#### 10. tracker.py - DELETE
+- **Status**: Not imported anywhere
+- **Purpose**: Task progress tracking (old system)
+- **Verdict**: Delete - replaced by state/manager.py
+
+#### 11. phases/application_troubleshooting.py - DELETE
+- **Status**: Never imported or initialized in coordinator
+- **Purpose**: Application-level troubleshooting phase
+- **Verdict**: Delete - never integrated into phase system
+- **Note**: This makes call_graph_builder.py and patch_analyzer.py orphaned
+
+### Recently Integrated Modules - VERIFIED ACTIVE:
+- ✅ pattern_recognition.py - Used in coordinator.py
+- ✅ pattern_optimizer.py - Used in coordinator.py
+- ✅ tool_creator.py - Used in handlers.py
+- ✅ tool_validator.py - Used in handlers.py
+
+### Summary of Dead Code:
+
+**Definitely Delete (9 modules):**
+1. agents/consultation.py - exported but never imported
+2. background_arbiter.py - never integrated
+3. continuous_monitor.py - never integrated
+4. debugging_support.py - wrapper functions never used
+5. orchestration/orchestrated_pipeline.py - alternative implementation never used
+6. project.py - only used by unused tracker.py
+7. tracker.py - replaced by state/manager.py
+8. phases/application_troubleshooting.py - never initialized
+9. pipeline/__main__.py - alternative entry point, run.py is used instead
+
+**Cascade Delete (2 modules - orphaned by #8):**
+10. call_graph_builder.py - only used by application_troubleshooting
+11. patch_analyzer.py - only used by application_troubleshooting
+
+**Total: 11 modules to delete**
 
 ## Phase 4: Verify System Health ✅
 - [x] Verify all imports work (fixed 5 import errors)
