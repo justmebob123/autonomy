@@ -562,25 +562,32 @@ class StateManager:
         return PipelineState()
     
     def save(self, state: PipelineState):
-        """Save state to disk"""
+        """
+        Save state to disk atomically.
+        
+        Uses temp file + atomic rename to ensure state file is never corrupted,
+        even if process crashes during write.
+        """
+        from ..atomic_file import atomic_write_json
+        
         state.updated = datetime.now().isoformat()
         
         try:
-            self.state_file.write_text(
-                json.dumps(state.to_dict(), indent=2)
-            )
+            atomic_write_json(self.state_file, state.to_dict(), indent=2)
             self.logger.debug(f"Saved state to {self.state_file}")
         except Exception as e:
             self.logger.error(f"Failed to save state: {e}")
             raise
     
     def write_phase_state(self, phase: str, content: str):
-        """Write a phase-specific state file (markdown)"""
+        """Write a phase-specific state file (markdown) atomically"""
+        from ..atomic_file import atomic_write
+        
         filename = f"{phase.upper()}_STATE.md"
         filepath = self.state_dir / filename
         
         try:
-            filepath.write_text(content)
+            atomic_write(filepath, content)
             self.logger.debug(f"Wrote {filename}")
         except Exception as e:
             self.logger.error(f"Failed to write {filename}: {e}")
