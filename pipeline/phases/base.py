@@ -124,13 +124,6 @@ class BasePhase(ABC):
         pruner = ConversationPruner(pruning_config)
         self.conversation = AutoPruningConversationThread(thread, pruner)
         
-        # CRITICAL FIX: Add system prompt to conversation at initialization
-        # This ensures the model always sees the system prompt with tool calling instructions
-        system_prompt = self._get_system_prompt(self.phase_name)
-        if system_prompt:
-            self.conversation.add_message("system", system_prompt)
-            self.logger.debug(f"Added system prompt for {self.phase_name} phase")
-        
         # Cache tools for functiongemma fallback
         
         
@@ -146,6 +139,14 @@ class BasePhase(ABC):
             self.prompt_registry = prompt_registry
             self.tool_registry = tool_registry
             self.role_registry = role_registry
+        
+        # CRITICAL FIX: Add system prompt to conversation at initialization
+        # This ensures the model always sees the system prompt with tool calling instructions
+        # MUST be done AFTER prompt_registry is set!
+        system_prompt = self._get_system_prompt(self.phase_name)
+        if system_prompt:
+            self.conversation.add_message("system", system_prompt)
+            self.logger.debug(f"Added system prompt for {self.phase_name} phase")
         
         # INTEGRATION: Use shared specialists if provided
         if coding_specialist is None or reasoning_specialist is None or analysis_specialist is None:
@@ -379,6 +380,10 @@ class BasePhase(ABC):
         """Read a file from the project"""
         full_path = self.project_dir / filepath
         if not full_path.exists():
+            return None
+        # Check if it's a directory
+        if full_path.is_dir():
+            self.logger.warning(f"Cannot read {filepath}: it's a directory, not a file")
             return None
         try:
             return full_path.read_text()

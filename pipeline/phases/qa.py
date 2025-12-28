@@ -113,6 +113,22 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         
         self.logger.info(f"  Reviewing: {filepath}")
         
+        # Check if it's a directory - skip directories
+        full_path = self.project_dir / filepath
+        if full_path.is_dir():
+            self.logger.warning(f"  ⚠️ Skipping directory: {filepath}")
+            # Mark task as completed if provided
+            if task:
+                task.status = TaskStatus.COMPLETED
+                task.completed_at = datetime.now().isoformat()
+                self.save_state(state)
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message=f"Skipped directory: {filepath}",
+                next_phase="coding"
+            )
+        
         # Read file content
         content = self.read_file(filepath)
         if not content:
