@@ -190,21 +190,31 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
             max_context_chars=3000
         )
         if code_ctx:
+            parts.append("=== RELATED CODE FROM PROJECT ===")
             parts.append(code_ctx)
         
         # Add dependency file contents
-        for dep in task.dependencies[:3]:
-            # Skip directories
-            dep_path = self.project_dir / dep
-            if dep_path.exists() and dep_path.is_dir():
-                continue
-            
-            dep_content = self.read_file(dep)
-            if dep_content:
-                parts.append(f"=== DEPENDENCY: {dep} ===")
-                parts.append(dep_content[:1000])
+        if task.dependencies:
+            parts.append("\n=== DEPENDENCY FILES (required for this task) ===")
+            for i, dep in enumerate(task.dependencies[:3], 1):
+                # Skip directories
+                dep_path = self.project_dir / dep
+                if dep_path.exists() and dep_path.is_dir():
+                    parts.append(f"\n{i}. {dep} (directory - skipped)")
+                    continue
+                
+                dep_content = self.read_file(dep)
+                if dep_content:
+                    parts.append(f"\n{i}. FILE: {dep}")
+                    parts.append("```python")
+                    parts.append(dep_content[:2000])  # Increased from 1000 to 2000
+                    if len(dep_content) > 2000:
+                        parts.append("... (truncated)")
+                    parts.append("```")
+                else:
+                    parts.append(f"\n{i}. {dep} (file not found yet - will be created by another task)")
         
-        return "\n\n".join(parts)
+        return "\n".join(parts)
     
     def _build_user_message(self, task: TaskState, context: str, error_context: str) -> str:
         """
@@ -218,9 +228,15 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         parts.append(f"Task: {task.description}")
         parts.append(f"Target file: {task.target_file}")
         
+        # List dependencies explicitly
+        if task.dependencies:
+            parts.append(f"\nDependencies (files this task depends on):")
+            for dep in task.dependencies:
+                parts.append(f"  - {dep}")
+        
         # Add context if available
         if context:
-            parts.append(f"\nRelated code:\n{context}")
+            parts.append(f"\nRelated code and dependency contents:\n{context}")
         
         # Add error context if this is a retry
         if error_context and task.attempts > 1:
