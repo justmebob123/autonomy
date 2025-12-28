@@ -533,30 +533,66 @@ class PhaseCoordinator:
         return best_phase if best_phase else 'planning'
     
     def _calculate_phase_priority(self, phase_name: str, situation: Dict[str, Any]) -> float:
-        """Calculate priority score for a phase based on situation."""
-        score = 0.5  # Base score
+        """
+        Calculate priority score using dimensional alignment.
         
-        # Error-driven routing
+        This integrates the polytope dimensional profiles into phase selection,
+        ensuring that phases with high relevant dimensions are prioritized.
+        """
+        # Get phase dimensional profile
+        phase_vertex = self.polytope['vertices'].get(phase_name, {})
+        phase_dims = phase_vertex.get('dimensions', {
+            'temporal': 0.5,
+            'functional': 0.5,
+            'error': 0.5,
+            'context': 0.5,
+            'integration': 0.5
+        })
+        
+        # Start with base score
+        score = 0.3
+        
+        # Calculate dimensional alignment based on situation
         if situation['has_errors']:
-            if phase_name in ['debugging', 'investigation']:
-                score += 0.4
-            if situation['error_severity'] == 'critical' and phase_name == 'investigation':
-                score += 0.3
+            # High error dimension is good for debugging/investigation
+            score += phase_dims.get('error', 0.5) * 0.4
+            # High context dimension helps understand errors
+            score += phase_dims.get('context', 0.5) * 0.2
+            
+            # Extra boost for critical errors
+            if situation['error_severity'] == 'critical':
+                score += phase_dims.get('error', 0.5) * 0.2
         
-        # Complexity-based routing
+        # Complexity-based dimensional weighting
         if situation['complexity'] == 'high':
-            if phase_name in ['investigation', 'debugging']:
-                score += 0.2
+            # High functional dimension for complex work
+            score += phase_dims.get('functional', 0.5) * 0.3
+            # High integration dimension for cross-cutting concerns
+            score += phase_dims.get('integration', 0.5) * 0.2
+        
+        # Urgency-based dimensional weighting
+        if situation['urgency'] == 'high':
+            # High temporal dimension for urgent work
+            score += phase_dims.get('temporal', 0.5) * 0.3
         
         # Pending work routing
         if situation['has_pending']:
-            if phase_name == 'coding':
-                score += 0.3
+            # High functional dimension for execution
+            score += phase_dims.get('functional', 0.5) * 0.2
         
         # Planning routing
         if situation['needs_planning']:
-            if phase_name == 'planning':
-                score += 0.4
+            # High temporal and integration dimensions for planning
+            score += phase_dims.get('temporal', 0.5) * 0.2
+            score += phase_dims.get('integration', 0.5) * 0.2
+        
+        # Log dimensional reasoning (debug level)
+        self.logger.debug(
+            f"Phase {phase_name} dimensional score: {score:.3f} "
+            f"(dims: error={phase_dims.get('error', 0.5):.2f}, "
+            f"functional={phase_dims.get('functional', 0.5):.2f}, "
+            f"temporal={phase_dims.get('temporal', 0.5):.2f})"
+        )
         
         return score
     
