@@ -77,13 +77,52 @@ The pattern I'm seeing is:
 
 This is exactly what you were describing - code that looks integrated at a glance but when you trace actual execution paths, nothing is connected.
 
+## Unused StateManager Methods (Dead Integration Points)
+
+ALL of these methods exist but are NEVER CALLED:
+1. **learn_pattern()** - line 659 - Store learned patterns
+2. **add_fix()** - line 670 - Record fix attempts
+3. **get_fix_effectiveness()** - line 677 - Analyze fix success rates
+4. **update_from_troubleshooting()** - line 699 - Store troubleshooting results
+5. **add_correlation()** - line 706 - Store correlations
+6. **add_performance_metric()** - line 647 - Track performance
+
+**Impact**: Entire learning/metrics subsystem disconnected from execution
+
+## Duplicate/Parallel Implementations
+
+### 1. TWO ConversationThread Classes (CRITICAL DUPLICATION)
+- **orchestration/conversation_manager.py**: Simple message list for model context
+  * Used by: BasePhase (all phases via chat_with_history)
+  * Purpose: Maintain conversation history for LLM calls
+  * Features: Message list, token tracking, context window management
+  
+- **conversation_thread.py**: Complex debugging thread
+  * Used by: debugging.py, role_registry, specialist_agents, user_proxy, team_orchestrator
+  * Purpose: Track debugging sessions with attempts, snapshots, specialists
+  * Features: Attempt tracking, file snapshots, patches, specialist consultations, context data
+
+**Problem**: Debugging phase uses BOTH simultaneously:
+- Calls chat_with_history (uses simple ConversationThread from BasePhase)
+- Creates its own complex ConversationThread for debugging tracking
+- Result: TWO separate conversation histories that don't sync
+
+**Impact**: Confusion, wasted resources, potential state inconsistency
+
+### 2. Pattern Systems (NOT Duplicates - Different Purposes)
+- **pattern_recognition.py** - Learns from execution (tool sequences, failures, successes)
+- **pattern_detector.py** - Detects loops and repetitive actions
+- **Status**: These are different systems, not duplicates
+
 ## Next Steps
 
 1. Fix perform_application_troubleshooting() - find where it should be called
 2. Integrate CorrelationEngine with analyzer results
-3. Connect correlations to StateManager
-4. Use correlations in decision-making
-5. Continue tracing ALL execution paths to find more breaks
+3. Connect correlations to StateManager via add_correlation()
+4. Connect pattern_recognition to StateManager via learn_pattern()
+5. Use correlations in decision-making
+6. Check if pattern_recognition and pattern_detector should be unified
+7. Continue tracing ALL execution paths to find more breaks
 
 ## Methodology
 
