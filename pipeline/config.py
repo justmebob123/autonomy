@@ -66,16 +66,16 @@ class PipelineConfig:
     # Format: (model_name, preferred_host)
     # 
     # Model selection rationale:
-    # - planning: qwen2.5:14b - Good at structured thinking, uses native tools
+    # - planning: qwen2.5-coder:32b - Better tool calling than general model, code understanding
     # - coding: qwen2.5-coder:32b (32.8B) - BEST open-source coding model, GPT-4o level
-    # - qa: qwen2.5:14b - Uses native tool calls properly
+    # - qa: qwen2.5-coder:32b - Better tool calling than general model (switched from qwen2.5:32b)
     # - debugging: qwen2.5-coder:32b (32.8B) - BEST at code fixing, scored 73.7 on Aider
     # - routing: functiongemma - Fast, specialized for function calling
     # - tool_formatting: functiongemma - Helps format malformed tool calls
     model_assignments: Dict[str, Tuple[str, str]] = field(default_factory=lambda: {
         # LOAD BALANCED: Distribute tasks across BOTH servers
-        # ollama01: Planning, routing tasks
-        "planning":        ("qwen2.5:14b", "ollama01.thiscluster.net"),
+        # ollama01: Planning with coder model for better tool calling, routing tasks
+        "planning":        ("qwen2.5-coder:32b", "ollama01.thiscluster.net"),
         "routing":         ("functiongemma", "ollama01.thiscluster.net"),
         
         # ollama02: QA with coder model for better tool calling
