@@ -978,6 +978,13 @@ class PhaseCoordinator:
         current_phase = getattr(state, 'current_phase', 
                                state.phase_history[-1] if hasattr(state, 'phase_history') and state.phase_history else None)
         
+        # Check for phase hint from previous phase
+        phase_hint = getattr(state, '_next_phase_hint', None)
+        if phase_hint and phase_hint in self.phases:
+            self.logger.info(f"🎯 Following phase hint: {phase_hint}")
+            state._next_phase_hint = None  # Clear hint after using
+            return {'phase': phase_hint, 'reason': f'Phase {current_phase} suggested {phase_hint}'}
+        
         # Count tasks by status
         pending = [t for t in state.tasks.values() if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]]
         qa_pending = [t for t in state.tasks.values() if t.status == TaskStatus.QA_PENDING]
@@ -1022,9 +1029,15 @@ class PhaseCoordinator:
                 return {'phase': pattern_override, 'reason': f'Pattern-based suggestion (confidence > 0.8)'}
             return {'phase': 'planning', 'reason': 'No tasks yet, need to plan'}
         
-        # 5. All tasks complete - we're done!
+        # 5. All tasks complete - route to documentation then project_planning
         if len(completed) == len(state.tasks):
-            return {'phase': 'complete', 'reason': 'All tasks completed!'}
+            # Check if we've already done documentation
+            if current_phase == 'documentation':
+                return {'phase': 'project_planning', 'reason': 'Documentation complete, planning next iteration'}
+            elif current_phase == 'project_planning':
+                return {'phase': 'complete', 'reason': 'All tasks completed and documented!'}
+            else:
+                return {'phase': 'documentation', 'reason': 'All tasks complete, documenting work'}
         
         # 6. Default: go to planning to create more tasks (or follow pattern)
         if pattern_override and pattern_override in self.phases:
