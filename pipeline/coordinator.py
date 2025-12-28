@@ -560,16 +560,6 @@ class PhaseCoordinator:
         
         return score
     
-    def expand_dimensions(self, new_dimension: str, description: str):
-        """Dynamically expand the dimensional space."""
-        self.polytope['dimensions'] += 1
-        
-        # Add new dimension to all vertices
-        for vertex_name in self.polytope['vertices']:
-            if 'dimensions' in self.polytope['vertices'][vertex_name]:
-                self.polytope['vertices'][vertex_name]['dimensions'][new_dimension] = 0.5
-        
-        self.logger.info(f"Expanded to {self.polytope['dimensions']} dimensions: added '{new_dimension}' - {description}")
 
     def _update_polytope_dimensions(self, phase_name: str, result) -> None:
         """

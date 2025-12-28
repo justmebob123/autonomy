@@ -214,33 +214,6 @@ class BasePhase(ABC):
         pass
     
     
-    def adapt_to_situation(self, situation: Dict[str, Any]) -> Dict[str, Any]:
-        """Adapt phase behavior based on current situation with full intelligence."""
-        adapted_profile = self.dimensional_profile.copy()
-        
-        # Determine mode based on situation
-        mode = self._determine_mode(situation)
-        
-        # Extract constraints from situation
-        constraints = self._extract_constraints(situation)
-        
-        # Adapt dimensional profile based on mode and constraints
-        adapted_profile = self._adapt_dimensional_profile(adapted_profile, mode, situation)
-        
-        # Increase self-awareness and experience
-        self._increase_self_awareness()
-        self.experience_count += 1
-        
-        # Record adaptation
-        self._record_adaptation(situation, mode, adapted_profile)
-        
-        return {
-            'adapted_profile': adapted_profile,
-            'self_awareness': self.self_awareness_level,
-            'mode': mode,
-            'constraints': constraints,
-            'experience': self.experience_count
-        }
     
     def _determine_mode(self, situation: Dict[str, Any]) -> str:
         """Determine operational mode based on situation."""
@@ -316,42 +289,7 @@ class BasePhase(ABC):
         if len(self._adaptation_history) > 100:
             self._adaptation_history = self._adaptation_history[-100:]
     
-    def check_for_unknown_tools(self, results: List[Dict]) -> Optional[List[Dict]]:
-        """
-        Check tool call results for unknown tools.
-        
-        Args:
-            results: List of tool call results
-            
-        Returns:
-            List of unknown tool errors if any, None otherwise
-        """
-        unknown_tools = [r for r in results if r.get('error_type') == 'unknown_tool']
-        return unknown_tools if unknown_tools else None
     
-    def create_unknown_tool_result(self, unknown_tools: List[Dict], 
-                                    tool_calls: List[Dict]) -> PhaseResult:
-        """
-        Create a PhaseResult for unknown tool errors.
-        
-        Args:
-            unknown_tools: List of unknown tool errors
-            tool_calls: Original tool calls
-            
-        Returns:
-            PhaseResult indicating unknown tools need development
-        """
-        tool_names = [t['tool_name'] for t in unknown_tools]
-        return PhaseResult(
-            success=False,
-            phase=self.phase_name,
-            message=f"Unknown tools detected: {tool_names}",
-            data={
-                'unknown_tools': unknown_tools,
-                'requires_tool_development': True,
-                'original_tool_calls': tool_calls
-            }
-        )
     
     def _increase_self_awareness(self):
         """Increase self-awareness level based on experience."""
@@ -359,30 +297,8 @@ class BasePhase(ABC):
         growth_rate = 0.01 * (1.0 - self.self_awareness_level)
         self.self_awareness_level = min(1.0, self.self_awareness_level + growth_rate)
     
-    def record_success(self):
-        """Record a successful execution."""
-        if not hasattr(self, '_success_count'):
-            self._success_count = 0
-        self._success_count += 1
     
-    def record_failure(self):
-        """Record a failed execution."""
-        if not hasattr(self, '_failure_count'):
-            self._failure_count = 0
-        self._failure_count += 1
     
-    def get_success_rate(self) -> float:
-        """Get the success rate of this phase."""
-        if not hasattr(self, '_success_count'):
-            self._success_count = 0
-        if not hasattr(self, '_failure_count'):
-            self._failure_count = 0
-        
-        total = self._success_count + self._failure_count
-        if total == 0:
-            return 0.0
-        
-        return self._success_count / total
     
     def learn_pattern(self, pattern: Dict[str, Any]):
         """Learn a pattern from execution."""
@@ -398,24 +314,6 @@ class BasePhase(ABC):
         if len(self._learned_patterns) > 50:
             self._learned_patterns = self._learned_patterns[-50:]
     
-    def get_adaptive_prompt_context(self, base_prompt: str, context: Dict[str, Any]) -> str:
-        """Enhance prompt with self-awareness and polytopic context."""
-        enhancements = []
-        
-        # Add self-awareness context
-        if self.self_awareness_level > 0:
-            enhancements.append(f"\n[Self-Awareness Level: {self.self_awareness_level:.3f}]")
-            enhancements.append(f"[Experience Count: {self.experience_count}]")
-        
-        # Add dimensional profile
-        dims = ", ".join(f"{k}={v:.2f}" for k, v in self.dimensional_profile.items())
-        enhancements.append(f"\n[Dimensional Profile: {dims}]")
-        
-        # Add adjacency awareness
-        if self.adjacencies:
-            enhancements.append(f"\n[Adjacent Phases: {', '.join(self.adjacencies)}]")
-        
-        return base_prompt + "\n".join(enhancements)
     
     def run(self, **kwargs) -> PhaseResult:
         """
@@ -509,21 +407,6 @@ class BasePhase(ABC):
                 return iso_timestamp
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    def get_task_context(self, task: TaskState) -> str:
-        """Build context string for a task"""
-        parts = []
-        
-        # Error context
-        error_ctx = self.error_context.format_for_task(task.task_id)
-        if error_ctx:
-            parts.append(error_ctx)
-        
-        # Code context
-        code_ctx = self.code_context.get_context_for_task(task.target_file)
-        if code_ctx:
-            parts.append(code_ctx)
-        
-        return "\n\n".join(parts)
     
     def _get_system_prompt(self, phase_name: str) -> str:
         """

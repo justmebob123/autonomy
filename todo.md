@@ -335,3 +335,22 @@ Total removed: 2,859 lines (5.7% reduction)
 ```
 
 All integration points verified and working correctly.
+
+### Additional Dead Code Found (Within Files):
+
+#### BasePhase unused methods (pipeline/phases/base.py):
+- `adapt_to_situation()` - Never called
+- `check_for_unknown_tools()` - Never called  
+- `create_unknown_tool_result()` - Never called
+- `record_success()` - Never called
+- `record_failure()` - Never called
+- `get_success_rate()` - Never called
+- `get_adaptive_prompt_context()` - Never called
+- `get_task_context()` - Never called
+
+#### Coordinator unused methods (pipeline/coordinator.py):
+- `expand_dimensions()` - Never called
+
+**Total:** ~300 lines of unused methods within otherwise active files
+
+**Recommendation:** These methods were likely part of an earlier design that was superseded. They should be removed to reduce code complexity.
