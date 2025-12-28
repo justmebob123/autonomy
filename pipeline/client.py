@@ -404,7 +404,13 @@ class ResponseParser:
     def parse_response(self, response: Dict, tools: List[Dict] = None) -> Tuple[List[Dict], str]:
         """
         Parse a response and extract tool calls.
-        Returns (tool_calls, content)
+        
+        IMPORTANT: This method returns a TUPLE, not a dict!
+        
+        Returns:
+            Tuple[List[Dict], str]: (tool_calls, content)
+                - tool_calls: List of tool call dictionaries
+                - content: Text content from the response
         """
         message = response.get("message", {})
         content = message.get("content", "")

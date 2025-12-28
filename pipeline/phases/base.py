@@ -495,10 +495,10 @@ class BasePhase(ABC):
                 content = f"{content}\n\n{specialist_response}"
         
         # Parse response for tool calls
-        parsed = self.parser.parse_response(response, tools or [])
+        tool_calls_parsed, _ = self.parser.parse_response(response, tools or [])
         
         return {
             "content": content,
-            "tool_calls": parsed.get("tool_calls", []),
+            "tool_calls": tool_calls_parsed,
             "raw_response": response
         }
