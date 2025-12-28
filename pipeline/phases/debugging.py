@@ -510,7 +510,7 @@ class DebuggingPhase(BasePhase):
             self.logger.info("Loop detected - consulting AI specialist for guidance...")
             
             # Import and create UserProxyAgent
-            from pipeline.user_proxy import UserProxyAgentAgent
+            from pipeline.user_proxy import UserProxyAgent
             user_proxy = UserProxyAgent(
                 role_registry=self.role_registry,
                 prompt_registry=self.prompt_registry,
@@ -754,7 +754,7 @@ Remember:
             self.logger.info("Loop detected - consulting AI specialist for guidance...")
             
             # Import and create UserProxyAgent
-            from pipeline.user_proxy import UserProxyAgentAgent
+            from pipeline.user_proxy import UserProxyAgent
             user_proxy = UserProxyAgent(
                 role_registry=self.role_registry,
                 prompt_registry=self.prompt_registry,
@@ -1272,7 +1272,7 @@ Apply the fix immediately.""",
                     self.logger.info("Loop detected - consulting AI specialist for guidance...")
                     
                     # Import and create UserProxyAgent
-                    from pipeline.user_proxy import UserProxyAgentAgent
+                    from pipeline.user_proxy import UserProxyAgent
                     user_proxy = UserProxyAgent(
                         role_registry=self.role_registry,
                         prompt_registry=self.prompt_registry,
