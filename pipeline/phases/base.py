@@ -146,7 +146,9 @@ class BasePhase(ABC):
         system_prompt = self._get_system_prompt(self.phase_name)
         if system_prompt:
             self.conversation.add_message("system", system_prompt)
-            self.logger.debug(f"Added system prompt for {self.phase_name} phase")
+            self.logger.info(f"✅ Added system prompt for {self.phase_name} phase ({len(system_prompt)} chars)")
+        else:
+            self.logger.warning(f"⚠️ No system prompt found for {self.phase_name} phase")
         
         # INTEGRATION: Use shared specialists if provided
         if coding_specialist is None or reasoning_specialist is None or analysis_specialist is None:

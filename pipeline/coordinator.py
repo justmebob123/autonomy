@@ -376,7 +376,7 @@ class PhaseCoordinator:
                     recent_history = phase_state.run_history[-10:] if len(phase_state.run_history) > 10 else phase_state.run_history
                     self.logger.debug(f"  - Recent history (last 10): {recent_history}")
                 
-                if consecutive_failures >= 2:
+                if consecutive_failures >= 20:
                     self.logger.warning(
                         f"⚠️  Phase {current_phase} has {consecutive_failures} consecutive failures"
                     )
