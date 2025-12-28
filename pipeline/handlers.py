@@ -272,6 +272,10 @@ class ToolCallHandler:
     def _infer_tool_name_from_args(self, args: Dict) -> str:
         """Infer tool name from arguments when name is empty"""
         
+        # Check for create_task_plan (planning phase)
+        if 'tasks' in args and isinstance(args.get('tasks'), list):
+            return 'create_task_plan'
+        
         # Check for report_issue indicators
         if any(key in args for key in ['issue_type', 'description', 'line_number', 'suggested_fix']):
             return 'report_issue'
