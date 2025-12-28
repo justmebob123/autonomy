@@ -234,10 +234,64 @@ These are one-off analysis/fix scripts that were never integrated into the pipel
 - **PROBLEM**: Old ModelTool never removed after UnifiedModelTool created
 - **IMPACT**: 394 lines of dead code
 
+## INTEGRATION FIXES NEEDED
+
+### Priority 1: Remove Dead Code (Immediate - No Risk)
+1. Delete model_tool.py (394 lines) - replaced by unified_model_tool.py
+2. Delete 13 root-level scripts (2400 lines):
+   - Analysis: analyze_depth_59.py, analyze_polytope.py, analyze_run_history_need.py, build_dependency_tree.py, deep_recursive_analysis.py
+   - Fixes: FIX_VERIFICATION_LOGIC.py, HYPERDIMENSIONAL_ANALYSIS_DEPTH_59_RUN_HISTORY.py, NEW_SIMPLE_RUNTIME_PROMPT.py, PROCESS_KILL_FIX.py
+   - Fixes: fix_fstring.py, fix_html_entities.py, fix_third_occurrence.py, fix_user_intervention.py
+
+### Priority 2: Unify Duplicate Systems (High Impact)
+
+#### A. ConversationThread (776 lines - 2 implementations)
+**Decision needed**: Which to keep?
+- Option 1: Keep pipeline/conversation_thread.py (debugging-focused, 372 lines)
+  - Migrate orchestration/conversation_manager.py users to this
+  - Update phases/base.py import
+- Option 2: Keep orchestration/conversation_manager.py (multi-model, 404 lines)
+  - Migrate debugging.py and other users to this
+  - More modern, better designed
+- **Recommendation**: Keep orchestration/conversation_manager.py, migrate others
+
+#### B. Loop Detection (488 lines - 2 systems)
+**Decision needed**: Standardize on one approach
+- Option 1: Use LoopDetectionMixin everywhere
+  - Remove LoopDetectionFacade
+  - Update debugging.py to use mixin
+- Option 2: Use LoopDetectionFacade everywhere
+  - Update all phases to use facade
+  - More consistent with other facades
+- **Recommendation**: Use LoopDetectionMixin (already used by 11/12 phases)
+
+#### C. Specialists (2509 lines - 2 systems)
+**Decision needed**: Which specialist system to use?
+- System 1: SpecialistAgent/SpecialistTeam (425 lines)
+  - Dynamic, file-based roles
+  - Used by role_registry
+- System 2: AnalysisSpecialist/CodingSpecialist/ReasoningSpecialist (2084 lines)
+  - Hardcoded implementations
+  - Used by coordinator and all phases
+- **Problem**: These serve different purposes!
+  - System 1: User-defined custom roles
+  - System 2: Built-in system specialists
+- **Recommendation**: Keep both BUT clarify naming and purpose
+  - Rename SpecialistAgent to CustomRoleAgent
+  - Keep built-in specialists as-is
+  - Document the distinction
+
+### Priority 3: Architectural Consistency
+
+#### Standardize Facade Usage
+- debugging.py uses TeamCoordinationFacade
+- Other phases don't use this facade
+- **Fix**: Either use facade everywhere or remove it
+
 ## FINDINGS TRACKER
 - Files examined: 35/146
 - Dead code found: ~2800 lines (2400 in root scripts + 394 in model_tool.py)
 - Duplicate implementations: 4 MAJOR (ConversationThread, Loop Detection, Specialists, ModelTool)
 - Integration gaps: Multiple (systems not properly unified, inconsistent facade usage)
-- Files to remove: 13 root-level scripts + model_tool.py
-- Files to integrate: Need to unify duplicate systems
+- Files to remove: 14 files (13 root scripts + model_tool.py)
+- Files to integrate: 3 major unification tasks needed
