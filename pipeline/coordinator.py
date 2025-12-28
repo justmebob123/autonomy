@@ -155,13 +155,11 @@ class PhaseCoordinator:
             # Core development flow
             'planning': ['coding'],
             'coding': ['qa', 'documentation'],
-            'qa': ['debugging', 'documentation', 'application_troubleshooting'],
+            'qa': ['debugging', 'documentation'],
             
             # Error handling triangle
-            'debugging': ['investigation', 'coding', 'application_troubleshooting'],
-            'investigation': ['debugging', 'coding', 'application_troubleshooting',
-                              'prompt_design', 'role_design', 'tool_design'],
-            'application_troubleshooting': ['debugging', 'investigation', 'coding'],
+            'debugging': ['investigation', 'coding'],
+            'investigation': ['debugging', 'coding', 'prompt_design', 'role_design', 'tool_design'],
             
             # Documentation flow
             'documentation': ['planning', 'qa'],

@@ -11,7 +11,6 @@ This module implements a revolutionary architecture where:
 from .model_tool import ModelTool, SpecialistRegistry, get_specialist_registry
 from .conversation_manager import ConversationThread, MultiModelConversationManager
 from .arbiter import ArbiterModel
-from .orchestrated_pipeline import OrchestratedPipeline, create_orchestrated_pipeline
 from .dynamic_prompts import DynamicPromptBuilder, PromptContext
 
 __all__ = [
@@ -21,8 +20,6 @@ __all__ = [
     'ConversationThread',
     'MultiModelConversationManager',
     'ArbiterModel',
-    'OrchestratedPipeline',
-    'create_orchestrated_pipeline',
     'DynamicPromptBuilder',
     'PromptContext',
 ]
