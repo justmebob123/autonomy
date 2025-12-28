@@ -49,7 +49,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
     - Update DEBUG_STATE.md
     """
     
-    phase_name = "debug"
+    phase_name = "debugging"
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
