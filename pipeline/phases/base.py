@@ -83,8 +83,12 @@ class BasePhase(ABC):
         # Response parsing - pass client for functiongemma support
         self.parser = ResponseParser(client)
         
-        # Conversation thread for maintaining history
+        # Conversation thread for maintaining history with auto-pruning
         from ..orchestration.conversation_manager import ConversationThread
+        from ..orchestration.conversation_pruning import (
+            AutoPruningConversationThread,
+            PruningConfig
+        )
         
         # Get model for this phase from config
         phase_model = "qwen2.5:14b"  # default
@@ -94,11 +98,28 @@ class BasePhase(ABC):
         # Get context window (default 8192)
         context_window = getattr(config, 'context_window', 8192)
         
-        self.conversation = ConversationThread(
+        # Create base conversation thread
+        thread = ConversationThread(
             model=phase_model,
             role=self.phase_name,
             max_context_tokens=context_window
         )
+        
+        # Wrap with auto-pruning for memory management
+        from ..orchestration.conversation_pruning import ConversationPruner
+        
+        pruning_config = PruningConfig(
+            max_messages=50,  # Keep max 50 messages
+            preserve_first_n=5,  # Keep first 5 (initial context)
+            preserve_last_n=20,  # Keep last 20 (recent context)
+            preserve_errors=True,  # Always keep errors
+            preserve_decisions=True,  # Keep decision points
+            summarize_pruned=True,  # Create summaries
+            min_prune_age_minutes=30  # Only prune messages >30 min old
+        )
+        
+        pruner = ConversationPruner(pruning_config)
+        self.conversation = AutoPruningConversationThread(thread, pruner)
         
         # Cache tools for functiongemma fallback
         
