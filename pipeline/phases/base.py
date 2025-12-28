@@ -66,15 +66,18 @@ class BasePhase(ABC):
     
     phase_name: str = "base"
     
-    def __init__(self, config: PipelineConfig, client: OllamaClient):
+    def __init__(self, config: PipelineConfig, client: OllamaClient,
+                 state_manager=None, file_tracker=None,
+                 prompt_registry=None, tool_registry=None, role_registry=None,
+                 coding_specialist=None, reasoning_specialist=None, analysis_specialist=None):
         self.config = config
         self.client = client
         self.project_dir = Path(config.project_dir)
         self.logger = get_logger()
         
-        # State management
-        self.state_manager = StateManager(self.project_dir)
-        self.file_tracker = FileTracker(self.project_dir)
+        # State management - use shared instances if provided
+        self.state_manager = state_manager or StateManager(self.project_dir)
+        self.file_tracker = file_tracker or FileTracker(self.project_dir)
         
         # Context providers
         self.error_context = ErrorContext()
@@ -124,31 +127,41 @@ class BasePhase(ABC):
         # Cache tools for functiongemma fallback
         
         
-        # Dynamic registries (Integration Point #2)
-        from ..prompt_registry import PromptRegistry
-        from ..tool_registry import ToolRegistry
-        from ..role_registry import RoleRegistry
-        self.prompt_registry = PromptRegistry(self.project_dir)
-        self.tool_registry = ToolRegistry(self.project_dir)
-        self.role_registry = RoleRegistry(self.project_dir, self.client)
+        # Dynamic registries - use shared instances if provided
+        if prompt_registry is None or tool_registry is None or role_registry is None:
+            from ..prompt_registry import PromptRegistry
+            from ..tool_registry import ToolRegistry
+            from ..role_registry import RoleRegistry
+            self.prompt_registry = prompt_registry or PromptRegistry(self.project_dir)
+            self.tool_registry = tool_registry or ToolRegistry(self.project_dir)
+            self.role_registry = role_registry or RoleRegistry(self.project_dir, self.client)
+        else:
+            self.prompt_registry = prompt_registry
+            self.tool_registry = tool_registry
+            self.role_registry = role_registry
         
-        # INTEGRATION: Initialize UnifiedModelTool and Specialists
-        from ..orchestration.unified_model_tool import UnifiedModelTool
-        from ..orchestration.specialists import (
-            create_coding_specialist,
-            create_reasoning_specialist,
-            create_analysis_specialist
-        )
-        
-        # Create unified model tools for specialists
-        self.coding_tool = UnifiedModelTool("qwen2.5-coder:32b", "http://ollama02:11434")
-        self.reasoning_tool = UnifiedModelTool("qwen2.5:32b", "http://ollama02:11434")
-        self.analysis_tool = UnifiedModelTool("qwen2.5:14b", "http://ollama01.thiscluster.net:11434")
-        
-        # Create specialists
-        self.coding_specialist = create_coding_specialist(self.coding_tool)
-        self.reasoning_specialist = create_reasoning_specialist(self.reasoning_tool)
-        self.analysis_specialist = create_analysis_specialist(self.analysis_tool)
+        # INTEGRATION: Use shared specialists if provided
+        if coding_specialist is None or reasoning_specialist is None or analysis_specialist is None:
+            from ..orchestration.unified_model_tool import UnifiedModelTool
+            from ..orchestration.specialists import (
+                create_coding_specialist,
+                create_reasoning_specialist,
+                create_analysis_specialist
+            )
+            
+            # Create unified model tools for specialists (fallback)
+            self.coding_tool = UnifiedModelTool("qwen2.5-coder:32b", "http://ollama02:11434")
+            self.reasoning_tool = UnifiedModelTool("qwen2.5:32b", "http://ollama02:11434")
+            self.analysis_tool = UnifiedModelTool("qwen2.5:14b", "http://ollama01.thiscluster.net:11434")
+            
+            # Create specialists (fallback)
+            self.coding_specialist = coding_specialist or create_coding_specialist(self.coding_tool)
+            self.reasoning_specialist = reasoning_specialist or create_reasoning_specialist(self.reasoning_tool)
+            self.analysis_specialist = analysis_specialist or create_analysis_specialist(self.analysis_tool)
+        else:
+            self.coding_specialist = coding_specialist
+            self.reasoning_specialist = reasoning_specialist
+            self.analysis_specialist = analysis_specialist
         
         # Initialize specialist request handler
         from ..specialist_request_handler import SpecialistRequestHandler

@@ -41,8 +41,8 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
     
     phase_name = "tool_design"
     
-    def __init__(self, config: PipelineConfig, client: OllamaClient):
-        BasePhase.__init__(self, config, client)
+    def __init__(self, config: PipelineConfig, client: OllamaClient, **kwargs):
+        BasePhase.__init__(self, config, client, **kwargs)
         self.init_loop_detection()
         
         # Initialize tool analyzer

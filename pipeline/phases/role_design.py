@@ -38,8 +38,8 @@ class RoleDesignPhase(LoopDetectionMixin, BasePhase):
     
     phase_name = "role_design"
     
-    def __init__(self, config: PipelineConfig, client: OllamaClient):
-        BasePhase.__init__(self, config, client)
+    def __init__(self, config: PipelineConfig, client: OllamaClient, **kwargs):
+        BasePhase.__init__(self, config, client, **kwargs)
         self.init_loop_detection()
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
