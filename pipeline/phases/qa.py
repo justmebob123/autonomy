@@ -204,10 +204,10 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             # Record issues
             state.mark_file_reviewed(filepath, approved=False, issues=handler.issues)
             
-            # Update task priority
+            # Update task priority - CRITICAL FIX: Use NEEDS_FIXES to trigger debugging
             if task:
-                task.status = TaskStatus.QA_FAILED
-                task.priority = TaskPriority.QA_FAILURE
+                task.status = TaskStatus.NEEDS_FIXES  # Changed from QA_FAILED
+                task.priority = TaskPriority.HIGH  # Changed from QA_FAILURE
                 
                 # Add errors to task
                 for issue in handler.issues:

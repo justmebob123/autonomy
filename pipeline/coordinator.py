@@ -907,18 +907,18 @@ class PhaseCoordinator:
                         result = phase.run(task=task)
 
                 
+                # CRITICAL FIX: Load state ONCE and update both hint and phase stats
+                # Don't reload multiple times - phase already saved task changes
+                state = self.state_manager.load()
+                
                 # Check if phase suggests next phase (loop prevention hint)
                 if result.next_phase:
                     self.logger.info(f"  💡 Phase suggests next: {result.next_phase}")
-                    # Store hint for next iteration
-                    state = self.state_manager.load()
                     if not hasattr(state, '_next_phase_hint'):
                         state._next_phase_hint = None
                     state._next_phase_hint = result.next_phase
-                    self.state_manager.save(state)
                 
                 # Record phase run with full details
-                state = self.state_manager.load()  # Reload in case phase modified it
                 if phase_name in state.phases:
                     state.phases[phase_name].record_run(
                         success=result.success,
@@ -926,6 +926,8 @@ class PhaseCoordinator:
                         files_created=result.files_created,
                         files_modified=result.files_modified
                     )
+                
+                # Save once with all updates
                 self.state_manager.save(state)
                 
                 # Write phase state markdown
@@ -1045,15 +1047,18 @@ class PhaseCoordinator:
         
         # 1. If we have tasks needing fixes, go to debugging
         if needs_fixes:
-            return {'phase': 'debugging', 'reason': f'{len(needs_fixes)} tasks need fixes'}
+            # Pass the first task needing fixes
+            return {'phase': 'debugging', 'task': needs_fixes[0], 'reason': f'{len(needs_fixes)} tasks need fixes'}
         
         # 2. If we have QA pending tasks, go to QA
         if qa_pending:
-            return {'phase': 'qa', 'reason': f'{len(qa_pending)} tasks awaiting QA'}
+            # CRITICAL FIX: Pass the first QA_PENDING task so its status gets updated
+            return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'{len(qa_pending)} tasks awaiting QA'}
         
         # 3. If we have pending tasks, stay in coding
         if pending:
-            return {'phase': 'coding', 'reason': f'{len(pending)} tasks in progress'}
+            # Pass the first pending task
+            return {'phase': 'coding', 'task': pending[0], 'reason': f'{len(pending)} tasks in progress'}
         
         # 4. If no tasks at all, start with planning (unless pattern suggests otherwise)
         if not state.tasks:
