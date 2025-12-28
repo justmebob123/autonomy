@@ -74,6 +74,10 @@ class TaskState:
     created_at: str = ""  # Alias for compatibility
     updated_at: str = ""  # For tracking updates
     
+    # Objective linking (NEW)
+    objective_id: Optional[str] = None  # e.g., "primary_001"
+    objective_level: Optional[str] = None  # e.g., "primary"
+    
     def __post_init__(self):
         if not self.created:
             self.created = datetime.now().isoformat()
@@ -318,6 +322,15 @@ class PipelineState:
     no_update_counts: Dict[str, int] = field(default_factory=dict)
     phase_history: List[str] = field(default_factory=list)
     
+    # Strategic management fields (NEW)
+    objectives: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    # Structure: objectives[level][objective_id] = Objective dict
+    # Example: objectives["primary"]["primary_001"] = {...}
+    
+    issues: Dict[str, Any] = field(default_factory=dict)
+    # Structure: issues[issue_id] = Issue dict
+    # Example: issues["issue_001"] = {...}
+    
     def __post_init__(self):
         if not self.updated:
             self.updated = datetime.now().isoformat()
@@ -395,10 +408,16 @@ class PipelineState:
             # Loop prevention
             "no_update_counts": self.no_update_counts,
             "phase_history": self.phase_history,
+            # Strategic management (NEW)
+            "objectives": self.objectives,
+            "issues": self.issues,
         }
     
     @classmethod
     def from_dict(cls, data: Dict) -> "PipelineState":
+        # Backward compatibility: add defaults for new fields
+        data.setdefault("objectives", {})
+        data.setdefault("issues", {})
         return cls(**data)
     
     def get_task(self, task_id: str) -> Optional[TaskState]:
@@ -406,7 +425,9 @@ class PipelineState:
         return self.tasks.get(task_id)
     
     def add_task(self, description: str, target_file: str, 
-                 priority: int = 5, dependencies: List[str] = None) -> TaskState:
+                 priority: int = 5, dependencies: List[str] = None,
+                 objective_id: Optional[str] = None,
+                 objective_level: Optional[str] = None) -> TaskState:
         """Add a new task"""
         task_id = hashlib.sha256(
             f"{description}:{target_file}:{datetime.now().isoformat()}".encode()
@@ -418,7 +439,9 @@ class PipelineState:
             target_file=target_file,
             priority=priority,
             status=TaskStatus.NEW,
-            dependencies=dependencies or []
+            dependencies=dependencies or [],
+            objective_id=objective_id,
+            objective_level=objective_level
         )
         
         self.tasks[task_id] = task
