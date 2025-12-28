@@ -7,10 +7,12 @@ It enables real-time coordination, full audit trails, and intelligent routing.
 
 from .message import Message, MessageType, MessagePriority
 from .message_bus import MessageBus
+from .analytics import MessageAnalytics
 
 __all__ = [
     'Message',
     'MessageType',
     'MessagePriority',
     'MessageBus',
+    'MessageAnalytics',
 ]
