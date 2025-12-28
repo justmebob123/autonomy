@@ -112,9 +112,22 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
             existing = self._find_existing_task(state, task_data)
             
             if not existing:
+                target_file = task_data.get("target_file", "").strip()
+                
+                # Skip tasks with empty filenames
+                if not target_file:
+                    self.logger.warning(f"  ⚠️ Skipping task with empty filename: {task_data.get('description', 'Unknown')}")
+                    continue
+                
+                # Skip tasks targeting directories
+                full_path = self.project_dir / target_file
+                if full_path.exists() and full_path.is_dir():
+                    self.logger.warning(f"  ⚠️ Skipping task targeting directory: {target_file}")
+                    continue
+                
                 state.add_task(
                     description=task_data.get("description", ""),
-                    target_file=task_data.get("target_file", ""),
+                    target_file=target_file,
                     priority=task_data.get("priority", TaskPriority.NEW_TASK),
                     dependencies=task_data.get("dependencies", [])
                 )
