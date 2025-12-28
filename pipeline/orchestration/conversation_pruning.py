@@ -153,15 +153,17 @@ class ConversationPruner:
                 continue
             
             # Check age - don't prune recent messages
-            if "timestamp" in msg:
-                try:
-                    msg_time = datetime.fromisoformat(msg["timestamp"])
-                    age_minutes = (datetime.now() - msg_time).total_seconds() / 60
-                    if age_minutes < self.config.min_prune_age_minutes:
-                        important.add(i)
-                        continue
-                except (ValueError, TypeError):
-                    pass
+            # Only apply age check to middle messages (not first/last which are already preserved)
+            if i >= self.config.preserve_first_n and i < len(messages) - self.config.preserve_last_n:
+                if "timestamp" in msg:
+                    try:
+                        msg_time = datetime.fromisoformat(msg["timestamp"])
+                        age_minutes = (datetime.now() - msg_time).total_seconds() / 60
+                        if age_minutes < self.config.min_prune_age_minutes:
+                            important.add(i)
+                            continue
+                    except (ValueError, TypeError):
+                        pass
         
         return important
     
