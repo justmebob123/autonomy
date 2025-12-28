@@ -222,10 +222,22 @@ These are one-off analysis/fix scripts that were never integrated into the pipel
 
 **PROBLEM**: Debugging phase uses facades, all other phases use direct implementations - inconsistent architecture
 
+## MORE DUPLICATES FOUND
+
+### 4. Model Communication - 2 implementations (700 lines)
+- **pipeline/orchestration/model_tool.py** (394 lines)
+  - NEVER INSTANTIATED - Dead code!
+  - Original implementation
+- **pipeline/orchestration/unified_model_tool.py** (306 lines)
+  - Used by: coordinator.py, phases/base.py
+  - Replacement that wraps existing Client
+- **PROBLEM**: Old ModelTool never removed after UnifiedModelTool created
+- **IMPACT**: 394 lines of dead code
+
 ## FINDINGS TRACKER
-- Files examined: 25/146
-- Dead code found: ~2400 lines in root scripts
-- Duplicate implementations: 3 MAJOR (ConversationThread, Loop Detection, Specialists)
+- Files examined: 35/146
+- Dead code found: ~2800 lines (2400 in root scripts + 394 in model_tool.py)
+- Duplicate implementations: 4 MAJOR (ConversationThread, Loop Detection, Specialists, ModelTool)
 - Integration gaps: Multiple (systems not properly unified, inconsistent facade usage)
-- Files to remove: 13 root-level scripts
+- Files to remove: 13 root-level scripts + model_tool.py
 - Files to integrate: Need to unify duplicate systems
