@@ -1019,6 +1019,12 @@ class PhaseCoordinator:
         
         self.logger.info(f"📊 Task Status: {len(pending)} pending, {len(qa_pending)} QA, {len(needs_fixes)} fixes, {len(completed)} done")
         
+        # CRITICAL FIX: If no tasks at all, always start with planning (fresh start)
+        # This prevents loading stale QA_PENDING state on fresh runs
+        if not state.tasks:
+            self.logger.info("🆕 Fresh start detected - no tasks in state")
+            return {'phase': 'planning', 'reason': 'Fresh start, need to create tasks'}
+        
         # INTEGRATION: Get pattern-based recommendations
         recommendations = self.pattern_recognition.get_recommendations({
             'phase': current_phase,

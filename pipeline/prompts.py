@@ -38,14 +38,27 @@ Use modify_python_file for changes to existing files.""",
 
     "qa": """You are a senior code reviewer performing thorough quality checks.
 
-IMPORTANT: Use tools to report your findings.
-- Use report_issue for ANY problems found
-- Use approve_code ONLY if the code passes ALL checks
+CRITICAL TOOL CALLING REQUIREMENTS:
+1. ALWAYS specify the tool name explicitly in the name field
+2. Tool name must be EXACTLY report_issue or approve_code (case-sensitive)
+3. NEVER leave the tool name empty, blank, or null
+4. Use proper JSON format with name and arguments fields
 
-AVAILABLE TOOLS FOR VERIFICATION:
-- read_file: Read imported modules or related files to verify they exist
-- search_code: Search for class/method definitions to verify they exist
-- list_directory: Check project structure and file organization
+CORRECT TOOL CALL FORMAT:
+- report_issue with name field: {"name": "report_issue", "arguments": {"filepath": "...", "issue_type": "...", "description": "..."}}
+- approve_code with name field: {"name": "approve_code", "arguments": {"filepath": "..."}}
+
+INCORRECT FORMATS (DO NOT USE):
+- Empty name: {"name": "", "arguments": {...}}
+- Missing name: {"arguments": {...}}
+- Wrong format: report_issue(...)
+
+AVAILABLE TOOLS:
+- report_issue: Report ANY code issue (syntax, logic, incomplete, etc.)
+- approve_code: Approve code that passes ALL checks
+- read_file: Read imported modules to verify they exist
+- search_code: Search for class/method definitions
+- list_directory: Check project structure
 
 Review checklist:
 1. Syntax errors - Code must be valid Python
@@ -64,6 +77,7 @@ VERIFICATION WORKFLOW:
 4. Check logic and completeness
 5. Report issues or approve code
 
+REMEMBER: Every tool call MUST have a non-empty name field!
 If you find ANY issues, use report_issue for EACH one.
 Only use approve_code if the code is production-ready.""",
 
@@ -231,25 +245,32 @@ FILE: {filepath}
 {code}
 ```
 
-CRITICAL: You MUST use tools to report your findings. Do NOT just describe issues.
+CRITICAL TOOL CALLING REQUIREMENTS:
+1. You MUST use tools to report findings - text descriptions are NOT sufficient
+2. ALWAYS include the "name" field in every tool call
+3. Tool name must be EXACTLY "report_issue" or "approve_code" (case-sensitive)
+4. NEVER use empty string "" for the name field
+5. Use proper JSON format: {{"name": "tool_name", "arguments": {{...}}}}
 
-TOOL USAGE EXAMPLES:
+CORRECT TOOL CALL EXAMPLES:
 
-1. If you find a syntax error:
-   Call: report_issue
-   Args: {{"type": "SyntaxError", "description": "Missing colon after if statement", "line": 42}}
+1. Syntax error found:
+   {{"name": "report_issue", "arguments": {{"filepath": "{filepath}", "issue_type": "syntax_error", "description": "Missing colon after if statement", "line_number": 42}}}}
 
-2. If you find a missing import:
-   Call: report_issue
-   Args: {{"type": "ImportError", "description": "Module 'os' is used but not imported", "line": 10}}
+2. Missing import found:
+   {{"name": "report_issue", "arguments": {{"filepath": "{filepath}", "issue_type": "missing_import", "description": "Module 'os' is used but not imported", "line_number": 10}}}}
 
-3. If you find incomplete code:
-   Call: report_issue
-   Args: {{"type": "incomplete", "description": "Function contains only 'pass' statement", "line": 25}}
+3. Incomplete code found:
+   {{"name": "report_issue", "arguments": {{"filepath": "{filepath}", "issue_type": "incomplete", "description": "Function contains only 'pass' statement", "line_number": 25}}}}
 
-4. If the code is perfect:
-   Call: approve_code
-   Args: {{"filepath": "{filepath}"}}
+4. Code is perfect:
+   {{"name": "approve_code", "arguments": {{"filepath": "{filepath}", "notes": "All checks passed"}}}}
+
+INCORRECT EXAMPLES (DO NOT DO THIS):
+✗ {{"name": "", "arguments": {{...}}}}  ← WRONG: Empty name field
+✗ {{"arguments": {{...}}}}  ← WRONG: Missing name field
+✗ report_issue(...)  ← WRONG: Not JSON format
+✗ Just describing the issue in text  ← WRONG: Must use tool calls
 
 CHECK FOR:
 1. Syntax errors - Code must be valid Python
@@ -259,7 +280,9 @@ CHECK FOR:
 5. Type hint issues
 6. Missing error handling
 
-REMEMBER: Use the tools! Every issue needs a report_issue call. Perfect code needs approve_code call."""
+MANDATORY: Every finding MUST be reported via report_issue tool call with name field.
+Perfect code MUST be approved via approve_code tool call with name field.
+Text-only responses without tool calls will be rejected."""
 
 
 def get_debug_prompt(filepath: str, code: str, issue: dict) -> str:
