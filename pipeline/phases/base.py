@@ -149,10 +149,16 @@ class BasePhase(ABC):
                 create_analysis_specialist
             )
             
+            # Get server URLs from config instead of hardcoding
+            coding_model, coding_server = config.model_assignments.get('coding', ('qwen2.5-coder:32b', 'ollama02.thiscluster.net'))
+            reasoning_model = 'qwen2.5:32b'  # Reasoning uses larger model
+            reasoning_server = coding_server  # Same server as coding
+            analysis_model, analysis_server = config.model_assignments.get('planning', ('qwen2.5:14b', 'ollama01.thiscluster.net'))
+            
             # Create unified model tools for specialists (fallback)
-            self.coding_tool = UnifiedModelTool("qwen2.5-coder:32b", "http://ollama02:11434")
-            self.reasoning_tool = UnifiedModelTool("qwen2.5:32b", "http://ollama02:11434")
-            self.analysis_tool = UnifiedModelTool("qwen2.5:14b", "http://ollama01.thiscluster.net:11434")
+            self.coding_tool = UnifiedModelTool(coding_model, f"http://{coding_server}:11434")
+            self.reasoning_tool = UnifiedModelTool(reasoning_model, f"http://{reasoning_server}:11434")
+            self.analysis_tool = UnifiedModelTool(analysis_model, f"http://{analysis_server}:11434")
             
             # Create specialists (fallback)
             self.coding_specialist = coding_specialist or create_coding_specialist(self.coding_tool)

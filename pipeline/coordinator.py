@@ -984,7 +984,12 @@ class PhaseCoordinator:
             
             # Execute tool calls (application provides the scaffolding)
             from .handlers import ToolCallHandler
-            handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+            handler = ToolCallHandler(
+                self.project_dir, 
+                tool_registry=self.tool_registry,
+                tool_creator=self.tool_creator,
+                tool_validator=self.tool_validator
+            )
             tool_results = handler.process_tool_calls(tool_calls)
             
             # Add results to consultation result

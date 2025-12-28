@@ -22,7 +22,8 @@ from .system_analyzer import SystemAnalyzer
 class ToolCallHandler:
     """Handles execution of tool calls from LLM responses"""
     
-    def __init__(self, project_dir: Path, verbose: int = 0, activity_log_file: str = None, tool_registry=None):
+    def __init__(self, project_dir: Path, verbose: int = 0, activity_log_file: str = None, 
+                 tool_registry=None, tool_creator=None, tool_validator=None):
         self.project_dir = Path(project_dir)
         self.logger = get_logger()
         self.verbose = verbose  # 0=normal, 1=verbose, 2=very verbose
@@ -67,12 +68,20 @@ class ToolCallHandler:
         self.failures_dir.mkdir(exist_ok=True)
         
         # INTEGRATION: Tool Validator for tracking effectiveness
-        from .tool_validator import ToolValidator
-        self.tool_validator = ToolValidator(self.project_dir)
+        # Use shared instance if provided, otherwise create new one
+        if tool_validator is None:
+            from .tool_validator import ToolValidator
+            self.tool_validator = ToolValidator(self.project_dir)
+        else:
+            self.tool_validator = tool_validator
         
         # INTEGRATION: Tool Creator for dynamic tool creation
-        from .tool_creator import ToolCreator
-        self.tool_creator = ToolCreator(self.project_dir)
+        # Use shared instance if provided, otherwise create new one
+        if tool_creator is None:
+            from .tool_creator import ToolCreator
+            self.tool_creator = ToolCreator(self.project_dir)
+        else:
+            self.tool_creator = tool_creator
         
         # Tool handlers
         self._handlers: Dict[str, Callable] = {
