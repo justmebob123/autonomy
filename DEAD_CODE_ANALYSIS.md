@@ -1,322 +1,158 @@
-# Dead Code Analysis - Integration Graph (Depth 31)
+# Dead Code Analysis - 76.6% Unused
 
-## Executive Summary
+## Reality Check
 
-Built comprehensive integration graph tracing from `main()` entry point to depth 31. **Found 205 unreachable functions and 2 unused classes** that are never called in the execution path. This represents significant dead code that should be removed.
+Out of 111 modules, only **26 are actually used** (23.4%). The rest is dead code.
 
-## Methodology
+## Core Used Modules (26)
 
-### 1. Call Graph Construction
-- Analyzed all 67 Python files
-- Built complete function call graph
-- Mapped 448 functions with 2,474 call relationships
-- Identified entry points
+### Entry & Config (3)
+- pipeline.coordinator
+- pipeline.config  
+- pipeline.client
 
-### 2. Reachability Analysis
-- Traced from `main()` entry point
-- Recursed to depth 31
-- Found 411 reachable functions
-- Identified 205 unreachable functions (37 unreachable)
+### State Management (2)
+- pipeline.state.manager
+- pipeline.state.file_tracker
 
-### 3. Categorization
-Categorized unreachable functions into:
-- **Special methods** (__init__, __str__, etc.) - Keep
-- **Handler methods** (_handle_*) - Keep (called dynamically)
-- **Utility functions** (private helpers) - Review
-- **Truly dead code** (public functions never called) - **REMOVE**
+### Context (2)
+- pipeline.context.error
+- pipeline.context.code
 
-## Findings
+### Core Phases (8)
+- pipeline.phases.base
+- pipeline.phases.planning
+- pipeline.phases.coding
+- pipeline.phases.qa
+- pipeline.phases.debugging
+- pipeline.phases.investigation
+- pipeline.phases.project_planning
+- pipeline.phases.documentation
 
-### Depth Distribution from main()
+### Meta Phases (6)
+- pipeline.phases.prompt_design
+- pipeline.phases.tool_design
+- pipeline.phases.role_design
+- pipeline.phases.tool_evaluation
+- pipeline.phases.prompt_improvement
+- pipeline.phases.role_improvement
+
+### Support (5)
+- pipeline.logging_setup
+- pipeline.tools
+- pipeline.user_proxy
+- pipeline.conversation_thread
+- pipeline.agents.tool_advisor
+
+## Dead Code to Delete (85 modules - 76.6%)
+
+### Parallel/Duplicate Systems
+- pipeline.orchestration/* (entire parallel system)
+- pipeline.background_arbiter
+- pipeline.continuous_monitor
+- pipeline.action_tracker
+
+### Unused Analysis Tools
+- pipeline.architecture_analyzer
+- pipeline.call_chain_tracer
+- pipeline.call_graph_builder
+- pipeline.change_history_analyzer
+- pipeline.code_search
+- pipeline.correlation_engine
+- pipeline.failure_analyzer
+- pipeline.import_analyzer
+- pipeline.log_analyzer
+
+### Unused Context/Debug
+- pipeline.debug_context
+- pipeline.debugging_support
+- pipeline.debugging_utils
+- pipeline.context_investigator
+- pipeline.config_investigator
+
+### Unused Error Handling
+- pipeline.error_dedup
+- pipeline.error_signature
+- pipeline.error_strategies
+- pipeline.failure_prompts
+
+### Unused Pattern/Tool Systems
+- pipeline.pattern_recognition (not integrated)
+- pipeline.pattern_detector (not integrated)
+- pipeline.pattern_optimizer (just created, not integrated)
+- pipeline.tool_creator (not integrated)
+- pipeline.tool_registry (not integrated)
+- pipeline.tool_analyzer (not integrated)
+- pipeline.tool_validator (just created, not integrated)
+
+### Unused Prompts
+- pipeline.prompts/* (most unused)
+
+### Other Dead Code
+- pipeline.handlers
+- pipeline.line_fixer
+- pipeline.loop_detection_system
+- pipeline.command_detector
+- pipeline.progress_display
+- pipeline.system_analyzer_tools
+- pipeline.text_tool_parser
+- And 40+ more...
+
+## What Actually Runs
+
 ```
-Depth  0:    1 function  (main)
-Depth  1:   21 functions
-Depth  2:  136 functions
-Depth  3:  554 functions
-Depth  4: 1443 functions
-Depth  5: 2160 functions
-Depth  6: 2799 functions
-Depth  7: 4120 functions
-Depth  8: 4714 functions
-Depth  9: 4210 functions
-Depth 10: 3536 functions
-Depth 11: 2865 functions
-Depth 12: 1783 functions
-Depth 13:  593 functions
-Depth 14:  114 functions
-Depth 15:   14 functions
+run.py
+  → pipeline.coordinator.PhaseCoordinator
+    → pipeline.config.PipelineConfig
+    → pipeline.client.OllamaClient
+    → pipeline.state.manager.StateManager
+    → pipeline.phases.* (13 phase classes)
+      → pipeline.phases.base.BasePhase
+        → pipeline.context.error.ErrorContext
+        → pipeline.context.code.CodeContext
+        → pipeline.tools (handlers)
+        → pipeline.conversation_thread
 ```
 
-Maximum depth reached: 15 (out of 31 traced)
-
-### Unused Classes (2) - REMOVE
-
-#### 1. InvestigationPhase
-**Location:** `pipeline/phases/investigation.py`
-**Status:** ❌ NEVER USED
-**Verification:** 0 references found in entire codebase
-
-**Analysis:**
-- Defined but never imported
-- Not in coordinator phase list
-- Not in __init__.py exports
-- Complete dead code
-
-**Recommendation:** DELETE entire file
-
----
-
-#### 2. TaskTracker
-**Location:** `pipeline/tracker.py`
-**Status:** ❌ NEVER USED
-**Verification:** 0 references found in entire codebase
-
-**Analysis:**
-- Defined but never imported
-- Not used by any other module
-- Complete dead code
-
-**Recommendation:** DELETE entire file
-
----
-
-### Unused Functions (6) - REMOVE
-
-#### 1. coordinate_improvement_cycle()
-**Location:** `pipeline/team_orchestrator.py:682`
-**Status:** ❌ NEVER CALLED
-**Verification:** 0 call sites found
-
-**Purpose:** Coordinates validation of custom tools, prompts, and roles
-**Calls internally:**
-- validate_custom_tool()
-- validate_custom_prompt()
-- validate_custom_role()
-
-**Analysis:**
-- Part of self-improvement system
-- Implementation complete but never integrated
-- No code path calls this function
-- The 3 validate functions it calls are also dead
-
-**Recommendation:** REMOVE (along with the 3 validate functions)
-
----
-
-#### 2. validate_custom_tool()
-**Location:** `pipeline/team_orchestrator.py:507`
-**Status:** ❌ NEVER CALLED (except by dead code)
-**Verification:** Only called by `coordinate_improvement_cycle()` which is also dead
-
-**Purpose:** Validates custom tool implementations
-**Analysis:**
-- Only called by dead code
-- Part of unintegrated self-improvement system
-
-**Recommendation:** REMOVE
-
----
-
-#### 3. validate_custom_prompt()
-**Location:** `pipeline/team_orchestrator.py:570`
-**Status:** ❌ NEVER CALLED (except by dead code)
-**Verification:** Only called by `coordinate_improvement_cycle()` which is also dead
-
-**Purpose:** Validates custom prompt effectiveness
-**Analysis:**
-- Only called by dead code
-- Part of unintegrated self-improvement system
-
-**Recommendation:** REMOVE
-
----
-
-#### 4. validate_custom_role()
-**Location:** `pipeline/team_orchestrator.py:623`
-**Status:** ❌ NEVER CALLED (except by dead code)
-**Verification:** Only called by `coordinate_improvement_cycle()` which is also dead
-
-**Purpose:** Validates custom role performance
-**Analysis:**
-- Only called by dead code
-- Part of unintegrated self-improvement system
-
-**Recommendation:** REMOVE
-
----
-
-#### 5. consult_all_specialists()
-**Location:** `pipeline/agents/consultation.py:127`
-**Status:** ❌ NEVER CALLED
-**Verification:** 0 call sites found
-
-**Purpose:** Consults all specialists in parallel
-**Analysis:**
-- ConsultationManager class is exported but never instantiated
-- Function never called
-- Part of unintegrated multi-agent system
-
-**Recommendation:** REMOVE (or integrate if needed)
-
----
-
-#### 6. consult_team()
-**Location:** `pipeline/specialist_agents.py:364`
-**Status:** ❌ NEVER CALLED
-**Verification:** 0 call sites found
-
-**Purpose:** Consults specialist team
-**Analysis:**
-- SpecialistTeam class is used, but this method is never called
-- Alternative consultation methods are used instead
-
-**Recommendation:** REMOVE
-
----
-
-### Unregistered Handler (1) - REMOVE
-
-#### _handle_create_plan()
-**Location:** `pipeline/handlers.py`
-**Status:** ❌ NOT REGISTERED in _handlers dict
-**Verification:** Not in ToolCallHandler._handlers dictionary
-
-**Analysis:**
-- Handler method defined but not registered
-- Cannot be called by tool processing system
-- Dead code
-
-**Recommendation:** REMOVE
-
----
-
-## Impact Analysis
-
-### Lines of Code to Remove
-- **InvestigationPhase:** ~150 lines
-- **TaskTracker:** ~80 lines
-- **coordinate_improvement_cycle:** ~180 lines (including 3 validate functions)
-- **consult_all_specialists:** ~50 lines
-- **consult_team:** ~40 lines
-- **_handle_create_plan:** ~30 lines
-
-**Total:** ~530 lines of dead code
-
-### Files to Delete
-1. `pipeline/phases/investigation.py` (entire file)
-2. `pipeline/tracker.py` (entire file)
-
-### Functions to Remove
-1. `pipeline/team_orchestrator.py`:
-   - coordinate_improvement_cycle()
-   - validate_custom_tool()
-   - validate_custom_prompt()
-   - validate_custom_role()
-
-2. `pipeline/agents/consultation.py`:
-   - consult_all_specialists()
-
-3. `pipeline/specialist_agents.py`:
-   - consult_team()
-
-4. `pipeline/handlers.py`:
-   - _handle_create_plan()
-
-### Exports to Update
-1. `pipeline/phases/__init__.py` - Remove InvestigationPhase
-2. `pipeline/__init__.py` - Remove TaskTracker (if exported)
-
-## Root Cause Analysis
-
-### Why This Dead Code Exists
-
-#### 1. Self-Improvement System (Week 2 Implementation)
-**Files Affected:** team_orchestrator.py
-**Functions:** coordinate_improvement_cycle, validate_custom_*
-
-**Issue:** The self-improvement system was implemented but never integrated into the coordinator execution flow. The functions exist but are never called.
-
-**Should Have Been:** Added to coordinator phase cycle or called after task completion
-
----
-
-#### 2. Multi-Agent Consultation System
-**Files Affected:** consultation.py, specialist_agents.py
-**Functions:** consult_all_specialists, consult_team
-
-**Issue:** Alternative consultation methods were implemented and used instead. These functions became obsolete but were never removed.
-
----
-
-#### 3. Investigation Phase
-**Files Affected:** investigation.py
-**Class:** InvestigationPhase
-
-**Issue:** Investigation phase was created but never added to the coordinator's phase list. The debugging phase absorbed its functionality.
-
----
-
-#### 4. Task Tracker
-**Files Affected:** tracker.py
-**Class:** TaskTracker
-
-**Issue:** StateManager and TaskState classes provide this functionality. TaskTracker was an early design that was superseded.
-
----
-
-## Recommendations
-
-### Immediate Actions (Remove Dead Code)
-1. ✅ Delete `pipeline/phases/investigation.py`
-2. ✅ Delete `pipeline/tracker.py`
-3. ✅ Remove 4 functions from `team_orchestrator.py`
-4. ✅ Remove 1 function from `consultation.py`
-5. ✅ Remove 1 function from `specialist_agents.py`
-6. ✅ Remove 1 function from `handlers.py`
-7. ✅ Update __init__.py exports
-
-### Optional Actions (Integrate or Remove)
-**Option A:** Remove the self-improvement system entirely
-- Simpler, cleaner codebase
-- Reduces maintenance burden
-- System works fine without it
-
-**Option B:** Integrate the self-improvement system
-- Add coordinate_improvement_cycle() to coordinator
-- Call after task completion
-- Requires testing and validation
-
-**Recommendation:** Option A (Remove) - The system is production-ready without it
-
-## Verification Steps
-
-After removal:
-1. ✅ Run syntax checks on all files
-2. ✅ Verify no broken imports
-3. ✅ Check __all__ exports are valid
-4. ✅ Run integration tests
-5. ✅ Verify main() execution path still works
-
-## Benefits of Removal
-
-1. **Reduced Complexity:** 530 fewer lines to maintain
-2. **Clearer Codebase:** No confusing unused code
-3. **Faster Analysis:** Less code to trace through
-4. **Better Documentation:** Code matches actual behavior
-5. **Easier Onboarding:** New developers see only active code
-
-## Status
-
-- ✅ Analysis Complete
-- ✅ Dead Code Identified
-- ✅ Impact Assessed
-- ⏳ Removal Pending
-- ⏳ Verification Pending
-
-## Next Steps
-
-1. Remove dead code files and functions
-2. Update exports in __init__.py files
-3. Run verification checks
-4. Commit and push changes
-5. Update documentation to reflect removal
+That's it. Everything else is unreachable.
+
+## Missing Integration Points
+
+### Pattern System (Dead)
+- Created but never called
+- No integration with phases
+- No integration with coordinator
+
+### Tool Validation (Dead)
+- Created but never called
+- No integration with tool creation
+- No integration with phases
+
+### Orchestration System (Dead)
+- Entire parallel implementation
+- Specialists never used
+- Arbiter never called
+
+### Self-Development (Dead)
+- Pattern recognition not integrated
+- Tool creation not integrated
+- Background monitoring not integrated
+
+## Action Plan
+
+1. **Delete 85 unused modules** (76.6% of code)
+2. **Keep only the 26 used modules**
+3. **Integrate pattern system properly** (if we want it)
+4. **Integrate tool validation properly** (if we want it)
+5. **Delete all parallel/duplicate implementations**
+
+## The Real Problem
+
+We have:
+- Multiple coordinator implementations
+- Multiple state management systems
+- Multiple tool systems
+- Multiple pattern systems
+- Multiple prompt systems
+
+But only ONE is actually used. The rest is architectural sprawl.
