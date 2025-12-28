@@ -121,7 +121,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             if task:
                 task.status = TaskStatus.COMPLETED
                 task.completed_at = datetime.now().isoformat()
-                self.save_state(state)
+                self.state_manager.save(state)
             return PhaseResult(
                 success=True,
                 phase=self.phase_name,
