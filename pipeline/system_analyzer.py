@@ -465,8 +465,10 @@ class SystemAnalyzer:
                 elif isinstance(node, ast.Call):
                     self._analyze_call(node)
         
-        except Exception:
-            pass  # Skip files with errors
+        except SyntaxError as e:
+            self.logger.debug(f"Skipping {filepath} due to syntax error: {e}")
+        except Exception as e:
+            self.logger.warning(f"Failed to analyze {filepath}: {e}")
     
     def _analyze_function(self, node: ast.FunctionDef, filepath: Path):
         """Analyze a function definition"""

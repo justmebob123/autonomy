@@ -87,9 +87,16 @@ def gather_related_files(error: Dict, project_dir: Path) -> Dict[str, str]:
                 if rel_path.exists():
                     with open(rel_path, 'r', encoding='utf-8') as f:
                         files[str(rel_path)] = f.read()
-        except Exception as e:
-            # Skip files we can't read
+        except FileNotFoundError:
+            # File doesn't exist, skip it
             pass
+        except PermissionError:
+            # Can't read file due to permissions
+            pass
+        except Exception as e:
+            # Log unexpected errors
+            import logging
+            logging.getLogger(__name__).debug(f"Could not read {file_path}: {e}")
     
     return files
 
@@ -128,10 +135,14 @@ def extract_class_context(file_path: str, line_num: int) -> Dict:
                         'class_start': node.lineno,
                         'class_end': node.end_lineno if hasattr(node, 'end_lineno') else None
                     }
+    except SyntaxError:
+        # File has syntax errors, can't parse
+        return {}
     except Exception as e:
-        pass
-    
-    return {}
+        # Log unexpected errors
+        import logging
+        logging.getLogger(__name__).debug(f"Could not extract class context from {file_path}: {e}")
+        return {}
 
 
 def extract_object_type(error_message: str) -> Optional[str]:
@@ -212,10 +223,17 @@ def find_class_definition(project_dir: Path, class_name: str) -> Dict:
                             'methods': methods,
                             'found': True
                         }
+    except subprocess.TimeoutExpired:
+        # Search timed out
+        return {'found': False, 'error': 'search_timeout'}
+    except SyntaxError:
+        # Found file but has syntax errors
+        return {'found': False, 'error': 'syntax_error'}
     except Exception as e:
-        pass
-    
-    return {'found': False}
+        # Log unexpected errors
+        import logging
+        logging.getLogger(__name__).debug(f"Could not find class {class_name}: {e}")
+        return {'found': False, 'error': str(e)}
 
 
 def search_similar_methods(project_dir: Path, class_name: str, missing_method: str) -> List[str]:

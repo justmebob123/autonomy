@@ -84,9 +84,13 @@ def search_for_attribute_usage(
                         if occurrence not in results[rel_path]:
                             results[rel_path].append(occurrence)
         
+        except subprocess.TimeoutExpired:
+            # Timeout is expected for very large codebases
+            continue
         except Exception as e:
-            # Continue with other patterns if one fails
-            pass
+            # Log but continue with other patterns
+            import logging
+            logging.getLogger(__name__).warning(f"Search failed for pattern '{pattern}': {e}")
     
     return dict(results)
 
@@ -138,8 +142,13 @@ def search_for_pattern(
                         'code': code
                     })
     
-    except Exception as e:
+    except subprocess.TimeoutExpired:
+        # Timeout is expected for very large codebases
         pass
+    except Exception as e:
+        # Log but return partial results
+        import logging
+        logging.getLogger(__name__).warning(f"Pattern search failed for '{pattern}': {e}")
     
     return dict(results)
 

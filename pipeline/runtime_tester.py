@@ -243,8 +243,13 @@ class ProgramRunner:
                     try:
                         os.kill(pid, signal.SIGKILL)
                         self.logger.info(f"Killed main process {pid}")
-                    except:
+                    except ProcessLookupError:
+                        # Process already dead
                         pass
+                    except PermissionError as e:
+                        self.logger.error(f"Permission denied killing process {pid}: {e}")
+                    except Exception as e:
+                        self.logger.error(f"Failed to kill process {pid}: {e}")
                 
                 # Wait for process to die
                 try:
@@ -252,8 +257,11 @@ class ProgramRunner:
                     self.logger.info("Process terminated")
                 except subprocess.TimeoutExpired:
                     self.logger.warning("Process did not terminate, may still be running")
-                except:
+                except ProcessLookupError:
+                    # Process already terminated
                     pass
+                except Exception as e:
+                    self.logger.warning(f"Error waiting for process termination: {e}")
                     
             except Exception as e:
                 self.logger.error(f"Error stopping program: {e}")

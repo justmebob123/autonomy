@@ -92,8 +92,11 @@ class CallChainTracer:
             self.function_definitions[relative_path] = visitor.functions
             self.import_graph[relative_path] = visitor.imports
             
-        except Exception as e:
+        except SyntaxError:
+            # Skip files with syntax errors (expected for some files)
             pass
+        except Exception as e:
+            self.logger.debug(f"Failed to analyze {file_path}: {e}")
     
     def _find_entry_points(self) -> List[str]:
         """Find potential entry points in the project."""

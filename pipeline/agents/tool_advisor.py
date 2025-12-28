@@ -81,8 +81,11 @@ Example: ["tool1", "tool2"]"""
                 suggested = json.loads(json_match.group())
                 # Filter to only valid tool names
                 return [t for t in suggested if t in tool_names]
-        except:
+        except json.JSONDecodeError:
+            # Response wasn't valid JSON, continue to fallback
             pass
+        except Exception as e:
+            self.logger.debug(f"Failed to parse tool suggestions: {e}")
         
         return tool_names
     
@@ -181,8 +184,11 @@ Respond with a valid JSON tool call in this format:
             if json_match:
                 fixed_call = json.loads(json_match.group())
                 return fixed_call
-        except:
+        except json.JSONDecodeError:
+            # Response wasn't valid JSON
             pass
+        except Exception as e:
+            self.logger.debug(f"Failed to parse fixed tool call: {e}")
         
         return None
     

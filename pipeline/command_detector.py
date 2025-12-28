@@ -169,8 +169,10 @@ class CommandDetector:
                     if line.strip().startswith('CMD'):
                         cmd = line.split('CMD', 1)[1].strip()
                         return f"docker build -t app . && docker run app", f"Found Dockerfile with CMD: {cmd}"
-            except Exception:
-                pass
+            except PermissionError:
+                self.logger.warning(f"Permission denied reading Dockerfile at {dockerfile}")
+            except Exception as e:
+                self.logger.debug(f"Could not parse Dockerfile: {e}")
             return "docker build -t app . && docker run app", "Found Dockerfile"
         
         return None, ""

@@ -44,8 +44,13 @@ class LoopDetectionMixin:
                 # If rename fails, just delete it
                 try:
                     history_file.unlink()
-                except:
+                except FileNotFoundError:
+                    # Already deleted
                     pass
+                except PermissionError as e:
+                    self.logger.error(f"Permission denied deleting history file: {e}")
+                except Exception as e:
+                    self.logger.error(f"Failed to delete history file: {e}")
         
         self.action_tracker = ActionTracker(
             history_file=history_file
