@@ -32,9 +32,32 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.init_loop_detection()
+        
+        # MESSAGE BUS: Subscribe to relevant events
+        if self.message_bus:
+            from ..messaging import MessageType
+            self._subscribe_to_messages([
+                MessageType.OBJECTIVE_ACTIVATED,
+                MessageType.OBJECTIVE_BLOCKED,
+                MessageType.SYSTEM_ALERT,
+            ])
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """Execute the planning phase"""
+        
+        # MESSAGE BUS: Check for relevant messages
+        if self.message_bus:
+            from ..messaging import MessageType
+            messages = self._get_messages(
+                message_types=[MessageType.OBJECTIVE_ACTIVATED, MessageType.OBJECTIVE_BLOCKED],
+                limit=5
+            )
+            if messages:
+                self.logger.info(f"  📨 Received {len(messages)} messages")
+                for msg in messages:
+                    self.logger.info(f"    • {msg.message_type.value}: {msg.payload.get('objective_id', 'N/A')}")
+                # Clear processed messages
+                self._clear_messages([msg.id for msg in messages])
         
         # Check if we have an active objective (strategic mode)
         objective = kwargs.get('objective')

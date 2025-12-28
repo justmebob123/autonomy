@@ -32,11 +32,35 @@ class QAPhase(BasePhase, LoopDetectionMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.init_loop_detection()
+        
+        # MESSAGE BUS: Subscribe to relevant events
+        if self.message_bus:
+            from ..messaging import MessageType
+            self._subscribe_to_messages([
+                MessageType.TASK_COMPLETED,
+                MessageType.FILE_CREATED,
+                MessageType.FILE_MODIFIED,
+                MessageType.SYSTEM_ALERT,
+            ])
     
     def execute(self, state: PipelineState,
                 filepath: str = None, 
                 task: TaskState = None, **kwargs) -> PhaseResult:
         """Execute QA review for a file or task"""
+        
+        # MESSAGE BUS: Check for relevant messages
+        if self.message_bus:
+            from ..messaging import MessageType
+            messages = self._get_messages(
+                message_types=[MessageType.TASK_COMPLETED, MessageType.FILE_MODIFIED],
+                limit=5
+            )
+            if messages:
+                self.logger.info(f"  📨 Received {len(messages)} messages")
+                for msg in messages:
+                    self.logger.info(f"    • {msg.message_type.value}: {msg.payload.get('file', msg.payload.get('task_id', 'N/A'))}")
+                # Clear processed messages
+                self._clear_messages([msg.id for msg in messages])
         
         # Check no-update count BEFORE processing (loop prevention)
         from ..state.manager import StateManager

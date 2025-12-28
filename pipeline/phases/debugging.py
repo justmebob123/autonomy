@@ -59,6 +59,16 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         
         # Loop detection is initialized by LoopDetectionMixin
         
+        # MESSAGE BUS: Subscribe to relevant events
+        if self.message_bus:
+            from ..messaging import MessageType
+            self._subscribe_to_messages([
+                MessageType.ISSUE_FOUND,
+                MessageType.TASK_FAILED,
+                MessageType.PHASE_ERROR,
+                MessageType.SYSTEM_ALERT,
+            ])
+        
         # Initialize team coordination system
         self.team_coordination = TeamCoordinationFacade(
             self.client,
@@ -384,6 +394,23 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                 issue: Dict = None,
                 task: TaskState = None, **kwargs) -> PhaseResult:
         """Execute debugging for an issue"""
+        
+        # MESSAGE BUS: Check for relevant messages
+        if self.message_bus:
+            from ..messaging import MessageType, MessagePriority
+            messages = self._get_messages(
+                message_types=[MessageType.ISSUE_FOUND, MessageType.TASK_FAILED],
+                limit=10
+            )
+            if messages:
+                self.logger.info(f"  📨 Received {len(messages)} messages")
+                critical_count = sum(1 for m in messages if m.priority == MessagePriority.CRITICAL)
+                if critical_count > 0:
+                    self.logger.warning(f"    ⚠️ {critical_count} CRITICAL issues in queue")
+                for msg in messages[:3]:  # Show first 3
+                    self.logger.info(f"    • {msg.message_type.value}: {msg.payload.get('issue_id', msg.payload.get('task_id', 'N/A'))}")
+                # Clear processed messages
+                self._clear_messages([msg.id for msg in messages])
         
         # CRITICAL: If task was passed from coordinator, look it up in the loaded state
         # This ensures we modify the task in the state that will be saved

@@ -60,9 +60,19 @@ class PhaseCoordinator:
         self.logger.info("📚 Shared registries initialized")
         
         # Initialize message bus for phase-to-phase communication
-        from .messaging import MessageBus
+        from .messaging import MessageBus, MessageType
         self.message_bus = MessageBus(state_manager=self.state_manager)
         self.logger.info("📨 Message bus initialized")
+        
+        # Subscribe coordinator to critical events
+        self.message_bus.subscribe("coordinator", [
+            MessageType.OBJECTIVE_BLOCKED,
+            MessageType.OBJECTIVE_CRITICAL,
+            MessageType.PHASE_ERROR,
+            MessageType.SYSTEM_ALERT,
+            MessageType.HEALTH_DEGRADED,
+            MessageType.ISSUE_FOUND,
+        ])
         
         # Initialize shared specialists (created once, used by all phases)
         from .orchestration.unified_model_tool import UnifiedModelTool
