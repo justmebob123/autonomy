@@ -387,17 +387,13 @@ class PhaseCoordinator:
                 self.logger.warning(f"⚠️  Phase {current_phase} is oscillating (unstable)")
                 return True
             
-            # Fallback to aggregate success rate (for backward compatibility)
-            if phase_state.runs >= 3:
-                success_rate = phase_state.successes / phase_state.runs
-                
-                # If success rate is very low (< 30%), force transition
-                if success_rate < 0.3:
-                    self.logger.warning(
-                        f"Phase {current_phase} has low success rate: "
-                        f"{phase_state.successes}/{phase_state.runs} ({success_rate:.1%})"
-                    )
-                    return True
+            # REMOVED: Aggregate success rate check
+            # This was causing false positives - phases were punished for old failures
+            # even after recent successes. We now rely on:
+            # 1. Consecutive failures (20+)
+            # 2. No-update count (3+)
+            # 3. Oscillation detection
+            # These are more accurate indicators of current problems
         
         return False
     
