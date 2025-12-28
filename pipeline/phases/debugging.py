@@ -393,7 +393,32 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                 task = task_from_state
             # If not found, keep the original (might be standalone debugging)
         
-        # Find issue to fix
+        # NEW: Check IssueTracker for issues to fix
+        if hasattr(self, 'coordinator') and hasattr(self.coordinator, 'issue_tracker'):
+            # Load issues from state
+            self.coordinator.issue_tracker.load_issues(state)
+            
+            # Get issues by priority
+            priority_issues = self.coordinator.issue_tracker.get_issues_by_priority()
+            
+            if priority_issues and issue is None:
+                # Use highest priority issue
+                issue_obj = priority_issues[0]
+                self.logger.info(f"  🎯 Using issue from tracker: {issue_obj.id} ({issue_obj.severity.value})")
+                
+                # Mark as in progress
+                self.coordinator.issue_tracker.start_fixing(issue_obj.id, state)
+                
+                # Convert Issue object to dict format for compatibility
+                issue = {
+                    'filepath': issue_obj.file,
+                    'type': issue_obj.issue_type.value,
+                    'description': issue_obj.description,
+                    'line': issue_obj.line_number,
+                    'issue_id': issue_obj.id  # Track for later
+                }
+        
+        # Find issue to fix (legacy path)
         if issue is None:
             issue = get_next_issue(state)
         
@@ -604,6 +629,28 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             full_path = self.project_dir / modified_file
             if full_path.exists():
                 state.update_file(modified_file, file_hash, full_path.stat().st_size)
+        
+        # NEW: Mark issue as resolved in IssueTracker
+        if hasattr(self, 'coordinator') and hasattr(self.coordinator, 'issue_tracker'):
+            issue_id = issue.get('issue_id')
+            if issue_id:
+                self.coordinator.issue_tracker.resolve_issue(
+                    issue_id,
+                    f"Fixed in {filepath}",
+                    state
+                )
+                self.logger.info(f"  ✅ Issue {issue_id} marked as resolved")
+                
+                # Remove from objective's open issues
+                if task and task.objective_id and task.objective_level:
+                    obj_level = task.objective_level
+                    obj_id = task.objective_id
+                    if obj_level in state.objectives and obj_id in state.objectives[obj_level]:
+                        obj_data = state.objectives[obj_level][obj_id]
+                        if 'open_issues' in obj_data and issue_id in obj_data['open_issues']:
+                            obj_data['open_issues'].remove(issue_id)
+                        if 'critical_issues' in obj_data and issue_id in obj_data['critical_issues']:
+                            obj_data['critical_issues'].remove(issue_id)
         
         # Update task if provided
         if task:
