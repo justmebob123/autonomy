@@ -141,12 +141,15 @@ class PhaseCoordinator:
         self.tool_validator = ToolValidator(self.project_dir)
         self.logger.info("✅ Tool validator initialized")
         
-        # INTEGRATION: Strategic Management System
-        from .objective_manager import ObjectiveManager
+        # INTEGRATION: Strategic Management System with Polytopic Navigation
+        from .polytopic import PolytopicObjectiveManager
         from .issue_tracker import IssueTracker
-        self.objective_manager = ObjectiveManager(self.project_dir, self.state_manager)
+        
+        # Use PolytopicObjectiveManager for 7D hyperdimensional objective management
+        self.objective_manager = PolytopicObjectiveManager(self.project_dir, self.state_manager)
         self.issue_tracker = IssueTracker(self.project_dir, self.state_manager)
-        self.logger.info("🎯 Strategic management system initialized (objectives + issues)")
+        self.logger.info("🎯 Strategic management system initialized (polytopic objectives + issues)")
+        self.logger.info("📐 7D dimensional navigation enabled")
     
     def _init_phases(self) -> Dict:
         """Initialize all pipeline phases"""
@@ -872,6 +875,26 @@ class PhaseCoordinator:
             objective = phase_decision.get("objective")
             if objective:
                 self.logger.info(f"  🎯 Objective: {objective.title} ({objective.completion_percentage:.0f}% complete)")
+                
+                # Log dimensional metrics if available (polytopic objective)
+                if hasattr(objective, 'complexity_score'):
+                    self.logger.info(f"  📊 Metrics: Complexity={objective.complexity_score:.2f} Risk={objective.risk_score:.2f} Readiness={objective.readiness_score:.2f}")
+                
+                # Log dimensional health if available
+                dimensional_health = phase_decision.get("dimensional_health")
+                if dimensional_health:
+                    health_status = dimensional_health.get('overall_health', 'UNKNOWN')
+                    self.logger.info(f"  💊 Health: {health_status}")
+            
+            # Log dimensional space summary every 10 iterations
+            if iteration % 10 == 0 and hasattr(self.objective_manager, 'get_space_summary'):
+                try:
+                    space_summary = self.objective_manager.get_space_summary()
+                    total_objs = space_summary.get('total_objectives', 0)
+                    if total_objs > 0:
+                        self.logger.info(f"  📐 Dimensional Space: {total_objs} objectives in 7D space")
+                except Exception as e:
+                    pass  # Silently ignore if space summary fails
             
             self.logger.info(f"{'='*70}")
             
@@ -1056,17 +1079,20 @@ class PhaseCoordinator:
     
     def _determine_next_action_strategic(self, state: PipelineState) -> Dict:
         """
-        Strategic decision-making based on objectives.
+        Strategic decision-making based on objectives with 7D polytopic navigation.
         
-        This is the NEW way - objectives drive everything.
+        This is the NEW way - objectives drive everything using hyperdimensional intelligence.
         """
         # Load issues into tracker
         self.issue_tracker.load_issues(state)
         
-        # Get active objective
-        objective = self.objective_manager.get_active_objective(state)
+        # Load objectives into polytopic space
+        objectives_by_level = self.objective_manager.load_objectives(state)
         
-        if not objective:
+        # Use 7D navigation to find optimal objective
+        optimal_objective = self.objective_manager.find_optimal_objective(state)
+        
+        if not optimal_objective:
             # No active objective - need project planning to create objectives
             self.logger.info("🎯 No active objectives - need project planning")
             return {
@@ -1075,23 +1101,54 @@ class PhaseCoordinator:
                 'objective': None
             }
         
-        self.logger.info(f"🎯 Active objective: {objective.title} ({objective.level.value}) - {objective.completion_percentage:.0f}% complete")
+        # Log polytopic information
+        self.logger.info(f"🎯 Optimal objective (7D selection): {optimal_objective.title} ({optimal_objective.level.value})")
+        self.logger.info(f"📊 Complexity: {optimal_objective.complexity_score:.2f} | Risk: {optimal_objective.risk_score:.2f} | Readiness: {optimal_objective.readiness_score:.2f}")
         
-        # Analyze objective health
-        health = self.objective_manager.analyze_objective_health(objective, state, self.issue_tracker)
-        self.logger.info(f"💊 Objective health: {health.status.value} - {health.recommendation}")
+        # Log dimensional profile
+        dominant_dims = optimal_objective.get_dominant_dimensions(threshold=0.6)
+        if dominant_dims:
+            self.logger.info(f"📐 Dominant dimensions: {', '.join(dominant_dims)}")
         
-        # Get recommended action for this objective
-        action = self.objective_manager.get_objective_action(objective, state, health)
+        # Analyze dimensional health
+        health = self.objective_manager.analyze_dimensional_health(optimal_objective)
+        self.logger.info(f"💊 Dimensional health: {health['overall_health']}")
+        
+        if health['concerns']:
+            for concern in health['concerns'][:3]:  # Show top 3 concerns
+                self.logger.warning(f"  ⚠️ {concern}")
+        
+        # Get recommended action using base objective manager logic
+        # (We still use the base class method for action determination)
+        from .objective_manager import ObjectiveHealth, ObjectiveHealthStatus
+        
+        # Convert dimensional health to ObjectiveHealth format
+        base_health = ObjectiveHealth(
+            status=ObjectiveHealthStatus[health['overall_health']],
+            success_rate=optimal_objective.success_rate,
+            consecutive_failures=optimal_objective.failure_count,
+            blocking_issues=optimal_objective.critical_issues,
+            blocking_dependencies=optimal_objective.depends_on,
+            recommendation=health['recommendations'][0] if health['recommendations'] else "Continue with current objective"
+        )
+        
+        action = self.objective_manager.get_objective_action(optimal_objective, state, base_health)
+        
+        # Log dimensional trajectory if velocity detected
+        trajectory_dir = optimal_objective.get_trajectory_direction()
+        changing_dims = [dim for dim, direction in trajectory_dir.items() if direction != "stable"]
+        if changing_dims:
+            self.logger.info(f"📈 Dimensional changes: {', '.join(f'{dim}→{trajectory_dir[dim]}' for dim in changing_dims[:3])}")
         
         # Save updated objective to state
-        self.objective_manager.save_objective(objective, state)
+        self.objective_manager.save_objective(optimal_objective, state)
         
         return {
             'phase': action.phase,
             'task': action.task,
             'reason': action.reason,
-            'objective': objective
+            'objective': optimal_objective,
+            'dimensional_health': health
         }
     
     def _determine_next_action_tactical(self, state: PipelineState) -> Dict:
@@ -1604,6 +1661,56 @@ class PhaseCoordinator:
             if phase.run_count > 0:
                 self.logger.info(f"    {name}: {phase.run_count} runs, {phase.success_count} success, {phase.failure_count} failed")
         
+        # Dimensional space summary (if polytopic manager is used)
+        if hasattr(self.objective_manager, 'get_space_summary'):
+            try:
+                space_summary = self.objective_manager.get_space_summary()
+                total_objs = space_summary.get('total_objectives', 0)
+                
+                if total_objs > 0:
+                    self.logger.info(f"\n  📐 Dimensional Space Summary:")
+                    self.logger.info(f"    Total objectives: {total_objs}")
+                    self.logger.info(f"    Dimensions: {space_summary.get('dimensions', 7)}")
+                    
+                    objs_by_level = space_summary.get('objectives_by_level', {})
+                    if objs_by_level:
+                        self.logger.info(f"    PRIMARY: {objs_by_level.get('PRIMARY', 0)}")
+                        self.logger.info(f"    SECONDARY: {objs_by_level.get('SECONDARY', 0)}")
+                        self.logger.info(f"    TERTIARY: {objs_by_level.get('TERTIARY', 0)}")
+                    
+                    clusters = space_summary.get('clusters', 0)
+                    if clusters > 0:
+                        self.logger.info(f"    Clusters: {clusters}")
+            except Exception as e:
+                pass  # Silently ignore if space summary fails
+        
         self.logger.info(f"{'='*70}")
         
         return completed > 0 or total == 0
+    
+    def visualize_dimensional_space(self) -> None:
+        """
+        Visualize the dimensional space (for debugging/analysis).
+        
+        This method can be called to see the current state of objectives in 7D space.
+        """
+        if not hasattr(self.objective_manager, 'visualize_dimensional_space'):
+            self.logger.warning("Dimensional space visualization not available (not using PolytopicObjectiveManager)")
+            return
+        
+        try:
+            visualization = self.objective_manager.visualize_dimensional_space()
+            self.logger.info("\n" + visualization)
+            
+            # Also show space summary
+            summary = self.objective_manager.get_space_summary()
+            self.logger.info(f"\nSpace Summary: {summary['total_objectives']} objectives in {summary['dimensions']}D space")
+            
+            # Show dimensional statistics
+            stats = self.objective_manager.get_dimensional_statistics()
+            if stats:
+                self.logger.info("\nDimensional Statistics:")
+                for dim, dim_stats in stats.items():
+                    self.logger.info(f"  {dim}: mean={dim_stats['mean']:.2f}, std={dim_stats['std']:.2f}")
+        except Exception as e:
+            self.logger.error(f"Failed to visualize dimensional space: {e}")
