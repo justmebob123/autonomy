@@ -945,7 +945,33 @@ class PhaseCoordinator:
                 if objective:
                     phase_kwargs['objective'] = objective
                 
+                # Analytics: Before phase execution
+                if self.analytics:
+                    analytics_context = {
+                        'objective_id': getattr(objective, 'objective_id', None) if objective else None,
+                        'task_count': len(state.tasks),
+                        'issue_count': len(getattr(state, 'issues', [])),
+                        'iteration': iteration
+                    }
+                    prediction_info = self.analytics.before_phase_execution(phase_name, analytics_context)
+                    if prediction_info:
+                        self.logger.debug(f"Analytics prediction: {prediction_info}")
+                
+                # Track execution time
+                phase_start_time = time.time()
                 result = phase.run(**phase_kwargs)
+                phase_duration = time.time() - phase_start_time
+                
+                # Analytics: After phase execution
+                if self.analytics:
+                    analytics_info = self.analytics.after_phase_execution(
+                        phase_name, 
+                        duration=phase_duration, 
+                        success=result.success, 
+                        context=analytics_context
+                    )
+                    if analytics_info and analytics_info.get('anomalies'):
+                        self.logger.warning(f"Analytics detected anomalies: {analytics_info['anomalies']}")
                 
                 # Check for unknown tool errors
                 if not result.success and result.data.get('requires_tool_development'):
@@ -975,7 +1001,31 @@ class PhaseCoordinator:
                     # Retry original phase if all tools were developed
                     if all_tools_developed:
                         self.logger.info(f"🔄 Retrying {phase_name} with newly developed tools")
+                        
+                        # Analytics: Before retry execution
+                        if self.analytics:
+                            retry_context = {
+                                'objective_id': getattr(objective, 'objective_id', None) if objective else None,
+                                'task_count': len(state.tasks),
+                                'issue_count': len(getattr(state, 'issues', [])),
+                                'iteration': iteration,
+                                'retry': True
+                            }
+                            self.analytics.before_phase_execution(phase_name, retry_context)
+                        
+                        # Track retry execution time
+                        retry_start_time = time.time()
                         result = phase.run(task=task)
+                        retry_duration = time.time() - retry_start_time
+                        
+                        # Analytics: After retry execution
+                        if self.analytics:
+                            self.analytics.after_phase_execution(
+                                phase_name,
+                                duration=retry_duration,
+                                success=result.success,
+                                context=retry_context
+                            )
 
                 
                 # CRITICAL FIX: Load state ONCE and update both hint and phase stats
