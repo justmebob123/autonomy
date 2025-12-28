@@ -167,60 +167,60 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                 tasks_skipped_directory += 1
                 self.logger.warning(f"  ⚠️ Skipping task targeting directory: {target_file}")
                 continue
+            
+            # Get objective info if available
+            objective_id = None
+            objective_level = None
+            objective = kwargs.get('objective')
+            if objective:
+                objective_id = objective.id
+                objective_level = objective.level.value if hasattr(objective.level, 'value') else objective.level
+            
+            # Create task with objective linking
+            task = state.add_task(
+                description=task_data.get("description", ""),
+                target_file=target_file,
+                priority=task_data.get("priority", TaskPriority.NEW_TASK),
+                dependencies=task_data.get("dependencies", []),
+                objective_id=objective_id,
+                objective_level=objective_level
+            )
+            
+            # Link task to objective
+            if objective and objective_id:
+                if objective_id not in state.objectives.get(objective_level, {}):
+                    # Create objective entry if it doesn't exist
+                    if objective_level not in state.objectives:
+                        state.objectives[objective_level] = {}
+                    state.objectives[objective_level][objective_id] = objective.to_dict()
                 
-                # Get objective info if available
-                objective_id = None
-                objective_level = None
-                objective = kwargs.get('objective')
-                if objective:
-                    objective_id = objective.id
-                    objective_level = objective.level.value if hasattr(objective.level, 'value') else objective.level
-                
-                # Create task with objective linking
-                task = state.add_task(
-                    description=task_data.get("description", ""),
-                    target_file=target_file,
-                    priority=task_data.get("priority", TaskPriority.NEW_TASK),
-                    dependencies=task_data.get("dependencies", []),
-                    objective_id=objective_id,
-                    objective_level=objective_level
-                )
-                
-                # Link task to objective
-                if objective and objective_id:
-                    if objective_id not in state.objectives.get(objective_level, {}):
-                        # Create objective entry if it doesn't exist
-                        if objective_level not in state.objectives:
-                            state.objectives[objective_level] = {}
-                        state.objectives[objective_level][objective_id] = objective.to_dict()
-                    
-                    # Add task to objective's task list
-                    obj_data = state.objectives[objective_level][objective_id]
-                    if 'tasks' not in obj_data:
-                        obj_data['tasks'] = []
-                    if task.task_id not in obj_data['tasks']:
-                        obj_data['tasks'].append(task.task_id)
-                        obj_data['total_tasks'] = len(obj_data['tasks'])
-                
-                # MESSAGE BUS: Publish TASK_CREATED event
-                from ..messaging import MessageType, MessagePriority
-                self._publish_message(
-                    message_type=MessageType.TASK_CREATED,
-                    payload={
-                        'task_id': task.task_id,
-                        'description': task.description,
-                        'target_file': task.target_file,
-                        'priority': task.priority.value if hasattr(task.priority, 'value') else str(task.priority)
-                    },
-                    recipient="broadcast",
-                    priority=MessagePriority.NORMAL,
-                    task_id=task.task_id,
-                    objective_id=objective_id,
-                    file_path=task.target_file
-                )
-                
-                # Track that we added this task
-                tasks_added += 1
+                # Add task to objective's task list
+                obj_data = state.objectives[objective_level][objective_id]
+                if 'tasks' not in obj_data:
+                    obj_data['tasks'] = []
+                if task.task_id not in obj_data['tasks']:
+                    obj_data['tasks'].append(task.task_id)
+                    obj_data['total_tasks'] = len(obj_data['tasks'])
+            
+            # MESSAGE BUS: Publish TASK_CREATED event
+            from ..messaging import MessageType, MessagePriority
+            self._publish_message(
+                message_type=MessageType.TASK_CREATED,
+                payload={
+                    'task_id': task.task_id,
+                    'description': task.description,
+                    'target_file': task.target_file,
+                    'priority': task.priority.value if hasattr(task.priority, 'value') else str(task.priority)
+                },
+                recipient="broadcast",
+                priority=MessagePriority.NORMAL,
+                task_id=task.task_id,
+                objective_id=objective_id,
+                file_path=task.target_file
+            )
+            
+            # Track that we added this task
+            tasks_added += 1
         
         # Log task processing summary
         self.logger.info(f"  📋 Task Summary:")
