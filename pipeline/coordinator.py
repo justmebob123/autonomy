@@ -119,6 +119,23 @@ class PhaseCoordinator:
         from .correlation_engine import CorrelationEngine
         self.correlation_engine = CorrelationEngine()
         
+        # Analytics integration for predictive analytics, anomaly detection, and optimization
+        try:
+            from .coordinator_analytics_integration import AnalyticsIntegration
+            self.analytics = AnalyticsIntegration(
+                enabled=True,
+                config={
+                    'anomaly_window_size': 100,
+                    'optimization_interval': 100,
+                    'max_history_size': 1000,
+                    'cleanup_interval': 500
+                }
+            )
+            self.logger.info("📊 Analytics integration initialized")
+        except Exception as e:
+            self.logger.warning(f"Analytics integration not available: {e}")
+            self.analytics = None
+        
         # INTEGRATION: Pattern Recognition System
         from .pattern_recognition import PatternRecognitionSystem
         self.pattern_recognition = PatternRecognitionSystem(self.project_dir)

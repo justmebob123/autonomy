@@ -1,0 +1,33 @@
+{
+  "enabled": true,
+  "log_level": "INFO",
+  "predictive": {
+    "enabled": true,
+    "min_history": 10,
+    "confidence_threshold": 0.5
+  },
+  "anomaly": {
+    "enabled": true,
+    "window_size": 100,
+    "z_score_threshold": 3.0,
+    "success_rate_threshold": 0.7
+  },
+  "optimizer": {
+    "enabled": true,
+    "interval": 100,
+    "quick_win_effort": "LOW",
+    "quick_win_priority": [
+      "HIGH",
+      "CRITICAL"
+    ]
+  },
+  "memory": {
+    "max_history_size": 1000,
+    "cleanup_interval": 500
+  },
+  "thresholds": {
+    "phase_slow": 600.0,
+    "memory_high": 2048.0,
+    "cpu_high": 80.0
+  }
+}
