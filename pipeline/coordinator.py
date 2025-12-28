@@ -812,12 +812,17 @@ class PhaseCoordinator:
             'state': state
         })
         
-        # Log pattern insights if available
+        # Apply high-confidence pattern recommendations
+        pattern_override = None
         if recommendations:
             for rec in recommendations[:2]:  # Show top 2
                 self.logger.debug(f"💡 Pattern insight: {rec['message']} (confidence: {rec['confidence']:.2f})")
+                # Use high-confidence recommendations to influence decisions
+                if rec['confidence'] > 0.8 and 'suggested_phase' in rec:
+                    pattern_override = rec['suggested_phase']
+                    self.logger.info(f"🎯 High-confidence pattern suggests: {pattern_override}")
         
-        # SIMPLE DECISION TREE:
+        # SIMPLE DECISION TREE (with pattern influence):
         
         # 1. If we have tasks needing fixes, go to debugging
         if needs_fixes:
@@ -831,15 +836,19 @@ class PhaseCoordinator:
         if pending:
             return {'phase': 'coding', 'reason': f'{len(pending)} tasks in progress'}
         
-        # 4. If no tasks at all, start with planning
+        # 4. If no tasks at all, start with planning (unless pattern suggests otherwise)
         if not state.tasks:
+            if pattern_override and pattern_override in self.phases:
+                return {'phase': pattern_override, 'reason': f'Pattern-based suggestion (confidence > 0.8)'}
             return {'phase': 'planning', 'reason': 'No tasks yet, need to plan'}
         
         # 5. All tasks complete - we're done!
         if len(completed) == len(state.tasks):
             return {'phase': 'complete', 'reason': 'All tasks completed!'}
         
-        # 6. Default: go to planning to create more tasks
+        # 6. Default: go to planning to create more tasks (or follow pattern)
+        if pattern_override and pattern_override in self.phases:
+            return {'phase': pattern_override, 'reason': f'Pattern-based suggestion (confidence > 0.8)'}
         return {'phase': 'planning', 'reason': 'Need to plan next steps'}
     
     def _build_arbiter_context_DISABLED(self, state: PipelineState) -> Dict:
