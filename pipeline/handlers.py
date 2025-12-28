@@ -83,6 +83,24 @@ class ToolCallHandler:
         else:
             self.tool_creator = tool_creator
         
+        # INTEGRATION: Custom Tool Handler for scripts/custom_tools/
+        # Initialize custom tool support
+        self.custom_tool_handler = None
+        try:
+            from .custom_tools import ToolRegistry, CustomToolHandler
+            custom_registry = ToolRegistry(str(self.project_dir))
+            custom_registry.discover_tools()
+            self.custom_tool_handler = CustomToolHandler(
+                str(self.project_dir),
+                custom_registry,
+                self.logger
+            )
+            tool_count = len(custom_registry.list_tools())
+            if tool_count > 0:
+                self.logger.info(f"Initialized custom tool handler with {tool_count} tools")
+        except Exception as e:
+            self.logger.warning(f"Custom tool handler initialization failed: {e}")
+        
         # Tool handlers
         self._handlers: Dict[str, Callable] = {
             "create_python_file": self._handle_create_file,
@@ -349,6 +367,22 @@ class ToolCallHandler:
         
         handler = self._handlers.get(name)
         if not handler:
+            # Check if this is a custom tool
+            if hasattr(self, 'custom_tool_handler') and self.custom_tool_handler:
+                if self.custom_tool_handler.is_custom_tool(name):
+                    self.logger.info(f"Executing custom tool: {name}")
+                    try:
+                        result = self.custom_tool_handler.execute_tool(name, args)
+                        return result
+                    except Exception as e:
+                        self.logger.error(f"Custom tool execution failed: {e}")
+                        return {
+                            "tool": name,
+                            "success": False,
+                            "error": str(e),
+                            "error_type": "custom_tool_error"
+                        }
+            
             self.logger.error(f"=" * 70)
             self.logger.error(f"TOOL CALL FAILURE: Unknown tool '{name}'")
             self.logger.error(f"=" * 70)
