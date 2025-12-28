@@ -163,6 +163,23 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                     if task.task_id not in obj_data['tasks']:
                         obj_data['tasks'].append(task.task_id)
                         obj_data['total_tasks'] = len(obj_data['tasks'])
+                
+                # MESSAGE BUS: Publish TASK_CREATED event
+                from ..messaging import MessageType, MessagePriority
+                self._publish_message(
+                    message_type=MessageType.TASK_CREATED,
+                    payload={
+                        'task_id': task.task_id,
+                        'description': task.description,
+                        'target_file': task.target_file,
+                        'priority': task.priority.value if hasattr(task.priority, 'value') else str(task.priority)
+                    },
+                    recipient="broadcast",
+                    priority=MessagePriority.NORMAL,
+                    task_id=task.task_id,
+                    objective_id=objective_id,
+                    file_path=task.target_file
+                )
         
         # Rebuild queue with current priorities
         state.rebuild_queue()

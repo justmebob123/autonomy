@@ -260,6 +260,26 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                     # Add to tracker
                     issue_id = self.coordinator.issue_tracker.create_issue(issue, state)
                     
+                    # MESSAGE BUS: Publish ISSUE_FOUND event
+                    from ..messaging import MessageType, MessagePriority
+                    msg_priority = MessagePriority.CRITICAL if severity == IssueSeverity.CRITICAL else MessagePriority.HIGH
+                    self._publish_message(
+                        message_type=MessageType.ISSUE_FOUND,
+                        payload={
+                            'issue_id': issue_id,
+                            'issue_type': issue_type,
+                            'severity': severity.value if hasattr(severity, 'value') else str(severity),
+                            'file': file_path,
+                            'description': description
+                        },
+                        recipient="broadcast",
+                        priority=msg_priority,
+                        issue_id=issue_id,
+                        task_id=task.task_id if task else None,
+                        objective_id=task.objective_id if task else None,
+                        file_path=file_path
+                    )
+                    
                     # Link to objective if present
                     if task and task.objective_id and task.objective_level:
                         obj_level = task.objective_level

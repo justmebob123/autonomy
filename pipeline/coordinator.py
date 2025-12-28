@@ -59,6 +59,11 @@ class PhaseCoordinator:
         self.role_registry = RoleRegistry(self.project_dir, self.client)
         self.logger.info("📚 Shared registries initialized")
         
+        # Initialize message bus for phase-to-phase communication
+        from .messaging import MessageBus
+        self.message_bus = MessageBus(state_manager=self.state_manager)
+        self.logger.info("📨 Message bus initialized")
+        
         # Initialize shared specialists (created once, used by all phases)
         from .orchestration.unified_model_tool import UnifiedModelTool
         from .orchestration.specialists import (
@@ -162,6 +167,7 @@ class PhaseCoordinator:
             'coding_specialist': self.coding_specialist,
             'reasoning_specialist': self.reasoning_specialist,
             'analysis_specialist': self.analysis_specialist,
+            'message_bus': self.message_bus,
         }
         
         return {
@@ -1016,6 +1022,19 @@ class PhaseCoordinator:
         Returns:
             Dict with 'phase', 'reason', and optionally 'task' and 'objective'
         """
+        
+        # MESSAGE BUS: Check for critical messages
+        from .messaging import MessageType, MessagePriority
+        critical_messages = self.message_bus.get_messages(
+            "coordinator",
+            priority=MessagePriority.CRITICAL,
+            limit=10
+        )
+        
+        if critical_messages:
+            self.logger.warning(f"⚠️ {len(critical_messages)} critical messages in queue")
+            for msg in critical_messages:
+                self.logger.warning(f"  📨 {msg.message_type.value}: {msg.payload}")
         
         # STRATEGIC DECISION-MAKING: Check if we have objectives
         if state.objectives and any(state.objectives.values()):

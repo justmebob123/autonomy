@@ -641,6 +641,23 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                 )
                 self.logger.info(f"  ✅ Issue {issue_id} marked as resolved")
                 
+                # MESSAGE BUS: Publish ISSUE_RESOLVED event
+                from ..messaging import MessageType, MessagePriority
+                self._publish_message(
+                    message_type=MessageType.ISSUE_RESOLVED,
+                    payload={
+                        'issue_id': issue_id,
+                        'file': filepath,
+                        'resolution': f"Fixed in {filepath}"
+                    },
+                    recipient="broadcast",
+                    priority=MessagePriority.NORMAL,
+                    issue_id=issue_id,
+                    task_id=task.task_id if task else None,
+                    objective_id=task.objective_id if task else None,
+                    file_path=filepath
+                )
+                
                 # Remove from objective's open issues
                 if task and task.objective_id and task.objective_level:
                     obj_level = task.objective_level

@@ -31,10 +31,13 @@
 - [x] Test message filtering and retrieval
 
 ### Phase Integration (Week 2)
-- [ ] Add message_bus parameter to BasePhase.__init__
-- [ ] Implement message publishing in Planning phase (TASK_CREATED)
-- [ ] Implement message publishing in QA phase (ISSUE_FOUND)
-- [ ] Implement message publishing in Debugging phase (ISSUE_RESOLVED)
+- [x] Add message_bus parameter to BasePhase.__init__
+- [x] Implement message publishing in Planning phase (TASK_CREATED)
+- [x] Implement message publishing in QA phase (ISSUE_FOUND)
+- [x] Implement message publishing in Debugging phase (ISSUE_RESOLVED)
+- [x] Initialize MessageBus in Coordinator
+- [x] Pass message_bus to all phases
+- [x] Add critical message monitoring in Coordinator
 - [ ] Implement message subscription in all phases
 - [ ] Add message handling to phase execution loops
 - [ ] Create integration tests for phase messaging
