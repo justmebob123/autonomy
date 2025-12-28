@@ -100,12 +100,14 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         content = response.get("content", "")
         
         tasks = []
+        tasks_suggested = 0
         
         if tool_calls:
             # Process tool calls
             handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
             results = handler.process_tool_calls(tool_calls)
             tasks = handler.tasks
+            tasks_suggested = len(tasks)
             
             # Track actions for loop detection
             self.track_tool_calls(tool_calls, results, agent="planning")
@@ -125,6 +127,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
             self.logger.warning("  Model returned text instead of tool call")
             tasks = self.parser.extract_tasks_from_text(content)
             if tasks:
+                tasks_suggested = len(tasks)
                 self.logger.info(f"  Extracted {len(tasks)} tasks from text")
         
         if not tasks:
@@ -134,24 +137,36 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                 message="Could not extract tasks from response"
             )
         
+        # Track task processing statistics
+        tasks_added = 0
+        tasks_skipped_duplicate = 0
+        tasks_skipped_directory = 0
+        tasks_skipped_empty = 0
+        
         # Add tasks to state
         for task_data in tasks:
             # Check if task already exists (by description)
             existing = self._find_existing_task(state, task_data)
             
-            if not existing:
-                target_file = task_data.get("target_file", "").strip()
+            if existing:
+                tasks_skipped_duplicate += 1
+                self.logger.debug(f"  ⏭️  Skipping duplicate: {task_data.get('target_file')} (already exists)")
+                continue
+            
+            target_file = task_data.get("target_file", "").strip()
+            
+            # Skip tasks with empty filenames
+            if not target_file:
+                tasks_skipped_empty += 1
+                self.logger.warning(f"  ⚠️ Skipping task with empty filename: {task_data.get('description', 'Unknown')}")
+                continue
                 
-                # Skip tasks with empty filenames
-                if not target_file:
-                    self.logger.warning(f"  ⚠️ Skipping task with empty filename: {task_data.get('description', 'Unknown')}")
-                    continue
-                
-                # Skip tasks targeting directories
-                full_path = self.project_dir / target_file
-                if full_path.exists() and full_path.is_dir():
-                    self.logger.warning(f"  ⚠️ Skipping task targeting directory: {target_file}")
-                    continue
+            # Skip tasks targeting directories
+            full_path = self.project_dir / target_file
+            if full_path.exists() and full_path.is_dir():
+                tasks_skipped_directory += 1
+                self.logger.warning(f"  ⚠️ Skipping task targeting directory: {target_file}")
+                continue
                 
                 # Get objective info if available
                 objective_id = None
@@ -203,6 +218,41 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                     objective_id=objective_id,
                     file_path=task.target_file
                 )
+                
+                # Track that we added this task
+                tasks_added += 1
+        
+        # Log task processing summary
+        self.logger.info(f"  📋 Task Summary:")
+        self.logger.info(f"     Suggested by model: {tasks_suggested}")
+        self.logger.info(f"     Actually added: {tasks_added}")
+        if tasks_skipped_duplicate > 0:
+            self.logger.info(f"     Skipped (duplicate): {tasks_skipped_duplicate}")
+        if tasks_skipped_empty > 0:
+            self.logger.info(f"     Skipped (empty filename): {tasks_skipped_empty}")
+        if tasks_skipped_directory > 0:
+            self.logger.info(f"     Skipped (directory): {tasks_skipped_directory}")
+        
+        # CRITICAL: Detect when ALL tasks are duplicates (planning loop)
+        if tasks_added == 0 and tasks_suggested > 0:
+            self.logger.warning(f"  ⚠️  All {tasks_suggested} suggested tasks already exist!")
+            self.logger.info(f"  💡 No new work needed - suggesting move to coding phase")
+            
+            # Rebuild queue anyway (in case priorities changed)
+            state.rebuild_queue()
+            
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message=f"No new tasks needed (all {tasks_suggested} already exist)",
+                next_phase="coding",  # Hint to coordinator to move forward
+                data={
+                    "task_count": 0,
+                    "tasks_suggested": tasks_suggested,
+                    "tasks_skipped": tasks_suggested,
+                    "reason": "all_duplicates"
+                }
+            )
         
         # Rebuild queue with current priorities
         state.rebuild_queue()
@@ -210,8 +260,14 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         return PhaseResult(
             success=True,
             phase=self.phase_name,
-            message=f"Created plan with {len(tasks)} tasks",
-            data={"task_count": len(tasks), "tasks": tasks}
+            message=f"Created plan with {tasks_added} new tasks (suggested {tasks_suggested})",
+            data={
+                "task_count": tasks_added,
+                "tasks": tasks,
+                "tasks_suggested": tasks_suggested,
+                "tasks_added": tasks_added,
+                "tasks_skipped_duplicate": tasks_skipped_duplicate
+            }
         )
     
     def _get_existing_files(self) -> str:
