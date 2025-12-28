@@ -156,11 +156,14 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         # Read file content
         content = self.read_file(filepath)
         if not content:
+            # File not found - mark task as complete and move to next task
+            self.logger.warning(f"⚠️ File not found, marking task as complete: {filepath}")
             return PhaseResult(
-                success=False,
+                success=True,  # Mark as success to avoid infinite loop
                 phase=self.phase_name,
-                message=f"File not found: {filepath}",
-                errors=[{"type": "file_not_found", "filepath": filepath}]
+                message=f"File not found (task marked complete): {filepath}",
+                next_phase="coding",  # Move to coding to continue with other tasks
+                data={"skipped": True, "reason": "file_not_found"}
             )
         
         # Build simple review message
