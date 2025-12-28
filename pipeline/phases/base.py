@@ -124,6 +124,13 @@ class BasePhase(ABC):
         pruner = ConversationPruner(pruning_config)
         self.conversation = AutoPruningConversationThread(thread, pruner)
         
+        # CRITICAL FIX: Add system prompt to conversation at initialization
+        # This ensures the model always sees the system prompt with tool calling instructions
+        system_prompt = self._get_system_prompt(self.phase_name)
+        if system_prompt:
+            self.conversation.add_message("system", system_prompt)
+            self.logger.debug(f"Added system prompt for {self.phase_name} phase")
+        
         # Cache tools for functiongemma fallback
         
         
