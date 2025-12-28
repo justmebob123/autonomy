@@ -14,6 +14,7 @@ from ..objective_manager import ObjectiveManager, Objective
 from ..state.manager import StateManager, PipelineState
 from .polytopic_objective import PolytopicObjective
 from .dimensional_space import DimensionalSpace
+from .visualizations import PolytopicVisualizer
 
 
 class PolytopicObjectiveManager(ObjectiveManager):
@@ -38,6 +39,7 @@ class PolytopicObjectiveManager(ObjectiveManager):
         """
         super().__init__(project_dir, state_manager)
         self.dimensional_space = DimensionalSpace(dimensions=7)
+        self.visualizer = PolytopicVisualizer(self.dimensional_space)
         
     def load_objectives(self, state: PipelineState) -> Dict[str, Dict[str, PolytopicObjective]]:
         """Load objectives from markdown files and populate dimensional space."""
@@ -418,7 +420,83 @@ class PolytopicObjectiveManager(ObjectiveManager):
         
         return [(obj.id, sim) for obj, sim in similar]
     
+    def visualize_3d_space(self, dimensions: Tuple[str, str, str] = ("temporal", "functional", "data")) -> str:
+        """
+        Create 3D visualization of objectives.
+        
+        Args:
+            dimensions: Tuple of 3 dimension names to visualize
+            
+        Returns:
+            ASCII 3D visualization
+        """
+        return self.visualizer.visualize_3d_space(dimensions)
+    
+    def visualize_trajectory(self, objective_id: str, time_steps: int = 5) -> str:
+        """
+        Visualize trajectory of an objective.
+        
+        Args:
+            objective_id: Objective ID
+            time_steps: Number of future time steps
+            
+        Returns:
+            ASCII trajectory visualization
+        """
+        return self.visualizer.visualize_trajectory(objective_id, time_steps)
+    
+    def visualize_health_heatmap(self) -> str:
+        """
+        Create health heatmap for all objectives.
+        
+        Returns:
+            ASCII heatmap visualization
+        """
+        return self.visualizer.visualize_health_heatmap()
+    
+    def visualize_clusters(self, max_distance: float = 0.4) -> str:
+        """
+        Visualize objective clusters.
+        
+        Args:
+            max_distance: Maximum distance for clustering
+            
+        Returns:
+            ASCII cluster visualization
+        """
+        return self.visualizer.visualize_clusters(max_distance)
+    
+    def visualize_dimensional_distribution(self) -> str:
+        """
+        Visualize distribution across dimensions.
+        
+        Returns:
+            ASCII distribution visualization
+        """
+        return self.visualizer.visualize_dimensional_distribution()
+    
+    def visualize_adjacency_graph(self, max_objectives: int = 10) -> str:
+        """
+        Visualize adjacency relationships.
+        
+        Args:
+            max_objectives: Maximum objectives to show
+            
+        Returns:
+            ASCII adjacency graph
+        """
+        return self.visualizer.visualize_adjacency_graph(max_objectives)
+    
+    def generate_comprehensive_visualization_report(self) -> str:
+        """
+        Generate comprehensive visualization report.
+        
+        Returns:
+            Complete visualization report
+        """
+        return self.visualizer.generate_comprehensive_report()
+    
     def __repr__(self) -> str:
         """String representation."""
-        return (f"PolytopicObjectiveManager(objectives={len(self.objectives)}, "
+        return (f"PolytopicObjectiveManager(objectives={len(self.dimensional_space.objectives)}, "
                 f"dimensional_space={self.dimensional_space})")

@@ -1,0 +1,103 @@
+{
+  "analysis_depth": 59,
+  "vertices": {
+    "total": 1336,
+    "by_type": {
+      "function": 1184,
+      "class": 152
+    },
+    "polytopic_vertices": [
+      "coordinator._initialize_polytopic_structure",
+      "coordinator._select_next_phase_polytopic",
+      "polytopic_objective.PolytopicObjective",
+      "polytopic_objective.__post_init__",
+      "polytopic_objective._calculate_position",
+      "polytopic_objective._update_metrics",
+      "polytopic_objective.update_dimensional_profile",
+      "polytopic_objective.get_dimensional_vector",
+      "polytopic_objective.calculate_distance_to",
+      "polytopic_objective.calculate_similarity",
+      "polytopic_objective.get_dominant_dimensions",
+      "polytopic_objective.get_weak_dimensions",
+      "polytopic_objective.is_adjacent_to",
+      "polytopic_objective.get_trajectory_direction",
+      "polytopic_objective.predict_future_position",
+      "polytopic_objective.to_dict",
+      "polytopic_objective.from_dict",
+      "polytopic_objective.__repr__",
+      "polytopic_manager.PolytopicObjectiveManager",
+      "polytopic_manager.__init__",
+      "polytopic_manager.load_objectives",
+      "polytopic_manager._convert_to_polytopic",
+      "polytopic_manager.calculate_dimensional_profile",
+      "polytopic_manager.find_optimal_objective",
+      "polytopic_manager.calculate_objective_distance",
+      "polytopic_manager.get_adjacent_objectives",
+      "polytopic_manager.analyze_dimensional_health",
+      "polytopic_manager.get_dimensional_statistics",
+      "polytopic_manager.cluster_objectives",
+      "polytopic_manager.visualize_dimensional_space",
+      "polytopic_manager.get_space_summary",
+      "polytopic_manager.update_objective_dimensions",
+      "polytopic_manager.predict_objective_trajectory",
+      "polytopic_manager.find_similar_objectives",
+      "polytopic_manager.__repr__"
+    ]
+  },
+  "edges": {
+    "total": 44625,
+    "by_source": {
+      "run.cleanup_handler": 7,
+      "run.discover_models": 16,
+      "run.show_status": 39,
+      "run.run_pipeline": 3,
+      "run.attempt_line_based_fix": 6,
+      "run.run_debug_qa_mode": 833,
+      "run.main": 77,
+      "run.monitor_log": 17,
+      "show_ai_responses.show_conversation_thread": 74,
+      "show_ai_responses.show_latest_threads": 19
+    }
+  },
+  "call_stacks": {
+    "total": 6,
+    "max_depth": 6,
+    "avg_depth": 4.0
+  },
+  "variable_states": {
+    "tracked_variables": 9,
+    "total_state_changes": 44,
+    "by_variable": {
+      "state": 12,
+      "health": 2,
+      "objective": 7,
+      "risk_score": 5,
+      "dimensional_profile": 4,
+      "complexity_score": 3,
+      "readiness_score": 3,
+      "polytopic_position": 5,
+      "dimensional_velocity": 3
+    }
+  },
+  "integration_points": {
+    "total": 8,
+    "by_type": {
+      "coordinator\u2192polytopic": 8
+    }
+  },
+  "emergent_properties": {
+    "total": 2,
+    "properties": [
+      {
+        "property": "polytopic_clustering",
+        "description": "Polytopic subsystem forms cohesive cluster",
+        "strength": 11.666666666666666
+      },
+      {
+        "property": "message_flow_network",
+        "description": "Complex message flow network emerges",
+        "strength": 23.65
+      }
+    ]
+  }
+}

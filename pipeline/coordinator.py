@@ -1688,9 +1688,12 @@ class PhaseCoordinator:
         
         return completed > 0 or total == 0
     
-    def visualize_dimensional_space(self) -> None:
+    def visualize_dimensional_space(self, visualization_type: str = "2d") -> None:
         """
         Visualize the dimensional space (for debugging/analysis).
+        
+        Args:
+            visualization_type: Type of visualization ("2d", "3d", "health", "clusters", "trajectory", "distribution", "adjacency", "comprehensive")
         
         This method can be called to see the current state of objectives in 7D space.
         """
@@ -1699,18 +1702,55 @@ class PhaseCoordinator:
             return
         
         try:
-            visualization = self.objective_manager.visualize_dimensional_space()
-            self.logger.info("\n" + visualization)
+            if visualization_type == "2d":
+                visualization = self.objective_manager.visualize_dimensional_space()
+                self.logger.info("\n" + visualization)
             
-            # Also show space summary
-            summary = self.objective_manager.get_space_summary()
-            self.logger.info(f"\nSpace Summary: {summary['total_objectives']} objectives in {summary['dimensions']}D space")
+            elif visualization_type == "3d":
+                if hasattr(self.objective_manager, 'visualize_3d_space'):
+                    visualization = self.objective_manager.visualize_3d_space()
+                    self.logger.info("\n" + visualization)
+                else:
+                    self.logger.warning("3D visualization not available")
             
-            # Show dimensional statistics
-            stats = self.objective_manager.get_dimensional_statistics()
-            if stats:
-                self.logger.info("\nDimensional Statistics:")
-                for dim, dim_stats in stats.items():
-                    self.logger.info(f"  {dim}: mean={dim_stats['mean']:.2f}, std={dim_stats['std']:.2f}")
+            elif visualization_type == "health":
+                if hasattr(self.objective_manager, 'visualize_health_heatmap'):
+                    visualization = self.objective_manager.visualize_health_heatmap()
+                    self.logger.info("\n" + visualization)
+                else:
+                    self.logger.warning("Health heatmap not available")
+            
+            elif visualization_type == "clusters":
+                if hasattr(self.objective_manager, 'visualize_clusters'):
+                    visualization = self.objective_manager.visualize_clusters()
+                    self.logger.info("\n" + visualization)
+                else:
+                    self.logger.warning("Cluster visualization not available")
+            
+            elif visualization_type == "distribution":
+                if hasattr(self.objective_manager, 'visualize_dimensional_distribution'):
+                    visualization = self.objective_manager.visualize_dimensional_distribution()
+                    self.logger.info("\n" + visualization)
+                else:
+                    self.logger.warning("Distribution visualization not available")
+            
+            elif visualization_type == "adjacency":
+                if hasattr(self.objective_manager, 'visualize_adjacency_graph'):
+                    visualization = self.objective_manager.visualize_adjacency_graph()
+                    self.logger.info("\n" + visualization)
+                else:
+                    self.logger.warning("Adjacency graph not available")
+            
+            elif visualization_type == "comprehensive":
+                if hasattr(self.objective_manager, 'generate_comprehensive_visualization_report'):
+                    report = self.objective_manager.generate_comprehensive_visualization_report()
+                    self.logger.info("\n" + report)
+                else:
+                    self.logger.warning("Comprehensive report not available")
+            
+            else:
+                self.logger.warning(f"Unknown visualization type: {visualization_type}")
+                self.logger.info("Available types: 2d, 3d, health, clusters, distribution, adjacency, comprehensive")
+            
         except Exception as e:
             self.logger.error(f"Failed to visualize dimensional space: {e}")
