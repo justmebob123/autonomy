@@ -74,8 +74,9 @@ class PipelineConfig:
     # - tool_formatting: functiongemma - Helps format malformed tool calls
     model_assignments: Dict[str, Tuple[str, str]] = field(default_factory=lambda: {
         # LOAD BALANCED: Distribute tasks across BOTH servers
-        # ollama01: Planning with coder model for better tool calling, routing tasks
-        "planning":        ("qwen2.5-coder:32b", "ollama01.thiscluster.net"),
+        # ollama02: Planning with coder model (qwen2.5-coder:32b only on ollama02)
+        "planning":        ("qwen2.5-coder:32b", "ollama02.thiscluster.net"),
+        # ollama01: Routing tasks
         "routing":         ("functiongemma", "ollama01.thiscluster.net"),
         
         # ollama02: QA with coder model for better tool calling

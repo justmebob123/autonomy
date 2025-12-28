@@ -557,15 +557,16 @@ class BasePhase(ABC):
         # Get conversation context (respects token limits)
         messages = self.conversation.get_context()
         
-        # Get model and host for this phase
-        model_name = self.conversation.thread.model
-        
-        # Get host from config.model_assignments
-        if self.phase_name in self.config.model_assignments:
-            _, host = self.config.model_assignments[self.phase_name]
+        # Get model and host for this phase using intelligent selection with fallbacks
+        result = self.client.get_model_for_task(self.phase_name)
+        if result:
+            host, model_name = result
+            self.logger.debug(f"  Selected model: {model_name} on {host}")
         else:
-            # Fallback to first available server
+            # Fallback to conversation model and first available server
+            model_name = self.conversation.thread.model
             host = self.config.servers[0].host if self.config.servers else "localhost"
+            self.logger.warning(f"  No model found via get_model_for_task, using fallback: {model_name} on {host}")
         
         # Call model with conversation history
         response = self.client.chat(
