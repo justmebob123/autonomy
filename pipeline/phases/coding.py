@@ -194,6 +194,11 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         
         # Add dependency file contents
         for dep in task.dependencies[:3]:
+            # Skip directories
+            dep_path = self.project_dir / dep
+            if dep_path.exists() and dep_path.is_dir():
+                continue
+            
             dep_content = self.read_file(dep)
             if dep_content:
                 parts.append(f"=== DEPENDENCY: {dep} ===")
