@@ -69,7 +69,8 @@ class BasePhase(ABC):
     def __init__(self, config: PipelineConfig, client: OllamaClient,
                  state_manager=None, file_tracker=None,
                  prompt_registry=None, tool_registry=None, role_registry=None,
-                 coding_specialist=None, reasoning_specialist=None, analysis_specialist=None):
+                 coding_specialist=None, reasoning_specialist=None, analysis_specialist=None,
+                 message_bus=None):
         self.config = config
         self.client = client
         self.project_dir = Path(config.project_dir)
@@ -78,6 +79,9 @@ class BasePhase(ABC):
         # State management - use shared instances if provided
         self.state_manager = state_manager or StateManager(self.project_dir)
         self.file_tracker = file_tracker or FileTracker(self.project_dir)
+        
+        # Message bus for phase-to-phase communication
+        self.message_bus = message_bus
         
         # Context providers
         self.error_context = ErrorContext()
@@ -445,6 +449,90 @@ class BasePhase(ABC):
         
         # Fallback to hardcoded
         return SYSTEM_PROMPTS.get(phase_name, SYSTEM_PROMPTS.get("base", ""))
+    
+    # ==================== MESSAGE BUS METHODS ====================
+    
+    def _publish_message(self, message_type, payload: Dict, 
+                        recipient: str = "broadcast",
+                        priority=None,
+                        **kwargs):
+        """
+        Publish a message to the message bus.
+        
+        Args:
+            message_type: MessageType enum value
+            payload: Message payload dictionary
+            recipient: Recipient phase name or "broadcast"
+            priority: MessagePriority enum value (optional)
+            **kwargs: Additional message fields (objective_id, task_id, etc.)
+        """
+        if not self.message_bus:
+            return
+        
+        from ..messaging import MessagePriority
+        
+        if priority is None:
+            priority = MessagePriority.NORMAL
+        
+        if recipient == "broadcast":
+            self.message_bus.broadcast(
+                sender=self.phase_name,
+                message_type=message_type,
+                payload=payload,
+                priority=priority,
+                **kwargs
+            )
+        else:
+            self.message_bus.send_direct(
+                sender=self.phase_name,
+                recipient=recipient,
+                message_type=message_type,
+                payload=payload,
+                priority=priority,
+                **kwargs
+            )
+    
+    def _subscribe_to_messages(self, message_types: List):
+        """
+        Subscribe this phase to specific message types.
+        
+        Args:
+            message_types: List of MessageType enum values
+        """
+        if not self.message_bus:
+            return
+        
+        self.message_bus.subscribe(self.phase_name, message_types)
+    
+    def _get_messages(self, **kwargs):
+        """
+        Get messages for this phase.
+        
+        Args:
+            **kwargs: Filtering options (since, message_types, priority, limit)
+        
+        Returns:
+            List of Message objects
+        """
+        if not self.message_bus:
+            return []
+        
+        return self.message_bus.get_messages(self.phase_name, **kwargs)
+    
+    def _clear_messages(self, message_ids=None):
+        """
+        Clear messages from this phase's queue.
+        
+        Args:
+            message_ids: Specific message IDs to clear, or None for all
+        
+        Returns:
+            Number of messages cleared
+        """
+        if not self.message_bus:
+            return 0
+        
+        return self.message_bus.clear_messages(self.phase_name, message_ids)
     
     def chat_with_history(self, user_message: str, tools: List[Dict] = None, task_context: Dict = None) -> Dict:
         """
