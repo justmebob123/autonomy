@@ -209,7 +209,12 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
                 result['error'] = 'Loop detected'
                 return result
             
-            # Track tool calls
+            # Process tool calls
+            from ..handlers import ToolCallHandler
+            handler = ToolCallHandler(self.project_dir, verbose=self.config.verbose, tool_registry=self.tool_registry)
+            results = handler.process_tool_calls(tool_calls)
+            
+            # Track tool calls for loop detection
             self.track_tool_calls(tool_calls, results)
             
             if tool_calls:
