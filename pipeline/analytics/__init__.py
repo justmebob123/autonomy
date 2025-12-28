@@ -5,6 +5,8 @@ Provides analytics capabilities for the autonomy pipeline:
 - Predictive analytics
 - Anomaly detection
 - Optimization recommendations
+- Configuration management
+- Memory management
 """
 
 from .predictive_engine import (
@@ -28,6 +30,14 @@ from .optimizer import (
     OptimizationPlan
 )
 
+from .config import (
+    AnalyticsConfig,
+    get_default_config,
+    create_default_config_file
+)
+
+from .memory_manager import MemoryManager
+
 __all__ = [
     # Predictive Engine
     'PredictiveAnalyticsEngine',
@@ -45,5 +55,13 @@ __all__ = [
     # Optimizer
     'OptimizationEngine',
     'Optimization',
-    'OptimizationPlan'
+    'OptimizationPlan',
+    
+    # Configuration
+    'AnalyticsConfig',
+    'get_default_config',
+    'create_default_config_file',
+    
+    # Memory Management
+    'MemoryManager'
 ]
