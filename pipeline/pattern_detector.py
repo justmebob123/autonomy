@@ -16,8 +16,8 @@ from dataclasses import dataclass
 from collections import defaultdict
 from pathlib import Path
 
-from pipeline.action_tracker import ActionTracker, Action
-from pipeline.error_signature import ErrorSignature
+from .action_tracker import ActionTracker, Action
+from .error_signature import ErrorSignature
 
 
 @dataclass

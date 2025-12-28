@@ -35,7 +35,7 @@ from ..debugging_utils import (
     get_current_timestamp,
     TaskPriority
 )
-from pipeline.user_proxy import UserProxyAgent
+from ..user_proxy import UserProxyAgent
 
 
 class DebuggingPhase(BasePhase):

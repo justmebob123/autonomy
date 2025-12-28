@@ -15,10 +15,10 @@ from collections import defaultdict
 from pathlib import Path
 from datetime import datetime
 
-from pipeline.client import OllamaClient
-from pipeline.specialist_agents import SpecialistTeam
+from .client import OllamaClient
+from .specialist_agents import SpecialistTeam
 from .prompts.team_orchestrator import get_team_orchestrator_prompt
-from pipeline.conversation_thread import ConversationThread
+from .conversation_thread import ConversationThread
 
 
 @dataclass

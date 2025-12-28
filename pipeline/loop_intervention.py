@@ -9,8 +9,8 @@ import logging
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 
-from pipeline.pattern_detector import PatternDetector, LoopDetection
-from pipeline.action_tracker import ActionTracker
+from .pattern_detector import PatternDetector, LoopDetection
+from .action_tracker import ActionTracker
 
 
 class LoopInterventionSystem:

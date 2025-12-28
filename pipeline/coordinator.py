@@ -72,6 +72,28 @@ class PhaseCoordinator:
         # Correlation engine for cross-phase analysis
         from .correlation_engine import CorrelationEngine
         self.correlation_engine = CorrelationEngine()
+        
+        # INTEGRATION: Pattern Recognition System
+        from .pattern_recognition import PatternRecognitionSystem
+        self.pattern_recognition = PatternRecognitionSystem(self.project_dir)
+        self.pattern_recognition.load_patterns()
+        self.logger.info("🔍 Pattern recognition system initialized")
+        
+        # INTEGRATION: Pattern Optimizer
+        from .pattern_optimizer import PatternOptimizer
+        self.pattern_optimizer = PatternOptimizer(self.project_dir)
+        self.execution_count = 0  # Track executions for periodic optimization
+        self.logger.info("⚡ Pattern optimizer initialized")
+        
+        # INTEGRATION: Tool Creator
+        from .tool_creator import ToolCreator
+        self.tool_creator = ToolCreator(self.project_dir)
+        self.logger.info("🔨 Tool creator initialized")
+        
+        # INTEGRATION: Tool Validator
+        from .tool_validator import ToolValidator
+        self.tool_validator = ToolValidator(self.project_dir)
+        self.logger.info("✅ Tool validator initialized")
     
     def _init_phases(self) -> Dict:
         """Initialize all pipeline phases"""
@@ -673,6 +695,15 @@ class PhaseCoordinator:
                 # Show project status
                 self._show_project_status(state)
                 
+                # INTEGRATION: Record execution pattern for learning
+                self._record_execution_pattern(phase_name, result, state)
+                
+                # INTEGRATION: Periodic pattern optimization
+                self.execution_count += 1
+                if self.execution_count % 50 == 0:  # Every 50 executions
+                    self.logger.info("🔧 Running pattern optimization...")
+                    self.pattern_optimizer.run_full_optimization()
+                
                 # Check if we should force transition AFTER execution
                 # This allows us to check the actual result for success/progress
                 if self._should_force_transition(state, phase_name, result):
@@ -733,6 +764,17 @@ class PhaseCoordinator:
         completed = [t for t in state.tasks.values() if t.status == TaskStatus.COMPLETED]
         
         self.logger.info(f"📊 Task Status: {len(pending)} pending, {len(qa_pending)} QA, {len(needs_fixes)} fixes, {len(completed)} done")
+        
+        # INTEGRATION: Get pattern-based recommendations
+        recommendations = self.pattern_recognition.get_recommendations({
+            'phase': current_phase,
+            'state': state
+        })
+        
+        # Log pattern insights if available
+        if recommendations:
+            for rec in recommendations[:2]:  # Show top 2
+                self.logger.debug(f"💡 Pattern insight: {rec['message']} (confidence: {rec['confidence']:.2f})")
         
         # SIMPLE DECISION TREE:
         
@@ -1044,6 +1086,51 @@ class PhaseCoordinator:
                 return False
         
         return True
+    
+    def _record_execution_pattern(self, phase_name: str, result, state: PipelineState) -> None:
+        """
+        Record execution pattern for learning and optimization.
+        
+        Args:
+            phase_name: Name of the phase that executed
+            result: PhaseResult from execution
+            state: Current pipeline state
+        """
+        try:
+            # Build execution data
+            execution_data = {
+                'phase': phase_name,
+                'success': result.success,
+                'duration': getattr(result, 'duration', 0),
+                'tool_calls': getattr(result, 'tool_calls', []),
+                'files_created': result.files_created,
+                'files_modified': result.files_modified,
+                'next_phase': result.next_phase,
+                'errors': []
+            }
+            
+            # Add error information if failed
+            if not result.success:
+                execution_data['errors'].append({
+                    'type': 'phase_failure',
+                    'message': result.message
+                })
+            
+            # Record the execution
+            self.pattern_recognition.record_execution(execution_data)
+            
+            # Get recommendations for current context
+            recommendations = self.pattern_recognition.get_recommendations({
+                'phase': phase_name,
+                'state': state
+            })
+            
+            # Log recommendations if any
+            if recommendations:
+                self.logger.debug(f"📊 Pattern recommendations: {len(recommendations)} available")
+                
+        except Exception as e:
+            self.logger.debug(f"Failed to record execution pattern: {e}")
     
     def _show_project_status(self, state: PipelineState) -> None:
         """Show current project file status - only files with active tasks"""

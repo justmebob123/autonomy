@@ -66,6 +66,14 @@ class ToolCallHandler:
         self.failures_dir = self.project_dir / "failures"
         self.failures_dir.mkdir(exist_ok=True)
         
+        # INTEGRATION: Tool Validator for tracking effectiveness
+        from .tool_validator import ToolValidator
+        self.tool_validator = ToolValidator(self.project_dir)
+        
+        # INTEGRATION: Tool Creator for dynamic tool creation
+        from .tool_creator import ToolCreator
+        self.tool_creator = ToolCreator(self.project_dir)
+        
         # Tool handlers
         self._handlers: Dict[str, Callable] = {
             "create_python_file": self._handle_create_file,
@@ -306,6 +314,16 @@ class ToolCallHandler:
             self.logger.error(f"Available tools: {', '.join(sorted(self._handlers.keys()))}")
             self.logger.error(f"Args provided: {list(args.keys())}")
             self.logger.error(f"=" * 70)
+            
+            # INTEGRATION: Record unknown tool attempt for potential creation
+            self.tool_creator.record_unknown_tool(
+                tool_name=name,
+                context={
+                    'phase': 'unknown',
+                    'description': f"Attempted to use {name} with args: {list(args.keys())}"
+                }
+            )
+            
             return {
                 "tool": name,
                 "success": False,
@@ -318,9 +336,39 @@ class ToolCallHandler:
             }
         
         try:
-            return handler(args)
+            # INTEGRATION: Record tool usage start time
+            import time
+            start_time = time.time()
+            
+            # Execute the tool
+            result = handler(args)
+            
+            # INTEGRATION: Record tool usage metrics
+            execution_time = time.time() - start_time
+            success = result.get("success", False)
+            error_type = result.get("error_type") if not success else None
+            
+            self.tool_validator.record_tool_usage(
+                tool_name=name,
+                success=success,
+                execution_time=execution_time,
+                phase=None,  # Phase context not available here
+                error_type=error_type
+            )
+            
+            return result
+            
         except Exception as e:
             self.logger.error(f"Tool execution failed: {e}")
+            
+            # INTEGRATION: Record tool failure
+            self.tool_validator.record_tool_usage(
+                tool_name=name,
+                success=False,
+                execution_time=0.0,
+                error_type=type(e).__name__
+            )
+            
             return {"tool": name, "success": False, "error": str(e)}
     
     def _normalize_filepath(self, filepath: str) -> str:

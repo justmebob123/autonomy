@@ -2,7 +2,7 @@
 Enhanced progress display for showing bug transitions clearly.
 """
 from typing import Dict, Any, Set
-from pipeline.error_signature import ErrorSignature
+from .error_signature import ErrorSignature
 
 
 def print_bug_transition(transition: Dict[str, Any]) -> None:
