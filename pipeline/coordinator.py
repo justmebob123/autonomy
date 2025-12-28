@@ -125,6 +125,13 @@ class PhaseCoordinator:
         from .tool_validator import ToolValidator
         self.tool_validator = ToolValidator(self.project_dir)
         self.logger.info("✅ Tool validator initialized")
+        
+        # INTEGRATION: Strategic Management System
+        from .objective_manager import ObjectiveManager
+        from .issue_tracker import IssueTracker
+        self.objective_manager = ObjectiveManager(self.project_dir, self.state_manager)
+        self.issue_tracker = IssueTracker(self.project_dir, self.state_manager)
+        self.logger.info("🎯 Strategic management system initialized (objectives + issues)")
     
     def _init_phases(self) -> Dict:
         """Initialize all pipeline phases"""
@@ -844,6 +851,12 @@ class PhaseCoordinator:
             self.logger.info(f"\n{'='*70}")
             self.logger.info(f"  ITERATION {iteration} - {phase_name.upper()}")
             self.logger.info(f"  Reason: {reason}")
+            
+            # Log objective context if present
+            objective = phase_decision.get("objective")
+            if objective:
+                self.logger.info(f"  🎯 Objective: {objective.title} ({objective.completion_percentage:.0f}% complete)")
+            
             self.logger.info(f"{'='*70}")
             
             # Get the phase
@@ -861,6 +874,7 @@ class PhaseCoordinator:
             
             # Execute the phase
             task = phase_decision.get("task")
+            objective = phase_decision.get("objective")
             
             try:
                 # Execute the phase with unknown tool detection
@@ -870,7 +884,12 @@ class PhaseCoordinator:
                     if correlations:
                         self.logger.info('Found %d correlations to guide %s' % (len(correlations), phase_name))
                    
-                result = phase.run(task=task)
+                # Pass objective to phase if available
+                phase_kwargs = {'task': task}
+                if objective:
+                    phase_kwargs['objective'] = objective
+                
+                result = phase.run(**phase_kwargs)
                 
                 # Check for unknown tool errors
                 if not result.success and result.data.get('requires_tool_development'):
@@ -990,12 +1009,67 @@ class PhaseCoordinator:
     
     def _determine_next_action(self, state: PipelineState) -> Dict:
         """
-        Determine the next action using SIMPLE, DIRECT logic.
+        Determine the next action using STRATEGIC, OBJECTIVE-DRIVEN logic.
         
-        NO ARBITER. NO COMPLEXITY. JUST WORK.
+        NEW APPROACH: Objectives drive phase selection, not just task status.
         
         Returns:
-            Dict with 'phase', 'reason', and optionally 'task'
+            Dict with 'phase', 'reason', and optionally 'task' and 'objective'
+        """
+        
+        # STRATEGIC DECISION-MAKING: Check if we have objectives
+        if state.objectives and any(state.objectives.values()):
+            # Use strategic decision-making based on objectives
+            return self._determine_next_action_strategic(state)
+        else:
+            # Fall back to tactical decision-making (legacy behavior)
+            return self._determine_next_action_tactical(state)
+    
+    def _determine_next_action_strategic(self, state: PipelineState) -> Dict:
+        """
+        Strategic decision-making based on objectives.
+        
+        This is the NEW way - objectives drive everything.
+        """
+        # Load issues into tracker
+        self.issue_tracker.load_issues(state)
+        
+        # Get active objective
+        objective = self.objective_manager.get_active_objective(state)
+        
+        if not objective:
+            # No active objective - need project planning to create objectives
+            self.logger.info("🎯 No active objectives - need project planning")
+            return {
+                'phase': 'project_planning',
+                'reason': 'No active objectives defined',
+                'objective': None
+            }
+        
+        self.logger.info(f"🎯 Active objective: {objective.title} ({objective.level.value}) - {objective.completion_percentage:.0f}% complete")
+        
+        # Analyze objective health
+        health = self.objective_manager.analyze_objective_health(objective, state, self.issue_tracker)
+        self.logger.info(f"💊 Objective health: {health.status.value} - {health.recommendation}")
+        
+        # Get recommended action for this objective
+        action = self.objective_manager.get_objective_action(objective, state, health)
+        
+        # Save updated objective to state
+        self.objective_manager.save_objective(objective, state)
+        
+        return {
+            'phase': action.phase,
+            'task': action.task,
+            'reason': action.reason,
+            'objective': objective
+        }
+    
+    def _determine_next_action_tactical(self, state: PipelineState) -> Dict:
+        """
+        Tactical decision-making based on task status (LEGACY).
+        
+        This is the OLD way - kept for backward compatibility.
         """
         
         # Get current phase

@@ -220,6 +220,63 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             # Record issues
             state.mark_file_reviewed(filepath, approved=False, issues=handler.issues)
             
+            # Create Issue objects in IssueTracker (NEW)
+            if hasattr(self, 'coordinator') and hasattr(self.coordinator, 'issue_tracker'):
+                from ..issue_tracker import Issue, IssueType, IssueSeverity
+                
+                for issue_data in handler.issues:
+                    # Determine issue type
+                    issue_type_str = issue_data.get("type", "other")
+                    try:
+                        issue_type = IssueType(issue_type_str)
+                    except ValueError:
+                        issue_type = IssueType.OTHER
+                    
+                    # Determine severity
+                    severity_map = {
+                        "syntax_error": IssueSeverity.CRITICAL,
+                        "import_error": IssueSeverity.CRITICAL,
+                        "incomplete": IssueSeverity.HIGH,
+                        "logic_error": IssueSeverity.HIGH,
+                        "type_error": IssueSeverity.MEDIUM,
+                        "style_violation": IssueSeverity.LOW
+                    }
+                    severity = severity_map.get(issue_type_str, IssueSeverity.MEDIUM)
+                    
+                    # Create Issue object
+                    issue = Issue(
+                        id="",  # Will be generated
+                        issue_type=issue_type,
+                        severity=severity,
+                        file=filepath,
+                        line_number=issue_data.get("line"),
+                        title=issue_data.get("type", "QA Issue"),
+                        description=issue_data.get("description", ""),
+                        related_task=task.task_id if task else None,
+                        related_objective=task.objective_id if task else None,
+                        reported_by="qa"
+                    )
+                    
+                    # Add to tracker
+                    issue_id = self.coordinator.issue_tracker.create_issue(issue, state)
+                    
+                    # Link to objective if present
+                    if task and task.objective_id and task.objective_level:
+                        obj_level = task.objective_level
+                        obj_id = task.objective_id
+                        if obj_level in state.objectives and obj_id in state.objectives[obj_level]:
+                            obj_data = state.objectives[obj_level][obj_id]
+                            if 'open_issues' not in obj_data:
+                                obj_data['open_issues'] = []
+                            if issue_id not in obj_data['open_issues']:
+                                obj_data['open_issues'].append(issue_id)
+                            
+                            if severity == IssueSeverity.CRITICAL:
+                                if 'critical_issues' not in obj_data:
+                                    obj_data['critical_issues'] = []
+                                if issue_id not in obj_data['critical_issues']:
+                                    obj_data['critical_issues'].append(issue_id)
+            
             # Update task priority - CRITICAL FIX: Use NEEDS_FIXES to trigger debugging
             if task:
                 task.status = TaskStatus.NEEDS_FIXES  # Changed from QA_FAILED
