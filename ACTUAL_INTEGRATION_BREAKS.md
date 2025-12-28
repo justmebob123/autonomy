@@ -89,7 +89,7 @@ ALL of these methods exist but are NEVER CALLED:
 
 **Impact**: Entire learning/metrics subsystem disconnected from execution
 
-## Duplicate/Parallel Implementations
+## Duplicate/Parallel Implementations (MASSIVE SPRAWL)
 
 ### 1. TWO ConversationThread Classes (CRITICAL DUPLICATION)
 - **orchestration/conversation_manager.py**: Simple message list for model context
@@ -108,6 +108,41 @@ ALL of these methods exist but are NEVER CALLED:
 - Result: TWO separate conversation histories that don't sync
 
 **Impact**: Confusion, wasted resources, potential state inconsistency
+
+### 2. TWO Loop Detection Systems (IDENTICAL DUPLICATION)
+- **LoopDetectionMixin** (phases/loop_detection_mixin.py)
+  * Used by: CodingPhase, PlanningPhase, QAPhase
+  * Implementation: Creates ActionTracker + PatternDetector + LoopInterventionSystem
+  
+- **LoopDetectionFacade** (loop_detection_system.py)
+  * Used by: DebuggingPhase
+  * Implementation: Creates ActionTracker + PatternDetector + LoopInterventionSystem
+
+**Problem**: IDENTICAL implementations, just different names
+- Both create the exact same three components
+- Both track actions to the same file (.autonomous_logs/action_history.jsonl)
+- Debugging uses Facade, other phases use Mixin
+- Pure duplication
+
+**Impact**: Code duplication, maintenance burden
+
+### 3. TWO Specialist Systems (PARALLEL IMPLEMENTATIONS)
+- **orchestration/specialists/** (CodingSpecialist, ReasoningSpecialist, AnalysisSpecialist)
+  * Used by: BasePhase (all phases inherit these)
+  * Created via: create_coding_specialist(), create_reasoning_specialist(), create_analysis_specialist()
+  * Integration: specialist_request_handler in BasePhase
+  
+- **specialist_agents.py** (SpecialistAgent, SpecialistTeam)
+  * Used by: role_registry, team_coordination, team_orchestrator
+  * Created via: role_registry.instantiate_specialist()
+  * Integration: team_coordination in debugging phase
+
+**Problem**: Debugging phase has BOTH specialist systems:
+- Inherits coding_specialist, reasoning_specialist, analysis_specialist from BasePhase
+- Creates team_coordination with SpecialistTeam
+- Two separate specialist systems that don't interact
+
+**Impact**: Massive duplication, confusion about which to use
 
 ### 2. Pattern Systems (NOT Duplicates - Different Purposes)
 - **pattern_recognition.py** - Learns from execution (tool sequences, failures, successes)
