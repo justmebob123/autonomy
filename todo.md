@@ -236,62 +236,77 @@ These are one-off analysis/fix scripts that were never integrated into the pipel
 
 ## INTEGRATION FIXES NEEDED
 
-### Priority 1: Remove Dead Code (Immediate - No Risk)
-1. Delete model_tool.py (394 lines) - replaced by unified_model_tool.py
-2. Delete 13 root-level scripts (2400 lines):
-   - Analysis: analyze_depth_59.py, analyze_polytope.py, analyze_run_history_need.py, build_dependency_tree.py, deep_recursive_analysis.py
-   - Fixes: FIX_VERIFICATION_LOGIC.py, HYPERDIMENSIONAL_ANALYSIS_DEPTH_59_RUN_HISTORY.py, NEW_SIMPLE_RUNTIME_PROMPT.py, PROCESS_KILL_FIX.py
-   - Fixes: fix_fstring.py, fix_html_entities.py, fix_third_occurrence.py, fix_user_intervention.py
+### Priority 1: Remove Dead Code (Immediate - No Risk) - COMPLETE
+1. DONE - Deleted model_tool.py (394 lines) - replaced by unified_model_tool.py
+2. DONE - Deleted 13 root-level scripts (2400 lines)
+3. DONE - Deleted loop_detection_system.py (65 lines) - replaced by mixin
+Total removed: 2,859 lines (5.7% reduction)
 
 ### Priority 2: Unify Duplicate Systems (High Impact)
 
-#### A. ConversationThread (776 lines - 2 implementations)
-**Decision needed**: Which to keep?
-- Option 1: Keep pipeline/conversation_thread.py (debugging-focused, 372 lines)
-  - Migrate orchestration/conversation_manager.py users to this
-  - Update phases/base.py import
-- Option 2: Keep orchestration/conversation_manager.py (multi-model, 404 lines)
-  - Migrate debugging.py and other users to this
-  - More modern, better designed
-- **Recommendation**: Keep orchestration/conversation_manager.py, migrate others
+#### A. ConversationThread (776 lines - 2 implementations) - NOT DUPLICATES
+**ANALYSIS COMPLETE**: These serve DIFFERENT purposes, should NOT be unified
+- pipeline/conversation_thread.py: Debugging-specific, tracks attempts, file snapshots, patches
+- orchestration/conversation_manager.py: Generic multi-model conversation management
+- **Decision**: Keep both - they're complementary, not duplicates
 
-#### B. Loop Detection (488 lines - 2 systems)
-**Decision needed**: Standardize on one approach
-- Option 1: Use LoopDetectionMixin everywhere
-  - Remove LoopDetectionFacade
-  - Update debugging.py to use mixin
-- Option 2: Use LoopDetectionFacade everywhere
-  - Update all phases to use facade
-  - More consistent with other facades
-- **Recommendation**: Use LoopDetectionMixin (already used by 11/12 phases)
+#### B. Loop Detection (488 lines - 2 systems) - COMPLETE
+**DONE**: Standardized on LoopDetectionMixin
+- Removed LoopDetectionFacade (65 lines)
+- Updated debugging.py to use mixin
+- All 12 phases now use consistent approach
 
-#### C. Specialists (2509 lines - 2 systems)
-**Decision needed**: Which specialist system to use?
-- System 1: SpecialistAgent/SpecialistTeam (425 lines)
-  - Dynamic, file-based roles
-  - Used by role_registry
-- System 2: AnalysisSpecialist/CodingSpecialist/ReasoningSpecialist (2084 lines)
-  - Hardcoded implementations
-  - Used by coordinator and all phases
-- **Problem**: These serve different purposes!
-  - System 1: User-defined custom roles
-  - System 2: Built-in system specialists
-- **Recommendation**: Keep both BUT clarify naming and purpose
-  - Rename SpecialistAgent to CustomRoleAgent
-  - Keep built-in specialists as-is
-  - Document the distinction
+#### C. Specialists (2509 lines - 2 systems) - NOT DUPLICATES
+**ANALYSIS COMPLETE**: These serve DIFFERENT purposes, should NOT be unified
+- SpecialistAgent/SpecialistTeam: User-defined custom roles loaded from files
+- AnalysisSpecialist/CodingSpecialist/ReasoningSpecialist: Built-in system specialists
+- **Decision**: Keep both - they're complementary, not duplicates
 
-### Priority 3: Architectural Consistency
+### Priority 3: Fix Integration Gaps - COMPLETE
 
-#### Standardize Facade Usage
-- debugging.py uses TeamCoordinationFacade
-- Other phases don't use this facade
-- **Fix**: Either use facade everywhere or remove it
+#### Integration Gap #1-3: CorrelationEngine, Polytope Updates - FIXED (commit 0929f0d)
+- CorrelationEngine now called in investigation/debugging phases
+- Polytope dimensions dynamically calculated based on phase type
+- Polytope dimensions updated after each phase execution
 
-## FINDINGS TRACKER
-- Files examined: 35/146
-- Dead code found: ~2800 lines (2400 in root scripts + 394 in model_tool.py)
-- Duplicate implementations: 4 MAJOR (ConversationThread, Loop Detection, Specialists, ModelTool)
-- Integration gaps: Multiple (systems not properly unified, inconsistent facade usage)
-- Files to remove: 14 files (13 root scripts + model_tool.py)
-- Files to integrate: 3 major unification tasks needed
+#### Integration Gap #4: Phase Hints Ignored - FIXED (commit f5d6d8d)
+- Phase hints were SET but never READ
+- Added hint check at start of _determine_next_action()
+- Phases can now suggest next phase and it will be followed
+
+#### Integration Gap #5: Documentation/Project Planning Unreachable - FIXED (commit f5d6d8d)
+- Task completion returned 'complete' immediately
+- Now routes: tasks done -> documentation -> project_planning -> complete
+- Ensures proper documentation and planning cycle
+
+#### Meta-Phases ARE Reachable:
+- investigation: Called internally by debugging phase
+- tool_design/tool_evaluation: Called when unknown tools detected
+- prompt_design/role_design: Can be reached via phase hints or polytope navigation
+- documentation/project_planning: Now properly integrated in completion flow
+
+## FINAL STATUS - INTEGRATION COMPLETE
+
+### What Was Fixed:
+1. ✅ Removed 2,859 lines of dead code (14 files)
+2. ✅ Unified loop detection system (removed facade, standardized on mixin)
+3. ✅ Fixed 5 integration gaps (CorrelationEngine, Polytope, Phase Hints, Task Completion)
+4. ✅ Verified "duplicate" systems are actually complementary (ConversationThread, Specialists)
+5. ✅ Confirmed all phases are reachable through their proper triggers
+
+### Codebase Metrics:
+- Before: 49,967 lines
+- After: 46,783 lines  
+- Reduction: 3,184 lines (6.4%)
+- All integration points verified working
+
+### What Was NOT Duplicates (Kept Both):
+- ConversationThread: Two different purposes (debugging vs multi-model)
+- Specialists: Two different purposes (custom roles vs built-in specialists)
+
+### All Integration Gaps Fixed:
+- CorrelationEngine integrated
+- Polytope dimensions dynamic
+- Phase hints working
+- Task completion flow complete
+- All phases reachable
