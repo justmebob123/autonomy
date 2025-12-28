@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field, asdict
 from enum import Enum
-from collections import defaultdict
 
 from ..logging_setup import get_logger
 
@@ -312,8 +311,8 @@ class PipelineState:
     last_planning_iteration: int = 0
     
     # Learning and intelligence fields (from unified_state integration)
-    performance_metrics: Dict[str, List[Dict]] = field(default_factory=lambda: defaultdict(list))
-    learned_patterns: Dict[str, List[Dict]] = field(default_factory=lambda: defaultdict(list))
+    performance_metrics: Dict[str, List[Dict]] = field(default_factory=dict)
+    learned_patterns: Dict[str, List[Dict]] = field(default_factory=dict)
     fix_history: List[Dict] = field(default_factory=list)
     troubleshooting_results: List[Dict] = field(default_factory=list)
     correlations: List[Dict] = field(default_factory=list)
@@ -676,11 +675,7 @@ class StateManager:
     
     def add_performance_metric(self, state: PipelineState, metric_name: str, value: float):
         """Add a performance metric to state."""
-        from collections import defaultdict
-        if not isinstance(state.performance_metrics, defaultdict):
-            state.performance_metrics = defaultdict(list, state.performance_metrics)
-        
-        state.performance_metrics[metric_name].append({
+        state.performance_metrics.setdefault(metric_name, []).append({
             'value': value,
             'timestamp': datetime.now().isoformat()
         })
@@ -688,9 +683,8 @@ class StateManager:
     
     def learn_pattern(self, state: PipelineState, pattern_name: str, pattern_data: Dict[str, Any]):
         """Learn a new pattern."""
-        from collections import defaultdict
-        if not isinstance(state.learned_patterns, defaultdict):
-            state.learned_patterns = defaultdict(list, state.learned_patterns)
+        if pattern_name not in state.learned_patterns:
+            state.learned_patterns[pattern_name] = []
         
         pattern_data['timestamp'] = datetime.now().isoformat()
         pattern_data['id'] = len(state.learned_patterns[pattern_name])
