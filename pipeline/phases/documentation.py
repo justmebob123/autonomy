@@ -50,6 +50,26 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         
         self.logger.info("  📝 Reviewing documentation...")
         
+        # CHECK IF README EXISTS - if not, skip documentation
+        readme_path = self.project_dir / "README.md"
+        if not readme_path.exists():
+            self.logger.warning("  ⚠️  README.md not found - skipping documentation phase")
+            self.logger.info("  💡 Tip: Create README.md to enable documentation updates")
+            
+            # Update state to prevent re-entry
+            from ..state.manager import StateManager
+            state_manager = StateManager(self.project_dir)
+            completed_count = sum(1 for t in state.tasks.values() if t.status == TaskStatus.COMPLETED)
+            state.last_doc_update_count = completed_count
+            state_manager.save(state)
+            
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message="README.md not found - skipping documentation",
+                next_phase="project_planning"  # Move to next phase
+            )
+        
         # INITIALIZE IPC DOCUMENTS (if first run)
         self.initialize_ipc_documents()
         
