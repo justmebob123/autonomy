@@ -49,6 +49,22 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 task: TaskState = None, **kwargs) -> PhaseResult:
         """Execute the coding phase for a task"""
         
+        # IPC INTEGRATION: Initialize documents on first run
+        self.initialize_ipc_documents()
+        
+        # IPC INTEGRATION: Read tasks from DEVELOPER_READ.md
+        tasks_from_doc = self.read_own_tasks()
+        if tasks_from_doc:
+            self.logger.info(f"  📋 Read {len(tasks_from_doc.split('##'))-1} task(s) from DEVELOPER_READ.md")
+        
+        # IPC INTEGRATION: Read strategic documents for context
+        strategic_docs = self.read_strategic_docs()
+        if strategic_docs:
+            self.logger.debug(f"  📚 Loaded {len(strategic_docs)} strategic documents")
+        
+        # IPC INTEGRATION: Read other phases' outputs
+        phase_outputs = self._read_relevant_phase_outputs()
+        
         # CRITICAL: If task was passed from coordinator, look it up in the loaded state
         # This ensures we modify the task in the state that will be saved
         if task is not None:
@@ -205,6 +221,16 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         if complexity_warnings:
             message += f" (⚠️ {len(complexity_warnings)} complexity warnings)"
         
+        # IPC INTEGRATION: Write status to DEVELOPER_WRITE.md
+        status_content = self._format_status_for_write(
+            task, files_created, files_modified, complexity_warnings
+        )
+        self.write_own_status(status_content)
+        self.logger.info("  📝 Updated DEVELOPER_WRITE.md with task status")
+        
+        # IPC INTEGRATION: Send messages to other phases
+        self._send_phase_messages(task, files_created, files_modified, complexity_warnings)
+        
         return PhaseResult(
             success=True,
             phase=self.phase_name,
@@ -354,3 +380,109 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
             lines.append("")
         
         return "\n".join(lines)
+    
+    def _read_relevant_phase_outputs(self) -> Dict[str, str]:
+        """Read outputs from other phases for context"""
+        outputs = {}
+        
+        try:
+            # Read planning output for task assignments and priorities
+            planning_output = self.read_phase_output('planning')
+            if planning_output:
+                outputs['planning'] = planning_output
+                self.logger.debug("  📖 Read planning phase output")
+            
+            # Read QA output for feedback on previous code
+            qa_output = self.read_phase_output('qa')
+            if qa_output:
+                outputs['qa'] = qa_output
+                self.logger.debug("  📖 Read QA phase output")
+            
+            # Read debugging output for bug fixes needed
+            debug_output = self.read_phase_output('debug')
+            if debug_output:
+                outputs['debug'] = debug_output
+                self.logger.debug("  📖 Read debugging phase output")
+                
+        except Exception as e:
+            self.logger.debug(f"  Error reading phase outputs: {e}")
+        
+        return outputs
+    
+    def _send_phase_messages(self, task: TaskState, files_created: List[str], 
+                            files_modified: List[str], complexity_warnings: List[str]):
+        """Send messages to other phases' READ documents"""
+        try:
+            # Send to QA phase when code is ready for review
+            qa_message = f"""
+## Code Completion Update - {self.format_timestamp()}
+
+**Task**: {task.description[:100]}
+**Target File**: {task.target_file}
+**Status**: Ready for QA review
+
+### Changes Made
+- **Files Created**: {len(files_created)}
+  {chr(10).join(f'  - {f}' for f in files_created[:5])}
+- **Files Modified**: {len(files_modified)}
+  {chr(10).join(f'  - {f}' for f in files_modified[:5])}
+
+### Quality Notes
+"""
+            
+            if complexity_warnings:
+                qa_message += f"⚠️ **Complexity Warnings**: {len(complexity_warnings)}\n"
+                for warning in complexity_warnings[:3]:
+                    qa_message += f"  - {warning}\n"
+            else:
+                qa_message += "✅ No complexity warnings detected\n"
+            
+            qa_message += "\nPlease review the changes and verify functionality.\n"
+            
+            self.send_message_to_phase('qa', qa_message)
+            self.logger.info("  📤 Sent completion message to QA phase")
+            
+        except Exception as e:
+            self.logger.debug(f"  Error sending phase messages: {e}")
+    
+    def _format_status_for_write(self, task: TaskState, files_created: List[str],
+                                 files_modified: List[str], complexity_warnings: List[str]) -> str:
+        """Format status for DEVELOPER_WRITE.md"""
+        status = f"""# Coding Phase Status
+
+**Timestamp**: {self.format_timestamp()}
+**Status**: Task Completed
+**Task ID**: {task.task_id}
+
+## Task Summary
+**Description**: {task.description}
+**Target File**: {task.target_file}
+**Attempt**: {task.attempts}
+
+## Changes Made
+
+### Files Created ({len(files_created)})
+"""
+        
+        for filepath in files_created:
+            status += f"- `{filepath}`\n"
+        
+        status += f"\n### Files Modified ({len(files_modified)})\n"
+        for filepath in files_modified:
+            status += f"- `{filepath}`\n"
+        
+        status += "\n## Quality Metrics\n\n"
+        
+        if complexity_warnings:
+            status += f"⚠️ **Complexity Warnings**: {len(complexity_warnings)}\n\n"
+            for warning in complexity_warnings:
+                status += f"- {warning}\n"
+        else:
+            status += "✅ No complexity warnings detected\n"
+        
+        status += f"\n## Next Steps\n\n"
+        status += f"- Task marked as QA_PENDING\n"
+        status += f"- Files ready for quality assurance review\n"
+        status += f"- Awaiting QA phase verification\n"
+        
+        return status

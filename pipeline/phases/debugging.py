@@ -466,6 +466,22 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                 task: TaskState = None, **kwargs) -> PhaseResult:
         """Execute debugging for an issue"""
         
+        # IPC INTEGRATION: Initialize documents on first run
+        self.initialize_ipc_documents()
+        
+        # IPC INTEGRATION: Read bug reports from DEBUG_READ.md
+        bug_reports = self.read_own_tasks()
+        if bug_reports:
+            self.logger.info(f"  📋 Read bug reports from DEBUG_READ.md")
+        
+        # IPC INTEGRATION: Read strategic documents for known issues
+        strategic_docs = self.read_strategic_docs()
+        if strategic_docs:
+            self.logger.debug(f"  📚 Loaded {len(strategic_docs)} strategic documents")
+        
+        # IPC INTEGRATION: Read other phases' outputs
+        phase_outputs = self._read_relevant_phase_outputs()
+        
         # MESSAGE BUS: Check for relevant messages
         if self.message_bus:
             from ..messaging import MessageType, MessagePriority
@@ -781,6 +797,16 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         # Mark file for re-review
         if filepath in state.files:
             state.files[filepath].qa_status = FileStatus.PENDING
+        
+        # IPC INTEGRATION: Write status to DEBUG_WRITE.md
+        status_content = self._format_status_for_write(
+            issue, filepath, fix_applied=True, files_modified=handler.files_modified
+        )
+        self.write_own_status(status_content)
+        self.logger.info("  📝 Updated DEBUG_WRITE.md with fix status")
+        
+        # IPC INTEGRATION: Send messages to other phases
+        self._send_phase_messages(issue, filepath, fix_applied=True)
         
         return PhaseResult(
             success=True,
@@ -1857,3 +1883,125 @@ Apply the fix immediately.""",
         lines.append("")
         
         return "\n".join(lines)
+    
+    def _read_relevant_phase_outputs(self) -> Dict[str, str]:
+        """Read outputs from other phases for context"""
+        outputs = {}
+        
+        try:
+            # Read QA output for reported bugs
+            qa_output = self.read_phase_output('qa')
+            if qa_output:
+                outputs['qa'] = qa_output
+                self.logger.debug("  📖 Read QA phase output")
+            
+            # Read planning output for known issues
+            planning_output = self.read_phase_output('planning')
+            if planning_output:
+                outputs['planning'] = planning_output
+                self.logger.debug("  📖 Read planning phase output")
+            
+            # Read developer output for recent changes
+            developer_output = self.read_phase_output('developer')
+            if developer_output:
+                outputs['developer'] = developer_output
+                self.logger.debug("  📖 Read developer phase output")
+                
+        except Exception as e:
+            self.logger.debug(f"  Error reading phase outputs: {e}")
+        
+        return outputs
+    
+    def _send_phase_messages(self, issue: Dict, filepath: str, fix_applied: bool):
+        """Send messages to other phases' READ documents"""
+        try:
+            if fix_applied:
+                # Send to QA phase when fix is ready for verification
+                qa_message = f"""
+## Debug Fix Complete - {self.format_timestamp()}
+
+**File**: {filepath}
+**Issue Type**: {issue.get('type', 'N/A')}
+**Status**: ✅ Fix applied
+
+### Issue Details
+**Description**: {issue.get('description', 'N/A')}
+**Line**: {issue.get('line', 'N/A')}
+
+### Fix Applied
+The issue has been addressed. Please verify the fix and ensure no regressions were introduced.
+
+**Action Required**: Re-review the file to confirm the fix is correct.
+"""
+                
+                self.send_message_to_phase('qa', qa_message)
+                self.logger.info("  📤 Sent fix completion to QA phase")
+                
+                # Also notify developer phase if architectural changes were needed
+                if issue.get('type') in ['integration_gap', 'architectural']:
+                    dev_message = f"""
+## Architectural Fix Applied - {self.format_timestamp()}
+
+**File**: {filepath}
+**Issue**: {issue.get('description', 'N/A')}
+
+An architectural issue was fixed. Please review to ensure it aligns with the overall design.
+"""
+                    self.send_message_to_phase('developer', dev_message)
+                    self.logger.info("  📤 Sent architectural fix notice to developer phase")
+            else:
+                # Send failure notice
+                qa_message = f"""
+## Debug Attempt Failed - {self.format_timestamp()}
+
+**File**: {filepath}
+**Issue Type**: {issue.get('type', 'N/A')}
+**Status**: ❌ Fix failed
+
+The debugging attempt was unsuccessful. The issue may require manual intervention or a different approach.
+"""
+                
+                self.send_message_to_phase('qa', qa_message)
+                self.logger.info("  📤 Sent failure notice to QA phase")
+                
+        except Exception as e:
+            self.logger.debug(f"  Error sending phase messages: {e}")
+    
+    def _format_status_for_write(self, issue: Dict, filepath: str, 
+                                 fix_applied: bool, files_modified: List[str]) -> str:
+        """Format status for DEBUG_WRITE.md"""
+        status = f"""# Debugging Phase Status
+
+**Timestamp**: {self.format_timestamp()}
+**File**: {filepath}
+**Status**: {'✅ Fix Applied' if fix_applied else '❌ Fix Failed'}
+
+## Issue Details
+
+**Type**: {issue.get('type', 'N/A')}
+**Description**: {issue.get('description', 'N/A')}
+**Line**: {issue.get('line', 'N/A')}
+**Severity**: {issue.get('severity', 'N/A')}
+
+"""
+        
+        if fix_applied:
+            status += f"## Fix Summary\n\n"
+            status += f"**Files Modified**: {len(files_modified)}\n\n"
+            for filepath in files_modified:
+                status += f"- `{filepath}`\n"
+            
+            status += "\n## Verification Needed\n\n"
+            status += "- Fix has been applied to the code\n"
+            status += "- File marked for QA re-review\n"
+            status += "- Please verify the fix resolves the issue\n"
+            status += "- Check for any potential regressions\n"
+        else:
+            status += "## Fix Attempt Failed\n\n"
+            status += "The debugging attempt was unsuccessful. Possible reasons:\n"
+            status += "- Issue requires manual intervention\n"
+            status += "- More context needed to understand the problem\n"
+            status += "- Architectural changes required\n"
+            status += "\n**Recommendation**: Review the issue manually or provide additional context.\n"
+        
+        return status

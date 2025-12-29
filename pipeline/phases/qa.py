@@ -61,6 +61,22 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 task: TaskState = None, **kwargs) -> PhaseResult:
         """Execute QA review for a file or task"""
         
+        # IPC INTEGRATION: Initialize documents on first run
+        self.initialize_ipc_documents()
+        
+        # IPC INTEGRATION: Read review requests from QA_READ.md
+        review_requests = self.read_own_tasks()
+        if review_requests:
+            self.logger.info(f"  📋 Read review requests from QA_READ.md")
+        
+        # IPC INTEGRATION: Read strategic documents for quality criteria
+        strategic_docs = self.read_strategic_docs()
+        if strategic_docs:
+            self.logger.debug(f"  📚 Loaded {len(strategic_docs)} strategic documents")
+        
+        # IPC INTEGRATION: Read other phases' outputs
+        phase_outputs = self._read_relevant_phase_outputs()
+        
         # MESSAGE BUS: Check for relevant messages
         if self.message_bus:
             from ..messaging import MessageType
@@ -402,6 +418,15 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             # CRITICAL FIX: QA finding issues = QA SUCCESS (code has problems)
             # QA phase succeeded in its job of finding issues
             # The CODE needs fixing, not the QA phase
+            
+            # IPC INTEGRATION: Write status to QA_WRITE.md
+            status_content = self._format_status_for_write(filepath, handler.issues, approved=False)
+            self.write_own_status(status_content)
+            self.logger.info("  📝 Updated QA_WRITE.md with review results")
+            
+            # IPC INTEGRATION: Send messages to other phases
+            self._send_phase_messages(filepath, handler.issues)
+            
             return PhaseResult(
                 success=True,  # QA succeeded in finding issues!
                 phase=self.phase_name,
@@ -444,6 +469,14 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         if task:
             task.status = TaskStatus.COMPLETED
             task.completed = datetime.now().isoformat()
+        
+        # IPC INTEGRATION: Write status to QA_WRITE.md
+        status_content = self._format_status_for_write(filepath, [], approved=True)
+        self.write_own_status(status_content)
+        self.logger.info("  📝 Updated QA_WRITE.md with approval")
+        
+        # IPC INTEGRATION: Send messages to other phases
+        self._send_phase_messages(filepath, [])
         
         return PhaseResult(
             success=True,
@@ -669,3 +702,139 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 'error': str(e),
                 'issues': []
             }
+    
+    def _read_relevant_phase_outputs(self) -> Dict[str, str]:
+        """Read outputs from other phases for context"""
+        outputs = {}
+        
+        try:
+            # Read developer output for completed code
+            developer_output = self.read_phase_output('developer')
+            if developer_output:
+                outputs['developer'] = developer_output
+                self.logger.debug("  📖 Read developer phase output")
+            
+            # Read planning output for quality criteria
+            planning_output = self.read_phase_output('planning')
+            if planning_output:
+                outputs['planning'] = planning_output
+                self.logger.debug("  📖 Read planning phase output")
+            
+            # Read debugging output for known issues
+            debug_output = self.read_phase_output('debug')
+            if debug_output:
+                outputs['debug'] = debug_output
+                self.logger.debug("  📖 Read debugging phase output")
+                
+        except Exception as e:
+            self.logger.debug(f"  Error reading phase outputs: {e}")
+        
+        return outputs
+    
+    def _send_phase_messages(self, filepath: str, issues_found: List[Dict]):
+        """Send messages to other phases' READ documents"""
+        try:
+            if issues_found:
+                # Send to debugging phase when bugs found
+                debug_message = f"""
+## QA Issues Found - {self.format_timestamp()}
+
+**File**: {filepath}
+**Issues Found**: {len(issues_found)}
+**Status**: Requires debugging
+
+### Issue Summary
+"""
+                
+                # Group by severity
+                critical = [i for i in issues_found if i.get('severity') == 'critical']
+                high = [i for i in issues_found if i.get('severity') == 'high']
+                medium = [i for i in issues_found if i.get('severity') == 'medium']
+                low = [i for i in issues_found if i.get('severity') == 'low']
+                
+                if critical:
+                    debug_message += f"\n🔴 **Critical**: {len(critical)} issues\n"
+                    for issue in critical[:3]:
+                        debug_message += f"  - Line {issue.get('line', 'N/A')}: {issue.get('description', 'N/A')}\n"
+                
+                if high:
+                    debug_message += f"\n🟠 **High**: {len(high)} issues\n"
+                    for issue in high[:3]:
+                        debug_message += f"  - Line {issue.get('line', 'N/A')}: {issue.get('description', 'N/A')}\n"
+                
+                if medium:
+                    debug_message += f"\n🟡 **Medium**: {len(medium)} issues\n"
+                
+                if low:
+                    debug_message += f"\n🟢 **Low**: {len(low)} issues\n"
+                
+                debug_message += "\nPlease address these issues and resubmit for QA.\n"
+                
+                self.send_message_to_phase('debug', debug_message)
+                self.logger.info(f"  📤 Sent {len(issues_found)} issues to debugging phase")
+            else:
+                # Send approval to developer phase
+                dev_message = f"""
+## QA Approval - {self.format_timestamp()}
+
+**File**: {filepath}
+**Status**: ✅ Approved
+**Issues Found**: None
+
+The code has passed quality assurance review. No issues detected.
+"""
+                
+                self.send_message_to_phase('developer', dev_message)
+                self.logger.info("  📤 Sent approval to developer phase")
+                
+        except Exception as e:
+            self.logger.debug(f"  Error sending phase messages: {e}")
+    
+    def _format_status_for_write(self, filepath: str, issues_found: List[Dict], 
+                                 approved: bool) -> str:
+        """Format status for QA_WRITE.md"""
+        status = f"""# QA Phase Status
+
+**Timestamp**: {self.format_timestamp()}
+**File Reviewed**: {filepath}
+**Status**: {'✅ Approved' if approved else '❌ Issues Found'}
+
+## Review Summary
+
+"""
+        
+        if issues_found:
+            status += f"**Total Issues**: {len(issues_found)}\n\n"
+            
+            # Group by severity
+            by_severity = {}
+            for issue in issues_found:
+                severity = issue.get('severity', 'unknown')
+                if severity not in by_severity:
+                    by_severity[severity] = []
+                by_severity[severity].append(issue)
+            
+            # Report by severity
+            for severity in ['critical', 'high', 'medium', 'low']:
+                if severity in by_severity:
+                    issues = by_severity[severity]
+                    status += f"### {severity.title()} Priority ({len(issues)} issues)\n\n"
+                    for issue in issues[:5]:  # Show first 5
+                        status += f"- **Line {issue.get('line', 'N/A')}**: {issue.get('description', 'N/A')}\n"
+                        if issue.get('recommendation'):
+                            status += f"  - *Recommendation*: {issue['recommendation']}\n"
+                    if len(issues) > 5:
+                        status += f"  - ... and {len(issues) - 5} more\n"
+                    status += "\n"
+        else:
+            status += "✅ No issues found. Code meets quality standards.\n\n"
+        
+        status += "## Next Steps\n\n"
+        if issues_found:
+            status += "- Issues sent to debugging phase\n"
+            status += "- Awaiting fixes and resubmission\n"
+        else:
+            status += "- File approved and marked as reviewed\n"
+            status += "- Ready for deployment or next phase\n"
+        
+        return status
