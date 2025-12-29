@@ -498,48 +498,46 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
     def _update_tertiary_objectives(self, analysis_results: Dict):
         """Update TERTIARY_OBJECTIVES with specific code fixes"""
         try:
-            tertiary_path = self.project_dir / 'TERTIARY_OBJECTIVES.md'
+            timestamp = self.format_timestamp()
             
-            content = f"""# Tertiary Objectives - Specific Implementation Details
-
-**Last Updated**: {self.format_timestamp()}
-
-## Specific Code Fixes Needed
-
-"""
+            # Build content for each section
+            sections_to_update = []
             
-            # Add complexity issues with specific fixes
+            # High complexity functions
             if analysis_results.get('complexity_issues'):
-                content += "### High Complexity Functions\n\n"
+                content = f"**Last Updated**: {timestamp}\n\n"
                 for issue in analysis_results['complexity_issues'][:10]:
                     content += f"**File**: `{issue['file']}`\n"
                     content += f"**Function**: `{issue['function']}`\n"
                     content += f"**Complexity**: {issue['complexity']}\n"
                     content += f"**Line**: {issue['line']}\n"
                     content += f"**Recommendation**: {issue['recommendation']}\n\n"
+                sections_to_update.append(('Specific Code Fixes Needed', content))
             
-            # Add dead code with specific removal guidance
+            # Dead code
             if analysis_results.get('dead_code'):
-                content += "### Dead Code to Remove\n\n"
+                content = f"**Last Updated**: {timestamp}\n\n"
                 for issue in analysis_results['dead_code'][:10]:
                     content += f"**File**: `{issue['file']}`\n"
                     content += f"**Item**: `{issue['name']}`\n"
                     content += f"**Type**: {issue['type']}\n"
                     content += f"**Line**: {issue['line']}\n"
                     content += f"**Action**: Remove or add usage\n\n"
+                sections_to_update.append(('Known Issues', content))
             
-            # Add integration gaps with specific integration steps
+            # Integration gaps
             if analysis_results.get('integration_gaps'):
-                content += "### Integration Gaps to Address\n\n"
+                content = f"**Last Updated**: {timestamp}\n\n"
                 for issue in analysis_results['integration_gaps'][:10]:
                     content += f"**File**: `{issue['file']}`\n"
                     content += f"**Class**: `{issue['class']}`\n"
                     content += f"**Line**: {issue['line']}\n"
                     content += f"**Action**: Complete integration or remove\n\n"
+                sections_to_update.append(('Known Issues', content))
             
-            # Add integration conflicts with resolution steps
+            # Integration conflicts
             if analysis_results.get('integration_conflicts'):
-                content += "### Integration Conflicts to Resolve\n\n"
+                content = f"**Last Updated**: {timestamp}\n\n"
                 for conflict in analysis_results['integration_conflicts'][:10]:
                     content += f"**Type**: {conflict['type']}\n"
                     content += f"**Severity**: {conflict['severity'].upper()}\n"
@@ -548,9 +546,18 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                         content += f"  - `{file}`\n"
                     content += f"**Description**: {conflict['description']}\n"
                     content += f"**Recommendation**: {conflict['recommendation']}\n\n"
+                sections_to_update.append(('Integration Conflicts to Resolve', content))
             
-            tertiary_path.write_text(content)
-            self.logger.info("  📝 Updated TERTIARY_OBJECTIVES.md")
+            # Update each section (appends to existing content)
+            for section_name, content in sections_to_update:
+                self.file_updater.update_section(
+                    'TERTIARY_OBJECTIVES.md',
+                    section_name,
+                    content
+                )
+            
+            if sections_to_update:
+                self.logger.info(f"  📝 Updated {len(sections_to_update)} sections in TERTIARY_OBJECTIVES.md")
             
         except Exception as e:
             self.logger.error(f"  ❌ Failed to update TERTIARY_OBJECTIVES: {e}")

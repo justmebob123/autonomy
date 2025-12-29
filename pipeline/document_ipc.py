@@ -47,6 +47,9 @@ class DocumentIPC:
             self._create_read_document(phase, docs['read'])
             self._create_write_document(phase, docs['write'])
         
+        # Create strategic documents
+        self._create_strategic_documents()
+        
         self.logger.info("✅ Document IPC system initialized")
     
     def read_own_document(self, phase: str) -> str:
@@ -317,4 +320,176 @@ class DocumentIPC:
             filepath.write_text(template)
             self.logger.info(f"  Created {doc_name}")
         except Exception as e:
-            self.logger.error(f"Failed to create {doc_name}: {e}")
+            self.logger.error(f"Failed to create {doc_name}: {e}")    
+    def _create_strategic_documents(self):
+        """Create strategic documents if they don't exist."""
+        from datetime import datetime
+        
+        # PRIMARY_OBJECTIVES.md
+        primary_path = self.project_dir / 'PRIMARY_OBJECTIVES.md'
+        if not primary_path.exists():
+            template = f"""# Primary Objectives
+
+> **Purpose**: Core functional requirements and features
+> **Updated By**: Planning phase (based on MASTER_PLAN)
+> **Read By**: All phases
+> **Created**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+## Core Features
+<!-- List of core features to implement -->
+<!-- Planning phase will populate this based on MASTER_PLAN analysis -->
+
+## Functional Requirements
+<!-- Specific functional requirements -->
+<!-- Derived from MASTER_PLAN objectives -->
+
+## Success Criteria
+<!-- How to measure success -->
+<!-- Defined based on MASTER_PLAN goals -->
+
+---
+*This document is automatically updated by the Planning phase based on MASTER_PLAN analysis.*
+"""
+            try:
+                primary_path.write_text(template)
+                self.logger.info("  ✅ Created PRIMARY_OBJECTIVES.md")
+            except Exception as e:
+                self.logger.error(f"  ❌ Failed to create PRIMARY_OBJECTIVES.md: {e}")
+        
+        # SECONDARY_OBJECTIVES.md
+        secondary_path = self.project_dir / 'SECONDARY_OBJECTIVES.md'
+        if not secondary_path.exists():
+            template = f"""# Secondary Objectives
+
+> **Purpose**: Architectural changes, testing requirements, reported failures
+> **Updated By**: Planning phase (based on analysis and QA feedback)
+> **Read By**: All phases
+> **Created**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+## Architectural Changes Needed
+<!-- Changes to architecture based on analysis -->
+<!-- Planning phase adds findings from complexity and integration analysis -->
+
+## Testing Requirements
+<!-- Testing needs identified -->
+<!-- QA phase reports missing tests, planning adds them here -->
+
+## Reported Failures
+<!-- Issues found by QA/debugging -->
+<!-- Accumulated from QA_WRITE and DEBUG_WRITE documents -->
+
+## Integration Issues
+<!-- Integration problems to resolve -->
+<!-- From integration gap and conflict detection -->
+
+---
+*This document is automatically updated by the Planning phase based on codebase analysis.*
+"""
+            try:
+                secondary_path.write_text(template)
+                self.logger.info("  ✅ Created SECONDARY_OBJECTIVES.md")
+            except Exception as e:
+                self.logger.error(f"  ❌ Failed to create SECONDARY_OBJECTIVES.md: {e}")
+        
+        # TERTIARY_OBJECTIVES.md
+        tertiary_path = self.project_dir / 'TERTIARY_OBJECTIVES.md'
+        if not tertiary_path.exists():
+            template = f"""# Tertiary Objectives - Specific Implementation Details
+
+> **Purpose**: Specific implementation details, code examples, and fixes
+> **Updated By**: Planning phase (based on deep analysis)
+> **Read By**: Coding and debugging phases primarily
+> **Created**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+## Specific Code Fixes Needed
+<!-- Detailed fixes with file paths and line numbers -->
+<!-- Planning phase adds findings from complexity, dead code, and conflict analysis -->
+
+## Implementation Examples
+<!-- Code examples and patterns to follow -->
+<!-- Extracted from existing codebase or provided as guidance -->
+
+## Known Issues
+<!-- Specific bugs and their locations -->
+<!-- From QA analysis and debugging reports -->
+
+## Integration Conflicts to Resolve
+<!-- Duplicate implementations and naming conflicts -->
+<!-- From integration conflict detection -->
+
+---
+*This document is automatically updated by the Planning phase with specific, actionable fixes.*
+"""
+            try:
+                tertiary_path.write_text(template)
+                self.logger.info("  ✅ Created TERTIARY_OBJECTIVES.md")
+            except Exception as e:
+                self.logger.error(f"  ❌ Failed to create TERTIARY_OBJECTIVES.md: {e}")
+        
+        # ARCHITECTURE.md (if not exists, create from example)
+        arch_path = self.project_dir / 'ARCHITECTURE.md'
+        if not arch_path.exists():
+            # Try to copy from ARCHITECTURE_EXAMPLE.md in pipeline
+            from pathlib import Path
+            example_path = Path(__file__).parent.parent / 'ARCHITECTURE_EXAMPLE.md'
+            
+            if example_path.exists():
+                try:
+                    arch_path.write_text(example_path.read_text())
+                    self.logger.info("  ✅ Created ARCHITECTURE.md from example template")
+                except Exception as e:
+                    self.logger.error(f"  ❌ Failed to create ARCHITECTURE.md: {e}")
+            else:
+                # Create minimal template if example doesn't exist
+                template = f"""# Project Architecture
+
+> **Purpose**: Define project structure, naming conventions, and integration guidelines
+> **Updated By**: Planning phase (current state) and humans (intended design)
+> **Read By**: All phases
+> **Created**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+## Project Structure
+
+### Library Directories
+Directories containing reusable library code (meant to be imported):
+<!-- Define your library directories here -->
+
+### Application Directories
+Directories containing application-specific code:
+<!-- Define your application directories here -->
+
+### Test Directories
+Directories containing test code:
+- `tests/` - Unit and integration tests
+- `test/` - Alternative test directory
+
+## Naming Conventions
+
+### File Naming
+- **Preferred**: `snake_case.py` with descriptive names
+
+### Module Naming
+- **Preferred**: Feature-based names
+
+### Class Naming
+- **Standard**: `PascalCase`
+
+## Integration Guidelines
+
+### Duplicate Detection Rules
+- Files with similar names in different directories may indicate duplication
+- Action: Flag as integration conflict for review
+
+### Dead Code Review Rules
+- Library code may appear unused if not yet integrated
+- Don't delete library code without review
+- Mark for integration review instead
+
+---
+*See ARCHITECTURE_SCHEMA.md in the autonomy repository for full schema documentation.*
+"""
+                try:
+                    arch_path.write_text(template)
+                    self.logger.info("  ✅ Created ARCHITECTURE.md with minimal template")
+                except Exception as e:
+                    self.logger.error(f"  ❌ Failed to create ARCHITECTURE.md: {e}")
