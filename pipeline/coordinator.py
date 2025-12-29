@@ -703,7 +703,7 @@ class PhaseCoordinator:
                 if task.status == TaskStatus.FAILED:
                     self.correlation_engine.add_finding('task_errors', {
                         'type': 'error',
-                        'task_id': task.id,
+                        'task_id': task.task_id,
                         'message': task.description,
                         'file': task.target_file,
                         'timestamp': datetime.now().isoformat()
@@ -808,7 +808,7 @@ class PhaseCoordinator:
             
             # Loop detected: 3+ failures on same task
             if failure_count >= 3:
-                self.logger.warning(f"🔄 Loop detected: Task {task.id} failed {failure_count} times")
+                self.logger.warning(f"🔄 Loop detected: Task {task.task_id} failed {failure_count} times")
                 
                 # Analyze error pattern to suggest action
                 error_msg = getattr(task, 'error', '')
@@ -823,7 +823,7 @@ class PhaseCoordinator:
                     suggested_action = 'tool_design'  # Default to tool creation
                 
                 return {
-                    'task_id': task.id,
+                    'task_id': task.task_id,
                     'failure_count': failure_count,
                     'error_pattern': error_msg[:200],
                     'suggested_action': suggested_action
