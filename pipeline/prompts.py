@@ -72,11 +72,28 @@ PLANNING WORKFLOW:
 5. Verify each task has specific description and exact file path
 6. Call create_task_plan tool with all tasks
 
+ANALYSIS CAPABILITIES:
+You have access to automated code analysis that runs BEFORE planning:
+- **Complexity Analysis**: Identifies functions with high cyclomatic complexity (≥30)
+- **Dead Code Detection**: Finds unused functions, classes, and variables
+- **Integration Gap Analysis**: Discovers unused classes and missing integrations
+
+When you receive analysis results in the context:
+- **High Complexity Files**: Consider refactoring tasks for these files
+- **Dead Code**: Plan cleanup tasks to remove unused code
+- **Integration Issues**: Address architectural gaps in your planning
+
+EXAMPLE: If analysis shows "pipeline/coordinator.py: max complexity=45":
+- Add task: "Refactor coordinator.py to reduce complexity below 30"
+- Priority: 20-30 (important for maintainability)
+- Consider breaking complex functions into smaller ones
+
 REMEMBER: 
 - You MUST call create_task_plan with a non-empty name field!
 - Each task must be specific and actionable
 - File paths must be exact and complete
 - Dependencies must reference other tasks' target files
+- Consider analysis findings when planning tasks
 - Do NOT output JSON as text - USE THE TOOL!""",
 
     "coding": """You are an expert Python developer implementing production code.
@@ -218,6 +235,24 @@ COMMON PATTERNS:
 - Error handling: Catch specific exceptions, log errors
 - Type hints: Use typing module (Dict, List, Optional, etc.)
 
+
+COMPLEXITY VALIDATION:
+After code generation, your code will be automatically validated:
+- **Complexity Check**: Functions with complexity ≥30 will be flagged
+- **Automatic Warning**: High complexity generates warnings for QA review
+- **Best Practice**: Keep functions simple and focused (complexity <20 is ideal)
+
+When writing code:
+- Break complex logic into smaller functions
+- Use helper functions for repeated patterns
+- Keep functions focused on single responsibility
+- Aim for complexity <15 for critical code
+
+EXAMPLE: Instead of one 50-line function with complexity 35:
+- Create 3-4 smaller functions with complexity <10 each
+- Use descriptive function names
+- Each function does one thing well
+
 REMEMBER:
 - You MUST call create_python_file or modify_python_file with non-empty name!
 - File content must be COMPLETE with all imports
@@ -265,6 +300,23 @@ VERIFICATION WORKFLOW:
 4. Check logic and completeness
 5. Report issues or approve code
 
+ANALYSIS CAPABILITIES:
+You have access to automated code analysis that runs BEFORE manual review:
+- **Complexity Analysis**: Checks cyclomatic complexity (flags functions ≥30)
+- **Dead Code Detection**: Finds unused functions, classes, and variables
+- **Integration Gap Analysis**: Discovers unused classes and missing integrations
+
+When you receive automated analysis results:
+- **Review the findings**: Analysis has already identified potential issues
+- **Add manual review**: Look for issues analysis can't catch (logic errors, design issues)
+- **Report all issues**: Use report_issue for both automated and manual findings
+- **Complexity threshold**: Flag functions with complexity ≥30 for refactoring
+
+EXAMPLE: If analysis shows "Function 'process_data' has complexity 35":
+- Report as issue: "High complexity (35) in process_data function. Consider refactoring."
+- Issue type: "complexity"
+- Suggest breaking into smaller functions
+
 REMEMBER: Every tool call MUST have a non-empty name field!
 If you find ANY issues, use report_issue for EACH one.
 Only use approve_code if the code is production-ready.""",
@@ -284,6 +336,22 @@ INCORRECT FORMATS (DO NOT USE):
 - Empty name: {"name": "", "arguments": {...}}
 - Missing name: {"arguments": {...}}
 - Text explanation: Just explaining the fix without calling the tool
+
+ANALYSIS CAPABILITIES:
+You have access to automated code analysis that runs BEFORE debugging:
+- **Complexity Analysis**: Shows complexity of buggy code (helps identify complex areas)
+- **Call Graph Analysis**: Shows function call relationships (helps understand flow)
+- **Integration Gap Analysis**: Shows missing integrations (helps identify architectural issues)
+
+When you receive analysis results:
+- **High Complexity**: Bug may be in complex code - focus debugging there
+- **Call Graph**: Use to understand how functions interact and where bug propagates
+- **Integration Issues**: Bug may be due to missing or incorrect integrations
+
+EXAMPLE: If analysis shows "max complexity=42, avg=18.5":
+- The bug is likely in the most complex function
+- Consider simplifying while fixing
+- Break complex logic into smaller functions
 
 DEBUGGING WORKFLOW:
 Step 1: UNDERSTAND the error
@@ -346,6 +414,25 @@ When analyzing, consider:
 - What refactoring would improve code quality?
 - What tests or documentation are missing?
 - What integration opportunities exist?
+
+
+CODEBASE ANALYSIS CAPABILITIES:
+You have access to automated codebase analysis that runs BEFORE planning:
+- **Complexity Metrics**: Average complexity, high complexity files (≥30)
+- **Dead Code Detection**: Files with unused functions and classes
+- **Integration Gap Analysis**: Unused classes and missing integrations
+- **Health Metrics**: Overall codebase health assessment
+
+When you receive analysis results:
+- **High Complexity Files**: Prioritize refactoring tasks for maintainability
+- **Dead Code**: Plan cleanup tasks to improve code quality
+- **Integration Issues**: Address architectural gaps in expansion planning
+- **Health Metrics**: Use to inform strategic planning decisions
+
+EXAMPLE: If analysis shows "3 files with high complexity, 5 files with dead code":
+- Consider refactoring tasks: "Refactor high-complexity modules"
+- Consider cleanup tasks: "Remove unused code from identified files"
+- Balance new features with code quality improvements
 
 You MUST use the provided tools to report your analysis and propose tasks.
 Use analyze_project_status first, then propose_expansion_tasks with explicit file paths.""",

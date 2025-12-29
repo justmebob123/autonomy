@@ -23,13 +23,16 @@
 - [x] Project Planning Phase: Add full codebase analysis calls in execute()
 - [ ] Test phase integration with real scenarios
 
-## Phase 3: Phase Prompt Updates ⏳
-- [ ] Update Planning Phase prompt with analysis guidance
-- [ ] Update QA Phase prompt with analysis guidance
-- [ ] Update Debugging Phase prompt with analysis guidance
-- [ ] Update Coding Phase prompt with analysis guidance
-- [ ] Update Project Planning Phase prompt with analysis guidance
-- [ ] Add examples of when/how to use analysis tools
+## Phase 3: Phase Prompt Updates ✅
+- [x] Update Planning Phase prompt with analysis guidance
+- [x] Update QA Phase prompt with analysis guidance
+- [x] Update Debugging Phase prompt with analysis guidance
+- [x] Update Coding Phase prompt with analysis guidance
+- [x] Update Project Planning Phase prompt with analysis guidance
+- [x] Add examples of when/how to use analysis tools
+
+Note: All phase prompts now include analysis guidance.
+LLMs are informed about analysis capabilities and how to interpret results.
 
 ## Phase 4: Custom Tools Registration ⏳
 - [ ] Register code_complexity custom tool in handlers
