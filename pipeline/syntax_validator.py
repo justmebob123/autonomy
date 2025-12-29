@@ -29,6 +29,10 @@ class SyntaxValidator:
         Returns:
             Tuple of (is_valid, error_message)
         """
+        # Skip validation for non-Python files
+        if not filepath.endswith('.py'):
+            return True, None
+        
         if not code or not code.strip():
             return False, "Empty code content"
         
@@ -96,7 +100,9 @@ Line {error_line}: {error.msg}
         
         # Fix 1: Remove duplicate imports on same line
         # Example: "time from datetime import datetime" -> "from datetime import datetime"
+        # Also fixes: "import from typing" -> "from typing"
         code = re.sub(r'\b\w+\s+(from\s+\w+\s+import\s+)', r'\1', code)
+        code = re.sub(r'\bimport\s+(from\s+)', r'\1', code)
         
         # Fix 2: Fix malformed string literals in descriptions
         # Example: 'description": "text' -> 'description": "text"'
