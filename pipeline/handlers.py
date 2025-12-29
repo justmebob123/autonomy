@@ -162,6 +162,9 @@ class ToolCallHandler:
             "replace_between": self._handle_replace_between,
             # Documentation tools
             "analyze_documentation_needs": self._handle_analyze_documentation_needs,
+            "update_readme_section": self._handle_update_readme_section,
+            "add_readme_section": self._handle_add_readme_section,
+            "confirm_documentation_current": self._handle_confirm_documentation_current,
         }
         
         # Register custom tools from registry (Integration Fix #1)
@@ -1892,6 +1895,167 @@ class ToolCallHandler:
             "architecture_needs_update": architecture_needs_update,
             "new_features_count": len(new_features_to_document),
             "outdated_sections_count": len(readme_sections_outdated)
+        }
+
+    def _handle_update_readme_section(self, args: Dict) -> Dict:
+        """
+        Handle update_readme_section tool.
+        
+        Updates a specific section in README.md.
+        """
+        section_heading = args.get("section_heading", "")
+        new_content = args.get("new_content", "")
+        action = args.get("action", "replace")  # replace, append, prepend
+        
+        readme_path = self.project_dir / "README.md"
+        
+        if not readme_path.exists():
+            return {
+                "tool": "update_readme_section",
+                "success": False,
+                "error": "README.md not found"
+            }
+        
+        try:
+            # Read current README
+            with open(readme_path, 'r') as f:
+                content = f.read()
+            
+            # Find the section
+            import re
+            # Match section heading (## or ###)
+            pattern = rf'(^#{1,3}\s+{re.escape(section_heading)}.*?)(?=^#{1,3}\s+|\Z)'
+            match = re.search(pattern, content, re.MULTILINE | re.DOTALL)
+            
+            if match:
+                old_section = match.group(1)
+                # Keep the heading, update the content
+                heading_line = old_section.split('\n')[0]
+                
+                if action == "replace":
+                    new_section = f"{heading_line}\n{new_content}\n"
+                elif action == "append":
+                    new_section = old_section.rstrip() + f"\n{new_content}\n"
+                elif action == "prepend":
+                    new_section = f"{heading_line}\n{new_content}\n" + '\n'.join(old_section.split('\n')[1:])
+                else:
+                    new_section = f"{heading_line}\n{new_content}\n"
+                
+                # Replace the section
+                updated_content = content.replace(old_section, new_section)
+                
+                # Write back
+                with open(readme_path, 'w') as f:
+                    f.write(updated_content)
+                
+                self.logger.info(f"  ✏️  Updated README section: {section_heading}")
+                self.files_modified.append(str(readme_path))
+                
+                return {
+                    "tool": "update_readme_section",
+                    "success": True,
+                    "section": section_heading,
+                    "action": action
+                }
+            else:
+                return {
+                    "tool": "update_readme_section",
+                    "success": False,
+                    "error": f"Section '{section_heading}' not found in README.md"
+                }
+        
+        except Exception as e:
+            self.logger.error(f"Failed to update README section: {e}")
+            return {
+                "tool": "update_readme_section",
+                "success": False,
+                "error": str(e)
+            }
+
+    def _handle_add_readme_section(self, args: Dict) -> Dict:
+        """
+        Handle add_readme_section tool.
+        
+        Adds a new section to README.md.
+        """
+        section_heading = args.get("section_heading", "")
+        content = args.get("content", "")
+        position = args.get("position", "end")  # end, after_section, before_section
+        reference_section = args.get("reference_section", "")
+        
+        readme_path = self.project_dir / "README.md"
+        
+        if not readme_path.exists():
+            return {
+                "tool": "add_readme_section",
+                "success": False,
+                "error": "README.md not found"
+            }
+        
+        try:
+            # Read current README
+            with open(readme_path, 'r') as f:
+                readme_content = f.read()
+            
+            # Create new section
+            new_section = f"\n## {section_heading}\n{content}\n"
+            
+            if position == "end":
+                updated_content = readme_content.rstrip() + new_section
+            elif position in ["after_section", "before_section"] and reference_section:
+                import re
+                pattern = rf'(^#{1,3}\s+{re.escape(reference_section)}.*?)(?=^#{1,3}\s+|\Z)'
+                match = re.search(pattern, readme_content, re.MULTILINE | re.DOTALL)
+                
+                if match:
+                    ref_section = match.group(1)
+                    if position == "after_section":
+                        updated_content = readme_content.replace(ref_section, ref_section + new_section)
+                    else:  # before_section
+                        updated_content = readme_content.replace(ref_section, new_section + ref_section)
+                else:
+                    # Reference section not found, add at end
+                    updated_content = readme_content.rstrip() + new_section
+            else:
+                updated_content = readme_content.rstrip() + new_section
+            
+            # Write back
+            with open(readme_path, 'w') as f:
+                f.write(updated_content)
+            
+            self.logger.info(f"  ➕ Added README section: {section_heading}")
+            self.files_modified.append(str(readme_path))
+            
+            return {
+                "tool": "add_readme_section",
+                "success": True,
+                "section": section_heading
+            }
+        
+        except Exception as e:
+            self.logger.error(f"Failed to add README section: {e}")
+            return {
+                "tool": "add_readme_section",
+                "success": False,
+                "error": str(e)
+            }
+
+    def _handle_confirm_documentation_current(self, args: Dict) -> Dict:
+        """
+        Handle confirm_documentation_current tool.
+        
+        Confirms that documentation is up to date.
+        """
+        confirmation_notes = args.get("confirmation_notes", "")
+        
+        self.logger.info("  ✅ Documentation confirmed current")
+        if confirmation_notes:
+            self.logger.info(f"    Notes: {confirmation_notes}")
+        
+        return {
+            "tool": "confirm_documentation_current",
+            "success": True,
+            "notes": confirmation_notes
         }
 
     # ========================================================================
