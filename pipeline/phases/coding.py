@@ -337,7 +337,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                     parts.append("\nExisting file content:")
                     parts.append(f"```python\n{existing_content}\n```")
                     parts.append("\n⚠️ CRITICAL DECISION REQUIRED:")
-                    parts.append("1. If the file is COMPLETE and CORRECT → Use 'mark_task_complete' tool")
+                    parts.append("1. If the file is COMPLETE and CORRECT → Respond with explanation ONLY (no tool calls)")
                     parts.append("2. If the file has BUGS → Fix ONLY the bugs")
                     parts.append("3. If the file needs ENHANCEMENTS → Add ONLY what's missing")
                     parts.append("4. DO NOT make trivial changes (comments, formatting, etc.)")
