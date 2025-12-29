@@ -141,6 +141,20 @@ class ToolCallHandler:
             "find_recursive_patterns": self._handle_find_recursive_patterns,
             "assess_code_quality": self._handle_assess_code_quality,
             "get_refactoring_suggestions": self._handle_get_refactoring_suggestions,
+            # Analysis tools (scripts/analysis/)
+            "analyze_complexity": self._handle_analyze_complexity,
+            "detect_dead_code": self._handle_detect_dead_code,
+            "find_integration_gaps": self._handle_find_integration_gaps,
+            "generate_call_graph": self._handle_generate_call_graph,
+            "analyze_enhanced": self._handle_analyze_enhanced,
+            "analyze_improved": self._handle_analyze_improved,
+            "deep_analyze": self._handle_deep_analyze,
+            # File update tools
+            "append_to_file": self._handle_append_to_file,
+            "update_section": self._handle_update_section,
+            "insert_after": self._handle_insert_after,
+            "insert_before": self._handle_insert_before,
+            "replace_between": self._handle_replace_between,
         }
         
         # Register custom tools from registry (Integration Fix #1)
@@ -2012,3 +2026,373 @@ class ToolCallHandler:
                 "error": str(e)
             }
 
+    # =============================================================================
+    # Analysis Tools Handlers (scripts/analysis/)
+    # =============================================================================
+    
+    def _handle_analyze_complexity(self, args: Dict) -> Dict:
+        """Handle analyze_complexity tool."""
+        try:
+            from .tools.analysis_tools import AnalysisToolsIntegration
+            
+            analysis_tools = AnalysisToolsIntegration(str(self.project_dir), self.logger)
+            target = args.get('target')
+            
+            self.logger.info(f"🔍 Analyzing code complexity...")
+            result = analysis_tools.analyze_complexity(target)
+            
+            if result['success']:
+                self.logger.info(f"✅ Complexity analysis complete")
+                if 'report_file' in result:
+                    self.logger.info(f"   Report: {result['report_file']}")
+            
+            return {
+                "tool": "analyze_complexity",
+                **result
+            }
+        except Exception as e:
+            self.logger.error(f"Complexity analysis failed: {e}")
+            return {
+                "tool": "analyze_complexity",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_detect_dead_code(self, args: Dict) -> Dict:
+        """Handle detect_dead_code tool."""
+        try:
+            from .tools.analysis_tools import AnalysisToolsIntegration
+            
+            analysis_tools = AnalysisToolsIntegration(str(self.project_dir), self.logger)
+            target = args.get('target')
+            
+            self.logger.info(f"🔍 Detecting dead code...")
+            result = analysis_tools.detect_dead_code(target)
+            
+            if result['success']:
+                self.logger.info(f"✅ Dead code detection complete")
+                if 'report_file' in result:
+                    self.logger.info(f"   Report: {result['report_file']}")
+            
+            return {
+                "tool": "detect_dead_code",
+                **result
+            }
+        except Exception as e:
+            self.logger.error(f"Dead code detection failed: {e}")
+            return {
+                "tool": "detect_dead_code",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_find_integration_gaps(self, args: Dict) -> Dict:
+        """Handle find_integration_gaps tool."""
+        try:
+            from .tools.analysis_tools import AnalysisToolsIntegration
+            
+            analysis_tools = AnalysisToolsIntegration(str(self.project_dir), self.logger)
+            target = args.get('target')
+            
+            self.logger.info(f"🔍 Finding integration gaps...")
+            result = analysis_tools.find_integration_gaps(target)
+            
+            if result['success']:
+                self.logger.info(f"✅ Integration gap analysis complete")
+                if 'report_file' in result:
+                    self.logger.info(f"   Report: {result['report_file']}")
+            
+            return {
+                "tool": "find_integration_gaps",
+                **result
+            }
+        except Exception as e:
+            self.logger.error(f"Integration gap analysis failed: {e}")
+            return {
+                "tool": "find_integration_gaps",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_generate_call_graph(self, args: Dict) -> Dict:
+        """Handle generate_call_graph tool."""
+        try:
+            from .tools.analysis_tools import AnalysisToolsIntegration
+            
+            analysis_tools = AnalysisToolsIntegration(str(self.project_dir), self.logger)
+            target = args.get('target')
+            
+            self.logger.info(f"🔍 Generating call graph...")
+            result = analysis_tools.generate_call_graph(target)
+            
+            if result['success']:
+                self.logger.info(f"✅ Call graph generation complete")
+                if 'report_file' in result:
+                    self.logger.info(f"   Report: {result['report_file']}")
+                if 'graph_file' in result:
+                    self.logger.info(f"   Graph: {result['graph_file']}")
+            
+            return {
+                "tool": "generate_call_graph",
+                **result
+            }
+        except Exception as e:
+            self.logger.error(f"Call graph generation failed: {e}")
+            return {
+                "tool": "generate_call_graph",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_analyze_enhanced(self, args: Dict) -> Dict:
+        """Handle analyze_enhanced tool."""
+        try:
+            from .tools.analysis_tools import AnalysisToolsIntegration
+            
+            analysis_tools = AnalysisToolsIntegration(str(self.project_dir), self.logger)
+            target = args.get('target')
+            
+            self.logger.info(f"🔍 Running enhanced depth-61 analysis...")
+            result = analysis_tools.analyze_enhanced(target)
+            
+            if result['success']:
+                self.logger.info(f"✅ Enhanced analysis complete")
+                if 'report_file' in result:
+                    self.logger.info(f"   Report: {result['report_file']}")
+            
+            return {
+                "tool": "analyze_enhanced",
+                **result
+            }
+        except Exception as e:
+            self.logger.error(f"Enhanced analysis failed: {e}")
+            return {
+                "tool": "analyze_enhanced",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_analyze_improved(self, args: Dict) -> Dict:
+        """Handle analyze_improved tool."""
+        try:
+            from .tools.analysis_tools import AnalysisToolsIntegration
+            
+            analysis_tools = AnalysisToolsIntegration(str(self.project_dir), self.logger)
+            target = args.get('target')
+            
+            self.logger.info(f"🔍 Running improved depth-61 analysis...")
+            result = analysis_tools.analyze_improved(target)
+            
+            if result['success']:
+                self.logger.info(f"✅ Improved analysis complete")
+                if 'report_file' in result:
+                    self.logger.info(f"   Report: {result['report_file']}")
+            
+            return {
+                "tool": "analyze_improved",
+                **result
+            }
+        except Exception as e:
+            self.logger.error(f"Improved analysis failed: {e}")
+            return {
+                "tool": "analyze_improved",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_deep_analyze(self, args: Dict) -> Dict:
+        """Handle deep_analyze tool."""
+        try:
+            from .tools.analysis_tools import AnalysisToolsIntegration
+            
+            analysis_tools = AnalysisToolsIntegration(str(self.project_dir), self.logger)
+            target = args.get('target')
+            checks = args.get('checks')
+            output_format = args.get('output_format', 'text')
+            recursive = args.get('recursive', True)
+            
+            self.logger.info(f"🔍 Running deep analysis...")
+            result = analysis_tools.deep_analyze(target, checks, output_format, recursive)
+            
+            if result['success']:
+                self.logger.info(f"✅ Deep analysis complete")
+            
+            return {
+                "tool": "deep_analyze",
+                **result
+            }
+        except Exception as e:
+            self.logger.error(f"Deep analysis failed: {e}")
+            return {
+                "tool": "deep_analyze",
+                "success": False,
+                "error": str(e)
+            }
+    
+    # =============================================================================
+    # File Update Tools Handlers
+    # =============================================================================
+    
+    def _handle_append_to_file(self, args: Dict) -> Dict:
+        """Handle append_to_file tool."""
+        try:
+            from .tools.file_updates import FileUpdateTools
+            
+            file_tools = FileUpdateTools(str(self.project_dir), self.logger)
+            filepath = args.get('filepath')
+            content = args.get('content')
+            ensure_newline = args.get('ensure_newline', True)
+            
+            self.logger.info(f"📝 Appending to file: {filepath}")
+            result = file_tools.append_to_file(filepath, content, ensure_newline)
+            
+            if result['success']:
+                self.logger.info(f"✅ Content appended to {filepath}")
+                # Track as file modification
+                if filepath not in self.files_modified:
+                    self.files_modified.append(filepath)
+            
+            return {
+                "tool": "append_to_file",
+                **result
+            }
+        except Exception as e:
+            self.logger.error(f"Append to file failed: {e}")
+            return {
+                "tool": "append_to_file",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_update_section(self, args: Dict) -> Dict:
+        """Handle update_section tool."""
+        try:
+            from .tools.file_updates import FileUpdateTools
+            
+            file_tools = FileUpdateTools(str(self.project_dir), self.logger)
+            filepath = args.get('filepath')
+            section_title = args.get('section_title')
+            new_content = args.get('new_content')
+            create_if_missing = args.get('create_if_missing', True)
+            
+            self.logger.info(f"📝 Updating section '{section_title}' in {filepath}")
+            result = file_tools.update_section(filepath, section_title, new_content, create_if_missing)
+            
+            if result['success']:
+                self.logger.info(f"✅ Section updated in {filepath}")
+                # Track as file modification or creation
+                if result.get('created'):
+                    if filepath not in self.files_created:
+                        self.files_created.append(filepath)
+                else:
+                    if filepath not in self.files_modified:
+                        self.files_modified.append(filepath)
+            
+            return {
+                "tool": "update_section",
+                **result
+            }
+        except Exception as e:
+            self.logger.error(f"Update section failed: {e}")
+            return {
+                "tool": "update_section",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_insert_after(self, args: Dict) -> Dict:
+        """Handle insert_after tool."""
+        try:
+            from .tools.file_updates import FileUpdateTools
+            
+            file_tools = FileUpdateTools(str(self.project_dir), self.logger)
+            filepath = args.get('filepath')
+            marker = args.get('marker')
+            content = args.get('content')
+            first_occurrence = args.get('first_occurrence', True)
+            
+            self.logger.info(f"📝 Inserting content after marker in {filepath}")
+            result = file_tools.insert_after(filepath, marker, content, first_occurrence)
+            
+            if result['success']:
+                self.logger.info(f"✅ Content inserted in {filepath}")
+                # Track as file modification
+                if filepath not in self.files_modified:
+                    self.files_modified.append(filepath)
+            
+            return {
+                "tool": "insert_after",
+                **result
+            }
+        except Exception as e:
+            self.logger.error(f"Insert after failed: {e}")
+            return {
+                "tool": "insert_after",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_insert_before(self, args: Dict) -> Dict:
+        """Handle insert_before tool."""
+        try:
+            from .tools.file_updates import FileUpdateTools
+            
+            file_tools = FileUpdateTools(str(self.project_dir), self.logger)
+            filepath = args.get('filepath')
+            marker = args.get('marker')
+            content = args.get('content')
+            first_occurrence = args.get('first_occurrence', True)
+            
+            self.logger.info(f"📝 Inserting content before marker in {filepath}")
+            result = file_tools.insert_before(filepath, marker, content, first_occurrence)
+            
+            if result['success']:
+                self.logger.info(f"✅ Content inserted in {filepath}")
+                # Track as file modification
+                if filepath not in self.files_modified:
+                    self.files_modified.append(filepath)
+            
+            return {
+                "tool": "insert_before",
+                **result
+            }
+        except Exception as e:
+            self.logger.error(f"Insert before failed: {e}")
+            return {
+                "tool": "insert_before",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_replace_between(self, args: Dict) -> Dict:
+        """Handle replace_between tool."""
+        try:
+            from .tools.file_updates import FileUpdateTools
+            
+            file_tools = FileUpdateTools(str(self.project_dir), self.logger)
+            filepath = args.get('filepath')
+            start_marker = args.get('start_marker')
+            end_marker = args.get('end_marker')
+            new_content = args.get('new_content')
+            include_markers = args.get('include_markers', False)
+            
+            self.logger.info(f"📝 Replacing content between markers in {filepath}")
+            result = file_tools.replace_between(filepath, start_marker, end_marker, new_content, include_markers)
+            
+            if result['success']:
+                self.logger.info(f"✅ Content replaced in {filepath}")
+                # Track as file modification
+                if filepath not in self.files_modified:
+                    self.files_modified.append(filepath)
+            
+            return {
+                "tool": "replace_between",
+                **result
+            }
+        except Exception as e:
+            self.logger.error(f"Replace between failed: {e}")
+            return {
+                "tool": "replace_between",
+                "success": False,
+                "error": str(e)
+            }

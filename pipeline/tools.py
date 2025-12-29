@@ -11,6 +11,7 @@ Contains all tool definitions used by pipeline phases:
 
 from typing import List, Dict
 from .system_analyzer_tools import SYSTEM_ANALYZER_TOOLS
+from .tools.tool_definitions import TOOLS_ANALYSIS, TOOLS_FILE_UPDATES
 
 
 # =============================================================================
@@ -916,13 +917,13 @@ def get_tools_for_phase(phase: str, tool_registry=None) -> List[Dict]:
     """
     # Base tools for each phase
     phase_tools = {
-        "planning": TOOLS_PLANNING,
-        "coding": TOOLS_CODING,
-        "qa": TOOLS_QA,
-        "debugging": TOOLS_DEBUGGING,
-        "debug": TOOLS_DEBUGGING,  # Alias
-        "project_planning": TOOLS_PROJECT_PLANNING,
-        "documentation": TOOLS_DOCUMENTATION,
+        "planning": TOOLS_PLANNING + TOOLS_ANALYSIS + TOOLS_FILE_UPDATES,
+        "coding": TOOLS_CODING + TOOLS_ANALYSIS,
+        "qa": TOOLS_QA + TOOLS_ANALYSIS,
+        "debugging": TOOLS_DEBUGGING + TOOLS_ANALYSIS,
+        "debug": TOOLS_DEBUGGING + TOOLS_ANALYSIS,  # Alias
+        "project_planning": TOOLS_PROJECT_PLANNING + TOOLS_ANALYSIS + TOOLS_FILE_UPDATES,
+        "documentation": TOOLS_DOCUMENTATION + TOOLS_FILE_UPDATES,
     }
     
     # Get base tools for this phase
