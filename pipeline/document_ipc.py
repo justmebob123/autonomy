@@ -23,10 +23,21 @@ class DocumentIPC:
         
         # Phase document mappings
         self.phase_documents = {
+            # Primary phases
             'planning': {'read': 'PLANNING_READ.md', 'write': 'PLANNING_WRITE.md'},
             'coding': {'read': 'DEVELOPER_READ.md', 'write': 'DEVELOPER_WRITE.md'},
             'qa': {'read': 'QA_READ.md', 'write': 'QA_WRITE.md'},
             'debugging': {'read': 'DEBUG_READ.md', 'write': 'DEBUG_WRITE.md'},
+            'investigation': {'read': 'INVESTIGATION_READ.md', 'write': 'INVESTIGATION_WRITE.md'},
+            'documentation': {'read': 'DOCUMENTATION_READ.md', 'write': 'DOCUMENTATION_WRITE.md'},
+            'project_planning': {'read': 'PROJECT_PLANNING_READ.md', 'write': 'PROJECT_PLANNING_WRITE.md'},
+            # Specialized phases
+            'tool_design': {'read': 'TOOL_DESIGN_READ.md', 'write': 'TOOL_DESIGN_WRITE.md'},
+            'tool_evaluation': {'read': 'TOOL_EVALUATION_READ.md', 'write': 'TOOL_EVALUATION_WRITE.md'},
+            'prompt_design': {'read': 'PROMPT_DESIGN_READ.md', 'write': 'PROMPT_DESIGN_WRITE.md'},
+            'prompt_improvement': {'read': 'PROMPT_IMPROVEMENT_READ.md', 'write': 'PROMPT_IMPROVEMENT_WRITE.md'},
+            'role_design': {'read': 'ROLE_DESIGN_READ.md', 'write': 'ROLE_DESIGN_WRITE.md'},
+            'role_improvement': {'read': 'ROLE_IMPROVEMENT_READ.md', 'write': 'ROLE_IMPROVEMENT_WRITE.md'},
         }
         
         # Strategic documents (Planning updates, all read)
