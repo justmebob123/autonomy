@@ -13,11 +13,13 @@ Components:
 from .registry import ToolRegistry
 from .handler import CustomToolHandler
 from .definition import ToolDefinitionGenerator
+from .developer import ToolDeveloper
 
 __all__ = [
     'ToolRegistry',
     'CustomToolHandler',
     'ToolDefinitionGenerator',
+    'ToolDeveloper',
 ]
 
 __version__ = '1.0.0'
