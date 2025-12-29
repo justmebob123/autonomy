@@ -2033,22 +2033,33 @@ class ToolCallHandler:
     def _handle_analyze_complexity(self, args: Dict) -> Dict:
         """Handle analyze_complexity tool."""
         try:
-            from .tools.analysis_tools import AnalysisToolsIntegration
+            from .analysis.complexity import ComplexityAnalyzer
             
-            analysis_tools = AnalysisToolsIntegration(str(self.project_dir), self.logger)
+            analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
             target = args.get('target')
             
             self.logger.info(f"🔍 Analyzing code complexity...")
-            result = analysis_tools.analyze_complexity(target)
+            result = analyzer.analyze(target)
             
-            if result['success']:
-                self.logger.info(f"✅ Complexity analysis complete")
-                if 'report_file' in result:
-                    self.logger.info(f"   Report: {result['report_file']}")
+            # Generate report
+            report = analyzer.generate_report(result)
+            
+            # Save report to file
+            report_file = self.project_dir / "COMPLEXITY_REPORT.txt"
+            report_file.write_text(report)
+            
+            self.logger.info(f"✅ Complexity analysis complete")
+            self.logger.info(f"   Total functions: {result.total_functions}")
+            self.logger.info(f"   Average complexity: {result.average_complexity:.2f}")
+            self.logger.info(f"   Critical functions: {result.critical_count}")
+            self.logger.info(f"   Report: COMPLEXITY_REPORT.txt")
             
             return {
                 "tool": "analyze_complexity",
-                **result
+                "success": True,
+                "result": result.to_dict(),
+                "report": report,
+                "report_file": "COMPLEXITY_REPORT.txt"
             }
         except Exception as e:
             self.logger.error(f"Complexity analysis failed: {e}")
@@ -2061,22 +2072,33 @@ class ToolCallHandler:
     def _handle_detect_dead_code(self, args: Dict) -> Dict:
         """Handle detect_dead_code tool."""
         try:
-            from .tools.analysis_tools import AnalysisToolsIntegration
+            from .analysis.dead_code import DeadCodeDetector
             
-            analysis_tools = AnalysisToolsIntegration(str(self.project_dir), self.logger)
+            detector = DeadCodeDetector(str(self.project_dir), self.logger)
             target = args.get('target')
             
             self.logger.info(f"🔍 Detecting dead code...")
-            result = analysis_tools.detect_dead_code(target)
+            result = detector.analyze(target)
             
-            if result['success']:
-                self.logger.info(f"✅ Dead code detection complete")
-                if 'report_file' in result:
-                    self.logger.info(f"   Report: {result['report_file']}")
+            # Generate report
+            report = detector.generate_report(result)
+            
+            # Save report to file
+            report_file = self.project_dir / "DEAD_CODE_REPORT.txt"
+            report_file.write_text(report)
+            
+            self.logger.info(f"✅ Dead code detection complete")
+            self.logger.info(f"   Unused functions: {result.total_unused_functions}")
+            self.logger.info(f"   Unused methods: {result.total_unused_methods}")
+            self.logger.info(f"   Unused imports: {result.total_unused_imports}")
+            self.logger.info(f"   Report: DEAD_CODE_REPORT.txt")
             
             return {
                 "tool": "detect_dead_code",
-                **result
+                "success": True,
+                "result": result.to_dict(),
+                "report": report,
+                "report_file": "DEAD_CODE_REPORT.txt"
             }
         except Exception as e:
             self.logger.error(f"Dead code detection failed: {e}")
@@ -2089,22 +2111,32 @@ class ToolCallHandler:
     def _handle_find_integration_gaps(self, args: Dict) -> Dict:
         """Handle find_integration_gaps tool."""
         try:
-            from .tools.analysis_tools import AnalysisToolsIntegration
+            from .analysis.integration_gaps import IntegrationGapFinder
             
-            analysis_tools = AnalysisToolsIntegration(str(self.project_dir), self.logger)
+            finder = IntegrationGapFinder(str(self.project_dir), self.logger)
             target = args.get('target')
             
             self.logger.info(f"🔍 Finding integration gaps...")
-            result = analysis_tools.find_integration_gaps(target)
+            result = finder.analyze(target)
             
-            if result['success']:
-                self.logger.info(f"✅ Integration gap analysis complete")
-                if 'report_file' in result:
-                    self.logger.info(f"   Report: {result['report_file']}")
+            # Generate report
+            report = finder.generate_report(result)
+            
+            # Save report to file
+            report_file = self.project_dir / "INTEGRATION_GAP_REPORT.txt"
+            report_file.write_text(report)
+            
+            self.logger.info(f"✅ Integration gap analysis complete")
+            self.logger.info(f"   Unused classes: {result.total_unused_classes}")
+            self.logger.info(f"   Classes with gaps: {result.total_classes_with_gaps}")
+            self.logger.info(f"   Report: INTEGRATION_GAP_REPORT.txt")
             
             return {
                 "tool": "find_integration_gaps",
-                **result
+                "success": True,
+                "result": result.to_dict(),
+                "report": report,
+                "report_file": "INTEGRATION_GAP_REPORT.txt"
             }
         except Exception as e:
             self.logger.error(f"Integration gap analysis failed: {e}")
@@ -2117,24 +2149,39 @@ class ToolCallHandler:
     def _handle_generate_call_graph(self, args: Dict) -> Dict:
         """Handle generate_call_graph tool."""
         try:
-            from .tools.analysis_tools import AnalysisToolsIntegration
+            from .analysis.call_graph import CallGraphGenerator
             
-            analysis_tools = AnalysisToolsIntegration(str(self.project_dir), self.logger)
+            generator = CallGraphGenerator(str(self.project_dir), self.logger)
             target = args.get('target')
             
             self.logger.info(f"🔍 Generating call graph...")
-            result = analysis_tools.generate_call_graph(target)
+            result = generator.analyze(target)
             
-            if result['success']:
-                self.logger.info(f"✅ Call graph generation complete")
-                if 'report_file' in result:
-                    self.logger.info(f"   Report: {result['report_file']}")
-                if 'graph_file' in result:
-                    self.logger.info(f"   Graph: {result['graph_file']}")
+            # Generate report
+            report = generator.generate_report(result)
+            
+            # Save report to file
+            report_file = self.project_dir / "CALL_GRAPH_REPORT.txt"
+            report_file.write_text(report)
+            
+            # Generate DOT graph
+            dot_graph = generator.generate_dot(result)
+            dot_file = self.project_dir / "call_graph.dot"
+            dot_file.write_text(dot_graph)
+            
+            self.logger.info(f"✅ Call graph generation complete")
+            self.logger.info(f"   Total functions: {result.total_functions}")
+            self.logger.info(f"   Total calls: {result.total_calls}")
+            self.logger.info(f"   Report: CALL_GRAPH_REPORT.txt")
+            self.logger.info(f"   Graph: call_graph.dot")
             
             return {
                 "tool": "generate_call_graph",
-                **result
+                "success": True,
+                "result": result.to_dict(),
+                "report": report,
+                "report_file": "CALL_GRAPH_REPORT.txt",
+                "graph_file": "call_graph.dot"
             }
         except Exception as e:
             self.logger.error(f"Call graph generation failed: {e}")

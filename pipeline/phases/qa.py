@@ -347,12 +347,16 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             # Rebuild queue with new priorities
             state.rebuild_queue()
             
+            # CRITICAL FIX: QA finding issues = QA SUCCESS (code has problems)
+            # QA phase succeeded in its job of finding issues
+            # The CODE needs fixing, not the QA phase
             return PhaseResult(
-                success=False,
+                success=True,  # QA succeeded in finding issues!
                 phase=self.phase_name,
-                message=f"Found {len(handler.issues)} issues",
+                message=f"QA found {len(handler.issues)} issues in code - needs fixes",
                 errors=handler.issues,
-                data={"issues": handler.issues, "filepath": filepath}
+                data={"issues": handler.issues, "filepath": filepath},
+                next_phase="debugging"  # Route to debugging to fix the issues
             )
         
         # No explicit approval or issues - this is ambiguous
