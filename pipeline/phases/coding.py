@@ -122,6 +122,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         if not tool_calls:
             task.add_error("no_tool_call", "Model did not use tools", phase="coding")
             task.status = TaskStatus.FAILED
+            task.failure_count = getattr(task, 'failure_count', 0) + 1
             
             return PhaseResult(
                 success=False,
@@ -181,6 +182,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                     )
             
             task.status = TaskStatus.FAILED
+            task.failure_count = getattr(task, 'failure_count', 0) + 1
             
             # Log detailed error information
             error_summary = handler.get_error_summary()
@@ -222,6 +224,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         
         # Success - update state
         task.status = TaskStatus.QA_PENDING
+        task.failure_count = 0  # Reset failure count on success
         
         # Update file tracking in state
         for filepath in files_created + files_modified:

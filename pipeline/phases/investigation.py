@@ -165,6 +165,19 @@ class InvestigationPhase(BasePhase):
         if findings.get('recommended_fix'):
             self.send_message_to_phase('debugging', f"Investigation complete for {filepath}: {findings.get('recommended_fix')}")
         
+        # RECOMMEND SPECIALIZED PHASES (but don't activate them)
+        # The coordinator will decide whether to activate based on failure loops
+        specialized_recommendation = None
+        if "missing tool" in response_content.lower() or "need tool" in response_content.lower():
+            specialized_recommendation = "tool_design"
+            self.logger.info("  💡 Recommendation: Consider tool_design phase (missing capability)")
+        elif "unclear prompt" in response_content.lower() or "prompt issue" in response_content.lower():
+            specialized_recommendation = "prompt_improvement"
+            self.logger.info("  💡 Recommendation: Consider prompt_improvement phase")
+        elif "missing specialist" in response_content.lower() or "need expert" in response_content.lower():
+            specialized_recommendation = "role_design"
+            self.logger.info("  💡 Recommendation: Consider role_design phase")
+        
         return PhaseResult(
             success=True,
             phase=self.phase_name,
@@ -172,7 +185,8 @@ class InvestigationPhase(BasePhase):
             data={
                 "findings": findings,
                 "issue": issue,
-                "filepath": filepath
+                "filepath": filepath,
+                "specialized_recommendation": specialized_recommendation  # Recommendation, not activation
             }
         )
     

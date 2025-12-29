@@ -77,6 +77,9 @@ class TaskState:
     objective_id: Optional[str] = None  # e.g., "primary_001"
     objective_level: Optional[str] = None  # e.g., "primary"
     
+    # Failure tracking for specialized phase activation
+    failure_count: int = 0  # Consecutive failures on this task
+    
     def __post_init__(self):
         if not self.created:
             self.created = datetime.now().isoformat()

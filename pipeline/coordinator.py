@@ -308,22 +308,35 @@ class PhaseCoordinator:
         return dims
 
     def _initialize_polytopic_structure(self):
-        """Initialize hyperdimensional polytopic structure from existing phases."""
+        """Initialize hyperdimensional polytopic structure from PRIMARY phases only.
+        
+        Specialized phases (tool_design, prompt_design, role_design, and their improvements)
+        are NOT part of the normal polytope flow. They are only activated on-demand via
+        specific methods when:
+        - Loop detection triggers (3+ consecutive failures)
+        - Capability gaps identified
+        - Explicit user request
+        """
+        # PRIMARY PHASES ONLY - these are part of normal development flow
         phase_types = {
-            'planning': 'planning', 'coding': 'execution', 'qa': 'validation',
-            'debugging': 'correction', 'investigation': 'analysis',
-            'project_planning': 'planning', 'documentation': 'documentation',
-            'prompt_design': 'meta', 'tool_design': 'meta', 'role_design': 'meta',
-            'tool_evaluation': 'improvement', 'prompt_improvement': 'improvement',
-            'role_improvement': 'improvement'
+            'planning': 'planning',
+            'coding': 'execution',
+            'qa': 'validation',
+            'debugging': 'correction',
+            'investigation': 'analysis',
+            'project_planning': 'planning',
+            'documentation': 'documentation'
         }
         
-        for phase_name in self.phases.keys():
-            self.polytope['vertices'][phase_name] = {
-                'type': phase_types.get(phase_name, 'unknown'),
-                   'dimensions': self._calculate_initial_dimensions(phase_name, phase_types.get(phase_name, 'unknown'))
-            }
+        # Only add PRIMARY phases to polytope
+        for phase_name in phase_types.keys():
+            if phase_name in self.phases:
+                self.polytope['vertices'][phase_name] = {
+                    'type': phase_types[phase_name],
+                    'dimensions': self._calculate_initial_dimensions(phase_name, phase_types[phase_name])
+                }
         
+        # PRIMARY FLOW EDGES ONLY - no specialized phases
         self.polytope['edges'] = {
             # Core development flow
             'planning': ['coding'],
@@ -332,26 +345,17 @@ class PhaseCoordinator:
             
             # Error handling triangle
             'debugging': ['investigation', 'coding'],
-            'investigation': ['debugging', 'coding', 'prompt_design', 'role_design', 'tool_design'],
+            'investigation': ['debugging', 'coding'],  # REMOVED: prompt_design, role_design, tool_design
             
             # Documentation flow
             'documentation': ['planning', 'qa'],
             
             # Project management
-            'project_planning': ['planning'],
-            
-            # Self-improvement cycles
-            'prompt_design': ['prompt_improvement'],
-            'prompt_improvement': ['prompt_design', 'planning'],
-            'role_design': ['role_improvement'],
-            'role_improvement': ['role_design', 'planning'],
-            
-            # Tool development cycle
-            'tool_design': ['tool_evaluation'],
-            'tool_evaluation': ['tool_design', 'coding']
+            'project_planning': ['planning']
         }
         
-        self.logger.info(f"Polytopic structure: {len(self.polytope['vertices'])} vertices, 7D")
+        self.logger.info(f"Polytopic structure: {len(self.polytope['vertices'])} PRIMARY vertices, 7D")
+        self.logger.info("Specialized phases (tool/prompt/role design) available on-demand only")
     
     def _should_force_transition(self, state, current_phase: str, last_result=None) -> bool:
         """
@@ -779,10 +783,103 @@ class PhaseCoordinator:
             self.logger.info("\n\n⚠️ Pipeline interrupted by user")
             return False
     
+    def _detect_failure_loop(self, state: PipelineState) -> Optional[Dict[str, Any]]:
+        """
+        Detect if we're stuck in a failure loop on the same task.
+        
+        Returns:
+            Dict with loop info if detected, None otherwise
+            {
+                'task_id': str,
+                'failure_count': int,
+                'error_pattern': str,
+                'suggested_action': str  # 'tool_design', 'prompt_improvement', 'role_design'
+            }
+        """
+        from .state.manager import TaskStatus
+        
+        # Get tasks that have failed multiple times
+        failed_tasks = [t for t in state.tasks.values() if t.status == TaskStatus.FAILED]
+        
+        # Track consecutive failures per task
+        for task in failed_tasks:
+            # Count how many times this task has been attempted
+            failure_count = getattr(task, 'failure_count', 0)
+            
+            # Loop detected: 3+ failures on same task
+            if failure_count >= 3:
+                self.logger.warning(f"🔄 Loop detected: Task {task.id} failed {failure_count} times")
+                
+                # Analyze error pattern to suggest action
+                error_msg = getattr(task, 'error', '')
+                
+                if 'tool' in error_msg.lower() or 'function' in error_msg.lower():
+                    suggested_action = 'tool_design'
+                elif 'prompt' in error_msg.lower() or 'instruction' in error_msg.lower():
+                    suggested_action = 'prompt_improvement'
+                elif 'specialist' in error_msg.lower() or 'role' in error_msg.lower():
+                    suggested_action = 'role_design'
+                else:
+                    suggested_action = 'tool_design'  # Default to tool creation
+                
+                return {
+                    'task_id': task.id,
+                    'failure_count': failure_count,
+                    'error_pattern': error_msg[:200],
+                    'suggested_action': suggested_action
+                }
+        
+        return None
+    
+    def _detect_capability_gap(self, state: PipelineState, phase_result) -> Optional[str]:
+        """
+        Detect if we're missing a capability (tool/prompt/role).
+        
+        Returns:
+            'tool_design', 'prompt_improvement', or 'role_design' if gap detected, None otherwise
+        """
+        if not phase_result:
+            return None
+        
+        # Check result message for capability gap indicators
+        message = getattr(phase_result, 'message', '').lower()
+        
+        if any(keyword in message for keyword in ['missing tool', 'need tool', 'tool not found']):
+            return 'tool_design'
+        elif any(keyword in message for keyword in ['unclear prompt', 'need guidance', 'prompt issue']):
+            return 'prompt_improvement'
+        elif any(keyword in message for keyword in ['missing specialist', 'need expert', 'role not found']):
+            return 'role_design'
+        
+        return None
+    
+    def _should_activate_specialized_phase(self, state: PipelineState, last_result) -> Optional[str]:
+        """
+        Determine if we should activate a specialized phase.
+        
+        Returns:
+            Phase name ('tool_design', 'prompt_improvement', 'role_design') or None
+        """
+        # Check for failure loops first (highest priority)
+        loop_info = self._detect_failure_loop(state)
+        if loop_info:
+            self.logger.info(f"🎯 Activating {loop_info['suggested_action']} to break failure loop")
+            return loop_info['suggested_action']
+        
+        # Check for capability gaps
+        gap = self._detect_capability_gap(state, last_result)
+        if gap:
+            self.logger.info(f"🎯 Activating {gap} to fill capability gap")
+            return gap
+        
+        return None
+
     def _develop_tool(self, tool_name: str, tool_args: dict, 
                      usage_context: dict, state: PipelineState) -> 'PhaseResult':
         """
         Develop a new tool through tool_design and tool_evaluation phases.
+        
+        SPECIALIZED PHASE - Only called on-demand, not part of normal polytope flow.
         
         Args:
             tool_name: Name of the tool to create
@@ -838,6 +935,170 @@ class PhaseCoordinator:
             self.logger.warning(f"Tool validation failed: {eval_result.message}")
         
         return eval_result
+    
+    def _improve_prompt(self, prompt_name: str, issues: List[str], 
+                       state: PipelineState) -> 'PhaseResult':
+        """
+        Improve an existing prompt through prompt_improvement phase.
+        
+        SPECIALIZED PHASE - Only called on-demand, not part of normal polytope flow.
+        
+        Args:
+            prompt_name: Name of the prompt to improve
+            issues: List of issues with current prompt
+            state: Current pipeline state
+            
+        Returns:
+            PhaseResult from prompt_improvement phase
+        """
+        from .phases.base import PhaseResult
+        
+        self.logger.info(f"📝 Improving prompt: {prompt_name}")
+        
+        if 'prompt_improvement' not in self.phases:
+            self.logger.error("prompt_improvement phase not available")
+            return PhaseResult(
+                success=False,
+                phase='prompt_improvement',
+                message="prompt_improvement phase not available"
+            )
+        
+        result = self.phases['prompt_improvement'].execute(
+            state,
+            prompt_name=prompt_name,
+            issues=issues
+        )
+        
+        if result.success:
+            self.logger.info(f"✓ Prompt improved: {prompt_name}")
+        else:
+            self.logger.error(f"Prompt improvement failed: {result.message}")
+        
+        return result
+    
+    def _design_prompt(self, prompt_name: str, purpose: str,
+                      context: Dict[str, Any], state: PipelineState) -> 'PhaseResult':
+        """
+        Design a new prompt through prompt_design phase.
+        
+        SPECIALIZED PHASE - Only called on-demand, not part of normal polytope flow.
+        
+        Args:
+            prompt_name: Name of the new prompt
+            purpose: What the prompt should accomplish
+            context: Context about when/how prompt will be used
+            state: Current pipeline state
+            
+        Returns:
+            PhaseResult from prompt_design phase
+        """
+        from .phases.base import PhaseResult
+        
+        self.logger.info(f"📝 Designing prompt: {prompt_name}")
+        
+        if 'prompt_design' not in self.phases:
+            self.logger.error("prompt_design phase not available")
+            return PhaseResult(
+                success=False,
+                phase='prompt_design',
+                message="prompt_design phase not available"
+            )
+        
+        result = self.phases['prompt_design'].execute(
+            state,
+            prompt_name=prompt_name,
+            purpose=purpose,
+            context=context
+        )
+        
+        if result.success:
+            self.logger.info(f"✓ Prompt designed: {prompt_name}")
+        else:
+            self.logger.error(f"Prompt design failed: {result.message}")
+        
+        return result
+    
+    def _design_role(self, role_name: str, capabilities: List[str],
+                    context: Dict[str, Any], state: PipelineState) -> 'PhaseResult':
+        """
+        Design a new specialist role through role_design phase.
+        
+        SPECIALIZED PHASE - Only called on-demand, not part of normal polytope flow.
+        
+        Args:
+            role_name: Name of the new role/specialist
+            capabilities: List of capabilities the role should have
+            context: Context about when/how role will be used
+            state: Current pipeline state
+            
+        Returns:
+            PhaseResult from role_design phase
+        """
+        from .phases.base import PhaseResult
+        
+        self.logger.info(f"👤 Designing role: {role_name}")
+        
+        if 'role_design' not in self.phases:
+            self.logger.error("role_design phase not available")
+            return PhaseResult(
+                success=False,
+                phase='role_design',
+                message="role_design phase not available"
+            )
+        
+        result = self.phases['role_design'].execute(
+            state,
+            role_name=role_name,
+            capabilities=capabilities,
+            context=context
+        )
+        
+        if result.success:
+            self.logger.info(f"✓ Role designed: {role_name}")
+        else:
+            self.logger.error(f"Role design failed: {result.message}")
+        
+        return result
+    
+    def _improve_role(self, role_name: str, issues: List[str],
+                     state: PipelineState) -> 'PhaseResult':
+        """
+        Improve an existing specialist role through role_improvement phase.
+        
+        SPECIALIZED PHASE - Only called on-demand, not part of normal polytope flow.
+        
+        Args:
+            role_name: Name of the role to improve
+            issues: List of issues with current role
+            state: Current pipeline state
+            
+        Returns:
+            PhaseResult from role_improvement phase
+        """
+        from .phases.base import PhaseResult
+        
+        self.logger.info(f"👤 Improving role: {role_name}")
+        
+        if 'role_improvement' not in self.phases:
+            self.logger.error("role_improvement phase not available")
+            return PhaseResult(
+                success=False,
+                phase='role_improvement',
+                message="role_improvement phase not available"
+            )
+        
+        result = self.phases['role_improvement'].execute(
+            state,
+            role_name=role_name,
+            issues=issues
+        )
+        
+        if result.success:
+            self.logger.info(f"✓ Role improved: {role_name}")
+        else:
+            self.logger.error(f"Role improvement failed: {result.message}")
+        
+        return result
     
     def _run_loop(self) -> bool:
         """
@@ -1032,6 +1293,9 @@ class PhaseCoordinator:
                 # Don't reload multiple times - phase already saved task changes
                 state = self.state_manager.load()
                 
+                # Store last phase result for specialized phase detection
+                state._last_phase_result = result
+                
                 # Check if phase suggests next phase (loop prevention hint)
                 if result.next_phase:
                     self.logger.info(f"  💡 Phase suggests next: {result.next_phase}")
@@ -1119,6 +1383,10 @@ class PhaseCoordinator:
         
         NEW APPROACH: Objectives drive phase selection, not just task status.
         
+        SPECIALIZED PHASES: Check for failure loops and capability gaps BEFORE
+        normal phase selection. Specialized phases (tool_design, prompt_improvement,
+        role_design) are only activated on-demand, not part of normal flow.
+        
         Returns:
             Dict with 'phase', 'reason', and optionally 'task' and 'objective'
         """
@@ -1135,6 +1403,19 @@ class PhaseCoordinator:
             self.logger.warning(f"⚠️ {len(critical_messages)} critical messages in queue")
             for msg in critical_messages:
                 self.logger.warning(f"  📨 {msg.message_type.value}: {msg.payload}")
+        
+        # CHECK FOR SPECIALIZED PHASE ACTIVATION (highest priority)
+        # This happens BEFORE normal phase selection
+        last_result = getattr(state, '_last_phase_result', None)
+        specialized_phase = self._should_activate_specialized_phase(state, last_result)
+        
+        if specialized_phase:
+            self.logger.info(f"🎯 Activating specialized phase: {specialized_phase}")
+            return {
+                'phase': specialized_phase,
+                'reason': f'Specialized phase activated: {specialized_phase}',
+                'specialized': True  # Mark as specialized activation
+            }
         
         # STRATEGIC DECISION-MAKING: Check if we have objectives
         if state.objectives and any(state.objectives.values()):
