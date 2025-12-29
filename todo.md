@@ -1,179 +1,49 @@
-# TODO: Complete IPC Integration Across All Phases
+# Critical Issues Fix - Implementation Tasks
 
-## Mission: Integrate Document IPC into ALL Phases ✅ COMPLETE
+## Phase 1: IMMEDIATE - Unblock Pipeline ✅
+- [x] Fix role_design.py syntax error (unterminated triple-quoted string)
+- [x] Test pipeline starts successfully (syntax check passed)
+- [x] Verify no other syntax errors in recently modified files
 
-All 13 phases now have complete IPC integration!
+## Phase 2: HIGH PRIORITY - Core Functionality ⏳
+- [x] Debug HTML entity encoding issue
+  - [x] Add logging to html_entity_decoder.py (already present)
+  - [x] Verify decoder is being called (confirmed in syntax_validator.py)
+  - [x] Check for backslash escaping after decoding (FOUND THE ISSUE!)
+  - [x] Added fix to remove backslash before HTML entities
+  - [ ] Test with actual generated code
+- [ ] Fix "asas" path issue
+  - [ ] Check MASTER_PLAN.md in /home/logan/code/AI/my_project
+  - [ ] Update if needed with correct project context
+  - [ ] Clear tasks with "asas" paths from state
+  - [ ] Verify new tasks use correct paths
 
----
+## Phase 3: MEDIUM PRIORITY - Quality of Life ⏳
+- [ ] Fix analytics success rate calculation
+  - [ ] Review PhaseResult creation in coding phase
+  - [ ] Ensure success=True when files created successfully
+  - [ ] Update analytics tracking logic
+  - [ ] Test success rate increases with successful operations
+- [ ] Handle "no tool calls" gracefully
+  - [ ] Treat as success if file already correct
+  - [ ] Add "no changes needed" status
+  - [ ] Don't increment failure_count for this case
+  - [ ] Log as INFO not WARNING
 
-## Phase 1: Fix Active Phases (HIGH PRIORITY) ✅ COMPLETE
+## Phase 4: LOW PRIORITY - Polish ⏳
+- [ ] Update QA to skip "asas" directory
+  - [ ] Add "asas" to library_dirs in architecture config
+  - [ ] Or remove "asas" files entirely if wrong project
 
-### 1.1 Documentation Phase ✅
-- [x] Add architecture_config loading in __init__
-- [x] Add read_strategic_docs() at start of execute()
-- [x] Add read_own_tasks() for work items
-- [x] Add write_own_status() for status updates
-- [x] Add send_message_to_phase() for coordination
-- [x] Replace direct MASTER_PLAN.read_text() with read_strategic_docs()
-- [x] Replace direct README operations with proper flow
-- [x] Add read_phase_output() for other phases
+## Phase 5: Testing & Validation ⏳
+- [ ] Test pipeline starts without errors
+- [ ] Test code generation produces valid Python
+- [ ] Test no "asas" paths in new tasks
+- [ ] Test analytics shows realistic success rates
+- [ ] Test "no tool calls" handled gracefully
 
-### 1.2 Project Planning Phase ✅
-- [x] Add architecture_config loading in __init__
-- [x] Add read_strategic_docs() at start of execute()
-- [x] Add read_own_tasks() for work items
-- [x] Add write_own_status() for status updates
-- [x] Add send_message_to_phase() for coordination
-- [x] Replace direct MASTER_PLAN.read_text() with read_strategic_docs()
-- [x] Replace direct ARCHITECTURE operations with proper flow
-- [x] Add read_phase_output() for other phases
-
-### 1.3 Add Architecture Config to Coding Phase ✅
-- [x] Import get_architecture_config
-- [x] Load architecture_config in __init__
-- [x] Pass to analyzers (complexity_analyzer, dead_code_detector)
-- [x] Log config loading
-
-### 1.4 Add Architecture Config to Debugging Phase ✅
-- [x] Import get_architecture_config
-- [x] Load architecture_config in __init__
-- [x] Pass to analyzers (complexity_analyzer, gap_finder)
-- [x] Log config loading
-
----
-
-## Phase 2: Integrate Inactive Phases (MEDIUM PRIORITY) ✅ COMPLETE
-
-### 2.1 Investigation Phase ✅
-- [x] Add architecture_config loading in __init__
-- [x] Add read_strategic_docs() at start of execute()
-- [x] Add read_own_tasks() for work items
-- [x] Add write_own_status() for status updates
-- [x] Add send_message_to_phase() for coordination
-- [x] Add read_phase_output() for other phases
-- [x] Add analysis tools integration
-- [x] Ready for use
-
-### 2.2 Tool Design Phase ✅
-- [x] Add architecture_config loading in __init__
-- [x] Add read_strategic_docs() at start of execute()
-- [x] Add read_own_tasks() for work items
-- [x] Add write_own_status() for status updates
-- [x] Add send_message_to_phase() for coordination
-- [x] Add read_phase_output() for other phases
-- [x] Ready for use
-
-### 2.3 Tool Evaluation Phase ✅
-- [x] Add architecture_config loading in __init__
-- [x] Add read_strategic_docs() at start of execute()
-- [x] Add read_own_tasks() for work items
-- [x] Ready for use
-
-### 2.4 Prompt Design Phase ✅
-- [x] Add architecture_config loading in __init__
-- [x] Add read_strategic_docs() at start of execute()
-- [x] Add read_own_tasks() for work items
-- [x] Add read_phase_output() for other phases
-- [x] Ready for use
-
-### 2.5 Prompt Improvement Phase ✅
-- [x] Add architecture_config loading in __init__
-- [x] Add read_strategic_docs() at start of execute()
-- [x] Add read_own_tasks() for work items
-- [x] Add read_phase_output() for other phases
-- [x] Ready for use
-
-### 2.6 Role Design Phase ✅
-- [x] Add architecture_config loading in __init__
-- [x] Add read_strategic_docs() at start of execute()
-- [x] Add read_own_tasks() for work items
-- [x] Add read_phase_output() for other phases
-- [x] Ready for use
-
-### 2.7 Role Improvement Phase ✅
-- [x] Add architecture_config loading in __init__
-- [x] Add read_strategic_docs() at start of execute()
-- [x] Add read_own_tasks() for work items
-- [x] Add read_phase_output() for other phases
-- [x] Ready for use
-
----
-
-## Phase 3: Activate Inactive Phases (MEDIUM PRIORITY) ✅ COMPLETE
-
-### 3.1 Add to Coordinator ✅
-- [x] Import all 7 inactive phases (ALREADY DONE)
-- [x] Instantiate in __init__ (ALREADY DONE)
-- [x] Add to phase registry (ALREADY DONE)
-- [x] Polytope edges already configured
-
-### 3.2 Update Polytope Structure ✅
-- [x] Investigation phase edges verified
-- [x] Tool_design phase edges verified
-- [x] Tool_evaluation phase edges verified
-- [x] Prompt_design phase edges verified
-- [x] Prompt_improvement phase edges verified
-- [x] Role_design phase edges verified
-- [x] Role_improvement phase edges verified
-
----
-
-## Phase 4: Consolidate Shared Resources (LOW PRIORITY) ⏳
-
-### 4.1 Consolidate Analyzer Instances
-- [ ] Create analyzers once in coordinator __init__
-- [ ] Pass to phases as shared resources
-- [ ] Remove duplicate instantiation from phases
-- [ ] Ensure consistent configuration
-- [ ] Test memory usage improvement
-
-### 4.2 Consolidate DocumentIPC Instance
-- [ ] Create single DocumentIPC in coordinator
-- [ ] Pass to all phases
-- [ ] Remove duplicate instantiation from BasePhase
-- [ ] Add thread-safe file access
-- [ ] Test for race conditions
-
----
-
-## Phase 5: Testing & Verification ⏳
-
-### 5.1 Test Each Phase
-- [ ] Test Documentation phase IPC
-- [ ] Test Project Planning phase IPC
-- [ ] Test Investigation phase
-- [ ] Test Tool Design phase
-- [ ] Test Tool Evaluation phase
-- [ ] Test Prompt Design phase
-- [ ] Test Prompt Improvement phase
-- [ ] Test Role Design phase
-- [ ] Test Role Improvement phase
-
-### 5.2 Integration Testing
-- [ ] Test phase transitions
-- [ ] Test document flow
-- [ ] Test message passing
-- [ ] Test strategic document updates
-- [ ] Test architecture config usage
-
-### 5.3 End-to-End Testing
-- [ ] Run complete pipeline
-- [ ] Verify all documents created
-- [ ] Verify all phases coordinate
-- [ ] Verify no race conditions
-- [ ] Verify memory usage acceptable
-
----
-
-## Success Criteria
-
-- [ ] All 13 phases use Document IPC
-- [ ] All phases load architecture_config
-- [ ] All phases read strategic documents
-- [ ] All phases write status updates
-- [ ] All phases send messages
-- [ ] All 7 inactive phases activated
-- [ ] Shared resources consolidated
-- [ ] All tests passing
-- [ ] No race conditions
-- [ ] Memory usage optimized
+## Phase 6: Commit & Deploy ⏳
+- [ ] Review all changes
+- [ ] Commit with detailed message
+- [ ] Push to GitHub main branch
+- [ ] Mark task as complete
