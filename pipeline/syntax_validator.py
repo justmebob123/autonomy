@@ -89,7 +89,12 @@ Line {error_line}: {error.msg}
         """
         original_code = code
         
-        # Fix 0: CRITICAL - Decode HTML entities first (HTTP transport artifact)
+        # Fix 0: CRITICAL - Remove backslash escaping before HTML entities
+        # Example: \&quot; -> &quot; (so decoder can recognize it)
+        code = re.sub(r'\\(&[a-zA-Z]+;)', r'\1', code)  # \&quot; -> &quot;
+        code = re.sub(r'\\(&#\d+;)', r'\1', code)  # \&#34; -> &#34;
+        
+        # Fix 1: CRITICAL - Decode HTML entities (HTTP transport artifact)
         # This is the most common issue and must be done before other fixes
         code, was_decoded = self.html_decoder.decode_html_entities(code, filepath)
         

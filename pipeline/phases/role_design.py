@@ -71,7 +71,7 @@ class RoleDesignPhase(LoopDetectionMixin, BasePhase):
         
         # READ OTHER PHASES' OUTPUTS
         investigation_output = self.read_phase_output('investigation')
-        """
+        
         role_description = kwargs.get('role_description')
         
         if not role_description:
@@ -263,15 +263,12 @@ class RoleDesignPhase(LoopDetectionMixin, BasePhase):
         """
         phase_state = state.phases.get(self.phase_name)
         
-        md = f"""# Role Design Phase State
-
-## Statistics
-- Runs: {phase_state.run_count if phase_state else 0}
-- Successes: {phase_state.success_count if phase_state else 0}
-- Failures: {phase_state.failure_count if phase_state else 0}
-
-## Registered Specialist Roles
-"""
+        md = f"# Role Design Phase State\n\n"
+        md += f"## Statistics\n"
+        md += f"- Runs: {phase_state.run_count if phase_state else 0}\n"
+        md += f"- Successes: {phase_state.success_count if phase_state else 0}\n"
+        md += f"- Failures: {phase_state.failure_count if phase_state else 0}\n\n"
+        md += f"## Registered Specialist Roles\n\n"
         
         # List registered specialists
         if hasattr(self, 'role_registry'):
