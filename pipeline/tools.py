@@ -11,7 +11,7 @@ Contains all tool definitions used by pipeline phases:
 
 from typing import List, Dict
 from .system_analyzer_tools import SYSTEM_ANALYZER_TOOLS
-from .tools.tool_definitions import TOOLS_ANALYSIS, TOOLS_FILE_UPDATES
+from .tool_modules.tool_definitions import TOOLS_ANALYSIS, TOOLS_FILE_UPDATES
 
 
 # =============================================================================

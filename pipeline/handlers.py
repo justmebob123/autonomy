@@ -2357,7 +2357,7 @@ class ToolCallHandler:
     def _handle_append_to_file(self, args: Dict) -> Dict:
         """Handle append_to_file tool."""
         try:
-            from .tools.file_updates import FileUpdateTools
+            from .tool_modules.file_updates import FileUpdateTools
             
             file_tools = FileUpdateTools(str(self.project_dir), self.logger)
             filepath = args.get('filepath')
@@ -2388,7 +2388,7 @@ class ToolCallHandler:
     def _handle_update_section(self, args: Dict) -> Dict:
         """Handle update_section tool."""
         try:
-            from .tools.file_updates import FileUpdateTools
+            from .tool_modules.file_updates import FileUpdateTools
             
             file_tools = FileUpdateTools(str(self.project_dir), self.logger)
             filepath = args.get('filepath')
@@ -2424,7 +2424,7 @@ class ToolCallHandler:
     def _handle_insert_after(self, args: Dict) -> Dict:
         """Handle insert_after tool."""
         try:
-            from .tools.file_updates import FileUpdateTools
+            from .tool_modules.file_updates import FileUpdateTools
             
             file_tools = FileUpdateTools(str(self.project_dir), self.logger)
             filepath = args.get('filepath')
@@ -2456,7 +2456,7 @@ class ToolCallHandler:
     def _handle_insert_before(self, args: Dict) -> Dict:
         """Handle insert_before tool."""
         try:
-            from .tools.file_updates import FileUpdateTools
+            from .tool_modules.file_updates import FileUpdateTools
             
             file_tools = FileUpdateTools(str(self.project_dir), self.logger)
             filepath = args.get('filepath')
@@ -2488,7 +2488,7 @@ class ToolCallHandler:
     def _handle_replace_between(self, args: Dict) -> Dict:
         """Handle replace_between tool."""
         try:
-            from .tools.file_updates import FileUpdateTools
+            from .tool_modules.file_updates import FileUpdateTools
             
             file_tools = FileUpdateTools(str(self.project_dir), self.logger)
             filepath = args.get('filepath')

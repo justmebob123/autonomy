@@ -347,6 +347,3 @@ ADDITIONAL_NATIVE_ANALYSIS_TOOLS = [
         }
     }
 ]
-
-# Add additional native analysis tools to the main list
-TOOL_DEFINITIONS.extend(ADDITIONAL_NATIVE_ANALYSIS_TOOLS)

@@ -54,7 +54,7 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         from ..analysis.dead_code import DeadCodeDetector
         from ..analysis.integration_gaps import IntegrationGapFinder
         from ..analysis.call_graph import CallGraphGenerator
-        from ..tools.file_updates import FileUpdateTools
+        from ..tool_modules.file_updates import FileUpdateTools
         
         self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
         self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger)
