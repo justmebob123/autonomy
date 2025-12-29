@@ -5,7 +5,7 @@ Tool Template Generator - Creates tool scaffolding.
 Generates complete, working tool code from specifications.
 """
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
 
 TOOL_TEMPLATE = '''#!/usr/bin/env python3
