@@ -1,62 +1,76 @@
-# Pipeline Design Improvements TODO
+# TODO: Architecture-Driven Integration Conflict Detection System
 
-## Phase 1: Remove All Hardcoded Patterns ✅
+## 1. Remove Hardcoded Library Paths ✅
+- [x] Create ARCHITECTURE_SCHEMA.md - Schema definition
+- [x] Create ARCHITECTURE_EXAMPLE.md - Example for projects
+- [x] Create pipeline/architecture_parser.py - Parser implementation
+- [x] Remove hardcoded paths from `pipeline/phases/qa.py`
+- [x] Update QA phase to use architecture config
+- [x] Load architecture config in QA __init__
+- [ ] Remove any other hardcoded project-specific assumptions
 
-### 1.1 Clean Up Coordinator ✅
-- [x] Remove 'asas' hardcoded check
-- [x] Remove hardcoded test patterns ('test_', '/tests/')
-- [x] Remove hardcoded directory assumptions ('core/', 'src/')
-- [x] Remove documentation skipping logic
-- [x] Simplify to: execute tasks by priority, don't filter by patterns
+## 2. Enhanced Dead Code Detection ✅
+- [x] Modify `pipeline/analysis/dead_code.py` to:
+  - [x] Accept architecture config parameter
+  - [x] Mark unused code for REVIEW instead of deletion
+  - [x] Detect similar functionality across files
+  - [x] Flag potential duplicate implementations
+  - [x] Provide context about why code might be unused
+  - [x] Use architecture config to identify library modules
+  - [x] Add DeadCodeIssue dataclass for review issues
+  - [x] Add _generate_review_issues() method
+  - [x] Add _find_similar_functions() and _find_similar_methods()
 
-### 1.2 Clean Up Planning Phase ✅
-- [x] Remove 'asas' hardcoded check
-- [x] Remove test/doc creation bias
-- [x] Focus on production code task creation
+## 3. Integration Conflict Detector ✅
+- [x] Create `pipeline/analysis/integration_conflicts.py`:
+  - [x] Detect duplicate/parallel implementations
+  - [x] Compare file naming conventions
+  - [x] Identify feature overlap between files
+  - [x] Flag as integration conflicts with recommendations
+  - [x] Use architecture config for intelligent detection
+  - [x] Add IntegrationConflict and IntegrationConflictResult dataclasses
+  - [x] Implement _detect_duplicate_classes()
+  - [x] Implement _detect_duplicate_functions()
+  - [x] Implement _detect_naming_conflicts()
+  - [x] Implement _detect_parallel_implementations()
 
-## Phase 2: Redesign Priority System ✅
+## 4. Update QA Phase ✅
+- [x] Import architecture_parser
+- [x] Load architecture config in __init__
+- [x] Pass config to dead code detector
+- [x] Use config.is_library_module() instead of hardcoded checks
+- [x] Update run_comprehensive_analysis() to use config
+- [x] Add integration conflict detection
+- [x] Add dead code review issues to analysis
+- [x] Update logging to include conflicts and review issues
 
-### 2.1 Update Task Priority Values ✅
-- [x] Production code: 10-80 (keep)
-- [x] Tests: 200+ (much lower)
-- [x] Documentation: 300+ (lowest)
-- [x] Update all task creation to use new priorities
+## 5. Update Planning Phase ✅
+- [x] Import architecture_parser
+- [x] Load architecture config
+- [x] Use integration conflict detector
+- [x] Add project-wide conflict detection to _perform_deep_analysis()
+- [x] Update _update_tertiary_objectives() to include conflicts
+- [x] Add conflict resolution guidance to TERTIARY_OBJECTIVES.md
 
-### 2.2 Simplify Task Selection ✅
-- [x] Remove complex filtering logic
-- [x] Use simple priority-based selection
-- [x] Let priority numbers do the work
+## 6. Update Debugging Phase ⏳
+- [ ] Import architecture_parser
+- [ ] Load architecture config
+- [ ] Handle integration conflict resolution
+- [ ] Merge features from multiple files
+- [ ] Delete obsolete implementations
 
-## Phase 3: Update Prompts ✅
+## 7. Testing ⏳
+- [ ] Test with email.py / email_alerts.py example
+- [ ] Verify no hardcoded assumptions
+- [ ] Verify architecture-driven behavior
+- [ ] Verify proper conflict detection and resolution
+- [ ] Test with project that has ARCHITECTURE.md
+- [ ] Test with project that lacks ARCHITECTURE.md (defaults)
 
-### 3.1 Planning Phase Prompt ✅
-- [x] Remove test creation guidance
-- [x] Remove documentation guidance
-- [x] Add "PRODUCTION CODE ONLY" emphasis
-- [x] Tests/docs only if explicitly in MASTER_PLAN
-
-### 3.2 Other Phase Prompts ✅
-- [x] Review coding prompt - ensure production focus
-- [x] Review QA prompt - ensure it doesn't trigger test creation
-- [x] Review all prompts for hardcoded assumptions
-
-## Phase 4: Add Generic Classification (Optional) ⏳
-
-### 4.1 File Type Classification
-- [ ] Create utility module for file classification
-- [ ] Use file extensions, not patterns
-- [ ] Use content analysis when needed
-- [ ] Make it project-agnostic
-
-## Phase 5: Testing & Validation ⏳
-
-### 5.1 Test Changes
-- [ ] Test with test-automation project
-- [ ] Verify no hardcoded patterns remain
-- [ ] Verify production code prioritized
-- [ ] Verify tests/docs minimal
-
-### 5.2 Documentation
-- [ ] Update README with design principles
-- [ ] Document priority system
-- [ ] Document file classification approach
+## Success Criteria
+- [ ] No hardcoded project-specific paths in pipeline code
+- [ ] Architecture document drives library detection
+- [ ] Dead code marked for review, not deletion
+- [ ] Duplicate implementations detected as integration conflicts
+- [ ] Conflict resolution proposes unified implementations
+- [ ] All changes tested and deployed

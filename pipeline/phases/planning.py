@@ -33,18 +33,26 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         super().__init__(*args, **kwargs)
         self.init_loop_detection()
         
+        # ARCHITECTURE CONFIG - Load project architecture configuration
+        from ..architecture_parser import get_architecture_config
+        self.architecture_config = get_architecture_config(self.project_dir)
+        self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
+        
         # CORE ANALYSIS CAPABILITIES - Direct integration
         from ..analysis.complexity import ComplexityAnalyzer
         from ..analysis.dead_code import DeadCodeDetector
         from ..analysis.integration_gaps import IntegrationGapFinder
+        from ..analysis.integration_conflicts import IntegrationConflictDetector
         from ..tool_modules.file_updates import FileUpdateTools
         
         self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
-        self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger)
+        self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger, self.architecture_config)
         self.gap_finder = IntegrationGapFinder(str(self.project_dir), self.logger)
+        self.conflict_detector = IntegrationConflictDetector(str(self.project_dir), self.logger, self.architecture_config)
         self.file_updater = FileUpdateTools(str(self.project_dir), self.logger)
         
         self.logger.info("  📊 Planning phase initialized with analysis capabilities")
+        self.logger.info("  🔀 Integration conflict detection enabled")
         
         # MESSAGE BUS: Subscribe to relevant events
         if self.message_bus:
@@ -529,6 +537,18 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                     content += f"**Line**: {issue['line']}\n"
                     content += f"**Action**: Complete integration or remove\n\n"
             
+            # Add integration conflicts with resolution steps
+            if analysis_results.get('integration_conflicts'):
+                content += "### Integration Conflicts to Resolve\n\n"
+                for conflict in analysis_results['integration_conflicts'][:10]:
+                    content += f"**Type**: {conflict['type']}\n"
+                    content += f"**Severity**: {conflict['severity'].upper()}\n"
+                    content += f"**Files Involved**:\n"
+                    for file in conflict['files']:
+                        content += f"  - `{file}`\n"
+                    content += f"**Description**: {conflict['description']}\n"
+                    content += f"**Recommendation**: {conflict['recommendation']}\n\n"
+            
             tertiary_path.write_text(content)
             self.logger.info("  📝 Updated TERTIARY_OBJECTIVES.md")
             
@@ -639,10 +659,27 @@ Please address these architectural integration issues.
             'complexity_issues': [],
             'dead_code': [],
             'integration_gaps': [],
+            'integration_conflicts': [],
             'architectural_issues': [],
             'test_gaps': [],
             'failures': []
         }
+        
+        # First, run project-wide conflict detection
+        self.logger.info("  🔀 Detecting integration conflicts...")
+        try:
+            conflict_result = self.conflict_detector.analyze()
+            for conflict in conflict_result.conflicts:
+                results['integration_conflicts'].append({
+                    'type': conflict.conflict_type,
+                    'severity': conflict.severity,
+                    'files': conflict.files,
+                    'description': conflict.description,
+                    'recommendation': conflict.recommendation,
+                    'details': conflict.details
+                })
+        except Exception as e:
+            self.logger.warning(f"  Conflict detection failed: {e}")
         python_files = [f for f in existing_files if f.endswith('.py')]
         for filepath in python_files:
             try:
@@ -693,6 +730,11 @@ Please address these architectural integration issues.
                 self.logger.info(f"    - {len(results['dead_code'])} dead code")
             if results['integration_gaps']:
                 self.logger.info(f"    - {len(results['integration_gaps'])} integration gaps")
+            if results['integration_conflicts']:
+                self.logger.info(f"    - {len(results['integration_conflicts'])} integration conflicts")
+                high_conflicts = [c for c in results['integration_conflicts'] if c['severity'] == 'high']
+                if high_conflicts:
+                    self.logger.warning(f"      ⚠️  {len(high_conflicts)} HIGH SEVERITY conflicts need immediate attention")
         return results
     def _update_secondary_objectives(self, analysis_results: Dict, qa_output: str, debug_output: str):
         self.logger.info("  📝 Updating TERTIARY_OBJECTIVES.md...")

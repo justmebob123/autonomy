@@ -33,18 +33,26 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         super().__init__(*args, **kwargs)
         self.init_loop_detection()
         
+        # ARCHITECTURE CONFIG - Load project architecture configuration
+        from ..architecture_parser import get_architecture_config
+        self.architecture_config = get_architecture_config(self.project_dir)
+        self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
+        
         # CORE ANALYSIS CAPABILITIES - Direct integration
         from ..analysis.complexity import ComplexityAnalyzer
         from ..analysis.dead_code import DeadCodeDetector
         from ..analysis.integration_gaps import IntegrationGapFinder
         from ..analysis.call_graph import CallGraphGenerator
+        from ..analysis.integration_conflicts import IntegrationConflictDetector
         
         self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
-        self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger)
+        self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger, self.architecture_config)
         self.gap_finder = IntegrationGapFinder(str(self.project_dir), self.logger)
         self.call_graph = CallGraphGenerator(str(self.project_dir), self.logger)
+        self.conflict_detector = IntegrationConflictDetector(str(self.project_dir), self.logger, self.architecture_config)
         
         self.logger.info("  🔍 QA phase initialized with comprehensive analysis capabilities")
+        self.logger.info("  🔀 Integration conflict detection enabled")
         
         # MESSAGE BUS: Subscribe to relevant events
         if self.message_bus:
@@ -205,17 +213,13 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         # OPTIMIZATION: Skip deep analysis for test files and library modules
         analysis_issues = []
         
+        # Use architecture config to determine if this is a library module
         # Library modules are meant to be imported, not executed directly
         # Don't flag them as "dead code" just because they're not used yet
-        is_library_module = any(filepath.startswith(prefix) for prefix in [
-            'alerts/', 'monitors/', 'core/', 'reports/', 'cli/'
-        ])
+        is_library_module = self.architecture_config.is_library_module(filepath)
         
-        skip_analysis = (
-            filepath.startswith('tests/') or 
-            filepath.startswith('test_') or
-            '/test_' in filepath
-        )
+        # Use architecture config to determine if this is a test file
+        skip_analysis = self.architecture_config.is_test_module(filepath)
         
         if filepath.endswith('.py') and not skip_analysis:
             self.logger.info(f"  📊 Running comprehensive analysis on {filepath}...")
@@ -613,10 +617,9 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         """
         issues = []
         
-        # Check if this is a library module (meant to be imported, not executed)
-        is_library_module = any(filepath.startswith(prefix) for prefix in [
-            'alerts/', 'monitors/', 'core/', 'reports/', 'cli/'
-        ])
+        # Use architecture config to check if this is a library module
+        # Library modules are meant to be imported, not executed directly
+        is_library_module = self.architecture_config.is_library_module(filepath)
         
         try:
             # 1. Complexity Analysis
@@ -686,12 +689,48 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                             'recommendation': "Complete integration or remove if not needed"
                         })
             
+            # 4. Integration Conflict Detection (project-wide)
+            self.logger.info(f"  🔀 Checking for integration conflicts...")
+            conflict_result = self.conflict_detector.analyze(target=filepath)
+            
+            # Add conflicts as issues
+            for conflict in conflict_result.conflicts:
+                # Only include if this file is involved
+                if filepath in conflict.files or any(filepath in f for f in conflict.files):
+                    issues.append({
+                        'type': 'integration_conflict',
+                        'severity': conflict.severity,
+                        'conflict_type': conflict.conflict_type,
+                        'files': conflict.files,
+                        'description': conflict.description,
+                        'recommendation': conflict.recommendation,
+                        'details': conflict.details
+                    })
+            
+            # 5. Dead Code Review Issues (enhanced with context)
+            if dead_code_result.review_issues:
+                self.logger.info(f"  📋 Processing dead code review issues...")
+                for issue in dead_code_result.review_issues:
+                    if issue.file == filepath or filepath in issue.file:
+                        issues.append({
+                            'type': 'dead_code_review',
+                            'severity': issue.severity,
+                            'name': issue.name,
+                            'line': issue.line,
+                            'issue_type': issue.issue_type,
+                            'description': f"{issue.reason}: {issue.context}",
+                            'recommendation': issue.context,
+                            'similar_code': issue.similar_code
+                        })
+            
             # Log summary
             if issues:
                 self.logger.warning(f"  ⚠️  Found {len(issues)} quality issues via analysis")
                 complexity_issues = [i for i in issues if i['type'] == 'high_complexity']
                 dead_code_issues = [i for i in issues if i['type'] == 'dead_code']
                 gap_issues = [i for i in issues if i['type'] == 'integration_gap']
+                conflict_issues = [i for i in issues if i['type'] == 'integration_conflict']
+                review_issues = [i for i in issues if i['type'] == 'dead_code_review']
                 
                 if complexity_issues:
                     self.logger.warning(f"    - {len(complexity_issues)} high complexity functions")
@@ -699,6 +738,10 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                     self.logger.warning(f"    - {len(dead_code_issues)} dead code instances")
                 if gap_issues:
                     self.logger.warning(f"    - {len(gap_issues)} integration gaps")
+                if conflict_issues:
+                    self.logger.warning(f"    - {len(conflict_issues)} integration conflicts")
+                if review_issues:
+                    self.logger.warning(f"    - {len(review_issues)} items marked for review")
             else:
                 self.logger.info(f"  ✅ No quality issues found via analysis")
             
@@ -707,7 +750,8 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 'issues': issues,
                 'complexity': complexity_result.to_dict(),
                 'dead_code': dead_code_result.to_dict(),
-                'gaps': gap_result.to_dict()
+                'gaps': gap_result.to_dict(),
+                'conflicts': conflict_result.to_dict()
             }
             
         except Exception as e:
