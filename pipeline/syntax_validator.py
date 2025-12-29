@@ -113,7 +113,7 @@ Line {error_line}: {error.msg}
         
         # Fix 6: Fix escaped triple quotes (common after HTML entity decoding)
         # Example: &quot;&quot;&quot; -> """
-        code = code.replace(r'&quot;&quot;&quot;', '"""')
+        code = code.replace(r'"""', '"""')
         code = code.replace(r"\'\'\'", "'''")
         
         if code != original_code:
