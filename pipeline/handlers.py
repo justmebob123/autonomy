@@ -149,10 +149,10 @@ class ToolCallHandler:
             "find_bugs": self._handle_find_bugs,
             "detect_antipatterns": self._handle_detect_antipatterns,
             "analyze_dataflow": self._handle_analyze_dataflow,
-            # External analysis scripts (scripts/analysis/ - for advanced analysis)
-            "analyze_enhanced": self._handle_analyze_enhanced,
-            "analyze_improved": self._handle_analyze_improved,
-            "deep_analyze": self._handle_deep_analyze,
+            # External analysis scripts (scripts/analysis/ - for comprehensive analysis)
+            "deep_analysis": self._handle_deep_analysis,
+            "advanced_analysis": self._handle_advanced_analysis,
+            "unified_analysis": self._handle_unified_analysis,
             # File update tools
             "append_to_file": self._handle_append_to_file,
             "update_section": self._handle_update_section,
@@ -2195,8 +2195,8 @@ class ToolCallHandler:
                 "error": str(e)
             }
     
-    def _handle_analyze_enhanced(self, args: Dict) -> Dict:
-        """Handle analyze_enhanced tool - runs external script."""
+    def _handle_deep_analysis(self, args: Dict) -> Dict:
+        """Handle deep_analysis tool - comprehensive recursive analysis."""
         try:
             import subprocess
             import sys
@@ -2204,11 +2204,11 @@ class ToolCallHandler:
             
             # Get pipeline root
             pipeline_root = Path(__file__).parent.parent
-            script_path = pipeline_root / 'scripts' / 'analysis' / 'ENHANCED_DEPTH_61_ANALYZER.py'
+            script_path = pipeline_root / 'scripts' / 'analysis' / 'deep_analysis.py'
             
             target = args.get('target', str(self.project_dir))
             
-            self.logger.info(f"🔍 Running enhanced depth-61 analysis...")
+            self.logger.info(f"🔍 Running deep recursive analysis...")
             
             # Run external script
             result = subprocess.run(
@@ -2220,31 +2220,31 @@ class ToolCallHandler:
             )
             
             if result.returncode == 0:
-                self.logger.info(f"✅ Enhanced analysis complete")
-                self.logger.info(f"   Report: analysis_enhanced.txt")
+                self.logger.info(f"✅ Deep analysis complete")
+                self.logger.info(f"   Report: deep_analysis.txt")
                 
                 return {
-                    "tool": "analyze_enhanced",
+                    "tool": "deep_analysis",
                     "success": True,
                     "output": result.stdout,
-                    "report_file": "analysis_enhanced.txt"
+                    "report_file": "deep_analysis.txt"
                 }
             else:
                 return {
-                    "tool": "analyze_enhanced",
+                    "tool": "deep_analysis",
                     "success": False,
                     "error": result.stderr
                 }
         except Exception as e:
-            self.logger.error(f"Enhanced analysis failed: {e}")
+            self.logger.error(f"Deep analysis failed: {e}")
             return {
-                "tool": "analyze_enhanced",
+                "tool": "deep_analysis",
                 "success": False,
                 "error": str(e)
             }
     
-    def _handle_analyze_improved(self, args: Dict) -> Dict:
-        """Handle analyze_improved tool - runs external script."""
+    def _handle_advanced_analysis(self, args: Dict) -> Dict:
+        """Handle advanced_analysis tool - advanced pattern detection and analysis."""
         try:
             import subprocess
             import sys
@@ -2252,11 +2252,11 @@ class ToolCallHandler:
             
             # Get pipeline root
             pipeline_root = Path(__file__).parent.parent
-            script_path = pipeline_root / 'scripts' / 'analysis' / 'IMPROVED_DEPTH_61_ANALYZER.py'
+            script_path = pipeline_root / 'scripts' / 'analysis' / 'advanced_analysis.py'
             
             target = args.get('target', str(self.project_dir))
             
-            self.logger.info(f"🔍 Running improved depth-61 analysis...")
+            self.logger.info(f"🔍 Running advanced pattern analysis...")
             
             # Run external script
             result = subprocess.run(
@@ -2268,31 +2268,31 @@ class ToolCallHandler:
             )
             
             if result.returncode == 0:
-                self.logger.info(f"✅ Improved analysis complete")
-                self.logger.info(f"   Report: improved_analysis.txt")
+                self.logger.info(f"✅ Advanced analysis complete")
+                self.logger.info(f"   Report: advanced_analysis.txt")
                 
                 return {
-                    "tool": "analyze_improved",
+                    "tool": "advanced_analysis",
                     "success": True,
                     "output": result.stdout,
-                    "report_file": "improved_analysis.txt"
+                    "report_file": "advanced_analysis.txt"
                 }
             else:
                 return {
-                    "tool": "analyze_improved",
+                    "tool": "advanced_analysis",
                     "success": False,
                     "error": result.stderr
                 }
         except Exception as e:
-            self.logger.error(f"Improved analysis failed: {e}")
+            self.logger.error(f"Advanced analysis failed: {e}")
             return {
-                "tool": "analyze_improved",
+                "tool": "advanced_analysis",
                 "success": False,
                 "error": str(e)
             }
     
-    def _handle_deep_analyze(self, args: Dict) -> Dict:
-        """Handle deep_analyze tool - runs external script."""
+    def _handle_unified_analysis(self, args: Dict) -> Dict:
+        """Handle unified_analysis tool - unified analysis with multiple output formats."""
         try:
             import subprocess
             import sys
@@ -2307,7 +2307,7 @@ class ToolCallHandler:
             output_format = args.get('output_format', 'text')
             recursive = args.get('recursive', True)
             
-            self.logger.info(f"🔍 Running deep analysis...")
+            self.logger.info(f"🔍 Running unified analysis...")
             
             # Build command
             cmd = [sys.executable, str(script_path), target]
@@ -2328,24 +2328,24 @@ class ToolCallHandler:
             )
             
             if result.returncode == 0:
-                self.logger.info(f"✅ Deep analysis complete")
+                self.logger.info(f"✅ Unified analysis complete")
                 
                 return {
-                    "tool": "deep_analyze",
+                    "tool": "unified_analysis",
                     "success": True,
                     "output": result.stdout,
                     "format": output_format
                 }
             else:
                 return {
-                    "tool": "deep_analyze",
+                    "tool": "unified_analysis",
                     "success": False,
                     "error": result.stderr
                 }
         except Exception as e:
-            self.logger.error(f"Deep analysis failed: {e}")
+            self.logger.error(f"Unified analysis failed: {e}")
             return {
-                "tool": "deep_analyze",
+                "tool": "unified_analysis",
                 "success": False,
                 "error": str(e)
             }

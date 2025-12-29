@@ -78,8 +78,8 @@ TOOLS_ANALYSIS = [
     {
         "type": "function",
         "function": {
-            "name": "analyze_enhanced",
-            "description": "Run enhanced depth-61 analysis with full AST analysis, variable tracing, and dependency mapping.",
+            "name": "deep_analysis",
+            "description": "Run comprehensive recursive analysis with full AST analysis, variable tracing, and dependency mapping.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -94,8 +94,8 @@ TOOLS_ANALYSIS = [
     {
         "type": "function",
         "function": {
-            "name": "analyze_improved",
-            "description": "Run improved depth-61 analysis with pattern detection and false positive reduction.",
+            "name": "advanced_analysis",
+            "description": "Run advanced analysis with pattern detection, template method recognition, and inheritance analysis.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -110,8 +110,8 @@ TOOLS_ANALYSIS = [
     {
         "type": "function",
         "function": {
-            "name": "deep_analyze",
-            "description": "Run comprehensive deep analysis with multiple output formats. Unified interface to all analyzers.",
+            "name": "unified_analysis",
+            "description": "Run unified analysis with multiple output formats and configurable checks. Comprehensive interface to all analyzers.",
             "parameters": {
                 "type": "object",
                 "properties": {
