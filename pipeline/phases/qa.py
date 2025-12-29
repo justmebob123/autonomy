@@ -202,8 +202,15 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             )
         
         # ANALYSIS INTEGRATION: Run comprehensive analysis before manual review
-        # OPTIMIZATION: Skip deep analysis for test files and small files
+        # OPTIMIZATION: Skip deep analysis for test files and library modules
         analysis_issues = []
+        
+        # Library modules are meant to be imported, not executed directly
+        # Don't flag them as "dead code" just because they're not used yet
+        is_library_module = any(filepath.startswith(prefix) for prefix in [
+            'alerts/', 'monitors/', 'core/', 'reports/', 'cli/'
+        ])
+        
         skip_analysis = (
             filepath.startswith('tests/') or 
             filepath.startswith('test_') or
@@ -606,6 +613,11 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         """
         issues = []
         
+        # Check if this is a library module (meant to be imported, not executed)
+        is_library_module = any(filepath.startswith(prefix) for prefix in [
+            'alerts/', 'monitors/', 'core/', 'reports/', 'cli/'
+        ])
+        
         try:
             # 1. Complexity Analysis
             self.logger.info(f"  📊 Analyzing complexity...")
@@ -624,22 +636,25 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                         'recommendation': f"Refactor to reduce complexity. Estimated effort: {func.effort_days}"
                     })
             
-            # 2. Dead Code Detection
-            self.logger.info(f"  🔍 Detecting dead code...")
-            dead_code_result = self.dead_code_detector.analyze(target=filepath)
-            
-            # Check for unused functions
-            if dead_code_result.unused_functions:
-                for func_name, file, line in dead_code_result.unused_functions:
-                    if file == filepath or filepath in file:
-                        issues.append({
-                            'type': 'dead_code',
-                            'severity': 'medium',
-                            'function': func_name,
-                            'line': line,
-                            'description': f"Function {func_name} is defined but never called",
-                            'recommendation': "Remove if truly unused, or add usage"
-                        })
+            # 2. Dead Code Detection (skip for library modules)
+            if not is_library_module:
+                self.logger.info(f"  🔍 Detecting dead code...")
+                dead_code_result = self.dead_code_detector.analyze(target=filepath)
+                
+                # Check for unused functions
+                if dead_code_result.unused_functions:
+                    for func_name, file, line in dead_code_result.unused_functions:
+                        if file == filepath or filepath in file:
+                            issues.append({
+                                'type': 'dead_code',
+                                'severity': 'medium',
+                                'function': func_name,
+                                'line': line,
+                                'description': f"Function {func_name} is defined but never called",
+                                'recommendation': "Remove if truly unused, or add usage"
+                            })
+            else:
+                self.logger.info(f"  ⏭️  Skipping dead code detection for library module")
             
             # Check for unused methods
             if dead_code_result.unused_methods:
