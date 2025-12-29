@@ -214,6 +214,9 @@ class HTMLEntityDecoder:
         """
         Decode HTML entities in Python code with context awareness.
         Only decodes in docstrings and comments (safe contexts).
+        
+        Handles backslash-escaped HTML entities (e.g., \&amp;quot;) by removing
+        the backslash ONLY in safe contexts before decoding.
         """
         lines = source.split('\n')
         
@@ -231,10 +234,15 @@ class HTMLEntityDecoder:
                 # Decode HTML entities in this line
                 original_line = line
                 
-                # Use html.unescape for comprehensive decoding
-                decoded_line = html.unescape(line)
+                # FIRST: Remove backslashes before HTML entities (only in safe contexts)
+                # Example: \&amp;quot; -> &amp;quot; (so html.unescape can recognize it)
+                decoded_line = re.sub(r'\\(&amp;[a-zA-Z]+;)', r'\1', line)  # \&amp;quot; -> &amp;quot;
+                decoded_line = re.sub(r'\\(&amp;#\d+;)', r'\1', decoded_line)  # \&amp;#34; -> &amp;#34;
                 
-                # Apply manual decoding for any remaining entities
+                # THEN: Use html.unescape for comprehensive decoding
+                decoded_line = html.unescape(decoded_line)
+                
+                # FINALLY: Apply manual decoding for any remaining entities
                 for entity, replacement in self.COMMON_ENTITIES.items():
                     if entity in decoded_line:
                         decoded_line = decoded_line.replace(entity, replacement)
