@@ -4,11 +4,15 @@ HTML Entity Decoder
 Handles HTML entity decoding for generated code across all programming languages.
 This is necessary because HTTP transport and LLM responses may introduce HTML entities
 that don't belong in source code.
+
+Context-aware decoding: Only decodes entities in safe contexts (docstrings, comments)
+to avoid breaking intentional entities in string literals.
 """
 
 import html
 import re
-from typing import Dict, List, Tuple
+import ast
+from typing import Dict, List, Tuple, Set
 from .logging_setup import get_logger
 
 
@@ -76,7 +80,10 @@ class HTMLEntityDecoder:
     
     def decode_html_entities(self, code: str, filepath: str = "unknown") -> Tuple[str, bool]:
         """
-        Decode HTML entities in code.
+        Decode HTML entities in code with context awareness.
+        
+        For Python files: Only decodes in docstrings and comments (safe contexts)
+        For other languages: Decodes everywhere (legacy behavior)
         
         Args:
             code: Source code potentially containing HTML entities
@@ -89,19 +96,17 @@ class HTMLEntityDecoder:
             return code, False
         
         original_code = code
-        
-        # Step 1: Detect language from filepath
         language = self._detect_language(filepath)
         
-        # Step 2: Use Python's html.unescape for comprehensive decoding
-        decoded = html.unescape(code)
-        
-        # Step 3: Apply additional manual replacements for common patterns
-        decoded = self._manual_decode(decoded)
-        
-        # Step 4: Fix language-specific patterns
-        if language:
-            decoded = self._fix_language_specific(decoded, language)
+        # For Python files, use context-aware decoding
+        if language == 'python':
+            decoded = self._decode_python_context_aware(code)
+        else:
+            # For other languages, use comprehensive decoding (legacy)
+            decoded = html.unescape(code)
+            decoded = self._manual_decode(decoded)
+            if language:
+                decoded = self._fix_language_specific(decoded, language)
         
         was_modified = (decoded != original_code)
         
@@ -146,6 +151,99 @@ class HTMLEntityDecoder:
         
         return decoded
     
+    def _find_python_docstrings(self, source: str) -> List[Tuple[int, int]]:
+        """Find all docstring line ranges in Python source code."""
+        docstrings = []
+        
+        try:
+            tree = ast.parse(source)
+            
+            for node in ast.walk(tree):
+                # Module docstring
+                if isinstance(node, ast.Module) and ast.get_docstring(node):
+                    if node.body and isinstance(node.body[0], ast.Expr):
+                        if isinstance(node.body[0].value, ast.Constant):
+                            docstrings.append((node.body[0].lineno, node.body[0].end_lineno))
+                
+                # Function/Class docstrings
+                elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                    if ast.get_docstring(node):
+                        if node.body and isinstance(node.body[0], ast.Expr):
+                            if isinstance(node.body[0].value, ast.Constant):
+                                docstrings.append((node.body[0].lineno, node.body[0].end_lineno))
+        
+        except SyntaxError:
+            # If we can't parse, be conservative and don't decode anything
+            self.logger.debug("Could not parse Python AST, skipping context-aware decoding")
+        
+        return docstrings
+    
+    def _find_python_comments(self, source: str) -> Set[int]:
+        """Find all comment line numbers in Python source code."""
+        comment_lines = set()
+        lines = source.split('\n')
+        
+        for line_num, line in enumerate(lines, 1):
+            # Find # character that's not in a string
+            in_string = False
+            string_char = None
+            escaped = False
+            
+            for char in line:
+                if escaped:
+                    escaped = False
+                    continue
+                
+                if char == '\\':
+                    escaped = True
+                    continue
+                
+                if char in ('"', "'") and not in_string:
+                    in_string = True
+                    string_char = char
+                elif char == string_char and in_string:
+                    in_string = False
+                    string_char = None
+                elif char == '#' and not in_string:
+                    comment_lines.add(line_num)
+                    break
+        
+        return comment_lines
+    
+    def _decode_python_context_aware(self, source: str) -> str:
+        """
+        Decode HTML entities in Python code with context awareness.
+        Only decodes in docstrings and comments (safe contexts).
+        """
+        lines = source.split('\n')
+        
+        # Find safe contexts
+        docstrings = self._find_python_docstrings(source)
+        comment_lines = self._find_python_comments(source)
+        
+        # Process each line
+        for line_num, line in enumerate(lines, 1):
+            # Check if this line is in a safe context
+            in_docstring = any(start <= line_num <= end for start, end in docstrings)
+            in_comment = line_num in comment_lines
+            
+            if in_docstring or in_comment:
+                # Decode HTML entities in this line
+                original_line = line
+                
+                # Use html.unescape for comprehensive decoding
+                decoded_line = html.unescape(line)
+                
+                # Apply manual decoding for any remaining entities
+                for entity, replacement in self.COMMON_ENTITIES.items():
+                    if entity in decoded_line:
+                        decoded_line = decoded_line.replace(entity, replacement)
+                
+                if decoded_line != original_line:
+                    lines[line_num - 1] = decoded_line
+        
+        return '\n'.join(lines)
+    
     def _fix_language_specific(self, code: str, language: str) -> str:
         """Fix language-specific string delimiter issues."""
         if language not in self.LANGUAGE_DELIMITERS:
@@ -154,7 +252,7 @@ class HTMLEntityDecoder:
         delimiters = self.LANGUAGE_DELIMITERS[language]
         
         # Fix escaped quotes that shouldn't be escaped
-        # Example: &quot;&quot;&quot; -> """
+        # Example: """ -> """
         if 'multi' in delimiters:
             for delimiter in delimiters['multi']:
                 # Fix escaped multi-line delimiters
