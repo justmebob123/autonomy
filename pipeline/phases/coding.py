@@ -177,12 +177,20 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
             
             task.status = TaskStatus.FAILED
             
+            # Log detailed error information
+            error_summary = handler.get_error_summary()
+            self.logger.error(f"  ❌ File operation failed: {error_summary}")
+            for result in results:
+                if not result.get("success"):
+                    self.logger.error(f"     Tool: {result.get('tool', 'unknown')}")
+                    self.logger.error(f"     Error: {result.get('error', 'Unknown error')}")
+            
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
                 task_id=task.task_id,
                 message="Failed to create/modify files",
-                errors=[{"type": "file_error", "message": handler.get_error_summary()}]
+                errors=[{"type": "file_error", "message": error_summary}]
             )
         
         # ANALYSIS INTEGRATION: Validate complexity after code generation

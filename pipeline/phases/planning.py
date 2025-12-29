@@ -202,6 +202,19 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                 tasks_skipped_empty += 1
                 self.logger.warning(f"  ⚠️ Skipping task with empty filename: {task_data.get('description', 'Unknown')}")
                 continue
+            
+            # CRITICAL: Skip documentation tasks (coding phase should not create docs)
+            if target_file.endswith('.md') or '/docs/' in target_file:
+                tasks_skipped_empty += 1
+                self.logger.warning(f"  ⚠️ Skipping documentation task: {target_file}")
+                self.logger.info(f"     💡 Documentation should be created by documentation phase")
+                continue
+            
+            # Skip garbage/invalid file paths
+            if 'asas' in target_file or target_file.count('/') > 3:
+                tasks_skipped_empty += 1
+                self.logger.warning(f"  ⚠️ Skipping invalid file path: {target_file}")
+                continue
                 
             # Skip tasks targeting directories
             full_path = self.project_dir / target_file
