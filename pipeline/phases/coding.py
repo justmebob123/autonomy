@@ -298,6 +298,28 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         parts.append(f"Task: {task.description}")
         parts.append(f"Target file: {task.target_file}")
         
+        # CRITICAL FIX: Check if target file already exists
+        if task.target_file:
+            target_path = self.project_dir / task.target_file
+            if target_path.exists():
+                try:
+                    existing_content = target_path.read_text()
+                    file_size = len(existing_content)
+                    self.logger.info(f"  📖 File exists: {task.target_file} ({file_size} bytes)")
+                    
+                    # Add existing file content to context
+                    parts.append(f"\n🚨 IMPORTANT: The file {task.target_file} ALREADY EXISTS with {file_size} bytes of content.")
+                    parts.append("\nExisting file content:")
+                    parts.append(f"```python\n{existing_content}\n```")
+                    parts.append("\n⚠️ CRITICAL DECISION REQUIRED:")
+                    parts.append("1. If the file is COMPLETE and CORRECT → Use 'mark_task_complete' tool")
+                    parts.append("2. If the file has BUGS → Fix ONLY the bugs")
+                    parts.append("3. If the file needs ENHANCEMENTS → Add ONLY what's missing")
+                    parts.append("4. DO NOT make trivial changes (comments, formatting, etc.)")
+                    parts.append("\nExplain your decision before taking action.")
+                except Exception as e:
+                    self.logger.warning(f"  ⚠️ Could not read existing file: {e}")
+        
         # List dependencies explicitly
         if task.dependencies:
             parts.append(f"\nDependencies (files this task depends on):")

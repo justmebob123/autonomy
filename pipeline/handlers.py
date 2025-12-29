@@ -552,7 +552,23 @@ class ToolCallHandler:
             self.logger.info(f"Using auto-fixed code for {filepath}")
             code = fixed_code
         
-# Create directory and file
+        # CRITICAL FIX: Auto-create __init__.py files for Python packages
+        if filepath.endswith('.py') and '/' in filepath:
+            parts = filepath.split('/')
+            for i in range(len(parts) - 1):
+                init_path = '/'.join(parts[:i+1]) + '/__init__.py'
+                init_full_path = self.project_dir / init_path
+                
+                # Create __init__.py if it doesn't exist
+                if not init_full_path.exists():
+                    try:
+                        init_full_path.parent.mkdir(parents=True, exist_ok=True)
+                        init_full_path.write_text("# Auto-generated __init__.py\n")
+                        self.logger.info(f"  📦 Auto-created: {init_path}")
+                    except Exception as e:
+                        self.logger.warning(f"  ⚠️ Could not create {init_path}: {e}")
+        
+        # Create directory and file
         full_path = self.project_dir / filepath
         
         try:
