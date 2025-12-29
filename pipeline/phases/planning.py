@@ -696,20 +696,32 @@ Please address these architectural integration issues.
         self.logger.debug(f"  Completion: {completed_tasks}/{total_tasks} = {completion_rate:.1%}")
         return completion_rate >= 0.95
     def _read_phase_outputs(self) -> Dict[str, str]:
-        # Message to Developer
-        if tasks:
-            dev_tasks = [t for t in tasks if t.target_file.endswith('.py')]
-            if dev_tasks:
-                message = f"New tasks: {len(dev_tasks)} files to implement"
-                self.send_message_to_phase('coding', message)
-        # Message to QA
-        if analysis_results['complexity_issues']:
-            message = f"Review needed: {len(analysis_results['complexity_issues'])} high complexity functions"
-            self.send_message_to_phase('qa', message)
-        # Message to Debugging
-        if analysis_results['integration_gaps']:
-            message = f"Integration issues: {len(analysis_results['integration_gaps'])} gaps found"
-            self.send_message_to_phase('debugging', message)
+        """Read outputs from other phases for context"""
+        outputs = {}
+        
+        try:
+            # Read QA output for quality feedback
+            qa_output = self.read_phase_output('qa')
+            if qa_output:
+                outputs['qa'] = qa_output
+                self.logger.debug("  📖 Read QA phase output")
+            
+            # Read developer output for completion status
+            developer_output = self.read_phase_output('developer')
+            if developer_output:
+                outputs['developer'] = developer_output
+                self.logger.debug("  📖 Read developer phase output")
+            
+            # Read debugging output for fixed issues
+            debug_output = self.read_phase_output('debug')
+            if debug_output:
+                outputs['debug'] = debug_output
+                self.logger.debug("  📖 Read debugging phase output")
+                
+        except Exception as e:
+            self.logger.debug(f"  Error reading phase outputs: {e}")
+        
+        return outputs
 
         def generate_state_markdown(self, state: PipelineState) -> str:
             """Generate PLANNING_STATE.md content"""
