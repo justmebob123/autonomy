@@ -1581,6 +1581,19 @@ class PhaseCoordinator:
             # Get the highest priority task
             task = pending_sorted[0]
             
+            # CRITICAL: Skip tasks with empty target_file
+            # These tasks are incomplete and should be marked as SKIPPED
+            if not task.target_file or task.target_file.strip() == "":
+                self.logger.warning(f"⚠️  Task {task.task_id} has empty target_file, marking as SKIPPED")
+                task.status = TaskStatus.SKIPPED
+                self.state_manager.save(state)
+                # Continue to next pending task
+                pending_sorted = pending_sorted[1:]
+                if not pending_sorted:
+                    # No more pending tasks, go to planning
+                    return {'phase': 'planning', 'reason': 'No valid pending tasks, need to plan'}
+                task = pending_sorted[0]
+            
             # CRITICAL: Route documentation tasks to documentation phase
             # Check if this is a documentation task by:
             # 1. Target file ends with .md
