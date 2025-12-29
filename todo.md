@@ -8,11 +8,11 @@
 - ✅ Wrapper layer removed (analysis_tools.py deleted)
 - ✅ Core integration deployed to main branch
 
-## Phase 1: External Script Handlers ⏳
-- [ ] Add handler for analyze_enhanced (ENHANCED_DEPTH_61_ANALYZER.py)
-- [ ] Add handler for analyze_improved (IMPROVED_DEPTH_61_ANALYZER.py)
-- [ ] Add handler for deep_analyze (deep_analyze.py)
-- [ ] Update handlers.py with new tool definitions
+## Phase 1: External Script Handlers ✅
+- [x] Add handler for analyze_enhanced (ENHANCED_DEPTH_61_ANALYZER.py)
+- [x] Add handler for analyze_improved (IMPROVED_DEPTH_61_ANALYZER.py)
+- [x] Add handler for deep_analyze (deep_analyze.py)
+- [x] Update handlers.py with new tool definitions
 - [ ] Test external script handlers
 
 ## Phase 2: Phase Execute() Integration ✅
@@ -34,12 +34,15 @@
 Note: All phase prompts now include analysis guidance.
 LLMs are informed about analysis capabilities and how to interpret results.
 
-## Phase 4: Custom Tools Registration ⏳
-- [ ] Register code_complexity custom tool in handlers
-- [ ] Register find_todos custom tool in handlers
-- [ ] Register analyze_imports custom tool in handlers
-- [ ] Add custom tool definitions to tool_definitions.py
+## Phase 4: Custom Tools Registration ✅
+- [x] Register code_complexity custom tool in handlers (automatic via ToolRegistry)
+- [x] Register find_todos custom tool in handlers (automatic via ToolRegistry)
+- [x] Register analyze_imports custom tool in handlers (automatic via ToolRegistry)
+- [x] Custom tools automatically discovered and registered
 - [ ] Test custom tool calling from LLM
+
+Note: Custom tools are automatically discovered from scripts/custom_tools/tools/
+ToolRegistry handles discovery, registration, and execution.
 
 ## Phase 5: Review Other Phases ⏳
 - [ ] Review tool_design phase for analysis needs
