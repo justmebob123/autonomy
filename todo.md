@@ -1,134 +1,76 @@
-# Deep Pipeline Analysis & FULL Integration TODO
+# Complete Scripts Integration TODO
 
-## ✅ CORE INTEGRATION COMPLETE (Commit: cef0b96)
+## ✅ COMPLETED
+- ✅ Native analysis tools (complexity, dead_code, integration_gaps, call_graph)
+- ✅ File update tools (append, update_section, insert_after/before, replace_between)
+- ✅ Direct phase access (analyzers imported in __init__)
+- ✅ QA phase logic fix (success=True when finding issues)
+- ✅ Wrapper layer removed (analysis_tools.py deleted)
+- ✅ Core integration deployed to main branch
 
-### What Was Accomplished
-- ✅ Removed wrapper layer (analysis_tools.py deleted)
-- ✅ Added analysis directly to ALL main phases (Planning, QA, Debugging, Project Planning, Coding)
-- ✅ QA phase has comprehensive analysis method
-- ✅ Handlers updated to use native implementations
-- ✅ Analysis is now CORE PIPELINE FUNCTIONALITY
-- ✅ Architecture: Direct access, no wrappers
+## Phase 1: External Script Handlers ⏳
+- [ ] Add handler for analyze_enhanced (ENHANCED_DEPTH_61_ANALYZER.py)
+- [ ] Add handler for analyze_improved (IMPROVED_DEPTH_61_ANALYZER.py)
+- [ ] Add handler for deep_analyze (deep_analyze.py)
+- [ ] Update handlers.py with new tool definitions
+- [ ] Test external script handlers
 
-### What's Next
-- Add analysis method calls to phase execute() logic
-- Update phase prompts with analysis guidance
-- Test integration comprehensively
-- Review other phases for analysis needs
+## Phase 2: Phase Execute() Integration ✅
+- [x] Planning Phase: Add complexity & gap analysis calls in execute()
+- [x] QA Phase: Add comprehensive analysis calls in execute()
+- [x] Debugging Phase: Add complexity & call graph calls in execute()
+- [x] Coding Phase: Add complexity validation calls in execute()
+- [x] Project Planning Phase: Add full codebase analysis calls in execute()
+- [ ] Test phase integration with real scenarios
 
-## Phase 1: Proper Integration (CRITICAL) ⚡
-- [x] Remove wrapper layer (analysis_tools.py deleted)
-- [x] Add analysis capabilities directly to Planning phase __init__
-- [x] Add analysis capabilities directly to QA phase __init__
-- [x] Add analysis capabilities directly to Debugging phase __init__
-- [x] Add analysis capabilities directly to Project Planning phase __init__
-- [x] Add analysis capabilities directly to Coding phase __init__
-- [x] Add comprehensive analysis method to QA phase
-- [x] Update handlers to call native implementations directly
-- [ ] Review other phases (tool_design, tool_evaluation, documentation, etc.)
-- [ ] Add analysis where appropriate
-- [ ] Add analysis methods to phases (use direct access)
-- [ ] Update phase prompts to use analysis capabilities
-- [ ] Test integrated analysis in each phase
+## Phase 3: Phase Prompt Updates ⏳
+- [ ] Update Planning Phase prompt with analysis guidance
+- [ ] Update QA Phase prompt with analysis guidance
+- [ ] Update Debugging Phase prompt with analysis guidance
+- [ ] Update Coding Phase prompt with analysis guidance
+- [ ] Update Project Planning Phase prompt with analysis guidance
+- [ ] Add examples of when/how to use analysis tools
 
-## Phase 2: Add File Update Tools (IMMEDIATE) ⚡
-- [x] Create pipeline/tools/file_updates.py module
-- [x] Implement append_to_file function
-- [x] Implement update_section function (for markdown sections)
-- [x] Implement insert_after function
-- [x] Create tool definitions for file update tools
-- [x] Add file update tools to planning phase
-- [x] Add file update tools to project_planning phase
-- [ ] Test file update tools with MASTER_PLAN.md
-- [ ] Test file update tools with PRIMARY_OBJECTIVES.md
+## Phase 4: Custom Tools Registration ⏳
+- [ ] Register code_complexity custom tool in handlers
+- [ ] Register find_todos custom tool in handlers
+- [ ] Register analyze_imports custom tool in handlers
+- [ ] Add custom tool definitions to tool_definitions.py
+- [ ] Test custom tool calling from LLM
 
-## Phase 3: Analyze All Scripts (HIGH PRIORITY) 🔍
-- [x] Examine scripts/analysis/ directory structure
-- [x] Examine each analysis script in detail
-- [x] Extract core logic from each script
-- [x] Reimplement as native pipeline tools (4 core tools)
-- [x] Create pipeline/analysis/ module with native implementations
-- [x] Update handlers to use native implementations
-- [ ] Test native implementations
+## Phase 5: Review Other Phases ⏳
+- [ ] Review tool_design phase for analysis needs
+- [ ] Review tool_evaluation phase for analysis needs
+- [ ] Review documentation phase for analysis needs
+- [ ] Add analysis capabilities where appropriate
 
-## Phase 4: Create Analysis Tools Module (HIGH PRIORITY) 🛠️
-- [x] Create pipeline/tools/analysis_tools.py
-- [x] Implement wrapper for analyze_complexity
-- [x] Implement wrapper for detect_dead_code
-- [x] Implement wrapper for find_integration_gaps
-- [x] Implement wrapper for generate_call_graph
-- [x] Implement wrapper for analyze_enhanced
-- [x] Implement wrapper for analyze_improved
-- [x] Implement wrapper for deep_analyze (unified)
-- [x] Create tool definitions for all analysis tools
-- [ ] Test each analysis tool wrapper
-
-## Phase 5: Integrate Tools into Phases (HIGH PRIORITY) 🔗
-- [x] Add analysis tools to planning phase
-- [x] Add analysis tools to coding phase
-- [x] Add analysis tools to QA phase
-- [x] Add analysis tools to debugging phase
-- [x] Add ALL tools to project_planning phase
-- [x] Update pipeline/tools.py get_tools_for_phase()
-- [x] Add handlers for all new tools in pipeline/handlers.py
-- [ ] Test tool availability in each phase
-
-## Phase 6: Update Phase Prompts (HIGH PRIORITY) 📝
-- [ ] Examine current planning phase prompt
-- [ ] Update planning prompt with analysis tools guidance
-- [ ] Examine current QA phase prompt
-- [ ] Update QA prompt to clarify issue attribution (CODE issues, not QA failure)
-- [ ] Examine current project_planning phase prompt
-- [ ] Update project_planning prompt with update capabilities
-- [ ] Examine current debugging phase prompt
-- [ ] Update debugging prompt with analysis tools guidance
-- [ ] Test updated prompts with real scenarios
-
-## Phase 7: Fix QA Phase Logic (CRITICAL) 🐛
-- [x] Examine pipeline/phases/qa.py
-- [x] Identify where QA phase marks itself as failed
-- [x] Update logic: report_issue = CODE problem, not QA failure
-- [x] Update logic: QA phase succeeds when it finds issues (returns success=True)
-- [x] Task status already correctly set to NEEDS_FIXES
-- [x] Next phase set to "debugging" when issues found
-- [ ] Test QA phase with intentionally buggy code
-- [ ] Verify QA phase reports success when finding issues
-
-## Phase 8: Comprehensive Testing (CRITICAL) ✅
-- [ ] Test planning phase with analysis tools
-- [ ] Test planning phase expanding objectives
-- [ ] Test QA phase finding and reporting issues correctly
-- [ ] Test debugging phase using analysis tools
-- [ ] Test project_planning phase updating documents
-- [ ] Test all file update tools
-- [ ] Test module import mode for scripts
-- [ ] Test executable fallback mode for scripts
+## Phase 6: Testing & Validation ⏳
+- [ ] Test all external script handlers
+- [ ] Test phase execute() logic with analysis
+- [ ] Test custom tools integration
+- [ ] Test file update tools with real files
+- [ ] Validate end-to-end workflow
 - [ ] Run full pipeline with test project
-- [ ] Verify no regressions
 
-## Phase 9: Documentation (HIGH PRIORITY) 📚
-- [ ] Document new file update tools
-- [ ] Document analysis tools integration
-- [ ] Document phase-specific tool usage
+## Phase 7: Documentation ⏳
 - [ ] Update README with new capabilities
-- [ ] Create examples for each analysis tool
-- [ ] Document QA phase behavior clarification
+- [ ] Document all analysis tools
+- [ ] Document custom tools integration
+- [ ] Create usage examples
+- [ ] Document phase-specific tool usage
 
-## Phase 10: GitHub Integration (FINAL) 🚀
-- [x] Review all changes
-- [x] Create comprehensive commit message
-- [x] Commit to local repository (commit 625e745, 48bece0)
-- [x] Push to GitHub (commits pushed to main)
-- [x] Changes now live on main branch
-- [x] Native analysis tools deployed
-- [x] QA phase logic fix deployed
+## Phase 8: Deployment ⏳
+- [ ] Review all changes
+- [ ] Commit all changes
+- [ ] Push to main branch
+- [ ] Create deployment summary
+- [ ] Mark complete
 
 ## Success Criteria
-- ✅ All scripts/ tools available as primary tools
-- ✅ File update tools working correctly
-- ✅ Planning phase can expand objectives
-- ✅ QA phase correctly attributes issues to code
-- ✅ All phases have appropriate analysis tools
-- ✅ No regressions in existing functionality
-- ✅ Comprehensive documentation
-- ✅ All tests passing
+- [ ] All scripts/ tools accessible via tool calling
+- [ ] All phases use analysis in execute() logic
+- [ ] Phase prompts guide LLM on analysis usage
+- [ ] Custom tools properly registered and working
+- [ ] Comprehensive testing completed
+- [ ] Documentation updated
+- [ ] No regressions in existing functionality

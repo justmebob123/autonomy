@@ -91,6 +91,9 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         # Get existing files for context
         existing_files = self._get_existing_files()
         
+        # ANALYSIS INTEGRATION: Analyze existing codebase before planning
+        analysis_context = self._analyze_existing_codebase(existing_files)
+        
         # Build messages
         messages = [
             {"role": "system", "content": self._get_system_prompt("planning")},
@@ -98,8 +101,8 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         ]
         
         # Use reasoning specialist for planning
-        # Build simple planning message
-        user_message = self._build_planning_message(master_plan, existing_files)
+        # Build simple planning message with analysis context
+        user_message = self._build_planning_message(master_plan, existing_files, analysis_context)
         
         # Get tools for planning phase
         tools = get_tools_for_phase("planning")
@@ -304,7 +307,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                 return task
         return None
     
-    def _build_planning_message(self, master_plan: str, existing_files: List[str]) -> str:
+    def _build_planning_message(self, master_plan: str, existing_files: List[str], analysis_context: str = "") -> str:
         """
         Build a simple, focused planning message.
         
@@ -321,11 +324,108 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
             if len(existing_files) > 10:
                 parts.append(f"... and {len(existing_files) - 10} more files")
         
+        # Analysis context (if available)
+        if analysis_context:
+            parts.append(analysis_context)
+        
         # Instructions
         parts.append("\nPlease create a detailed task plan using the create_task tool for each task needed.")
         parts.append("Break down the master plan into specific, actionable tasks.")
+        if analysis_context:
+            parts.append("Consider the analysis findings when planning tasks.")
         
         return "\n".join(parts)
+    
+    def _analyze_existing_codebase(self, existing_files: List[str]) -> str:
+        """
+        Analyze existing codebase to inform planning decisions.
+        
+        Returns:
+            Analysis summary as formatted string
+        """
+        if not existing_files:
+            return ""
+        
+        self.logger.info("  📊 Analyzing existing codebase...")
+        
+        analysis_parts = []
+        analysis_parts.append("\n## Codebase Analysis\n")
+        
+        # Analyze Python files only
+        python_files = [f for f in existing_files if f.endswith('.py')]
+        
+        if not python_files:
+            return ""
+        
+        # Limit to first 10 files to avoid overwhelming analysis
+        files_to_analyze = python_files[:10]
+        
+        high_complexity_files = []
+        dead_code_files = []
+        integration_issues = []
+        
+        for filepath in files_to_analyze:
+            try:
+                # Complexity analysis
+                complexity_result = self.complexity_analyzer.analyze(filepath)
+                if complexity_result.max_complexity >= 30:
+                    high_complexity_files.append({
+                        'file': filepath,
+                        'max_complexity': complexity_result.max_complexity,
+                        'avg_complexity': complexity_result.average_complexity
+                    })
+                
+                # Dead code detection
+                dead_code_result = self.dead_code_detector.detect(filepath)
+                if dead_code_result.unused_functions or dead_code_result.unused_classes:
+                    dead_code_files.append({
+                        'file': filepath,
+                        'unused_functions': len(dead_code_result.unused_functions),
+                        'unused_classes': len(dead_code_result.unused_classes)
+                    })
+                    
+            except Exception as e:
+                self.logger.debug(f"  Analysis failed for {filepath}: {e}")
+                continue
+        
+        # Check for integration gaps (project-wide)
+        try:
+            gap_result = self.gap_finder.find_gaps()
+            if gap_result.unused_classes or gap_result.missing_integrations:
+                integration_issues.append({
+                    'unused_classes': len(gap_result.unused_classes),
+                    'missing_integrations': len(gap_result.missing_integrations)
+                })
+        except Exception as e:
+            self.logger.debug(f"  Integration gap analysis failed: {e}")
+        
+        # Format results
+        if high_complexity_files:
+            analysis_parts.append("### High Complexity Files (≥30)")
+            for item in high_complexity_files[:5]:
+                analysis_parts.append(f"- `{item['file']}`: max={item['max_complexity']}, avg={item['avg_complexity']:.1f}")
+            analysis_parts.append("")
+        
+        if dead_code_files:
+            analysis_parts.append("### Files with Potential Dead Code")
+            for item in dead_code_files[:5]:
+                analysis_parts.append(f"- `{item['file']}`: {item['unused_functions']} unused functions, {item['unused_classes']} unused classes")
+            analysis_parts.append("")
+        
+        if integration_issues:
+            analysis_parts.append("### Integration Issues")
+            for item in integration_issues:
+                if item['unused_classes'] > 0:
+                    analysis_parts.append(f"- {item['unused_classes']} unused classes detected")
+                if item['missing_integrations'] > 0:
+                    analysis_parts.append(f"- {item['missing_integrations']} missing integrations detected")
+            analysis_parts.append("")
+        
+        if len(analysis_parts) > 1:  # More than just the header
+            analysis_parts.append("**Planning Recommendation:** Consider addressing high complexity and dead code issues in your task planning.\n")
+            return "\n".join(analysis_parts)
+        
+        return ""
     
     def generate_state_markdown(self, state: PipelineState) -> str:
         """Generate PLANNING_STATE.md content"""

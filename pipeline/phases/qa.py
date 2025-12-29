@@ -185,8 +185,36 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 data={"skipped": True, "reason": "file_not_found"}
             )
         
-        # Build simple review message
-        user_message = f"Please review this code for quality issues:\n\nFile: {filepath}\n\n```\n{content}\n```\n\nIf you find issues, use the report_qa_issue tool to report them.\nIf the code looks good, just say &quot;APPROVED&quot; (no tool calls needed)."
+        # ANALYSIS INTEGRATION: Run comprehensive analysis before manual review
+        analysis_issues = []
+        if filepath.endswith('.py'):
+            self.logger.info(f"  📊 Running comprehensive analysis on {filepath}...")
+            try:
+                analysis_issues = self.run_comprehensive_analysis(filepath)
+                if analysis_issues:
+                    self.logger.info(f"  Found {len(analysis_issues)} issues via analysis")
+            except Exception as e:
+                self.logger.warning(f"  Analysis failed: {e}")
+        
+        # Build review message with analysis results
+        user_message_parts = [
+            f"Please review this code for quality issues:\n\nFile: {filepath}\n\n```\n{content}\n```"
+        ]
+        
+        if analysis_issues:
+            user_message_parts.append("\n## Automated Analysis Found Issues:\n")
+            for issue in analysis_issues[:5]:  # Limit to top 5
+                user_message_parts.append(f"- {issue['severity']}: {issue['message']}")
+                if 'line' in issue:
+                    user_message_parts.append(f"  (Line {issue['line']})")
+            if len(analysis_issues) > 5:
+                user_message_parts.append(f"\n... and {len(analysis_issues) - 5} more issues")
+            user_message_parts.append("\nPlease review these automated findings and add any additional issues you identify.")
+        
+        user_message_parts.append("\nIf you find issues, use the report_qa_issue tool to report them.")
+        user_message_parts.append("If the code looks good, just say &quot;APPROVED&quot; (no tool calls needed).")
+        
+        user_message = "\n".join(user_message_parts)
         
         # Get tools for QA phase
         tools = get_tools_for_phase("qa")

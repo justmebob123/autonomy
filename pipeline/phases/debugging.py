@@ -359,7 +359,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                 variables.get('issue')
             )
     
-    def _build_debug_message(self, filepath: str, content: str, issue: Dict) -> str:
+    def _build_debug_message(self, filepath: str, content: str, issue: Dict, analysis_context: str = "") -> str:
         """
         Build a simple, focused debugging message.
         
@@ -374,13 +374,73 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         parts.append(f"Issue type: {issue_type}")
         parts.append(f"Description: {issue_desc}")
         
+        # Analysis context (if available)
+        if analysis_context:
+            parts.append(analysis_context)
+        
         # Current code
         parts.append(f"\nCurrent code:\n```\n{content}\n```")
         
         # Instructions
         parts.append("\nPlease fix the issue using the appropriate tools.")
+        if analysis_context:
+            parts.append("Consider the analysis findings when fixing the issue.")
         
         return "\n".join(parts)
+    
+    def _analyze_buggy_code(self, filepath: str, issue: Dict) -> str:
+        """
+        Analyze buggy code to understand the issue better.
+        
+        Returns:
+            Analysis summary as formatted string
+        """
+        analysis_parts = []
+        analysis_parts.append("\n## Code Analysis\n")
+        
+        try:
+            # Complexity analysis
+            complexity_result = self.complexity_analyzer.analyze(filepath)
+            if complexity_result.max_complexity >= 20:
+                analysis_parts.append(f"**High Complexity Detected:**")
+                analysis_parts.append(f"- Maximum complexity: {complexity_result.max_complexity}")
+                analysis_parts.append(f"- Average complexity: {complexity_result.average_complexity:.1f}")
+                analysis_parts.append(f"- High complexity may be contributing to the bug\n")
+            
+            # Call graph analysis (for understanding code flow)
+            try:
+                call_graph_result = self.call_graph.generate(filepath)
+                if call_graph_result.total_functions > 0:
+                    analysis_parts.append(f"**Code Structure:**")
+                    analysis_parts.append(f"- Total functions: {call_graph_result.total_functions}")
+                    analysis_parts.append(f"- Call relationships: {call_graph_result.total_calls}")
+                    if call_graph_result.orphaned_functions:
+                        analysis_parts.append(f"- Orphaned functions: {len(call_graph_result.orphaned_functions)}")
+                    analysis_parts.append("")
+            except Exception as e:
+                self.logger.debug(f"  Call graph analysis failed: {e}")
+            
+            # Integration gap analysis (for understanding missing connections)
+            try:
+                gap_result = self.gap_finder.find_gaps()
+                if gap_result.unused_classes or gap_result.missing_integrations:
+                    analysis_parts.append(f"**Integration Issues:**")
+                    if gap_result.unused_classes:
+                        analysis_parts.append(f"- Unused classes: {len(gap_result.unused_classes)}")
+                    if gap_result.missing_integrations:
+                        analysis_parts.append(f"- Missing integrations: {len(gap_result.missing_integrations)}")
+                    analysis_parts.append("")
+            except Exception as e:
+                self.logger.debug(f"  Integration gap analysis failed: {e}")
+                
+        except Exception as e:
+            self.logger.warning(f"  Code analysis failed: {e}")
+            return ""
+        
+        if len(analysis_parts) > 1:  # More than just the header
+            return "\n".join(analysis_parts)
+        
+        return ""
     
         
         # Check if multiple files involved
@@ -495,8 +555,14 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                 files_modified=[],
             )
         
-        # Build simple debugging message
-        user_message = self._build_debug_message(filepath, content, issue)
+        # ANALYSIS INTEGRATION: Analyze buggy code before debugging
+        analysis_context = ""
+        if filepath.endswith('.py'):
+            self.logger.info(f"  📊 Analyzing buggy code: {filepath}...")
+            analysis_context = self._analyze_buggy_code(filepath, issue)
+        
+        # Build debugging message with analysis context
+        user_message = self._build_debug_message(filepath, content, issue, analysis_context)
         
         # Log prompt in verbose mode
         if hasattr(self, 'config') and self.config.verbose:

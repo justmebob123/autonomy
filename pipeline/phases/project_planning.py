@@ -82,6 +82,11 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         # Gather complete project context
         context = self._gather_complete_context(state)
         
+        # ANALYSIS INTEGRATION: Analyze entire codebase for planning
+        analysis_summary = self._analyze_codebase_for_planning()
+        if analysis_summary:
+            context += "\n\n" + analysis_summary
+        
         # Get counts for prompt
         expansion_count = getattr(state, 'expansion_count', 0)
         completed_count = sum(1 for t in state.tasks.values() if t.status == TaskStatus.COMPLETED)
@@ -580,6 +585,81 @@ This document will be updated as the project evolves to reflect:
         )
         
         arch_path.write_text(content)
+    
+    def _analyze_codebase_for_planning(self) -> str:
+        """
+        Analyze entire codebase to inform project planning decisions.
+        
+        Returns:
+            Analysis summary as formatted string
+        """
+        self.logger.info("  📊 Analyzing codebase for project planning...")
+        
+        analysis_parts = []
+        analysis_parts.append("\n# Codebase Analysis for Planning\n")
+        
+        # Get all Python files
+        py_files = sorted(self.project_dir.rglob("*.py"))
+        py_files = [f for f in py_files if ".pipeline" not in str(f) and "__pycache__" not in str(f)]
+        
+        if not py_files:
+            return ""
+        
+        # Aggregate statistics
+        total_files = len(py_files)
+        high_complexity_count = 0
+        dead_code_count = 0
+        total_complexity = 0
+        
+        for py_file in py_files[:20]:  # Limit to first 20 files
+            try:
+                rel_path = str(py_file.relative_to(self.project_dir))
+                
+                # Complexity analysis
+                complexity_result = self.complexity_analyzer.analyze(rel_path)
+                total_complexity += complexity_result.average_complexity
+                
+                if complexity_result.max_complexity >= 30:
+                    high_complexity_count += 1
+                
+                # Dead code detection
+                dead_code_result = self.dead_code_detector.detect(rel_path)
+                if dead_code_result.unused_functions or dead_code_result.unused_classes:
+                    dead_code_count += 1
+                    
+            except Exception as e:
+                self.logger.debug(f"  Analysis failed for {rel_path}: {e}")
+                continue
+        
+        # Check for integration gaps (project-wide)
+        integration_issues = 0
+        try:
+            gap_result = self.gap_finder.find_gaps()
+            integration_issues = len(gap_result.unused_classes) + len(gap_result.missing_integrations)
+        except Exception as e:
+            self.logger.debug(f"  Integration gap analysis failed: {e}")
+        
+        # Format results
+        analysis_parts.append(f"## Codebase Health Metrics\n")
+        analysis_parts.append(f"- Total Python files analyzed: {min(total_files, 20)}")
+        analysis_parts.append(f"- Average complexity: {total_complexity / min(total_files, 20):.1f}")
+        analysis_parts.append(f"- Files with high complexity (≥30): {high_complexity_count}")
+        analysis_parts.append(f"- Files with dead code: {dead_code_count}")
+        analysis_parts.append(f"- Integration issues: {integration_issues}")
+        analysis_parts.append("")
+        
+        # Recommendations
+        if high_complexity_count > 0 or dead_code_count > 0 or integration_issues > 0:
+            analysis_parts.append("## Planning Recommendations\n")
+            if high_complexity_count > 0:
+                analysis_parts.append(f"- Consider refactoring {high_complexity_count} high-complexity files")
+            if dead_code_count > 0:
+                analysis_parts.append(f"- Consider cleaning up {dead_code_count} files with dead code")
+            if integration_issues > 0:
+                analysis_parts.append(f"- Address {integration_issues} integration issues")
+            analysis_parts.append("")
+        
+        return "\n".join(analysis_parts)
     
     def _log_project_status(self, status: Dict) -> None:
         """Log project status analysis"""

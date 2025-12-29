@@ -169,6 +169,28 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 errors=[{"type": "file_error", "message": handler.get_error_summary()}]
             )
         
+        # ANALYSIS INTEGRATION: Validate complexity after code generation
+        complexity_warnings = []
+        for filepath in files_created + files_modified:
+            if filepath.endswith('.py'):
+                try:
+                    self.logger.info(f"  📊 Validating complexity for {filepath}...")
+                    complexity_result = self.complexity_analyzer.analyze(filepath)
+                    
+                    if complexity_result.max_complexity >= 30:
+                        warning = f"{filepath}: High complexity detected (max={complexity_result.max_complexity})"
+                        complexity_warnings.append(warning)
+                        self.logger.warning(f"  ⚠️ {warning}")
+                        
+                        # Add note to task for QA review
+                        task.add_error(
+                            "high_complexity",
+                            f"Generated code has high complexity (max={complexity_result.max_complexity}). Consider refactoring.",
+                            phase="coding"
+                        )
+                except Exception as e:
+                    self.logger.debug(f"  Complexity validation failed for {filepath}: {e}")
+        
         # Success - update state
         task.status = TaskStatus.QA_PENDING
         
@@ -179,13 +201,18 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
             if full_path.exists():
                 state.update_file(filepath, file_hash, full_path.stat().st_size)
         
+        message = f"Created {len(files_created)} files, modified {len(files_modified)}"
+        if complexity_warnings:
+            message += f" (⚠️ {len(complexity_warnings)} complexity warnings)"
+        
         return PhaseResult(
             success=True,
             phase=self.phase_name,
             task_id=task.task_id,
-            message=f"Created {len(files_created)} files, modified {len(files_modified)}",
+            message=message,
             files_created=files_created,
-            files_modified=files_modified
+            files_modified=files_modified,
+            data={'complexity_warnings': complexity_warnings} if complexity_warnings else {}
         )
     
     def _build_context(self, state: PipelineState, task: TaskState) -> str:
