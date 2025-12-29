@@ -1882,9 +1882,12 @@ Apply the fix immediately.""",
         # Session stats
         lines.append("## Session Stats")
         lines.append("")
-        lines.append(f"- Total Runs: {state.phases['debug'].runs}")
-        lines.append(f"- Successful Fixes: {state.phases['debug'].successes}")
-        lines.append(f"- Failed Fixes: {state.phases['debug'].failures}")
+        if 'debug' in state.phases:
+            lines.append(f"- Total Runs: {state.phases['debug'].runs}")
+            lines.append(f"- Successful Fixes: {state.phases['debug'].successes}")
+            lines.append(f"- Failed Fixes: {state.phases['debug'].failures}")
+        else:
+            lines.append("- Stats not available (phase not initialized)")
         lines.append("")
         
         return "\n".join(lines)

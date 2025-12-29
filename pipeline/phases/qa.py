@@ -596,9 +596,12 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         # Session stats
         lines.append("## Session Stats")
         lines.append("")
-        lines.append(f"- Total Runs: {state.phases['qa'].runs}")
-        lines.append(f"- Successful Reviews: {state.phases['qa'].successes}")
-        lines.append(f"- Failed Reviews: {state.phases['qa'].failures}")
+        if 'qa' in state.phases:
+            lines.append(f"- Total Runs: {state.phases['qa'].runs}")
+            lines.append(f"- Successful Reviews: {state.phases['qa'].successes}")
+            lines.append(f"- Failed Reviews: {state.phases['qa'].failures}")
+        else:
+            lines.append("- Stats not available (phase not initialized)")
         lines.append("")
         
         return "\n".join(lines)

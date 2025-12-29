@@ -392,11 +392,18 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
             "",
             "## Current Session Stats",
             "",
-            f"- Files Created: {state.phases['coding'].successes}",
-            f"- Failed Attempts: {state.phases['coding'].failures}",
-            f"- Total Runs: {state.phases['coding'].runs}",
-            "",
         ]
+        
+        if 'coding' in state.phases:
+            lines.extend([
+                f"- Files Created: {state.phases['coding'].successes}",
+                f"- Failed Attempts: {state.phases['coding'].failures}",
+                f"- Total Runs: {state.phases['coding'].runs}",
+            ])
+        else:
+            lines.append("- Stats not available (phase not initialized)")
+        
+        lines.append("")
         
         # In-progress tasks
         in_progress = state.get_tasks_by_status(TaskStatus.IN_PROGRESS)
