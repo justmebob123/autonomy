@@ -290,3 +290,63 @@ TOOLS_FILE_UPDATES = [
         }
     }
 ]
+# =============================================================================
+# Additional Native Analysis Tools
+# =============================================================================
+
+ADDITIONAL_NATIVE_ANALYSIS_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "find_bugs",
+            "description": "Detect potential bugs in Python code including identity comparison issues, bare except clauses, mutable default arguments, and other common mistakes.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to Python file to analyze (relative to project root)"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "detect_antipatterns",
+            "description": "Detect anti-patterns in Python code including too many arguments, long functions, deep nesting, god classes, and other code smells.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to Python file to analyze (relative to project root)"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_dataflow",
+            "description": "Analyze data flow in Python code to detect uninitialized variables, unused assignments, and variable lifecycle issues.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to Python file to analyze (relative to project root)"
+                    }
+                }
+            }
+        }
+    }
+]
+
+# Add additional native analysis tools to the main list
+TOOL_DEFINITIONS.extend(ADDITIONAL_NATIVE_ANALYSIS_TOOLS)

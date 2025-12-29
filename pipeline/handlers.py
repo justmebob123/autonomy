@@ -141,11 +141,15 @@ class ToolCallHandler:
             "find_recursive_patterns": self._handle_find_recursive_patterns,
             "assess_code_quality": self._handle_assess_code_quality,
             "get_refactoring_suggestions": self._handle_get_refactoring_suggestions,
-            # Analysis tools (scripts/analysis/)
+            # Analysis tools (native implementations in pipeline/analysis/)
             "analyze_complexity": self._handle_analyze_complexity,
             "detect_dead_code": self._handle_detect_dead_code,
             "find_integration_gaps": self._handle_find_integration_gaps,
             "generate_call_graph": self._handle_generate_call_graph,
+            "find_bugs": self._handle_find_bugs,
+            "detect_antipatterns": self._handle_detect_antipatterns,
+            "analyze_dataflow": self._handle_analyze_dataflow,
+            # External analysis scripts (scripts/analysis/ - for advanced analysis)
             "analyze_enhanced": self._handle_analyze_enhanced,
             "analyze_improved": self._handle_analyze_improved,
             "deep_analyze": self._handle_deep_analyze,
@@ -2510,6 +2514,125 @@ class ToolCallHandler:
             self.logger.error(f"Replace between failed: {e}")
             return {
                 "tool": "replace_between",
+                "success": False,
+                "error": str(e)
+            }
+
+    def _handle_find_bugs(self, args: Dict) -> Dict:
+        """Handle find_bugs tool - native implementation."""
+        try:
+            from .analysis.bug_detection import BugDetector
+            
+            detector = BugDetector(str(self.project_dir), self.logger)
+            target = args.get('filepath', args.get('target'))
+            
+            self.logger.info(f"🔍 Detecting bugs in {target}...")
+            result = detector.detect(target)
+            
+            # Generate report
+            report = detector.generate_report(result)
+            
+            # Save report to file
+            report_file = self.project_dir / "BUG_DETECTION_REPORT.txt"
+            report_file.write_text(report)
+            
+            self.logger.info(f"✅ Bug detection complete")
+            self.logger.info(f"   Total bugs: {len(result.bugs)}")
+            if result.severity_counts:
+                for severity, count in result.severity_counts.items():
+                    self.logger.info(f"   {severity}: {count}")
+            self.logger.info(f"   Report: BUG_DETECTION_REPORT.txt")
+            
+            return {
+                "tool": "find_bugs",
+                "success": True,
+                "result": result.to_dict(),
+                "report": report,
+                "report_file": "BUG_DETECTION_REPORT.txt"
+            }
+        except Exception as e:
+            self.logger.error(f"Bug detection failed: {e}")
+            return {
+                "tool": "find_bugs",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_detect_antipatterns(self, args: Dict) -> Dict:
+        """Handle detect_antipatterns tool - native implementation."""
+        try:
+            from .analysis.antipatterns import AntiPatternDetector
+            
+            detector = AntiPatternDetector(str(self.project_dir), self.logger)
+            target = args.get('filepath', args.get('target'))
+            
+            self.logger.info(f"🔍 Detecting anti-patterns in {target}...")
+            result = detector.detect(target)
+            
+            # Generate report
+            report = detector.generate_report(result)
+            
+            # Save report to file
+            report_file = self.project_dir / "ANTIPATTERN_REPORT.txt"
+            report_file.write_text(report)
+            
+            self.logger.info(f"✅ Anti-pattern detection complete")
+            self.logger.info(f"   Total anti-patterns: {len(result.antipatterns)}")
+            if result.pattern_counts:
+                for pattern, count in result.pattern_counts.items():
+                    self.logger.info(f"   {pattern}: {count}")
+            self.logger.info(f"   Report: ANTIPATTERN_REPORT.txt")
+            
+            return {
+                "tool": "detect_antipatterns",
+                "success": True,
+                "result": result.to_dict(),
+                "report": report,
+                "report_file": "ANTIPATTERN_REPORT.txt"
+            }
+        except Exception as e:
+            self.logger.error(f"Anti-pattern detection failed: {e}")
+            return {
+                "tool": "detect_antipatterns",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_analyze_dataflow(self, args: Dict) -> Dict:
+        """Handle analyze_dataflow tool - native implementation."""
+        try:
+            from .analysis.dataflow import DataFlowAnalyzer
+            
+            analyzer = DataFlowAnalyzer(str(self.project_dir), self.logger)
+            target = args.get('filepath', args.get('target'))
+            
+            self.logger.info(f"🔍 Analyzing data flow in {target}...")
+            result = analyzer.analyze(target)
+            
+            # Generate report
+            report = analyzer.generate_report(result)
+            
+            # Save report to file
+            report_file = self.project_dir / "DATAFLOW_REPORT.txt"
+            report_file.write_text(report)
+            
+            self.logger.info(f"✅ Data flow analysis complete")
+            self.logger.info(f"   Total variables: {len(result.variables)}")
+            self.logger.info(f"   Uninitialized: {len(result.uninitialized_vars)}")
+            self.logger.info(f"   Unused assignments: {len(result.unused_assignments)}")
+            self.logger.info(f"   Report: DATAFLOW_REPORT.txt")
+            
+            return {
+                "tool": "analyze_dataflow",
+                "success": True,
+                "result": result.to_dict(),
+                "report": report,
+                "report_file": "DATAFLOW_REPORT.txt"
+            }
+        except Exception as e:
+            self.logger.error(f"Data flow analysis failed: {e}")
+            return {
+                "tool": "analyze_dataflow",
                 "success": False,
                 "error": str(e)
             }
