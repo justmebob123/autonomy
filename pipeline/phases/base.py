@@ -354,8 +354,15 @@ class BasePhase(ABC):
             # Execute phase
             result = self.execute(state, **kwargs)
             
-            # Update phase state
-            state.phases[self.phase_name].record_run(result.success)
+            # Update phase state (with defensive check)
+            if self.phase_name in state.phases:
+                state.phases[self.phase_name].record_run(result.success)
+            else:
+                # Phase not registered in state - log warning and create it
+                from pipeline.state.manager import PhaseState
+                self.logger.warning(f"Phase '{self.phase_name}' not found in state.phases, creating it now")
+                state.phases[self.phase_name] = PhaseState()
+                state.phases[self.phase_name].record_run(result.success)
             
             # Update file hashes for any changed files
             for filepath in result.files_created + result.files_modified:

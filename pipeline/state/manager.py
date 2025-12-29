@@ -340,7 +340,12 @@ class PipelineState:
             self.pipeline_run_id = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
         # Initialize phase states (including new phases)
-        for phase in ["planning", "coding", "qa", "debug", "project_planning", "documentation"]:
+        # PRIMARY phases (normal development flow)
+        primary_phases = ["planning", "coding", "qa", "debug", "debugging", "project_planning", "documentation", "investigation"]
+        # SPECIALIZED phases (on-demand only)
+        specialized_phases = ["prompt_design", "tool_design", "role_design", "tool_evaluation", "prompt_improvement", "role_improvement"]
+        
+        for phase in primary_phases + specialized_phases:
             if phase not in self.phases:
                 self.phases[phase] = PhaseState()
         
