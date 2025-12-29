@@ -1296,7 +1296,7 @@ class PhaseCoordinator:
                     # Check if production file exists
                     prod_file_exists = False
                     for possible_path in [base_name, f'core/{base_name}', f'src/{base_name}']:
-                        if os.path.exists(os.path.join(state.project_dir, possible_path)):
+                        if os.path.exists(os.path.join(self.project_dir, possible_path)):
                             prod_file_exists = True
                             break
                     
