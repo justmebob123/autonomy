@@ -49,6 +49,13 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         BasePhase.__init__(self, *args, **kwargs)
         self.init_loop_detection()
         
+        # ARCHITECTURE CONFIG - Load project architecture configuration
+        from ..architecture_parser import get_architecture_config
+        self.architecture_config = get_architecture_config(self.project_dir)
+        self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
+        
+        self.logger.info("  🎯 Project Planning phase initialized with IPC integration")
+        
         # CORE ANALYSIS CAPABILITIES - Direct integration
         from ..analysis.complexity import ComplexityAnalyzer
         from ..analysis.dead_code import DeadCodeDetector
@@ -71,15 +78,38 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         
         self.logger.info("  📊 Analyzing project for expansion opportunities...")
         
+        # INITIALIZE IPC DOCUMENTS (if first run)
+        self.initialize_ipc_documents()
+        
+        # READ STRATEGIC DOCUMENTS for context
+        strategic_docs = self.read_strategic_docs()
+        master_plan = strategic_docs.get('MASTER_PLAN.md', '')
+        architecture_doc = strategic_docs.get('ARCHITECTURE.md', '')
+        primary_objectives = strategic_docs.get('PRIMARY_OBJECTIVES.md', '')
+        secondary_objectives = strategic_docs.get('SECONDARY_OBJECTIVES.md', '')
+        
+        # Store as instance variables for use in helper methods
+        self._master_plan_content = master_plan
+        self._architecture_content = architecture_doc
+        self._primary_objectives_content = primary_objectives
+        self._secondary_objectives_content = secondary_objectives
+        
+        # READ OWN TASKS
+        tasks_from_doc = self.read_own_tasks()
+        
+        # READ OTHER PHASES' OUTPUTS for context
+        planning_output = self.read_phase_output('planning')
+        documentation_output = self.read_phase_output('documentation')
+        
         # Check expansion health
         if not self._check_expansion_health(state):
             self.logger.warning("  ⚠️ Expansion paused - entering maintenance mode")
             return self._create_maintenance_result(state)
         
-        # Ensure ARCHITECTURE.md exists
+        # Ensure ARCHITECTURE.md exists (will use strategic docs)
         self._ensure_architecture_exists()
         
-        # Gather complete project context
+        # Gather complete project context (now includes strategic docs)
         context = self._gather_complete_context(state)
         
         # ANALYSIS INTEGRATION: Analyze entire codebase for planning
@@ -280,6 +310,32 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         # Update expansion tracking in state
         state.expansion_count = getattr(state, 'expansion_count', 0) + 1
         
+        # WRITE STATUS to PROJECT_PLANNING_WRITE.md
+        status_content = f"""# Project Planning Phase Status
+
+**Last Updated**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+## Expansion Cycle
+- Cycle Number: {state.expansion_count}
+- Tasks Created: {len(tasks_created)}
+- Focus Area: {new_tasks[0].get("category", "general") if new_tasks else "none"}
+
+## New Tasks
+{chr(10).join(f"- {task.get('description', 'No description')}" for task in new_tasks[:5])}
+
+## Architecture Updates
+{chr(10).join(f"- {update}" for update in architecture_updates) if architecture_updates else "- No architecture updates"}
+
+## Next Steps
+- Planning phase will refine these tasks
+- Coding phase will implement
+"""
+        self.write_own_status(status_content)
+        
+        # SEND MESSAGES to other phases
+        if tasks_created:
+            self.send_message_to_phase('planning', f"Created {len(tasks_created)} new expansion tasks for cycle {state.expansion_count}")
+        
         return PhaseResult(
             success=len(tasks_created) > 0,
             phase=self.phase_name,
@@ -295,19 +351,18 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         """Gather complete project context for planning"""
         context_parts = []
         
+        # Use strategic docs already read at start of execute()
+        # These are available as instance variables from execute()
+        
         # 1. MASTER_PLAN.md (full content - this is the source of truth)
-        master_plan = self.project_dir / "MASTER_PLAN.md"
-        if master_plan.exists():
-            content = master_plan.read_text()
-            context_parts.append(f"# MASTER_PLAN.md\n\n{content}")
+        if hasattr(self, '_master_plan_content') and self._master_plan_content:
+            context_parts.append(f"# MASTER_PLAN.md\n\n{self._master_plan_content}")
         else:
             context_parts.append("# MASTER_PLAN.md\n\n(NOT FOUND - this is required!)")
         
         # 2. ARCHITECTURE.md (full content)
-        arch = self.project_dir / "ARCHITECTURE.md"
-        if arch.exists():
-            content = arch.read_text()
-            context_parts.append(f"# ARCHITECTURE.md\n\n{content}")
+        if hasattr(self, '_architecture_content') and self._architecture_content:
+            context_parts.append(f"# ARCHITECTURE.md\n\n{self._architecture_content}")
         else:
             context_parts.append("# ARCHITECTURE.md\n\n(Not yet created - will be generated)")
         

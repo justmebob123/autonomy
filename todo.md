@@ -1,318 +1,193 @@
-# TODO: Comprehensive Pipeline Architecture Analysis
+# TODO: Complete IPC Integration Across All Phases
 
-## Mission: Deep Examination of Entire Pipeline
+## Mission: Integrate Document IPC into ALL Phases
 
-Perform a complete, systematic analysis of the entire autonomy pipeline to:
-1. Identify ALL parallel/duplicate implementations
-2. Ensure consistent Document IPC usage across all phases
-3. Verify proper integration of all components
-4. Trace complete call stacks and data flow
-5. Analyze polytopic structure and phase transitions
-6. Verify naming conventions and architectural consistency
+Based on comprehensive analysis, integrate Document IPC system into all 13 phases:
+- 4 phases already integrated ✅
+- 2 active phases need integration (Documentation, Project Planning)
+- 7 inactive phases need integration AND activation
 
 ---
 
-## Phase 1: Document IPC System Analysis ⏳
+## Phase 1: Fix Active Phases (HIGH PRIORITY) ⏳
 
-### 1.1 Map All Document Operations
-- [ ] Find ALL places where documents are read
-- [ ] Find ALL places where documents are written
-- [ ] Find ALL places where documents are created
-- [ ] Identify inconsistencies in document access patterns
-- [ ] Map document flow through entire pipeline
+### 1.1 Documentation Phase
+- [ ] Add architecture_config loading in __init__
+- [ ] Add read_strategic_docs() at start of execute()
+- [ ] Add read_own_tasks() for work items
+- [ ] Add write_own_status() for status updates
+- [ ] Add send_message_to_phase() for coordination
+- [ ] Replace direct MASTER_PLAN.read_text() with read_strategic_docs()
+- [ ] Replace direct README operations with proper flow
+- [ ] Add read_phase_output() for other phases
 
-### 1.2 Verify Document IPC Integration
-- [ ] Check DocumentIPC class usage in all phases
-- [ ] Verify initialize_documents() is called correctly
-- [ ] Check read_strategic_docs() usage
-- [ ] Check write_own_status() usage
-- [ ] Check send_message_to_phase() usage
-- [ ] Verify all phases use BasePhase IPC methods
+### 1.2 Project Planning Phase
+- [ ] Add architecture_config loading in __init__
+- [ ] Add read_strategic_docs() at start of execute()
+- [ ] Add read_own_tasks() for work items
+- [ ] Add write_own_status() for status updates
+- [ ] Add send_message_to_phase() for coordination
+- [ ] Replace direct MASTER_PLAN.read_text() with read_strategic_docs()
+- [ ] Replace direct ARCHITECTURE operations with proper flow
+- [ ] Add read_phase_output() for other phases
 
-### 1.3 Identify Parallel Implementations
-- [ ] Search for duplicate document reading code
-- [ ] Search for duplicate document writing code
-- [ ] Search for manual file operations bypassing DocumentIPC
-- [ ] Identify inconsistent document access patterns
+### 1.3 Add Architecture Config to Coding Phase
+- [ ] Import get_architecture_config
+- [ ] Load architecture_config in __init__
+- [ ] Pass to analyzers (complexity_analyzer, dead_code_detector)
+- [ ] Log config loading
 
----
-
-## Phase 2: Complete Phase Analysis ⏳
-
-### 2.1 Planning Phase Deep Dive
-- [ ] Trace complete execute() flow
-- [ ] Map all method calls and their purposes
-- [ ] Identify all document reads/writes
-- [ ] Check integration with analysis tools
-- [ ] Verify IPC method usage
-- [ ] Check for duplicate implementations
-- [ ] Analyze variable state transitions
-
-### 2.2 Coding Phase Deep Dive
-- [ ] Trace complete execute() flow
-- [ ] Map all method calls and their purposes
-- [ ] Identify all document reads/writes
-- [ ] Check file creation logic
-- [ ] Verify IPC method usage
-- [ ] Check for duplicate implementations
-- [ ] Analyze variable state transitions
-
-### 2.3 QA Phase Deep Dive
-- [ ] Trace complete execute() flow
-- [ ] Map all method calls and their purposes
-- [ ] Identify all document reads/writes
-- [ ] Check analysis integration
-- [ ] Verify IPC method usage
-- [ ] Check for duplicate implementations
-- [ ] Analyze variable state transitions
-
-### 2.4 Debugging Phase Deep Dive
-- [ ] Trace complete execute() flow
-- [ ] Map all method calls and their purposes
-- [ ] Identify all document reads/writes
-- [ ] Check fix application logic
-- [ ] Verify IPC method usage
-- [ ] Check for duplicate implementations
-- [ ] Analyze variable state transitions
-
-### 2.5 All Other Phases
-- [ ] Investigation phase
-- [ ] Tool Design phase
-- [ ] Tool Evaluation phase
-- [ ] Documentation phase
-- [ ] Project Planning phase
-- [ ] Verification phase
-- [ ] Deployment phase
-- [ ] Monitoring phase
-- [ ] Optimization phase
-- [ ] Research phase
-- [ ] Analysis phase
+### 1.4 Add Architecture Config to Debugging Phase
+- [ ] Import get_architecture_config
+- [ ] Load architecture_config in __init__
+- [ ] Pass to analyzers (complexity_analyzer, gap_finder)
+- [ ] Log config loading
 
 ---
 
-## Phase 3: Call Stack & Data Flow Analysis ⏳
+## Phase 2: Integrate Inactive Phases (MEDIUM PRIORITY) ⏳
 
-### 3.1 Coordinator Analysis
-- [ ] Trace phase selection logic
-- [ ] Map state transitions
-- [ ] Identify all phase invocations
-- [ ] Analyze task routing
-- [ ] Check loop detection
-- [ ] Verify phase coordination
+### 2.1 Investigation Phase
+- [ ] Add architecture_config loading in __init__
+- [ ] Add read_strategic_docs() at start of execute()
+- [ ] Add read_own_tasks() for work items
+- [ ] Add write_own_status() for status updates
+- [ ] Add send_message_to_phase() for coordination
+- [ ] Add read_phase_output() for other phases
+- [ ] Add analysis tools integration
+- [ ] Test phase execution
 
-### 3.2 State Manager Analysis
-- [ ] Trace PipelineState usage
-- [ ] Map TaskState transitions
-- [ ] Analyze FileStatus tracking
-- [ ] Check state persistence
-- [ ] Verify state consistency
+### 2.2 Tool Design Phase
+- [ ] Add architecture_config loading in __init__
+- [ ] Add read_strategic_docs() at start of execute()
+- [ ] Add read_own_tasks() for work items
+- [ ] Add write_own_status() for status updates
+- [ ] Add send_message_to_phase() for coordination
+- [ ] Add read_phase_output() for other phases
+- [ ] Test phase execution
 
-### 3.3 Complete Call Stack Mapping
-- [ ] Map run.py → main() → coordinator
-- [ ] Map coordinator → phase selection
-- [ ] Map phase → execute() → tools
-- [ ] Map tools → handlers → execution
-- [ ] Identify all function calls
-- [ ] Create complete call graph
+### 2.3 Tool Evaluation Phase
+- [ ] Add architecture_config loading in __init__
+- [ ] Add read_strategic_docs() at start of execute()
+- [ ] Add read_own_tasks() for work items
+- [ ] Add write_own_status() for status updates
+- [ ] Add send_message_to_phase() for coordination
+- [ ] Add read_phase_output() for other phases
+- [ ] Test phase execution
 
-### 3.4 Variable State Analysis
-- [ ] Trace state variable through pipeline
-- [ ] Trace task variables through phases
-- [ ] Trace file_path through operations
-- [ ] Trace analysis_results through updates
-- [ ] Identify all state mutations
+### 2.4 Prompt Design Phase
+- [ ] Add architecture_config loading in __init__
+- [ ] Add read_strategic_docs() at start of execute()
+- [ ] Add read_own_tasks() for work items
+- [ ] Add write_own_status() for status updates
+- [ ] Add send_message_to_phase() for coordination
+- [ ] Add read_phase_output() for other phases
+- [ ] Test phase execution
 
----
+### 2.5 Prompt Improvement Phase
+- [ ] Add architecture_config loading in __init__
+- [ ] Add read_strategic_docs() at start of execute()
+- [ ] Add read_own_tasks() for work items
+- [ ] Add write_own_status() for status updates
+- [ ] Add send_message_to_phase() for coordination
+- [ ] Add read_phase_output() for other phases
+- [ ] Test phase execution
 
-## Phase 4: Architecture & Integration Analysis ⏳
+### 2.6 Role Design Phase
+- [ ] Add architecture_config loading in __init__
+- [ ] Add read_strategic_docs() at start of execute()
+- [ ] Add read_own_tasks() for work items
+- [ ] Add write_own_status() for status updates
+- [ ] Add send_message_to_phase() for coordination
+- [ ] Add read_phase_output() for other phases
+- [ ] Test phase execution
 
-### 4.1 Polytopic Structure Analysis
-- [ ] Map all phase vertices
-- [ ] Identify all phase transitions
-- [ ] Analyze phase dependencies
-- [ ] Check for circular dependencies
-- [ ] Verify phase isolation
-- [ ] Map communication channels
-
-### 4.2 Tool Integration Analysis
-- [ ] Map all tool definitions
-- [ ] Trace tool registration
-- [ ] Analyze tool handlers
-- [ ] Check tool execution flow
-- [ ] Verify tool isolation
-- [ ] Identify duplicate tool implementations
-
-### 4.3 Analysis Tools Integration
-- [ ] Check ComplexityAnalyzer usage
-- [ ] Check DeadCodeDetector usage
-- [ ] Check IntegrationGapFinder usage
-- [ ] Check CallGraphGenerator usage
-- [ ] Check IntegrationConflictDetector usage
-- [ ] Verify consistent initialization
-- [ ] Check for duplicate analyzers
-
-### 4.4 Architecture Parser Integration
-- [ ] Check ArchitectureParser usage
-- [ ] Verify config loading
-- [ ] Check is_library_module() usage
-- [ ] Check is_application_module() usage
-- [ ] Verify consistent usage across phases
+### 2.7 Role Improvement Phase
+- [ ] Add architecture_config loading in __init__
+- [ ] Add read_strategic_docs() at start of execute()
+- [ ] Add read_own_tasks() for work items
+- [ ] Add write_own_status() for status updates
+- [ ] Add send_message_to_phase() for coordination
+- [ ] Add read_phase_output() for other phases
+- [ ] Test phase execution
 
 ---
 
-## Phase 5: Naming Convention Analysis ⏳
+## Phase 3: Activate Inactive Phases (MEDIUM PRIORITY) ⏳
 
-### 5.1 File Naming
-- [ ] Check all Python file names
-- [ ] Verify snake_case usage
-- [ ] Check for inconsistencies
-- [ ] Identify legacy naming
+### 3.1 Add to Coordinator
+- [ ] Import all 7 inactive phases
+- [ ] Instantiate in __init__
+- [ ] Add to phase registry
+- [ ] Verify polytope edges are correct
 
-### 5.2 Class Naming
-- [ ] Check all class names
-- [ ] Verify PascalCase usage
-- [ ] Check for inconsistencies
-- [ ] Verify inheritance patterns
-
-### 5.3 Method Naming
-- [ ] Check all method names
-- [ ] Verify snake_case usage
-- [ ] Check private method prefixes
-- [ ] Verify consistency
-
-### 5.4 Variable Naming
-- [ ] Check all variable names
-- [ ] Verify snake_case usage
-- [ ] Check for inconsistencies
-- [ ] Verify descriptive names
+### 3.2 Update Polytope Structure
+- [ ] Verify investigation phase edges
+- [ ] Verify tool_design phase edges
+- [ ] Verify tool_evaluation phase edges
+- [ ] Verify prompt_design phase edges
+- [ ] Verify prompt_improvement phase edges
+- [ ] Verify role_design phase edges
+- [ ] Verify role_improvement phase edges
 
 ---
 
-## Phase 6: Duplicate Implementation Detection ⏳
+## Phase 4: Consolidate Shared Resources (LOW PRIORITY) ⏳
 
-### 6.1 Document Operations
-- [ ] Find all Path().read_text() calls
-- [ ] Find all Path().write_text() calls
-- [ ] Find all file open() calls
-- [ ] Identify bypasses of DocumentIPC
-- [ ] Consolidate to DocumentIPC
+### 4.1 Consolidate Analyzer Instances
+- [ ] Create analyzers once in coordinator __init__
+- [ ] Pass to phases as shared resources
+- [ ] Remove duplicate instantiation from phases
+- [ ] Ensure consistent configuration
+- [ ] Test memory usage improvement
 
-### 6.2 Analysis Operations
-- [ ] Find all complexity analysis calls
-- [ ] Find all dead code detection calls
-- [ ] Find all integration gap calls
-- [ ] Identify duplicate analyzers
-- [ ] Consolidate to single instances
-
-### 6.3 State Operations
-- [ ] Find all state.tasks access
-- [ ] Find all state.files access
-- [ ] Find all state mutations
-- [ ] Identify inconsistent patterns
-- [ ] Standardize state access
-
-### 6.4 Tool Operations
-- [ ] Find all tool handler calls
-- [ ] Find all tool executions
-- [ ] Identify duplicate handlers
-- [ ] Consolidate tool logic
+### 4.2 Consolidate DocumentIPC Instance
+- [ ] Create single DocumentIPC in coordinator
+- [ ] Pass to all phases
+- [ ] Remove duplicate instantiation from BasePhase
+- [ ] Add thread-safe file access
+- [ ] Test for race conditions
 
 ---
 
-## Phase 7: Integration Verification ⏳
+## Phase 5: Testing & Verification ⏳
 
-### 7.1 BasePhase Integration
-- [ ] Verify all phases inherit from BasePhase
-- [ ] Check __init__ calls super().__init__
-- [ ] Verify IPC method availability
-- [ ] Check consistent initialization
+### 5.1 Test Each Phase
+- [ ] Test Documentation phase IPC
+- [ ] Test Project Planning phase IPC
+- [ ] Test Investigation phase
+- [ ] Test Tool Design phase
+- [ ] Test Tool Evaluation phase
+- [ ] Test Prompt Design phase
+- [ ] Test Prompt Improvement phase
+- [ ] Test Role Design phase
+- [ ] Test Role Improvement phase
 
-### 7.2 DocumentIPC Integration
-- [ ] Verify DocumentIPC instantiation
-- [ ] Check initialize_documents() calls
-- [ ] Verify document creation
-- [ ] Check document access patterns
-
-### 7.3 Analysis Tools Integration
-- [ ] Verify analyzer instantiation
-- [ ] Check architecture_config passing
-- [ ] Verify consistent usage
-- [ ] Check result handling
-
-### 7.4 Message Bus Integration
-- [ ] Check message bus usage
-- [ ] Verify event subscriptions
-- [ ] Check message publishing
-- [ ] Verify event handling
-
----
-
-## Phase 8: Consistency Verification ⏳
-
-### 8.1 Import Consistency
-- [ ] Check all import statements
-- [ ] Verify relative imports
-- [ ] Check for circular imports
-- [ ] Standardize import order
-
-### 8.2 Error Handling Consistency
-- [ ] Check all try/except blocks
-- [ ] Verify error logging
-- [ ] Check error propagation
-- [ ] Standardize error handling
-
-### 8.3 Logging Consistency
-- [ ] Check all logger usage
-- [ ] Verify log levels
-- [ ] Check log messages
-- [ ] Standardize logging format
-
-### 8.4 Type Hint Consistency
-- [ ] Check all type hints
-- [ ] Verify return types
-- [ ] Check parameter types
-- [ ] Standardize type usage
-
----
-
-## Deliverables
-
-### Analysis Documents
-- [ ] COMPLETE_PIPELINE_ARCHITECTURE.md
-- [ ] DOCUMENT_IPC_FLOW_DIAGRAM.md
-- [ ] CALL_STACK_ANALYSIS.md
-- [ ] POLYTOPIC_STRUCTURE_ANALYSIS.md
-- [ ] DUPLICATE_IMPLEMENTATIONS_REPORT.md
-- [ ] INTEGRATION_VERIFICATION_REPORT.md
-- [ ] NAMING_CONVENTION_AUDIT.md
-- [ ] VARIABLE_STATE_FLOW_ANALYSIS.md
-
-### Code Improvements
-- [ ] Consolidate duplicate implementations
-- [ ] Fix inconsistent document access
-- [ ] Standardize naming conventions
-- [ ] Improve integration patterns
-- [ ] Add missing IPC calls
-- [ ] Fix architectural issues
-
-### Testing
-- [ ] Test complete pipeline flow
-- [ ] Test document IPC system
+### 5.2 Integration Testing
 - [ ] Test phase transitions
-- [ ] Test state management
-- [ ] Test tool integration
-- [ ] Test error handling
+- [ ] Test document flow
+- [ ] Test message passing
+- [ ] Test strategic document updates
+- [ ] Test architecture config usage
+
+### 5.3 End-to-End Testing
+- [ ] Run complete pipeline
+- [ ] Verify all documents created
+- [ ] Verify all phases coordinate
+- [ ] Verify no race conditions
+- [ ] Verify memory usage acceptable
 
 ---
 
 ## Success Criteria
 
-- [ ] Zero duplicate implementations
-- [ ] 100% consistent document IPC usage
-- [ ] All phases properly integrated
-- [ ] Complete call stack documented
-- [ ] All variable flows traced
-- [ ] Polytopic structure verified
-- [ ] Naming conventions standardized
-- [ ] All integrations verified
+- [ ] All 13 phases use Document IPC
+- [ ] All phases load architecture_config
+- [ ] All phases read strategic documents
+- [ ] All phases write status updates
+- [ ] All phases send messages
+- [ ] All 7 inactive phases activated
+- [ ] Shared resources consolidated
 - [ ] All tests passing
+- [ ] No race conditions
+- [ ] Memory usage optimized

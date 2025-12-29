@@ -59,6 +59,11 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         
         # Loop detection is initialized by LoopDetectionMixin
         
+        # ARCHITECTURE CONFIG - Load project architecture configuration
+        from ..architecture_parser import get_architecture_config
+        self.architecture_config = get_architecture_config(self.project_dir)
+        self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
+        
         # CORE ANALYSIS CAPABILITIES - Direct integration
         from ..analysis.complexity import ComplexityAnalyzer
         from ..analysis.call_graph import CallGraphGenerator

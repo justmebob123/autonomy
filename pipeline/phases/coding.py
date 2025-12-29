@@ -36,12 +36,17 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         super().__init__(*args, **kwargs)
         self.init_loop_detection()
         
+        # ARCHITECTURE CONFIG - Load project architecture configuration
+        from ..architecture_parser import get_architecture_config
+        self.architecture_config = get_architecture_config(self.project_dir)
+        self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
+        
         # CORE ANALYSIS CAPABILITIES - Direct integration
         from ..analysis.complexity import ComplexityAnalyzer
         from ..analysis.dead_code import DeadCodeDetector
         
         self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
-        self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger)
+        self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger, self.architecture_config)
         
         self.logger.info("  💻 Coding phase initialized with analysis capabilities")
     

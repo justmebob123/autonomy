@@ -37,11 +37,34 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         """Initialize with loop detection"""
         BasePhase.__init__(self, *args, **kwargs)
         self.init_loop_detection()
+        
+        # ARCHITECTURE CONFIG - Load project architecture configuration
+        from ..architecture_parser import get_architecture_config
+        self.architecture_config = get_architecture_config(self.project_dir)
+        self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
+        
+        self.logger.info("  📝 Documentation phase initialized with IPC integration")
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """Execute documentation phase"""
         
         self.logger.info("  📝 Reviewing documentation...")
+        
+        # INITIALIZE IPC DOCUMENTS (if first run)
+        self.initialize_ipc_documents()
+        
+        # READ STRATEGIC DOCUMENTS for context
+        strategic_docs = self.read_strategic_docs()
+        master_plan = strategic_docs.get('MASTER_PLAN.md', '')
+        architecture_doc = strategic_docs.get('ARCHITECTURE.md', '')
+        
+        # READ OWN TASKS
+        tasks_from_doc = self.read_own_tasks()
+        
+        # READ OTHER PHASES' OUTPUTS for context
+        planning_output = self.read_phase_output('planning')
+        coding_output = self.read_phase_output('coding')
+        qa_output = self.read_phase_output('qa')
         
         # Check no-update count BEFORE processing
         from ..state.manager import StateManager
@@ -144,6 +167,31 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         
         # Update state tracking
         state.last_doc_update_count = completed_count
+        
+        # WRITE STATUS to DOCUMENTATION_WRITE.md
+        status_content = f"""# Documentation Phase Status
+
+**Last Updated**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+## Updates Made
+{chr(10).join(f"- {update}" for update in updates_made) if updates_made else "- No updates needed"}
+
+## Files Modified
+{chr(10).join(f"- {file}" for file in (["README.md"] if updates_made else [])) if updates_made else "- None"}
+
+## Completed Tasks
+- Reviewed {completed_count} completed tasks
+- New completions since last update: {new_completions}
+
+## Next Steps
+- Continue monitoring for documentation needs
+"""
+        self.write_own_status(status_content)
+        
+        # SEND MESSAGES to other phases
+        if updates_made:
+            self.send_message_to_phase('planning', f"Documentation updated: {len(updates_made)} changes made")
+            self.send_message_to_phase('qa', "Documentation is current - ready for review")
         
         return PhaseResult(
             success=True,
@@ -289,11 +337,9 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         readme_path = self.project_dir / "README.md"
         
         project_name = self.project_dir.name
-        master_plan = self.project_dir / "MASTER_PLAN.md"
-        
-        if master_plan.exists():
-            content = master_plan.read_text()
-            match = re.search(r'^#\s*(?:MASTER PLAN:?\s*)?(.+)$', content, re.MULTILINE)
+        # Use strategic docs already read at start of execute()
+        if master_plan:  # master_plan from read_strategic_docs()
+            match = re.search(r'^#\s*(?:MASTER PLAN:?\s*)?(.+)$', master_plan, re.MULTILINE)
             if match:
                 project_name = match.group(1).strip()
         
