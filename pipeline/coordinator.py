@@ -773,6 +773,19 @@ class PhaseCoordinator:
             self.logger.info(f"  Resumed pipeline run: {state.run_id}")
             completed = sum(1 for t in state.tasks.values() if t.status == TaskStatus.COMPLETED)
             self.logger.info(f"  Tasks: {len(state.tasks)} total, {completed} completed")
+            
+            # CRITICAL: Reset failure counts on resume to give tasks fresh attempts
+            # Otherwise, tasks that failed 3+ times in previous session will immediately
+            # trigger specialized phase activation, causing infinite loops
+            reset_count = 0
+            for task in state.tasks.values():
+                if hasattr(task, 'failure_count') and task.failure_count > 0:
+                    task.failure_count = 0
+                    reset_count += 1
+            
+            if reset_count > 0:
+                self.logger.info(f"  🔄 Reset failure counts for {reset_count} tasks (fresh attempts)")
+                self.state_manager.save(state)
         else:
             self.logger.info(f"  Starting new pipeline run: {state.run_id}")
         
