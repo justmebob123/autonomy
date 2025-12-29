@@ -296,9 +296,15 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                             if t.status in [TaskStatus.SKIPPED, TaskStatus.FAILED]]
             
             if inactive_tasks:
-                self.logger.info(f"  🔄 Found {len(inactive_tasks)} inactive tasks - reactivating them")
+                self.logger.info(f"  🔄 Found {len(inactive_tasks)} inactive tasks - checking for reactivation")
                 reactivated = 0
                 for task in inactive_tasks[:10]:  # Reactivate up to 10 at a time
+                    # CRITICAL: Don't reactivate tasks with empty target_file
+                    # These are invalid and will just be skipped again
+                    if not task.target_file or task.target_file.strip() == "":
+                        self.logger.debug(f"    ⏭️  Skipping reactivation of task with empty target_file: {task.description[:60]}...")
+                        continue
+                    
                     task.status = TaskStatus.NEW
                     task.attempts = 0  # Reset attempts
                     reactivated += 1

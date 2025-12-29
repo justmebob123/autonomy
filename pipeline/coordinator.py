@@ -1647,14 +1647,21 @@ class PhaseCoordinator:
                 # If we're here, planning failed to reactivate them
                 # Force reactivation here as a safety net
                 self.logger.info(f"  🔄 Coordinator forcing reactivation of {len(other_status)} tasks")
+                reactivated = 0
                 for task in other_status[:10]:  # Reactivate up to 10
                     if task.status in [TaskStatus.SKIPPED, TaskStatus.FAILED]:
+                        # CRITICAL: Don't reactivate tasks with empty target_file
+                        if not task.target_file or task.target_file.strip() == "":
+                            self.logger.debug(f"    ⏭️  Skipping reactivation of task with empty target_file: {task.description[:60]}...")
+                            continue
+                        
                         task.status = TaskStatus.NEW
                         task.attempts = 0
+                        reactivated += 1
                         self.logger.info(f"    ✅ Reactivated: {task.description[:60]}...")
                 
                 state.rebuild_queue()
-                return {'phase': 'coding', 'reason': f'Reactivated {min(10, len(other_status))} tasks'}
+                return {'phase': 'coding', 'reason': f'Reactivated {reactivated} tasks'}
             else:
                 # No work at all - consider project complete
                 self.logger.info("  ✅ No pending work found, moving to documentation")
