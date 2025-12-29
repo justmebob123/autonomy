@@ -88,6 +88,18 @@ class PipelineConfig:
         "debugging":       ("qwen2.5-coder:32b", "ollama02.thiscluster.net"),
         "debug":           ("qwen2.5-coder:32b", "ollama02.thiscluster.net"),
         
+        # Documentation and project planning
+        "documentation":   ("qwen2.5-coder:14b", "ollama02.thiscluster.net"),
+        "project_planning": ("qwen2.5-coder:32b", "ollama02.thiscluster.net"),
+        
+        # Specialized phases (meta-operations on pipeline itself)
+        "tool_design":     ("qwen2.5-coder:14b", "ollama02.thiscluster.net"),
+        "tool_evaluation": ("qwen2.5-coder:14b", "ollama02.thiscluster.net"),
+        "prompt_design":   ("qwen2.5:14b", "ollama02.thiscluster.net"),
+        "prompt_improvement": ("qwen2.5:14b", "ollama02.thiscluster.net"),
+        "role_design":     ("qwen2.5:14b", "ollama02.thiscluster.net"),
+        "role_improvement": ("qwen2.5:14b", "ollama02.thiscluster.net"),
+        
         # Utility tasks distributed
         "tool_formatting": ("functiongemma", "ollama02.thiscluster.net"),
         "quick_fix":       ("qwen2.5-coder:7b", "ollama01.thiscluster.net"),
@@ -101,6 +113,14 @@ class PipelineConfig:
         "qa":        ["llama3.1:70b", "mixtral:8x7b", "phi3:medium", "qwen2.5:7b"],
         "debugging": ["qwen2.5-coder:32b", "qwen2.5-coder:14b", "qwen2.5:14b", "llama3.1:70b", "llama3.1"],
         "debug":     ["qwen2.5-coder:14b", "codellama:13b", "qwen2.5-coder:7b"],
+        "documentation": ["qwen2.5-coder:7b", "qwen2.5:14b", "qwen2.5:7b"],
+        "project_planning": ["qwen2.5-coder:14b", "qwen2.5:14b", "llama3.1:70b"],
+        "tool_design": ["qwen2.5-coder:7b", "qwen2.5:14b"],
+        "tool_evaluation": ["qwen2.5-coder:7b", "qwen2.5:14b"],
+        "prompt_design": ["qwen2.5:7b", "llama3.1:70b"],
+        "prompt_improvement": ["qwen2.5:7b", "llama3.1:70b"],
+        "role_design": ["qwen2.5:7b", "llama3.1:70b"],
+        "role_improvement": ["qwen2.5:7b", "llama3.1:70b"],
         "routing":   ["phi3:mini", "llama3.2:3b", "qwen2.5:7b"],
         "tool_formatting": ["phi3:mini", "llama3.2:3b"],
         "quick_fix": ["codellama:7b", "qwen2.5-coder:7b", "starcoder2:7b"],
@@ -115,5 +135,13 @@ class PipelineConfig:
         "qa":              0.3,  # Moderate for thorough review
         "debugging":       0.2,  # Low for precise fixes
         "debug":           0.2,
+        "documentation":   0.3,  # Moderate for clear writing
+        "project_planning": 0.5,  # Some creativity for planning
+        "tool_design":     0.3,  # Moderate for tool design
+        "tool_evaluation": 0.2,  # Low for consistent evaluation
+        "prompt_design":   0.4,  # Some creativity for prompts
+        "prompt_improvement": 0.4,  # Some creativity for improvements
+        "role_design":     0.4,  # Some creativity for roles
+        "role_improvement": 0.4,  # Some creativity for improvements
         "quick_fix":       0.1,  # Very deterministic
     })
