@@ -777,6 +777,8 @@ class ToolCallHandler:
                         "success": False,
                         "error": error_msg,
                         "filepath": filepath,
+                        "original_code": original,
+                        "new_code": new_code,
                         "failure_analysis": analysis,
                         "failure_report": str(report_path),
                         "ai_feedback": analysis["ai_feedback"]

@@ -233,15 +233,60 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                         phase="coding"
                     )
                     
-                    # CRITICAL: If modify_file failed, add guidance to use full_file_rewrite instead
+                    # CRITICAL: If modify_file failed, provide the ENTIRE file content and ask for full rewrite
                     if result.get("tool") == "modify_file" and "Original code not found" in error_msg:
-                        task.add_error(
-                            "modify_file_failed",
-                            "IMPORTANT: The modify_file tool failed because it couldn't find the exact code to replace. "
-                            "On your next attempt, use the full_file_rewrite tool instead to rewrite the entire file with your changes. "
-                            "Read the current file content first, make your modifications, then use full_file_rewrite with the complete new content.",
-                            phase="coding"
-                        )
+                        filepath = result.get("filepath", task.target_file)
+                        full_path = self.project_dir / filepath
+                        
+                        # Read the current file content
+                        try:
+                            current_content = full_path.read_text()
+                            
+                            # Get the modification that was attempted
+                            original_code = result.get("original_code", "")
+                            new_code = result.get("new_code", "")
+                            
+                            # Create detailed error with full context
+                            error_context = f"""MODIFY_FILE FAILED - FULL FILE REWRITE REQUIRED
+
+The modify_file tool failed because it couldn't find the exact code to replace.
+
+CURRENT FILE CONTENT ({filepath}):
+```
+{current_content}
+```
+
+YOUR ATTEMPTED MODIFICATION:
+Original code you tried to find:
+```
+{original_code}
+```
+
+Replacement code you wanted to insert:
+```
+{new_code}
+```
+
+INSTRUCTIONS FOR NEXT ATTEMPT:
+1. Review the CURRENT FILE CONTENT above
+2. Identify where your modification should go
+3. Create the COMPLETE new file content with your changes applied
+4. Use the full_file_rewrite tool with the complete new content
+
+DO NOT use modify_file again - use full_file_rewrite with the entire file content."""
+                            
+                            task.add_error(
+                                "modify_file_failed",
+                                error_context,
+                                phase="coding"
+                            )
+                        except Exception as e:
+                            # Fallback if we can't read the file
+                            task.add_error(
+                                "modify_file_failed",
+                                f"IMPORTANT: The modify_file tool failed. On your next attempt, use full_file_rewrite instead. Error: {e}",
+                                phase="coding"
+                            )
             
             task.status = TaskStatus.FAILED
             task.failure_count = getattr(task, 'failure_count', 0) + 1
