@@ -936,9 +936,22 @@ def get_tools_for_phase(phase: str, tool_registry=None) -> List[Dict]:
     
     # Add custom tools from registry (Integration Point #3)
     if tool_registry:
-        for tool_name in tool_registry.tools:
-            tool_def = tool_registry.get_tool_definition(tool_name)
-            if tool_def:
-                tools.append(tool_def)
+        try:
+            # New ToolRegistry API (scripts/custom_tools/)
+            if hasattr(tool_registry, 'get_tools_for_phase'):
+                custom_tools = tool_registry.get_tools_for_phase(phase)
+                if custom_tools:
+                    tools = tools + custom_tools
+            # Legacy API (pipeline/tools/custom/)
+            elif hasattr(tool_registry, 'tools'):
+                for tool_name in tool_registry.tools:
+                    tool_def = tool_registry.get_tool_definition(tool_name)
+                    if tool_def:
+                        tools.append(tool_def)
+        except Exception as e:
+            # Log error but don't fail
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to load custom tools: {e}")
     
     return tools
