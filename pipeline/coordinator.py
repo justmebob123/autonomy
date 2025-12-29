@@ -1280,52 +1280,13 @@ class PhaseCoordinator:
         
         # 3. If we have pending tasks, stay in coding
         if pending:
-            # CRITICAL: Skip test tasks if the production code doesn't exist yet
-            import os
-            for task in pending:
-                # CRITICAL: Skip non-code tasks (documentation, tests, garbage)
-                if task.target_file:
-                    # Skip documentation files
-                    if task.target_file.endswith('.md') or '/docs/' in task.target_file:
-                        self.logger.warning(f"  ⚠️ Skipping documentation task: {task.description[:60]}...")
-                        task.status = TaskStatus.SKIPPED
-                        continue
-                    
-                    # Skip garbage/invalid file paths
-                    if 'asas' in task.target_file or task.target_file.count('/') > 3:
-                        self.logger.warning(f"  ⚠️ Skipping invalid file path: {task.target_file}")
-                        task.status = TaskStatus.SKIPPED
-                        continue
-                    
-                    # Check if this is a test file
-                    if 'test_' in task.target_file or '/tests/' in task.target_file:
-                        # Extract the production file being tested
-                        # e.g., tests/test_config.py -> core/config.py
-                        test_file = task.target_file
-                        
-                        # Try to find the corresponding production file
-                        # Common patterns: tests/test_X.py -> X.py or core/X.py
-                        base_name = test_file.replace('tests/', '').replace('test_', '').replace('/test_', '/')
-                        
-                        # Check if production file exists
-                        prod_file_exists = False
-                        for possible_path in [base_name, f'core/{base_name}', f'src/{base_name}']:
-                            if os.path.exists(os.path.join(self.project_dir, possible_path)):
-                                prod_file_exists = True
-                                break
-                        
-                        if not prod_file_exists:
-                            # Skip this test task - production code doesn't exist
-                            self.logger.warning(f"  ⚠️ Skipping test task (production code missing): {task.description[:60]}...")
-                            task.status = TaskStatus.SKIPPED
-                            continue
-                
-                # This is a production code task
-                return {'phase': 'coding', 'task': task, 'reason': f'{len(pending)} tasks in progress'}
+            # Simple priority-based selection: just pick the highest priority pending task
+            # Sort by priority (lower number = higher priority)
+            pending_sorted = sorted(pending, key=lambda t: t.priority)
             
-            # All pending tasks were tests without production code - go back to planning
-            self.logger.warning(f"  ⚠️ All {len(pending)} pending tasks are tests without production code!")
-            return {'phase': 'planning', 'reason': 'Need to create production code before tests'}
+            # Return the highest priority task
+            task = pending_sorted[0]
+            return {'phase': 'coding', 'task': task, 'reason': f'{len(pending)} tasks in progress'}
         
         # 4. If no tasks at all, start with planning (unless pattern suggests otherwise)
         if not state.tasks:

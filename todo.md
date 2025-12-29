@@ -1,82 +1,62 @@
-# Complete Scripts Integration TODO
+# Pipeline Design Improvements TODO
 
-## ✅ COMPLETED
-- ✅ Native analysis tools (complexity, dead_code, integration_gaps, call_graph)
-- ✅ File update tools (append, update_section, insert_after/before, replace_between)
-- ✅ Direct phase access (analyzers imported in __init__)
-- ✅ QA phase logic fix (success=True when finding issues)
-- ✅ Wrapper layer removed (analysis_tools.py deleted)
-- ✅ Core integration deployed to main branch
+## Phase 1: Remove All Hardcoded Patterns ✅
 
-## Phase 1: External Script Handlers ✅
-- [x] Add handler for analyze_enhanced (ENHANCED_DEPTH_61_ANALYZER.py)
-- [x] Add handler for analyze_improved (IMPROVED_DEPTH_61_ANALYZER.py)
-- [x] Add handler for deep_analyze (deep_analyze.py)
-- [x] Update handlers.py with new tool definitions
-- [ ] Test external script handlers
+### 1.1 Clean Up Coordinator ✅
+- [x] Remove 'asas' hardcoded check
+- [x] Remove hardcoded test patterns ('test_', '/tests/')
+- [x] Remove hardcoded directory assumptions ('core/', 'src/')
+- [x] Remove documentation skipping logic
+- [x] Simplify to: execute tasks by priority, don't filter by patterns
 
-## Phase 2: Phase Execute() Integration ✅
-- [x] Planning Phase: Add complexity & gap analysis calls in execute()
-- [x] QA Phase: Add comprehensive analysis calls in execute()
-- [x] Debugging Phase: Add complexity & call graph calls in execute()
-- [x] Coding Phase: Add complexity validation calls in execute()
-- [x] Project Planning Phase: Add full codebase analysis calls in execute()
-- [ ] Test phase integration with real scenarios
+### 1.2 Clean Up Planning Phase ✅
+- [x] Remove 'asas' hardcoded check
+- [x] Remove test/doc creation bias
+- [x] Focus on production code task creation
 
-## Phase 3: Phase Prompt Updates ✅
-- [x] Update Planning Phase prompt with analysis guidance
-- [x] Update QA Phase prompt with analysis guidance
-- [x] Update Debugging Phase prompt with analysis guidance
-- [x] Update Coding Phase prompt with analysis guidance
-- [x] Update Project Planning Phase prompt with analysis guidance
-- [x] Add examples of when/how to use analysis tools
+## Phase 2: Redesign Priority System ✅
 
-Note: All phase prompts now include analysis guidance.
-LLMs are informed about analysis capabilities and how to interpret results.
+### 2.1 Update Task Priority Values ✅
+- [x] Production code: 10-80 (keep)
+- [x] Tests: 200+ (much lower)
+- [x] Documentation: 300+ (lowest)
+- [x] Update all task creation to use new priorities
 
-## Phase 4: Custom Tools Registration ✅
-- [x] Register code_complexity custom tool in handlers (automatic via ToolRegistry)
-- [x] Register find_todos custom tool in handlers (automatic via ToolRegistry)
-- [x] Register analyze_imports custom tool in handlers (automatic via ToolRegistry)
-- [x] Custom tools automatically discovered and registered
-- [ ] Test custom tool calling from LLM
+### 2.2 Simplify Task Selection ✅
+- [x] Remove complex filtering logic
+- [x] Use simple priority-based selection
+- [x] Let priority numbers do the work
 
-Note: Custom tools are automatically discovered from scripts/custom_tools/tools/
-ToolRegistry handles discovery, registration, and execution.
+## Phase 3: Update Prompts ⏳
 
-## Phase 5: Review Other Phases ⏳
-- [ ] Review tool_design phase for analysis needs
-- [ ] Review tool_evaluation phase for analysis needs
-- [ ] Review documentation phase for analysis needs
-- [ ] Add analysis capabilities where appropriate
+### 3.1 Planning Phase Prompt
+- [ ] Remove test creation guidance
+- [ ] Remove documentation guidance
+- [ ] Add "PRODUCTION CODE ONLY" emphasis
+- [ ] Tests/docs only if explicitly in MASTER_PLAN
 
-## Phase 6: Testing & Validation ⏳
-- [ ] Test all external script handlers
-- [ ] Test phase execute() logic with analysis
-- [ ] Test custom tools integration
-- [ ] Test file update tools with real files
-- [ ] Validate end-to-end workflow
-- [ ] Run full pipeline with test project
+### 3.2 Other Phase Prompts
+- [ ] Review coding prompt - ensure production focus
+- [ ] Review QA prompt - ensure it doesn't trigger test creation
+- [ ] Review all prompts for hardcoded assumptions
 
-## Phase 7: Documentation ⏳
-- [ ] Update README with new capabilities
-- [ ] Document all analysis tools
-- [ ] Document custom tools integration
-- [ ] Create usage examples
-- [ ] Document phase-specific tool usage
+## Phase 4: Add Generic Classification (Optional) ⏳
 
-## Phase 8: Deployment ⏳
-- [ ] Review all changes
-- [ ] Commit all changes
-- [ ] Push to main branch
-- [ ] Create deployment summary
-- [ ] Mark complete
+### 4.1 File Type Classification
+- [ ] Create utility module for file classification
+- [ ] Use file extensions, not patterns
+- [ ] Use content analysis when needed
+- [ ] Make it project-agnostic
 
-## Success Criteria
-- [ ] All scripts/ tools accessible via tool calling
-- [ ] All phases use analysis in execute() logic
-- [ ] Phase prompts guide LLM on analysis usage
-- [ ] Custom tools properly registered and working
-- [ ] Comprehensive testing completed
-- [ ] Documentation updated
-- [ ] No regressions in existing functionality
+## Phase 5: Testing & Validation ⏳
+
+### 5.1 Test Changes
+- [ ] Test with test-automation project
+- [ ] Verify no hardcoded patterns remain
+- [ ] Verify production code prioritized
+- [ ] Verify tests/docs minimal
+
+### 5.2 Documentation
+- [ ] Update README with design principles
+- [ ] Document priority system
+- [ ] Document file classification approach

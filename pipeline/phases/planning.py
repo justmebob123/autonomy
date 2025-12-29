@@ -203,45 +203,12 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                 self.logger.warning(f"  ⚠️ Skipping task with empty filename: {task_data.get('description', 'Unknown')}")
                 continue
             
-            # CRITICAL: Skip documentation tasks (coding phase should not create docs)
-            if target_file.endswith('.md') or '/docs/' in target_file:
-                tasks_skipped_empty += 1
-                self.logger.warning(f"  ⚠️ Skipping documentation task: {target_file}")
-                self.logger.info(f"     💡 Documentation should be created by documentation phase")
-                continue
-            
-            # Skip garbage/invalid file paths
-            if 'asas' in target_file or target_file.count('/') > 3:
-                tasks_skipped_empty += 1
-                self.logger.warning(f"  ⚠️ Skipping invalid file path: {target_file}")
-                continue
-                
             # Skip tasks targeting directories
             full_path = self.project_dir / target_file
             if full_path.exists() and full_path.is_dir():
                 tasks_skipped_directory += 1
                 self.logger.warning(f"  ⚠️ Skipping task targeting directory: {target_file}")
                 continue
-            
-            # CRITICAL: Skip test tasks if production code does not exist
-            if 'test_' in target_file or '/tests/' in target_file:
-                # Extract production file being tested
-                base_name = target_file.replace('tests/', '').replace('test_', '').replace('/test_', '/')
-                
-                # Check if production file exists
-                prod_file_exists = False
-                for possible_path in [base_name, f'core/{base_name}', f'src/{base_name}', 
-                                     f'monitors/{base_name}', f'handlers/{base_name}']:
-                    prod_path = self.project_dir / possible_path
-                    if prod_path.exists() and prod_path.is_file():
-                        prod_file_exists = True
-                        break
-                
-                if not prod_file_exists:
-                    tasks_skipped_test_without_code += 1
-                    self.logger.warning(f"  ⚠️ Skipping test (production code missing): {target_file}")
-                    self.logger.info(f"     💡 Create production code first, then tests")
-                    continue
             
             # Get objective info if available
             objective_id = None

@@ -22,6 +22,16 @@ class TaskPriority(IntEnum):
     NEW_TASK = 6          # Not yet started
     LOW = 7               # Optional/nice-to-have
     DEFERRED = 10         # Explicitly deferred
+    
+    # Production code priorities (10-80)
+    CORE_INFRASTRUCTURE = 10    # Config, logging, base classes
+    ESSENTIAL_FEATURES = 30     # Core business logic
+    SECONDARY_FEATURES = 50     # Additional features
+    OPTIONAL_FEATURES = 70      # Nice-to-have features
+    
+    # Tests and docs (much lower priority)
+    TESTS = 200                 # Only if explicitly requested
+    DOCUMENTATION = 300         # Only if explicitly requested
 
 
 @dataclass(order=True)
