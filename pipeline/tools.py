@@ -917,7 +917,7 @@ def get_tools_for_phase(phase: str, tool_registry=None) -> List[Dict]:
     """
     # Base tools for each phase
     phase_tools = {
-        "planning": TOOLS_PLANNING + TOOLS_ANALYSIS + TOOLS_FILE_UPDATES,
+        "planning": TOOLS_PLANNING + TOOLS_ANALYSIS,  # Removed TOOLS_FILE_UPDATES - planning should only create tasks
         "coding": TOOLS_CODING + TOOLS_ANALYSIS,
         "qa": TOOLS_QA + TOOLS_ANALYSIS,
         "debugging": TOOLS_DEBUGGING + TOOLS_ANALYSIS,

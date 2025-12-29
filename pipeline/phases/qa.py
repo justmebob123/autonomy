@@ -186,8 +186,15 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             )
         
         # ANALYSIS INTEGRATION: Run comprehensive analysis before manual review
+        # OPTIMIZATION: Skip deep analysis for test files and small files
         analysis_issues = []
-        if filepath.endswith('.py'):
+        skip_analysis = (
+            filepath.startswith('tests/') or 
+            filepath.startswith('test_') or
+            '/test_' in filepath
+        )
+        
+        if filepath.endswith('.py') and not skip_analysis:
             self.logger.info(f"  📊 Running comprehensive analysis on {filepath}...")
             try:
                 analysis_result = self.run_comprehensive_analysis(filepath)
@@ -197,6 +204,8 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                         self.logger.info(f"  Found {len(analysis_issues)} issues via analysis")
             except Exception as e:
                 self.logger.warning(f"  Analysis failed: {e}")
+        elif skip_analysis:
+            self.logger.info(f"  ⚡ Skipping deep analysis for test file: {filepath}")
         
         # Build review message with analysis results
         user_message_parts = [

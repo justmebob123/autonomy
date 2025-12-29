@@ -520,6 +520,19 @@ class ToolCallHandler:
             self.logger.error(f"Path normalization failed: '{original_filepath}' -> empty string")
             return {"tool": "create_file", "success": False, "error": "Invalid filepath after normalization", "original_path": original_filepath}
         
+        # OPTIMIZATION: Coding phase should NOT create documentation files
+        # Documentation files should only be created by documentation phase
+        if filepath.endswith('.md'):
+            self.logger.warning(f"⚠️  Coding phase attempted to create .md file: {filepath}")
+            self.logger.warning(f"    Documentation files should be created by documentation phase")
+            return {
+                "tool": "create_file",
+                "success": False,
+                "error": "Coding phase cannot create .md files - use documentation phase instead",
+                "filepath": filepath,
+                "suggestion": "This file should be created by the documentation phase, not coding phase"
+            }
+        
         # Validate Python syntax
         # Validate and fix syntax
         is_valid, fixed_code, error_msg = self.syntax_validator.validate_and_fix(code, filepath)
