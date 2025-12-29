@@ -1,12 +1,24 @@
-# Deep Pipeline Analysis & Scripts Integration TODO
+# Deep Pipeline Analysis & FULL Integration TODO
 
-## Phase 1: Fix Custom Tools Directory (IMMEDIATE) ⚡
-- [x] Examine current custom_tools/registry.py implementation
-- [x] Examine current custom_tools/handler.py implementation
-- [ ] Update registry.py to scan entire scripts/ directory
-- [ ] Update handler.py to support both module import and executable modes
-- [ ] Test custom tools discovery with new path
-- [ ] Verify all scripts/ tools are discovered
+## CRITICAL UNDERSTANDING
+- Analysis tools must be CORE PIPELINE FUNCTIONALITY
+- Not wrappers, not external scripts - INTEGRATED into the pipeline
+- Native implementations ARE the tools, not separate entities
+- Scripts/ directory versions can be moved to bin/ or marked as external_
+- Focus: Make analysis a FIRST-CLASS pipeline capability
+
+## Phase 1: Proper Integration (CRITICAL) ⚡
+- [x] Remove wrapper layer (analysis_tools.py deleted)
+- [x] Add analysis capabilities directly to Planning phase __init__
+- [x] Add analysis capabilities directly to QA phase __init__
+- [x] Add analysis capabilities directly to Debugging phase __init__
+- [x] Add analysis capabilities directly to Project Planning phase __init__
+- [x] Add analysis capabilities directly to Coding phase __init__
+- [x] Add comprehensive analysis method to QA phase
+- [x] Update handlers to call native implementations directly
+- [ ] Add analysis methods to other phases
+- [ ] Update phase prompts to use analysis capabilities
+- [ ] Test integrated analysis in each phase
 
 ## Phase 2: Add File Update Tools (IMMEDIATE) ⚡
 - [x] Create pipeline/tools/file_updates.py module
@@ -94,10 +106,11 @@
 ## Phase 10: GitHub Integration (FINAL) 🚀
 - [x] Review all changes
 - [x] Create comprehensive commit message
-- [x] Commit to local repository (commit 625e745)
-- [x] Push to GitHub (commit 625e745 pushed to main)
+- [x] Commit to local repository (commit 625e745, 48bece0)
+- [x] Push to GitHub (commits pushed to main)
 - [x] Changes now live on main branch
-- [ ] Optional: Create documentation PR if needed
+- [x] Native analysis tools deployed
+- [x] QA phase logic fix deployed
 
 ## Success Criteria
 - ✅ All scripts/ tools available as primary tools

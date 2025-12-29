@@ -33,6 +33,19 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         super().__init__(*args, **kwargs)
         self.init_loop_detection()
         
+        # CORE ANALYSIS CAPABILITIES - Direct integration
+        from ..analysis.complexity import ComplexityAnalyzer
+        from ..analysis.dead_code import DeadCodeDetector
+        from ..analysis.integration_gaps import IntegrationGapFinder
+        from ..tools.file_updates import FileUpdateTools
+        
+        self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
+        self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger)
+        self.gap_finder = IntegrationGapFinder(str(self.project_dir), self.logger)
+        self.file_updater = FileUpdateTools(str(self.project_dir), self.logger)
+        
+        self.logger.info("  📊 Planning phase initialized with analysis capabilities")
+        
         # MESSAGE BUS: Subscribe to relevant events
         if self.message_bus:
             from ..messaging import MessageType

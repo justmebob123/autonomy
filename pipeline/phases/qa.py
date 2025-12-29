@@ -33,6 +33,19 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         super().__init__(*args, **kwargs)
         self.init_loop_detection()
         
+        # CORE ANALYSIS CAPABILITIES - Direct integration
+        from ..analysis.complexity import ComplexityAnalyzer
+        from ..analysis.dead_code import DeadCodeDetector
+        from ..analysis.integration_gaps import IntegrationGapFinder
+        from ..analysis.call_graph import CallGraphGenerator
+        
+        self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
+        self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger)
+        self.gap_finder = IntegrationGapFinder(str(self.project_dir), self.logger)
+        self.call_graph = CallGraphGenerator(str(self.project_dir), self.logger)
+        
+        self.logger.info("  🔍 QA phase initialized with comprehensive analysis capabilities")
+        
         # MESSAGE BUS: Subscribe to relevant events
         if self.message_bus:
             from ..messaging import MessageType
@@ -506,3 +519,114 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         lines.append("")
         
         return "\n".join(lines)
+    
+    def run_comprehensive_analysis(self, filepath: str) -> Dict:
+        """
+        Run comprehensive analysis on a file using native analysis tools.
+        
+        This is CORE QA functionality - not external tools.
+        
+        Args:
+            filepath: Path to file to analyze
+        
+        Returns:
+            Dict with analysis results and quality issues
+        """
+        issues = []
+        
+        try:
+            # 1. Complexity Analysis
+            self.logger.info(f"  📊 Analyzing complexity...")
+            complexity_result = self.complexity_analyzer.analyze(target=filepath)
+            
+            # Check for high complexity functions
+            for func in complexity_result.results:
+                if func.complexity >= 30:
+                    issues.append({
+                        'type': 'high_complexity',
+                        'severity': 'high' if func.complexity >= 50 else 'medium',
+                        'function': func.name,
+                        'complexity': func.complexity,
+                        'line': func.line,
+                        'description': f"Function {func.name} has complexity {func.complexity} (threshold: 30)",
+                        'recommendation': f"Refactor to reduce complexity. Estimated effort: {func.effort_days}"
+                    })
+            
+            # 2. Dead Code Detection
+            self.logger.info(f"  🔍 Detecting dead code...")
+            dead_code_result = self.dead_code_detector.analyze(target=filepath)
+            
+            # Check for unused functions
+            if dead_code_result.unused_functions:
+                for func_name, file, line in dead_code_result.unused_functions:
+                    if file == filepath or filepath in file:
+                        issues.append({
+                            'type': 'dead_code',
+                            'severity': 'medium',
+                            'function': func_name,
+                            'line': line,
+                            'description': f"Function {func_name} is defined but never called",
+                            'recommendation': "Remove if truly unused, or add usage"
+                        })
+            
+            # Check for unused methods
+            if dead_code_result.unused_methods:
+                for method_key, file, line in dead_code_result.unused_methods:
+                    if file == filepath or filepath in file:
+                        issues.append({
+                            'type': 'dead_code',
+                            'severity': 'low',
+                            'method': method_key,
+                            'line': line,
+                            'description': f"Method {method_key} is defined but never called",
+                            'recommendation': "Verify if method is needed"
+                        })
+            
+            # 3. Integration Gap Analysis
+            self.logger.info(f"  🔗 Checking integration gaps...")
+            gap_result = self.gap_finder.analyze(target=filepath)
+            
+            # Check for unused classes
+            if gap_result.unused_classes:
+                for class_name, file, line in gap_result.unused_classes:
+                    if file == filepath or filepath in file:
+                        issues.append({
+                            'type': 'integration_gap',
+                            'severity': 'medium',
+                            'class': class_name,
+                            'line': line,
+                            'description': f"Class {class_name} is defined but never instantiated",
+                            'recommendation': "Complete integration or remove if not needed"
+                        })
+            
+            # Log summary
+            if issues:
+                self.logger.warning(f"  ⚠️  Found {len(issues)} quality issues via analysis")
+                complexity_issues = [i for i in issues if i['type'] == 'high_complexity']
+                dead_code_issues = [i for i in issues if i['type'] == 'dead_code']
+                gap_issues = [i for i in issues if i['type'] == 'integration_gap']
+                
+                if complexity_issues:
+                    self.logger.warning(f"    - {len(complexity_issues)} high complexity functions")
+                if dead_code_issues:
+                    self.logger.warning(f"    - {len(dead_code_issues)} dead code instances")
+                if gap_issues:
+                    self.logger.warning(f"    - {len(gap_issues)} integration gaps")
+            else:
+                self.logger.info(f"  ✅ No quality issues found via analysis")
+            
+            return {
+                'success': True,
+                'issues': issues,
+                'complexity': complexity_result.to_dict(),
+                'dead_code': dead_code_result.to_dict(),
+                'gaps': gap_result.to_dict()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"  ❌ Analysis failed: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'issues': []
+            }

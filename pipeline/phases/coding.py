@@ -35,6 +35,15 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.init_loop_detection()
+        
+        # CORE ANALYSIS CAPABILITIES - Direct integration
+        from ..analysis.complexity import ComplexityAnalyzer
+        from ..analysis.dead_code import DeadCodeDetector
+        
+        self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
+        self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger)
+        
+        self.logger.info("  💻 Coding phase initialized with analysis capabilities")
     
     def execute(self, state: PipelineState, 
                 task: TaskState = None, **kwargs) -> PhaseResult:

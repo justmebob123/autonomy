@@ -48,6 +48,21 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         """Initialize with loop detection"""
         BasePhase.__init__(self, *args, **kwargs)
         self.init_loop_detection()
+        
+        # CORE ANALYSIS CAPABILITIES - Direct integration
+        from ..analysis.complexity import ComplexityAnalyzer
+        from ..analysis.dead_code import DeadCodeDetector
+        from ..analysis.integration_gaps import IntegrationGapFinder
+        from ..analysis.call_graph import CallGraphGenerator
+        from ..tools.file_updates import FileUpdateTools
+        
+        self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
+        self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger)
+        self.gap_finder = IntegrationGapFinder(str(self.project_dir), self.logger)
+        self.call_graph = CallGraphGenerator(str(self.project_dir), self.logger)
+        self.file_updater = FileUpdateTools(str(self.project_dir), self.logger)
+        
+        self.logger.info("  📋 Project Planning phase initialized with comprehensive analysis capabilities")
         self.text_parser = TextToolParser()
         self.objective_generator = ObjectiveFileGenerator(self.project_dir)
     

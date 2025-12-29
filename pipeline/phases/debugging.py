@@ -59,6 +59,17 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         
         # Loop detection is initialized by LoopDetectionMixin
         
+        # CORE ANALYSIS CAPABILITIES - Direct integration
+        from ..analysis.complexity import ComplexityAnalyzer
+        from ..analysis.call_graph import CallGraphGenerator
+        from ..analysis.integration_gaps import IntegrationGapFinder
+        
+        self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
+        self.call_graph = CallGraphGenerator(str(self.project_dir), self.logger)
+        self.gap_finder = IntegrationGapFinder(str(self.project_dir), self.logger)
+        
+        self.logger.info("  🔧 Debugging phase initialized with analysis capabilities")
+        
         # MESSAGE BUS: Subscribe to relevant events
         if self.message_bus:
             from ..messaging import MessageType
