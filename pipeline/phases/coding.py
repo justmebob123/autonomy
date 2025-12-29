@@ -226,11 +226,22 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                     )
                 elif not result.get("success"):
                     # Record other errors too
+                    error_msg = result.get("error", "Unknown error")
                     task.add_error(
                         result.get("error_type", "tool_error"),
-                        result.get("error", "Unknown error"),
+                        error_msg,
                         phase="coding"
                     )
+                    
+                    # CRITICAL: If modify_file failed, add guidance to use full_file_rewrite instead
+                    if result.get("tool") == "modify_file" and "Original code not found" in error_msg:
+                        task.add_error(
+                            "modify_file_failed",
+                            "IMPORTANT: The modify_file tool failed because it couldn't find the exact code to replace. "
+                            "On your next attempt, use the full_file_rewrite tool instead to rewrite the entire file with your changes. "
+                            "Read the current file content first, make your modifications, then use full_file_rewrite with the complete new content.",
+                            phase="coding"
+                        )
             
             task.status = TaskStatus.FAILED
             task.failure_count = getattr(task, 'failure_count', 0) + 1
