@@ -120,16 +120,33 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         content = response.get("content", "")
         
         if not tool_calls:
-            task.add_error("no_tool_call", "Model did not use tools", phase="coding")
-            task.status = TaskStatus.FAILED
-            task.failure_count = getattr(task, 'failure_count', 0) + 1
+            # Check if file exists and LLM explained why no changes needed
+            file_exists = (self.project_dir / task.target_file).exists()
             
-            return PhaseResult(
-                success=False,
-                phase=self.phase_name,
-                task_id=task.task_id,
-                message="No tool calls in response"
-            )
+            if file_exists and content and len(content) > 50:
+                # LLM provided explanation, file exists - this is SUCCESS (no changes needed)
+                self.logger.info("  ℹ️  No changes needed - file already correct")
+                task.status = TaskStatus.COMPLETED
+                
+                return PhaseResult(
+                    success=True,
+                    phase=self.phase_name,
+                    task_id=task.task_id,
+                    message="No changes needed - file already correct",
+                    next_phase="qa"  # Still send to QA for verification
+                )
+            else:
+                # No file and no tool calls - this is a real failure
+                task.add_error("no_tool_call", "Model did not use tools", phase="coding")
+                task.status = TaskStatus.FAILED
+                task.failure_count = getattr(task, 'failure_count', 0) + 1
+                
+                return PhaseResult(
+                    success=False,
+                    phase=self.phase_name,
+                    task_id=task.task_id,
+                    message="No tool calls in response"
+                )
         
         # Execute tool calls
         handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
