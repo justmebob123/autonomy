@@ -555,11 +555,27 @@ PREVIOUS ERRORS (you MUST fix these!):
 {errors}
 """
     
+    ipc_guidance = """
+📚 STRATEGIC CONTEXT AVAILABLE:
+You have access to strategic documents that guide your implementation:
+- SECONDARY_OBJECTIVES: Architectural requirements, testing needs, reported failures
+- TERTIARY_OBJECTIVES: Specific implementation examples and code patterns
+- ARCHITECTURE: Design patterns, structure guidelines, current vs intended state
+
+💡 GUIDANCE:
+- Review TERTIARY_OBJECTIVES for specific implementation examples
+- Check SECONDARY_OBJECTIVES for architectural requirements
+- Follow design patterns described in ARCHITECTURE document
+- Your completion status will be automatically sent to QA phase for review
+"""
+    
     return f"""Implement this task:
 
 TASK: {task_description}
 TARGET FILE: {target_file}
 {error_section}
+{ipc_guidance}
+
 EXISTING CODE CONTEXT:
 {context if context else "(no existing code - create from scratch)"}
 
@@ -568,18 +584,41 @@ Requirements:
 2. Include all necessary imports
 3. Write complete, working code
 4. Add proper docstrings and type hints
+5. Follow architectural patterns from ARCHITECTURE document
+6. Consider specific guidance from TERTIARY_OBJECTIVES
 
 Use create_python_file NOW to create {target_file}."""
 
 
 def get_qa_prompt(filepath: str, code: str) -> str:
     """Generate the user prompt for QA phase"""
+    
+    ipc_guidance = f"""
+📚 STRATEGIC CONTEXT AVAILABLE:
+You have access to strategic documents that define quality standards:
+- SECONDARY_OBJECTIVES: Quality standards, testing requirements, architectural changes
+- TERTIARY_OBJECTIVES: Known issues and specific checks needed
+- ARCHITECTURE: Expected design patterns and structure
+- DEVELOPER_WRITE: Recent code changes and developer notes
+- DEBUG_WRITE: Recently fixed bugs to verify
+
+💡 GUIDANCE:
+- Use SECONDARY_OBJECTIVES to determine quality criteria
+- Check TERTIARY_OBJECTIVES for specific issues to look for
+- Verify code follows ARCHITECTURE patterns
+- Review DEVELOPER_WRITE for context on recent changes
+- Your findings will be automatically sent to debugging phase
+- Approvals will be automatically sent to developer phase
+"""
+    
     return f"""Review this Python file for quality issues:
 
 FILE: {filepath}
 ```python
 {code}
 ```
+
+{ipc_guidance}
 
 CRITICAL TOOL CALLING REQUIREMENTS:
 1. You MUST use tools to report findings - text descriptions are NOT sufficient
@@ -615,6 +654,8 @@ CHECK FOR:
 4. Incomplete code (TODO, pass, NotImplementedError, ...)
 5. Type hint issues
 6. Missing error handling
+7. Compliance with ARCHITECTURE patterns
+8. Issues mentioned in TERTIARY_OBJECTIVES
 
 MANDATORY: Every finding MUST be reported via report_issue tool call with name field.
 Perfect code MUST be approved via approve_code tool call with name field.
@@ -716,12 +757,27 @@ Line {line_num}: {error_text}
 Column: {offset if offset else 'unknown'}
 """
     
+    ipc_guidance = """
+📚 STRATEGIC CONTEXT AVAILABLE:
+You have access to strategic documents that may help with debugging:
+- SECONDARY_OBJECTIVES: Known architectural issues
+- TERTIARY_OBJECTIVES: Specific bug patterns and fixes
+- ARCHITECTURE: Intended design to guide fixes
+- QA_WRITE: Detailed bug reports and quality issues
+
+💡 GUIDANCE:
+- Check TERTIARY_OBJECTIVES for known syntax error patterns
+- Your fix status will be automatically sent to QA for verification
+"""
+    
     return f"""Fix this syntax error in the code:
 
 FILE: {filepath}
 ISSUE TYPE: {issue.get('type', 'unknown')}
 ERROR MESSAGE: {issue.get('message', 'No message')}
 {context_info}
+
+{ipc_guidance}
 
 FULL FILE CONTENT:
 ```python
@@ -752,6 +808,25 @@ def _get_runtime_debug_prompt(filepath: str, code: str, issue: dict) -> str:
     line_num = issue.get('line', 'unknown')
     error_msg = issue.get('message', 'No message')
     
+    ipc_guidance = """
+📚 STRATEGIC CONTEXT AVAILABLE:
+You have access to strategic documents that may help with debugging:
+- SECONDARY_OBJECTIVES: Known architectural issues
+- TERTIARY_OBJECTIVES: Specific bug patterns and fixes
+- ARCHITECTURE: Intended design to guide fixes
+- QA_WRITE: Detailed bug reports and quality issues
+- DEVELOPER_WRITE: Recent code changes that may have introduced bugs
+
+💡 GUIDANCE:
+- Check TERTIARY_OBJECTIVES for known bug patterns
+- Use SECONDARY_OBJECTIVES for architectural context
+- Review QA_WRITE for detailed bug reports
+- Consider DEVELOPER_WRITE for recent changes
+- Your fix status will be automatically sent to QA for verification
+- Architectural changes will be sent to developer phase
+
+"""
+    
     # Build SIMPLE, DIRECT prompt
     prompt = f"""
 FIX THIS ERROR IN {filepath}
@@ -760,6 +835,8 @@ Error Line: {line_num}
 
 ERROR:
 {error_msg}
+
+{ipc_guidance}
 
 THE FILE CONTENT IS BELOW. 
 
