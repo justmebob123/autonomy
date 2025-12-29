@@ -502,7 +502,7 @@ class ToolCallHandler:
     
     def _handle_create_file(self, args: Dict) -> Dict:
         """Handle create_python_file / create_file tool"""
-        filepath = args.get("filepath", args.get("path", ""))
+        filepath = args.get("filepath", args.get("path", args.get("file_path", "")))
         code = args.get("code", args.get("content", ""))
         
         if not filepath:
@@ -617,7 +617,7 @@ class ToolCallHandler:
     
     def _handle_modify_file(self, args: Dict) -> Dict:
         """Handle modify_python_file / modify_file tool"""
-        filepath = args.get("filepath", args.get("path", ""))
+        filepath = args.get("filepath", args.get("path", args.get("file_path", "")))
         original = args.get("original_code", args.get("original", ""))
         new_code = args.get("new_code", args.get("replacement", ""))
         
