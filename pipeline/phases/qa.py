@@ -190,9 +190,11 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         if filepath.endswith('.py'):
             self.logger.info(f"  📊 Running comprehensive analysis on {filepath}...")
             try:
-                analysis_issues = self.run_comprehensive_analysis(filepath)
-                if analysis_issues:
-                    self.logger.info(f"  Found {len(analysis_issues)} issues via analysis")
+                analysis_result = self.run_comprehensive_analysis(filepath)
+                if analysis_result and analysis_result.get('success'):
+                    analysis_issues = analysis_result.get('issues', [])
+                    if analysis_issues:
+                        self.logger.info(f"  Found {len(analysis_issues)} issues via analysis")
             except Exception as e:
                 self.logger.warning(f"  Analysis failed: {e}")
         
@@ -204,7 +206,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         if analysis_issues:
             user_message_parts.append("\n## Automated Analysis Found Issues:\n")
             for issue in analysis_issues[:5]:  # Limit to top 5
-                user_message_parts.append(f"- {issue['severity']}: {issue['message']}")
+                user_message_parts.append(f"- {issue['severity']}: {issue.get('description', 'Unknown issue')}")
                 if 'line' in issue:
                     user_message_parts.append(f"  (Line {issue['line']})")
             if len(analysis_issues) > 5:
