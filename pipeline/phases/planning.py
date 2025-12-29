@@ -183,6 +183,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         tasks_skipped_duplicate = 0
         tasks_skipped_directory = 0
         tasks_skipped_empty = 0
+        tasks_skipped_test_without_code = 0
         
         # Add tasks to state
         for task_data in tasks:
@@ -208,6 +209,26 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                 tasks_skipped_directory += 1
                 self.logger.warning(f"  ⚠️ Skipping task targeting directory: {target_file}")
                 continue
+            
+            # CRITICAL: Skip test tasks if production code does not exist
+            if 'test_' in target_file or '/tests/' in target_file:
+                # Extract production file being tested
+                base_name = target_file.replace('tests/', '').replace('test_', '').replace('/test_', '/')
+                
+                # Check if production file exists
+                prod_file_exists = False
+                for possible_path in [base_name, f'core/{base_name}', f'src/{base_name}', 
+                                     f'monitors/{base_name}', f'handlers/{base_name}']:
+                    prod_path = self.project_dir / possible_path
+                    if prod_path.exists() and prod_path.is_file():
+                        prod_file_exists = True
+                        break
+                
+                if not prod_file_exists:
+                    tasks_skipped_test_without_code += 1
+                    self.logger.warning(f"  ⚠️ Skipping test (production code missing): {target_file}")
+                    self.logger.info(f"     💡 Create production code first, then tests")
+                    continue
             
             # Get objective info if available
             objective_id = None
@@ -273,6 +294,9 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
             self.logger.info(f"     Skipped (empty filename): {tasks_skipped_empty}")
         if tasks_skipped_directory > 0:
             self.logger.info(f"     Skipped (directory): {tasks_skipped_directory}")
+        if tasks_skipped_test_without_code > 0:
+            self.logger.warning(f"     Skipped (tests without code): {tasks_skipped_test_without_code}")
+            self.logger.info(f"     💡 Create production code first, then add tests!")
         
         # CRITICAL: Detect when ALL tasks are duplicates (planning loop)
         if tasks_added == 0 and tasks_suggested > 0:
