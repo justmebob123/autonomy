@@ -62,7 +62,7 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
             
             doc_tasks_completed = 0
             for task_id, task in state.tasks.items():
-                if task.status == TaskStatus.PENDING:
+                if task.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]:
                     # Check if it's a documentation task
                     is_doc_task = False
                     if task.target and task.target.endswith('.md'):
@@ -219,7 +219,7 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         
         doc_tasks_completed = 0
         for task_id, task in state.tasks.items():
-            if task.status in [TaskStatus.PENDING, TaskStatus.NEW, TaskStatus.IN_PROGRESS]:
+            if task.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]:
                 # Check if it's a documentation task
                 is_doc_task = False
                 if task.target_file and task.target_file.endswith('.md'):
