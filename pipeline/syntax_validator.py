@@ -8,6 +8,7 @@ import ast
 import re
 from typing import Dict, Optional, Tuple
 from .logging_setup import get_logger
+from .html_entity_decoder import HTMLEntityDecoder
 
 
 class SyntaxValidator:
@@ -15,6 +16,7 @@ class SyntaxValidator:
     
     def __init__(self):
         self.logger = get_logger()
+        self.html_decoder = HTMLEntityDecoder()
     
     def validate_python_code(self, code: str, filepath: str = "unknown") -> Tuple[bool, Optional[str]]:
         """
@@ -70,17 +72,27 @@ Line {error_line}: {error.msg}
 """
         return error_msg
     
-    def fix_common_syntax_errors(self, code: str) -> str:
+    def fix_common_syntax_errors(self, code: str, filepath: str = "unknown") -> str:
         """
         Attempt to fix common syntax errors automatically.
         
         Args:
             code: Python code with potential errors
+            filepath: File path for language detection
             
         Returns:
             Fixed code (or original if no fixes applied)
         """
         original_code = code
+        
+        # Fix 0: CRITICAL - Decode HTML entities first (HTTP transport artifact)
+        # This is the most common issue and must be done before other fixes
+        code, was_decoded = self.html_decoder.decode_html_entities(code, filepath)
+        
+        # Verify no entities remain
+        is_clean, remaining_entities = self.html_decoder.validate_no_entities(code)
+        if not is_clean:
+            self.logger.warning(f"⚠️  HTML entities still present after decoding: {remaining_entities[:3]}")
         
         # Fix 1: Remove duplicate imports on same line
         # Example: "time from datetime import datetime" -> "from datetime import datetime"
@@ -88,7 +100,7 @@ Line {error_line}: {error.msg}
         
         # Fix 2: Fix malformed string literals in descriptions
         # Example: 'description": "text' -> 'description": "text"'
-        code = re.sub(r'(description["\']:\s*["\'])([^"\']*?)(["\'],)', r'\1\2\3', code)
+        code = re.sub(r'(description["\']:[\s]*["\'])([^"\']*?)(["\'],)', r'\1\2\3', code)
         
         # Fix 3: Remove trailing commas in function calls
         code = re.sub(r',(\s*\))', r'\1', code)
@@ -98,6 +110,11 @@ Line {error_line}: {error.msg}
         
         # Fix 5: Remove multiple consecutive blank lines
         code = re.sub(r'\n\n\n+', '\n\n', code)
+        
+        # Fix 6: Fix escaped triple quotes (common after HTML entity decoding)
+        # Example: &quot;&quot;&quot; -> """
+        code = code.replace('\&quot;\&quot;\&quot;', '"""')
+        code = code.replace("\\'\\'\\'", "'''")
         
         if code != original_code:
             self.logger.info("Applied automatic syntax fixes")
@@ -123,7 +140,7 @@ Line {error_line}: {error.msg}
         
         # Try to fix common errors
         self.logger.warning(f"Syntax error detected in {filepath}, attempting auto-fix...")
-        fixed_code = self.fix_common_syntax_errors(code)
+        fixed_code = self.fix_common_syntax_errors(code, filepath)
         
         # Validate fixed code
         is_valid, error = self.validate_python_code(fixed_code, filepath)

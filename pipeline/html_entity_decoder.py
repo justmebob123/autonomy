@@ -1,0 +1,209 @@
+"""
+HTML Entity Decoder
+
+Handles HTML entity decoding for generated code across all programming languages.
+This is necessary because HTTP transport and LLM responses may introduce HTML entities
+that don't belong in source code.
+"""
+
+import html
+import re
+from typing import Dict, List, Tuple
+from .logging_setup import get_logger
+
+
+class HTMLEntityDecoder:
+    """Decodes HTML entities in generated code for various programming languages."""
+    
+    # Common HTML entities that appear in code
+    COMMON_ENTITIES = {
+        '&quot;': '"',
+        '&#34;': '"',
+        '&apos;': "'",
+        '&#39;': "'",
+        '&lt;': '<',
+        '&#60;': '<',
+        '&gt;': '>',
+        '&#62;': '>',
+        '&amp;': '&',
+        '&#38;': '&',
+        '&nbsp;': ' ',
+        '&#160;': ' ',
+        '&ndash;': '–',
+        '&mdash;': '—',
+        '&hellip;': '...',
+    }
+    
+    # Language-specific string delimiters
+    LANGUAGE_DELIMITERS = {
+        'python': {
+            'single': ["'", '"'],
+            'multi': ['"""', "'''"],
+            'raw': ['r"', "r'", 'R"', "R'"],
+            'format': ['f"', "f'", 'F"', "F'"],
+        },
+        'javascript': {
+            'single': ["'", '"', '`'],
+            'multi': ['`'],
+        },
+        'typescript': {
+            'single': ["'", '"', '`'],
+            'multi': ['`'],
+        },
+        'java': {
+            'single': ['"'],
+            'multi': ['"""'],
+        },
+        'c': {
+            'single': ['"'],
+        },
+        'cpp': {
+            'single': ['"'],
+            'raw': ['R"('],
+        },
+        'rust': {
+            'single': ['"'],
+            'raw': ['r"', 'r#"'],
+        },
+        'go': {
+            'single': ['"', '`'],
+            'raw': ['`'],
+        },
+    }
+    
+    def __init__(self):
+        self.logger = get_logger()
+    
+    def decode_html_entities(self, code: str, filepath: str = "unknown") -> Tuple[str, bool]:
+        """
+        Decode HTML entities in code.
+        
+        Args:
+            code: Source code potentially containing HTML entities
+            filepath: File path for logging and language detection
+            
+        Returns:
+            Tuple of (decoded_code, was_modified)
+        """
+        if not code:
+            return code, False
+        
+        original_code = code
+        
+        # Step 1: Detect language from filepath
+        language = self._detect_language(filepath)
+        
+        # Step 2: Use Python's html.unescape for comprehensive decoding
+        decoded = html.unescape(code)
+        
+        # Step 3: Apply additional manual replacements for common patterns
+        decoded = self._manual_decode(decoded)
+        
+        # Step 4: Fix language-specific patterns
+        if language:
+            decoded = self._fix_language_specific(decoded, language)
+        
+        was_modified = (decoded != original_code)
+        
+        if was_modified:
+            self.logger.info(f"🔧 Decoded HTML entities in {filepath}")
+            self._log_changes(original_code, decoded)
+        
+        return decoded, was_modified
+    
+    def _detect_language(self, filepath: str) -> str:
+        """Detect programming language from file extension."""
+        ext_map = {
+            '.py': 'python',
+            '.js': 'javascript',
+            '.jsx': 'javascript',
+            '.ts': 'typescript',
+            '.tsx': 'typescript',
+            '.java': 'java',
+            '.c': 'c',
+            '.h': 'c',
+            '.cpp': 'cpp',
+            '.cc': 'cpp',
+            '.cxx': 'cpp',
+            '.hpp': 'cpp',
+            '.rs': 'rust',
+            '.go': 'go',
+        }
+        
+        for ext, lang in ext_map.items():
+            if filepath.endswith(ext):
+                return lang
+        
+        return None
+    
+    def _manual_decode(self, code: str) -> str:
+        """Apply manual decoding for common HTML entities."""
+        decoded = code
+        
+        for entity, char in self.COMMON_ENTITIES.items():
+            if entity in decoded:
+                decoded = decoded.replace(entity, char)
+        
+        return decoded
+    
+    def _fix_language_specific(self, code: str, language: str) -> str:
+        """Fix language-specific string delimiter issues."""
+        if language not in self.LANGUAGE_DELIMITERS:
+            return code
+        
+        delimiters = self.LANGUAGE_DELIMITERS[language]
+        
+        # Fix escaped quotes that shouldn't be escaped
+        # Example: &quot;&quot;&quot; -> """
+        if 'multi' in delimiters:
+            for delimiter in delimiters['multi']:
+                # Fix escaped multi-line delimiters
+                escaped = delimiter.replace('"', '\&quot;').replace("'", "\\'")
+                if escaped in code and escaped != delimiter:
+                    code = code.replace(escaped, delimiter)
+        
+        return code
+    
+    def _log_changes(self, original: str, decoded: str):
+        """Log what entities were decoded."""
+        changes = []
+        
+        for entity, char in self.COMMON_ENTITIES.items():
+            original_count = original.count(entity)
+            decoded_count = decoded.count(entity)
+            
+            if original_count > decoded_count:
+                changes.append(f"  - {entity} → {repr(char)} ({original_count - decoded_count} occurrences)")
+        
+        if changes:
+            self.logger.debug("HTML entities decoded:")
+            for change in changes[:5]:  # Limit to first 5 for brevity
+                self.logger.debug(change)
+            
+            if len(changes) > 5:
+                self.logger.debug(f"  ... and {len(changes) - 5} more")
+    
+    def validate_no_entities(self, code: str) -> Tuple[bool, List[str]]:
+        """
+        Check if code still contains HTML entities.
+        
+        Args:
+            code: Source code to check
+            
+        Returns:
+            Tuple of (is_clean, list_of_found_entities)
+        """
+        found_entities = []
+        
+        for entity in self.COMMON_ENTITIES.keys():
+            if entity in code:
+                found_entities.append(entity)
+        
+        # Also check for numeric entities
+        numeric_pattern = r'&#\d+;'
+        numeric_matches = re.findall(numeric_pattern, code)
+        found_entities.extend(numeric_matches)
+        
+        is_clean = len(found_entities) == 0
+        
+        return is_clean, found_entities
