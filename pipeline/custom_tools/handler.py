@@ -47,13 +47,10 @@ class CustomToolHandler:
         # Import ToolExecutor
         try:
             import sys
-            # Handle both autonomy/ and project root
-            if (self.project_dir / 'scripts' / 'custom_tools').exists():
-                tools_dir = self.project_dir / 'scripts' / 'custom_tools'
-            elif (self.project_dir.parent / 'scripts' / 'custom_tools').exists():
-                tools_dir = self.project_dir.parent / 'scripts' / 'custom_tools'
-            else:
-                tools_dir = self.project_dir / 'scripts' / 'custom_tools'
+            # ALWAYS use pipeline's own scripts directory
+            # Custom tools are part of the pipeline, not the project being worked on
+            pipeline_root = Path(__file__).parent.parent.parent  # Go up from pipeline/custom_tools/handler.py to autonomy/
+            tools_dir = pipeline_root / 'scripts' / 'custom_tools'
             
             if str(tools_dir) not in sys.path:
                 sys.path.insert(0, str(tools_dir))

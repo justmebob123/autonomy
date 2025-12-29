@@ -87,14 +87,10 @@ class ToolRegistry:
         self.project_dir = Path(project_dir)
         self.logger = logger or get_logger()
         
-        # Tools directory - handle both autonomy/ and project root
-        if (self.project_dir / 'scripts' / 'custom_tools' / 'tools').exists():
-            self.tools_dir = self.project_dir / 'scripts' / 'custom_tools' / 'tools'
-        elif (self.project_dir.parent / 'scripts' / 'custom_tools' / 'tools').exists():
-            self.tools_dir = self.project_dir.parent / 'scripts' / 'custom_tools' / 'tools'
-        else:
-            # Default to project root
-            self.tools_dir = self.project_dir / 'scripts' / 'custom_tools' / 'tools'
+        # Tools directory - ALWAYS use pipeline's own scripts directory
+        # Custom tools are part of the pipeline, not the project being worked on
+        pipeline_root = Path(__file__).parent.parent.parent  # Go up from pipeline/custom_tools/registry.py to autonomy/
+        self.tools_dir = pipeline_root / 'scripts' / 'custom_tools' / 'tools'
         
         # Registry cache
         self._tools: Dict[str, ToolMetadata] = {}
