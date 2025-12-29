@@ -27,18 +27,18 @@
 - [x] Use simple priority-based selection
 - [x] Let priority numbers do the work
 
-## Phase 3: Update Prompts ⏳
+## Phase 3: Update Prompts ✅
 
-### 3.1 Planning Phase Prompt
-- [ ] Remove test creation guidance
-- [ ] Remove documentation guidance
-- [ ] Add "PRODUCTION CODE ONLY" emphasis
-- [ ] Tests/docs only if explicitly in MASTER_PLAN
+### 3.1 Planning Phase Prompt ✅
+- [x] Remove test creation guidance
+- [x] Remove documentation guidance
+- [x] Add "PRODUCTION CODE ONLY" emphasis
+- [x] Tests/docs only if explicitly in MASTER_PLAN
 
-### 3.2 Other Phase Prompts
-- [ ] Review coding prompt - ensure production focus
-- [ ] Review QA prompt - ensure it doesn't trigger test creation
-- [ ] Review all prompts for hardcoded assumptions
+### 3.2 Other Phase Prompts ✅
+- [x] Review coding prompt - ensure production focus
+- [x] Review QA prompt - ensure it doesn't trigger test creation
+- [x] Review all prompts for hardcoded assumptions
 
 ## Phase 4: Add Generic Classification (Optional) ⏳
 
