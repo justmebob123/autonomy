@@ -118,7 +118,7 @@ Line {error_line}: {error.msg}
         code = re.sub(r'\n\n\n+', '\n\n', code)
         
         # Fix 6: Fix escaped triple quotes (common after HTML entity decoding)
-        # Example: &quot;&quot;&quot; -> """
+        # Example: """ -> """
         code = code.replace(r'"""', '"""')
         code = code.replace(r"\'\'\'", "'''")
         

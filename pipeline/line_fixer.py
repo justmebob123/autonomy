@@ -69,7 +69,7 @@ def apply_fix(line: str, fix_type: str, error_msg: str) -> Optional[str]:
         stripped = line.rstrip()
         
         # Special case: raw string with mixed quotes - needs triple quotes
-        # e.g., r"pattern['&quot;]" or r"pattern['"]"]" 
+        # e.g., r"pattern['"]" or r"pattern['"]"]" 
         if 'r"' in stripped and "['" in stripped:
             import re
             
