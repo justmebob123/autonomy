@@ -18,7 +18,7 @@ from .base import BasePhase, PhaseResult
 from .loop_detection_mixin import LoopDetectionMixin
 from ..state.manager import PipelineState, TaskState, TaskStatus
 from ..prompts import SYSTEM_PROMPTS, get_documentation_prompt
-from ..tools import TOOLS_DOCUMENTATION
+from ..tools import TOOLS_DOCUMENTATION, get_tools_for_phase
 from ..handlers import ToolCallHandler
 from ..logging_setup import get_logger
 
