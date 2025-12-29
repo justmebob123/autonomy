@@ -212,6 +212,34 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         # Update state tracking
         state.last_doc_update_count = completed_count
         
+        # CRITICAL FIX: Mark documentation task as COMPLETED
+        # This prevents infinite loop where task stays PENDING forever
+        from ..state.manager import StateManager
+        state_manager = StateManager(self.project_dir)
+        
+        doc_tasks_completed = 0
+        for task_id, task in state.tasks.items():
+            if task.status in [TaskStatus.PENDING, TaskStatus.NEW, TaskStatus.IN_PROGRESS]:
+                # Check if it's a documentation task
+                is_doc_task = False
+                if task.target_file and task.target_file.endswith('.md'):
+                    is_doc_task = True
+                elif task.description:
+                    doc_keywords = ['documentation', 'write docs', 'create docs', 'document', 'readme', 'guide']
+                    desc_lower = task.description.lower()
+                    if any(keyword in desc_lower for keyword in doc_keywords):
+                        is_doc_task = True
+                
+                if is_doc_task:
+                    task.status = TaskStatus.COMPLETED
+                    task.completed_at = datetime.now()
+                    doc_tasks_completed += 1
+                    self.logger.info(f"  ✅ Marked documentation task complete: {task.description[:60]}")
+        
+        if doc_tasks_completed > 0:
+            state_manager.save(state)
+            self.logger.info(f"  📝 Completed {doc_tasks_completed} documentation task(s)")
+        
         # WRITE STATUS to DOCUMENTATION_WRITE.md
         status_content = f"""# Documentation Phase Status
 
@@ -226,6 +254,7 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
 ## Completed Tasks
 - Reviewed {completed_count} completed tasks
 - New completions since last update: {new_completions}
+- Documentation tasks completed this run: {doc_tasks_completed}
 
 ## Next Steps
 - Continue monitoring for documentation needs
@@ -240,9 +269,9 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         return PhaseResult(
             success=True,
             phase=self.phase_name,
-            message=f"Documentation updated: {len(updates_made)} changes",
+            message=f"Documentation updated: {len(updates_made)} changes, {doc_tasks_completed} tasks completed",
             files_modified=["README.md"] if updates_made else [],
-            data={"updates": updates_made}
+            data={"updates": updates_made, "tasks_completed": doc_tasks_completed}
         )
     
     def _gather_documentation_context(self, state: PipelineState) -> str:
