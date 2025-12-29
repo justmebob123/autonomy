@@ -149,6 +149,28 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 )
         
         # Execute tool calls
+        
+        # Check if mark_task_complete was called
+        mark_complete_call = None
+        for call in tool_calls:
+            if call.get("function", {}).get("name") == "mark_task_complete":
+                mark_complete_call = call
+                break
+        
+        if mark_complete_call:
+            # Task is being marked complete without changes
+            reason = mark_complete_call.get("function", {}).get("arguments", {}).get("reason", "File is already complete")
+            self.logger.info(f"  ✅ Task marked complete: {reason}")
+            task.status = TaskStatus.COMPLETED
+            
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                task_id=task.task_id,
+                message=f"Task marked complete: {reason}",
+                next_phase="qa"  # Still send to QA for verification
+            )
+        
         handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
         results = handler.process_tool_calls(tool_calls)
         
@@ -337,7 +359,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                     parts.append("\nExisting file content:")
                     parts.append(f"```python\n{existing_content}\n```")
                     parts.append("\n⚠️ CRITICAL DECISION REQUIRED:")
-                    parts.append("1. If the file is COMPLETE and CORRECT → Respond with explanation ONLY (no tool calls)")
+                    parts.append("1. If the file is COMPLETE and CORRECT → Use 'mark_task_complete' tool")
                     parts.append("2. If the file has BUGS → Fix ONLY the bugs")
                     parts.append("3. If the file needs ENHANCEMENTS → Add ONLY what's missing")
                     parts.append("4. DO NOT make trivial changes (comments, formatting, etc.)")

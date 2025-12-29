@@ -109,6 +109,7 @@ class ToolCallHandler:
             "modify_file": self._handle_modify_file,  # Alias
             "report_issue": self._handle_report_issue,
             "approve_code": self._handle_approve_code,
+            "mark_task_complete": self._handle_mark_task_complete,
             "create_task_plan": self._handle_create_plan,
             "read_file": self._handle_read_file,
             "search_code": self._handle_search_code,
@@ -1037,6 +1038,17 @@ class ToolCallHandler:
         self.approved.append(filepath)
         self.logger.info(f"  ✓ Approved: {filepath}")
         return {"tool": "approve_code", "success": True, "filepath": filepath}
+    
+    def _handle_mark_task_complete(self, args: Dict) -> Dict:
+        """Handle mark_task_complete tool - explicitly marks task as complete without changes"""
+        reason = args.get("reason", "File is already complete and correct")
+        self.logger.info(f"  ✅ Task marked complete: {reason}")
+        return {
+            "tool": "mark_task_complete",
+            "success": True,
+            "message": reason,
+            "no_changes_needed": True
+        }
     
     def _handle_create_plan(self, args: Dict) -> Dict:
         """Handle create_task_plan tool"""
