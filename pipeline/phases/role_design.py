@@ -41,6 +41,12 @@ class RoleDesignPhase(LoopDetectionMixin, BasePhase):
     def __init__(self, config: PipelineConfig, client: OllamaClient, **kwargs):
         BasePhase.__init__(self, config, client, **kwargs)
         self.init_loop_detection()
+        
+        # ARCHITECTURE CONFIG
+        from ..architecture_parser import get_architecture_config
+        self.architecture_config = get_architecture_config(self.project_dir)
+        self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
+        self.logger.info("  🎭 Role Design phase initialized with IPC integration")
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """
@@ -52,6 +58,19 @@ class RoleDesignPhase(LoopDetectionMixin, BasePhase):
             
         Returns:
             PhaseResult with success status and created role info
+        """
+        
+        # INITIALIZE IPC DOCUMENTS
+        self.initialize_ipc_documents()
+        
+        # READ STRATEGIC DOCUMENTS
+        strategic_docs = self.read_strategic_docs()
+        
+        # READ OWN TASKS
+        tasks_from_doc = self.read_own_tasks()
+        
+        # READ OTHER PHASES' OUTPUTS
+        investigation_output = self.read_phase_output('investigation')
         """
         role_description = kwargs.get('role_description')
         

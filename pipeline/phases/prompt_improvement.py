@@ -33,10 +33,18 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
     def __init__(self, *args, **kwargs):
         BasePhase.__init__(self, *args, **kwargs)
         self.init_loop_detection()
+        
+        # ARCHITECTURE CONFIG
+        from ..architecture_parser import get_architecture_config
+        self.architecture_config = get_architecture_config(self.project_dir)
+        self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
+        
         self.custom_prompts_dir = self.project_dir / "pipeline" / "prompts" / "custom"
         self.custom_prompts_dir.mkdir(parents=True, exist_ok=True)
         self.improvement_results_dir = self.project_dir / ".pipeline" / "prompt_improvements"
         self.improvement_results_dir.mkdir(parents=True, exist_ok=True)
+        
+        self.logger.info("  ✨ Prompt Improvement phase initialized with IPC integration")
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """
@@ -49,6 +57,19 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
         Returns:
             PhaseResult with improvement outcomes
         """
+        
+        # INITIALIZE IPC DOCUMENTS
+        self.initialize_ipc_documents()
+        
+        # READ STRATEGIC DOCUMENTS
+        strategic_docs = self.read_strategic_docs()
+        
+        # READ OWN TASKS
+        tasks_from_doc = self.read_own_tasks()
+        
+        # READ OTHER PHASES' OUTPUTS
+        prompt_design_output = self.read_phase_output('prompt_design')
+        
         self.logger.info("✨ Starting prompt improvement phase...")
         
         # Find all custom prompts
