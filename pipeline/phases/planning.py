@@ -688,13 +688,67 @@ Please address these architectural integration issues.
             except Exception as e:
                 self.logger.warning(f"  Failed to update TERTIARY_OBJECTIVES.md: {e}")
     def _update_architecture_doc(self, analysis_results: Dict):
-        total_tasks = len(state.tasks)
-        if total_tasks == 0:
-            return False
-        completed_tasks = len([t for t in state.tasks if t.status == TaskStatus.COMPLETED])
-        completion_rate = completed_tasks / total_tasks
-        self.logger.debug(f"  Completion: {completed_tasks}/{total_tasks} = {completion_rate:.1%}")
-        return completion_rate >= 0.95
+        """Update ARCHITECTURE.md with current state and priority issues"""
+        try:
+            arch_path = self.project_dir / 'ARCHITECTURE.md'
+            
+            content = f"""# Architecture Document
+
+**Last Updated**: {self.format_timestamp()}
+
+## Current State Analysis
+
+### Code Quality Metrics
+"""
+            
+            # Add complexity summary
+            if analysis_results.get('complexity_issues'):
+                high_complexity = [i for i in analysis_results['complexity_issues'] if i['complexity'] >= 30]
+                content += f"\n**High Complexity Functions**: {len(high_complexity)}\n"
+                if high_complexity:
+                    content += "\nTop complexity issues:\n"
+                    for issue in high_complexity[:5]:
+                        content += f"- `{issue['file']}::{issue['function']}` (complexity: {issue['complexity']})\n"
+            
+            # Add dead code summary
+            if analysis_results.get('dead_code'):
+                content += f"\n**Dead Code Items**: {len(analysis_results['dead_code'])}\n"
+                if analysis_results['dead_code']:
+                    content += "\nUnused components:\n"
+                    for issue in analysis_results['dead_code'][:5]:
+                        content += f"- `{issue['file']}::{issue['name']}` ({issue['type']})\n"
+            
+            # Add integration gaps summary
+            if analysis_results.get('integration_gaps'):
+                content += f"\n**Integration Gaps**: {len(analysis_results['integration_gaps'])}\n"
+                if analysis_results['integration_gaps']:
+                    content += "\nUnintegrated components:\n"
+                    for issue in analysis_results['integration_gaps'][:5]:
+                        content += f"- `{issue['file']}::{issue['class']}` (line {issue['line']})\n"
+            
+            content += "\n## Priority Issues\n\n"
+            
+            # Prioritize issues
+            all_issues = []
+            if analysis_results.get('complexity_issues'):
+                all_issues.extend([('complexity', i) for i in analysis_results['complexity_issues'][:3]])
+            if analysis_results.get('integration_gaps'):
+                all_issues.extend([('integration', i) for i in analysis_results['integration_gaps'][:3]])
+            
+            if all_issues:
+                for issue_type, issue in all_issues:
+                    if issue_type == 'complexity':
+                        content += f"1. **Refactor**: `{issue['file']}::{issue['function']}` (complexity {issue['complexity']})\n"
+                    elif issue_type == 'integration':
+                        content += f"1. **Integrate**: `{issue['file']}::{issue['class']}` (line {issue['line']})\n"
+            else:
+                content += "No critical issues found.\n"
+            
+            arch_path.write_text(content)
+            self.logger.info("  📝 Updated ARCHITECTURE.md")
+            
+        except Exception as e:
+            self.logger.error(f"  ❌ Failed to update ARCHITECTURE: {e}")
     def _read_phase_outputs(self) -> Dict[str, str]:
         """Read outputs from other phases for context"""
         outputs = {}
