@@ -405,14 +405,31 @@ This project uses an AI-assisted development pipeline that:
             for feat in new_features[:3]:
                 self.logger.info(f"        - {feat[:50]}")
     
-    def _build_documentation_message(self, context: Dict, new_completions: int) -> str:
+    def _build_documentation_message(self, context, new_completions: int) -> str:
         """
         Build a simple, focused documentation message.
         
         The conversation history provides context, so we keep this simple.
+        
+        Args:
+            context: Either a string (from _gather_documentation_context) or a Dict
+            new_completions: Number of new completions since last update
         """
         parts = []
         
+        # Handle both string and dict context (for backward compatibility)
+        if isinstance(context, str):
+            # Context is already a formatted string from _gather_documentation_context
+            parts.append(context)
+            
+            # Add new completions info
+            if new_completions > 0:
+                parts.append(f"\n{new_completions} new tasks have been completed since last documentation update.")
+            
+            parts.append("\nPlease review and update the project documentation as needed.")
+            return "\n\n".join(parts)
+        
+        # Legacy dict-based context (kept for backward compatibility)
         # Project context
         parts.append(f"Project: {context.get('project_name', 'Unknown')}")
         parts.append(f"Description: {context.get('description', 'No description')}")
