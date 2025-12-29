@@ -760,16 +760,16 @@ Please address these architectural integration issues.
                 outputs['qa'] = qa_output
                 self.logger.debug("  📖 Read QA phase output")
             
-            # Read developer output for completion status
-            developer_output = self.read_phase_output('developer')
+            # Read coding output for completion status
+            developer_output = self.read_phase_output('coding')
             if developer_output:
-                outputs['developer'] = developer_output
-                self.logger.debug("  📖 Read developer phase output")
+                outputs['coding'] = developer_output
+                self.logger.debug("  📖 Read coding phase output")
             
             # Read debugging output for fixed issues
-            debug_output = self.read_phase_output('debug')
+            debug_output = self.read_phase_output('debugging')
             if debug_output:
-                outputs['debug'] = debug_output
+                outputs['debugging'] = debug_output
                 self.logger.debug("  📖 Read debugging phase output")
                 
         except Exception as e:
