@@ -1312,13 +1312,36 @@ class PhaseCoordinator:
             if other_status:
                 self.logger.warning(f"  ⚠️ Found {len(other_status)} tasks in other statuses: "
                                   f"{set(t.status for t in other_status)}")
-                # Try to recover these tasks or mark them appropriately
-                # For now, move to documentation to avoid infinite loop
-                return {'phase': 'documentation', 'reason': f'Planning loop detected, {len(other_status)} tasks in limbo'}
+                # CRITICAL: Planning should have reactivated these tasks
+                # If we're here, planning failed to reactivate them
+                # Force reactivation here as a safety net
+                self.logger.info(f"  🔄 Coordinator forcing reactivation of {len(other_status)} tasks")
+                for task in other_status[:10]:  # Reactivate up to 10
+                    if task.status in [TaskStatus.SKIPPED, TaskStatus.FAILED]:
+                        task.status = TaskStatus.NEW
+                        task.attempts = 0
+                        self.logger.info(f"    ✅ Reactivated: {task.description[:60]}...")
+                
+                state.rebuild_queue()
+                return {'phase': 'coding', 'reason': f'Reactivated {min(10, len(other_status))} tasks'}
             else:
                 # No work at all - consider project complete
                 self.logger.info("  ✅ No pending work found, moving to documentation")
                 return {'phase': 'documentation', 'reason': 'No pending work, documenting progress'}
+        
+        # 6b. Detect consecutive planning iterations (planning loop)
+        if not hasattr(state, '_consecutive_planning_count'):
+            state._consecutive_planning_count = 0
+        
+        if current_phase == 'planning':
+            state._consecutive_planning_count += 1
+            if state._consecutive_planning_count >= 3:
+                self.logger.warning(f"  ⚠️ Planning loop detected ({state._consecutive_planning_count} consecutive iterations)")
+                state._consecutive_planning_count = 0
+                # Force move to documentation to break loop
+                return {'phase': 'documentation', 'reason': 'Breaking planning loop'}
+        else:
+            state._consecutive_planning_count = 0
         
         # 7. Default: go to planning to create more tasks (or follow pattern)
         if pattern_override and pattern_override in self.phases:

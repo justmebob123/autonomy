@@ -277,6 +277,36 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         # CRITICAL: Detect when ALL tasks are duplicates (planning loop)
         if tasks_added == 0 and tasks_suggested > 0:
             self.logger.warning(f"  ⚠️  All {tasks_suggested} suggested tasks already exist!")
+            
+            # CRITICAL FIX: Check for tasks in SKIPPED/FAILED status and reactivate them
+            from ..state.manager import TaskStatus
+            inactive_tasks = [t for t in state.tasks.values() 
+                            if t.status in [TaskStatus.SKIPPED, TaskStatus.FAILED]]
+            
+            if inactive_tasks:
+                self.logger.info(f"  🔄 Found {len(inactive_tasks)} inactive tasks - reactivating them")
+                reactivated = 0
+                for task in inactive_tasks[:10]:  # Reactivate up to 10 at a time
+                    task.status = TaskStatus.NEW
+                    task.attempts = 0  # Reset attempts
+                    reactivated += 1
+                    self.logger.info(f"    ✅ Reactivated: {task.description[:60]}...")
+                
+                # Rebuild queue with reactivated tasks
+                state.rebuild_queue()
+                
+                return PhaseResult(
+                    success=True,
+                    phase=self.phase_name,
+                    message=f"Reactivated {reactivated} inactive tasks",
+                    next_phase="coding",  # Move to coding to work on reactivated tasks
+                    data={
+                        "task_count": reactivated,
+                        "tasks_reactivated": reactivated,
+                        "reason": "reactivated_inactive_tasks"
+                    }
+                )
+            
             self.logger.info(f"  💡 No new work needed - suggesting move to coding phase")
             
             # Rebuild queue anyway (in case priorities changed)
