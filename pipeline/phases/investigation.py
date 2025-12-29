@@ -29,6 +29,28 @@ class InvestigationPhase(BasePhase):
     
     phase_name = "investigation"
     
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # CRITICAL: Investigation needs ALL analysis tools
+        from ..analysis.complexity import ComplexityAnalyzer
+        from ..analysis.dead_code import DeadCodeDetector
+        from ..analysis.integration_gaps import IntegrationGapFinder
+        from ..analysis.call_graph import CallGraphGenerator
+        from ..analysis.bug_detection import BugDetector
+        from ..analysis.antipatterns import AntiPatternDetector
+        from ..analysis.dataflow import DataFlowAnalyzer
+        
+        self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
+        self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger)
+        self.gap_finder = IntegrationGapFinder(str(self.project_dir), self.logger)
+        self.call_graph = CallGraphGenerator(str(self.project_dir), self.logger)
+        self.bug_detector = BugDetector(str(self.project_dir), self.logger)
+        self.antipattern_detector = AntiPatternDetector(str(self.project_dir), self.logger)
+        self.dataflow_analyzer = DataFlowAnalyzer(str(self.project_dir), self.logger)
+        
+        self.logger.info("  🔍 Investigation phase initialized with ALL analysis capabilities")
+    
     def execute(self, state: PipelineState,
                 issue: Dict = None, **kwargs) -> PhaseResult:
         """Execute investigation for an issue"""
