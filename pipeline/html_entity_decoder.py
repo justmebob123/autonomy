@@ -215,7 +215,7 @@ class HTMLEntityDecoder:
         Decode HTML entities in Python code with context awareness.
         Only decodes in docstrings and comments (safe contexts).
         
-        Handles backslash-escaped HTML entities (e.g., \&amp;quot;) by removing
+        Handles backslash-escaped HTML entities (e.g., \\\&amp;quot;) by removing
         the backslash ONLY in safe contexts before decoding.
         """
         lines = source.split('\n')
