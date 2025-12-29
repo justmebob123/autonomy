@@ -1572,14 +1572,33 @@ class PhaseCoordinator:
             # CRITICAL FIX: Pass the first QA_PENDING task so its status gets updated
             return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'{len(qa_pending)} tasks awaiting QA'}
         
-        # 3. If we have pending tasks, stay in coding
+        # 3. If we have pending tasks, route to appropriate phase
         if pending:
             # Simple priority-based selection: just pick the highest priority pending task
             # Sort by priority (lower number = higher priority)
             pending_sorted = sorted(pending, key=lambda t: t.priority)
             
-            # Return the highest priority task
+            # Get the highest priority task
             task = pending_sorted[0]
+            
+            # CRITICAL: Route documentation tasks to documentation phase
+            # Check if this is a documentation task by:
+            # 1. Target file ends with .md
+            # 2. Task description contains documentation keywords
+            is_doc_task = False
+            if task.target_file and task.target_file.endswith('.md'):
+                is_doc_task = True
+            elif task.description:
+                doc_keywords = ['documentation', 'write docs', 'create docs', 'document', 'readme', 'guide']
+                desc_lower = task.description.lower()
+                if any(keyword in desc_lower for keyword in doc_keywords):
+                    is_doc_task = True
+            
+            if is_doc_task:
+                self.logger.info(f"📝 Routing documentation task to documentation phase: {task.description[:60]}...")
+                return {'phase': 'documentation', 'task': task, 'reason': f'Documentation task detected'}
+            
+            # Regular code tasks go to coding phase
             return {'phase': 'coding', 'task': task, 'reason': f'{len(pending)} tasks in progress'}
         
         # 4. If no tasks at all, start with planning (unless pattern suggests otherwise)
