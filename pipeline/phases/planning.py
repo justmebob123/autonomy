@@ -452,119 +452,122 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         
         return ""
     
-def _perform_deep_analysis(self, existing_files: List[str]) -> Dict:
-    self.logger.info("  🔍 Performing deep codebase analysis...")
-    results = {
-        'complexity_issues': [],
-        'dead_code': [],
-        'integration_gaps': [],
-        'architectural_issues': [],
-        'test_gaps': [],
-        'failures': []
-    }
-    python_files = [f for f in existing_files if f.endswith('.py')]
-    for filepath in python_files:
+    
+    def _update_tertiary_objectives(self, analysis_results: Dict):
+        """Update TERTIARY_OBJECTIVES with specific code fixes"""
         try:
-            # Complexity analysis
-            complexity_result = self.complexity_analyzer.analyze(filepath)
-            for func in complexity_result.results:
-                if func.complexity >= 30:
-                    results['complexity_issues'].append({
-                        'file': filepath,
-                        'function': func.name,
-                        'complexity': func.complexity,
-                        'line': func.line,
-                        'recommendation': f"Refactor - estimated {func.effort_days} days"
-                    })
-            # Dead code detection
-            dead_code_result = self.dead_code_detector.detect(filepath)
-            if dead_code_result.unused_functions:
-                for func_name, file, line in dead_code_result.unused_functions:
-                    if file == filepath or filepath in file:
-                        results['dead_code'].append({
-                            'file': filepath,
-                            'type': 'function',
-                            'name': func_name,
-                            'line': line,
-                            'recommendation': 'Remove or add usage'
-                        })
-            # Integration gaps
-            gap_result = self.gap_finder.find_gaps(filepath)
-            if gap_result.unused_classes:
-                for class_name, file, line in gap_result.unused_classes:
-                    if file == filepath or filepath in file:
-                        results['integration_gaps'].append({
-                            'file': filepath,
-                            'type': 'class',
-                            'name': class_name,
-                            'line': line,
-                            'recommendation': 'Complete integration or remove'
-                        })
-        except Exception as e:
-            self.logger.warning(f"  Analysis failed for {filepath}: {e}")
-    # Log summary
-    total_issues = sum(len(v) for v in results.values())
-    if total_issues > 0:
-        self.logger.info(f"  📊 Found {total_issues} total issues:")
-        if results['complexity_issues']:
-            self.logger.info(f"    - {len(results['complexity_issues'])} high complexity")
-        if results['dead_code']:
-            self.logger.info(f"    - {len(results['dead_code'])} dead code")
-        if results['integration_gaps']:
-            self.logger.info(f"    - {len(results['integration_gaps'])} integration gaps")
-    return results
-def _update_secondary_objectives(self, analysis_results: Dict, qa_output: str, debug_output: str):
-    self.logger.info("  📝 Updating TERTIARY_OBJECTIVES.md...")
-    content_parts = []
-    # Specific code fixes needed
-    if analysis_results['complexity_issues'] or analysis_results['dead_code']:
-        content_parts.append("## Specific Fixes Needed\n\n")
-        # High complexity fixes
-        for issue in analysis_results['complexity_issues'][:5]:
-            content_parts.append(f"### {issue['file']} - Line {issue['line']}\n")
-            content_parts.append(f"**Problem**: Function `{issue['function']}` has complexity {issue['complexity']}\n")
-            content_parts.append(f"**Fix**: {issue['recommendation']}\n")
-            content_parts.append("**Approach**: Break down into smaller functions, extract logic\n\n")
-        # Dead code removal
-        for dead in analysis_results['dead_code'][:5]:
-            content_parts.append(f"### {dead['file']} - Line {dead['line']}\n")
-            content_parts.append(f"**Problem**: {dead['type'].title()} `{dead['name']}` is unused\n")
-            content_parts.append(f"**Fix**: {dead['recommendation']}\n\n")
-    if content_parts:
-        full_content = "".join(content_parts)
-        try:
-            self.file_updater.update_section(
-                "TERTIARY_OBJECTIVES.md",
-                "## Implementation Details",
-                full_content
-            )
-            self.logger.info("  ✅ Updated TERTIARY_OBJECTIVES.md")
-        except Exception as e:
-            self.logger.warning(f"  Failed to update TERTIARY_OBJECTIVES.md: {e}")
-def _update_architecture_doc(self, analysis_results: Dict):
-    total_tasks = len(state.tasks)
-    if total_tasks == 0:
-        return False
-    completed_tasks = len([t for t in state.tasks if t.status == TaskStatus.COMPLETED])
-    completion_rate = completed_tasks / total_tasks
-    self.logger.debug(f"  Completion: {completed_tasks}/{total_tasks} = {completion_rate:.1%}")
-    return completion_rate >= 0.95
-def _read_phase_outputs(self) -> Dict[str, str]:
-    # Message to Developer
-    if tasks:
-        dev_tasks = [t for t in tasks if t.target_file.endswith('.py')]
-        if dev_tasks:
-            message = f"New tasks: {len(dev_tasks)} files to implement"
-            self.send_message_to_phase('coding', message)
-    # Message to QA
-    if analysis_results['complexity_issues']:
-        message = f"Review needed: {len(analysis_results['complexity_issues'])} high complexity functions"
-        self.send_message_to_phase('qa', message)
-    # Message to Debugging
-    if analysis_results['integration_gaps']:
-        message = f"Integration issues: {len(analysis_results['integration_gaps'])} gaps found"
-        self.send_message_to_phase('debugging', message)
+            tertiary_path = self.project_dir / 'TERTIARY_OBJECTIVES.md'
+            
+            content = f"""# Tertiary Objectives - Specific Implementation Details
 
+**Last Updated**: {self.format_timestamp()}
+
+## Specific Code Fixes Needed
+
+"""
+            
+            # Add complexity issues with specific fixes
+            if analysis_results.get('complexity_issues'):
+                content += "### High Complexity Functions\n\n"
+                for issue in analysis_results['complexity_issues'][:10]:
+                    content += f"**File**: `{issue['file']}`\n"
+                    content += f"**Function**: `{issue['function']}`\n"
+                    content += f"**Complexity**: {issue['complexity']}\n"
+                    content += f"**Line**: {issue['line']}\n"
+                    content += f"**Recommendation**: {issue['recommendation']}\n\n"
+            
+            # Add dead code with specific removal guidance
+            if analysis_results.get('dead_code'):
+                content += "### Dead Code to Remove\n\n"
+                for issue in analysis_results['dead_code'][:10]:
+                    content += f"**File**: `{issue['file']}`\n"
+                    content += f"**Item**: `{issue['name']}`\n"
+                    content += f"**Type**: {issue['type']}\n"
+                    content += f"**Line**: {issue['line']}\n"
+                    content += f"**Action**: Remove or add usage\n\n"
+            
+            # Add integration gaps with specific integration steps
+            if analysis_results.get('integration_gaps'):
+                content += "### Integration Gaps to Address\n\n"
+                for issue in analysis_results['integration_gaps'][:10]:
+                    content += f"**File**: `{issue['file']}`\n"
+                    content += f"**Class**: `{issue['class']}`\n"
+                    content += f"**Line**: {issue['line']}\n"
+                    content += f"**Action**: Complete integration or remove\n\n"
+            
+            tertiary_path.write_text(content)
+            self.logger.info("  📝 Updated TERTIARY_OBJECTIVES.md")
+            
+        except Exception as e:
+            self.logger.error(f"  ❌ Failed to update TERTIARY_OBJECTIVES: {e}")
+    
+    def _write_phase_messages(self, tasks: List, analysis_results: Dict):
+        """Send messages to other phases' READ documents"""
+        try:
+            # Message to Developer
+            if tasks:
+                dev_tasks = [t for t in tasks if t.target_file.endswith('.py')]
+                if dev_tasks:
+                    message = f"""
+## Planning Update - {self.format_timestamp()}
+
+**New Tasks**: {len(dev_tasks)} files to implement
+
+### Task List
+"""
+                    for task in dev_tasks[:5]:
+                        message += f"- `{task.target_file}`: {task.description[:60]}\n"
+                    
+                    self.send_message_to_phase('developer', message)
+                    self.logger.info(f"  📤 Sent {len(dev_tasks)} tasks to developer phase")
+            
+            # Message to QA
+            if analysis_results.get('complexity_issues'):
+                message = f"""
+## Quality Review Needed - {self.format_timestamp()}
+
+**High Complexity Functions**: {len(analysis_results['complexity_issues'])}
+
+Please review these functions for potential refactoring.
+"""
+                self.send_message_to_phase('qa', message)
+                self.logger.info("  📤 Sent complexity warnings to QA phase")
+            
+            # Message to Debugging
+            if analysis_results.get('integration_gaps'):
+                message = f"""
+## Integration Issues Found - {self.format_timestamp()}
+
+**Integration Gaps**: {len(analysis_results['integration_gaps'])}
+
+Please address these architectural integration issues.
+"""
+                self.send_message_to_phase('debug', message)
+                self.logger.info("  📤 Sent integration gaps to debugging phase")
+                
+        except Exception as e:
+            self.logger.error(f"  ❌ Failed to send phase messages: {e}")
+    
+    def _should_update_master_plan(self, state: PipelineState) -> bool:
+        """Check if 95% completion threshold reached for MASTER_PLAN update"""
+        try:
+            total_tasks = len(state.tasks)
+            if total_tasks == 0:
+                return False
+            
+            completed_tasks = len([t for t in state.tasks.values() 
+                                  if t.status == TaskStatus.COMPLETED])
+            
+            completion_rate = (completed_tasks / total_tasks) * 100
+            
+            self.logger.info(f"  📊 Completion rate: {completion_rate:.1f}% ({completed_tasks}/{total_tasks})")
+            
+            return completion_rate >= 95.0
+            
+        except Exception as e:
+            self.logger.error(f"  ❌ Failed to check completion rate: {e}")
+            return False
+    
     def generate_state_markdown(self, state: PipelineState) -> str:
         """Generate PLANNING_STATE.md content"""
         lines = [
@@ -574,83 +577,226 @@ def _read_phase_outputs(self) -> Dict[str, str]:
             "",
             "## Task Queue Summary",
             "",
-            f"| Status | Count |",
-            f"|--------|-------|",
+            f"- Total Tasks: {len(state.tasks)}",
+            f"- Pending: {len(state.get_tasks_by_status(TaskStatus.PENDING))}",
+            f"- In Progress: {len(state.get_tasks_by_status(TaskStatus.IN_PROGRESS))}",
+            f"- Completed: {len(state.get_tasks_by_status(TaskStatus.COMPLETED))}",
+            f"- Failed: {len(state.get_tasks_by_status(TaskStatus.FAILED))}",
+            "",
         ]
         
-        # Count by status
-        status_counts = {}
-        for task in state.tasks.values():
-            status = task.status.value
-            status_counts[status] = status_counts.get(status, 0) + 1
-        
-        for status, count in sorted(status_counts.items()):
-            lines.append(f"| {status} | {count} |")
-        
-        lines.append("")
-        lines.append("## Tasks by Priority")
-        lines.append("")
-        
-        # Group by priority
-        by_priority: Dict[int, List[TaskState]] = {}
-        for task in state.tasks.values():
-            p = task.priority
-            if p not in by_priority:
-                by_priority[p] = []
-            by_priority[p].append(task)
-        
-        priority_names = {
-            1: "CRITICAL_BUG",
-            2: "QA_FAILURE", 
-            3: "DEBUG_PENDING",
-            4: "IN_PROGRESS",
-            5: "INCOMPLETE",
-            6: "NEW_TASK",
-            7: "LOW",
-            10: "DEFERRED",
-        }
-        
-        for priority in sorted(by_priority.keys()):
-            tasks = by_priority[priority]
-            priority_name = priority_names.get(priority, f"PRIORITY_{priority}")
-            
-            lines.append(f"### Priority {priority}: {priority_name}")
+        # Add recent tasks
+        recent_tasks = list(state.tasks.values())[-5:]
+        if recent_tasks:
+            lines.append("## Recent Tasks")
             lines.append("")
-            
-            if not tasks:
-                lines.append("(none)")
-            else:
-                for task in tasks:
-                    status_icon = {
-                        TaskStatus.COMPLETED: "[x]",
-                        TaskStatus.SKIPPED: "[~]",
-                        TaskStatus.IN_PROGRESS: "[>]",
-                        TaskStatus.QA_FAILED: "[!]",
-                    }.get(task.status, "[ ]")
-                    
-                    lines.append(f"- {status_icon} `{task.target_file}` - {task.description[:60]}")
-                    
-                    if task.dependencies:
-                        deps = ", ".join(task.dependencies)
-                        lines.append(f"  - Depends on: {deps}")
-                    
-                    if task.attempts > 0:
-                        lines.append(f"  - Attempts: {task.attempts}")
-                    
-                    if task.errors:
-                        last_error = task.errors[-1]
-                        lines.append(f"  - Last error: {last_error.message[:50]}")
-            
-            lines.append("")
-        
-        # Completed tasks
-        completed = state.get_tasks_by_status(TaskStatus.COMPLETED)
-        if completed:
-            lines.append("## Completed Tasks")
-            lines.append("")
-            for task in completed:
-                completed_time = self.format_timestamp(task.completed) if task.completed else "?"
-                lines.append(f"- [x] `{task.target_file}` - Completed {completed_time}")
-            lines.append("")
+            for task in recent_tasks:
+                lines.append(f"### {task.target_file}")
+                lines.append(f"- Status: {task.status.value}")
+                lines.append(f"- Description: {task.description[:100]}")
+                lines.append("")
         
         return "\n".join(lines)
+
+    def _perform_deep_analysis(self, existing_files: List[str]) -> Dict:
+        self.logger.info("  🔍 Performing deep codebase analysis...")
+        results = {
+            'complexity_issues': [],
+            'dead_code': [],
+            'integration_gaps': [],
+            'architectural_issues': [],
+            'test_gaps': [],
+            'failures': []
+        }
+        python_files = [f for f in existing_files if f.endswith('.py')]
+        for filepath in python_files:
+            try:
+                # Complexity analysis
+                complexity_result = self.complexity_analyzer.analyze(filepath)
+                for func in complexity_result.results:
+                    if func.complexity >= 30:
+                        results['complexity_issues'].append({
+                            'file': filepath,
+                            'function': func.name,
+                            'complexity': func.complexity,
+                            'line': func.line,
+                            'recommendation': f"Refactor - estimated {func.effort_days} days"
+                        })
+                # Dead code detection
+                dead_code_result = self.dead_code_detector.detect(filepath)
+                if dead_code_result.unused_functions:
+                    for func_name, file, line in dead_code_result.unused_functions:
+                        if file == filepath or filepath in file:
+                            results['dead_code'].append({
+                                'file': filepath,
+                                'type': 'function',
+                                'name': func_name,
+                                'line': line,
+                                'recommendation': 'Remove or add usage'
+                            })
+                # Integration gaps
+                gap_result = self.gap_finder.find_gaps(filepath)
+                if gap_result.unused_classes:
+                    for class_name, file, line in gap_result.unused_classes:
+                        if file == filepath or filepath in file:
+                            results['integration_gaps'].append({
+                                'file': filepath,
+                                'type': 'class',
+                                'name': class_name,
+                                'line': line,
+                                'recommendation': 'Complete integration or remove'
+                            })
+            except Exception as e:
+                self.logger.warning(f"  Analysis failed for {filepath}: {e}")
+        # Log summary
+        total_issues = sum(len(v) for v in results.values())
+        if total_issues > 0:
+            self.logger.info(f"  📊 Found {total_issues} total issues:")
+            if results['complexity_issues']:
+                self.logger.info(f"    - {len(results['complexity_issues'])} high complexity")
+            if results['dead_code']:
+                self.logger.info(f"    - {len(results['dead_code'])} dead code")
+            if results['integration_gaps']:
+                self.logger.info(f"    - {len(results['integration_gaps'])} integration gaps")
+        return results
+    def _update_secondary_objectives(self, analysis_results: Dict, qa_output: str, debug_output: str):
+        self.logger.info("  📝 Updating TERTIARY_OBJECTIVES.md...")
+        content_parts = []
+        # Specific code fixes needed
+        if analysis_results['complexity_issues'] or analysis_results['dead_code']:
+            content_parts.append("## Specific Fixes Needed\n\n")
+            # High complexity fixes
+            for issue in analysis_results['complexity_issues'][:5]:
+                content_parts.append(f"### {issue['file']} - Line {issue['line']}\n")
+                content_parts.append(f"**Problem**: Function `{issue['function']}` has complexity {issue['complexity']}\n")
+                content_parts.append(f"**Fix**: {issue['recommendation']}\n")
+                content_parts.append("**Approach**: Break down into smaller functions, extract logic\n\n")
+            # Dead code removal
+            for dead in analysis_results['dead_code'][:5]:
+                content_parts.append(f"### {dead['file']} - Line {dead['line']}\n")
+                content_parts.append(f"**Problem**: {dead['type'].title()} `{dead['name']}` is unused\n")
+                content_parts.append(f"**Fix**: {dead['recommendation']}\n\n")
+        if content_parts:
+            full_content = "".join(content_parts)
+            try:
+                self.file_updater.update_section(
+                    "TERTIARY_OBJECTIVES.md",
+                    "## Implementation Details",
+                    full_content
+                )
+                self.logger.info("  ✅ Updated TERTIARY_OBJECTIVES.md")
+            except Exception as e:
+                self.logger.warning(f"  Failed to update TERTIARY_OBJECTIVES.md: {e}")
+    def _update_architecture_doc(self, analysis_results: Dict):
+        total_tasks = len(state.tasks)
+        if total_tasks == 0:
+            return False
+        completed_tasks = len([t for t in state.tasks if t.status == TaskStatus.COMPLETED])
+        completion_rate = completed_tasks / total_tasks
+        self.logger.debug(f"  Completion: {completed_tasks}/{total_tasks} = {completion_rate:.1%}")
+        return completion_rate >= 0.95
+    def _read_phase_outputs(self) -> Dict[str, str]:
+        # Message to Developer
+        if tasks:
+            dev_tasks = [t for t in tasks if t.target_file.endswith('.py')]
+            if dev_tasks:
+                message = f"New tasks: {len(dev_tasks)} files to implement"
+                self.send_message_to_phase('coding', message)
+        # Message to QA
+        if analysis_results['complexity_issues']:
+            message = f"Review needed: {len(analysis_results['complexity_issues'])} high complexity functions"
+            self.send_message_to_phase('qa', message)
+        # Message to Debugging
+        if analysis_results['integration_gaps']:
+            message = f"Integration issues: {len(analysis_results['integration_gaps'])} gaps found"
+            self.send_message_to_phase('debugging', message)
+
+        def generate_state_markdown(self, state: PipelineState) -> str:
+            """Generate PLANNING_STATE.md content"""
+            lines = [
+                "# Planning State",
+                f"Generated: {self.format_timestamp()}",
+                f"Pipeline Run: {state.pipeline_run_id}",
+                "",
+                "## Task Queue Summary",
+                "",
+                f"| Status | Count |",
+                f"|--------|-------|",
+            ]
+        
+            # Count by status
+            status_counts = {}
+            for task in state.tasks.values():
+                status = task.status.value
+                status_counts[status] = status_counts.get(status, 0) + 1
+        
+            for status, count in sorted(status_counts.items()):
+                lines.append(f"| {status} | {count} |")
+        
+            lines.append("")
+            lines.append("## Tasks by Priority")
+            lines.append("")
+        
+            # Group by priority
+            by_priority: Dict[int, List[TaskState]] = {}
+            for task in state.tasks.values():
+                p = task.priority
+                if p not in by_priority:
+                    by_priority[p] = []
+                by_priority[p].append(task)
+        
+            priority_names = {
+                1: "CRITICAL_BUG",
+                2: "QA_FAILURE", 
+                3: "DEBUG_PENDING",
+                4: "IN_PROGRESS",
+                5: "INCOMPLETE",
+                6: "NEW_TASK",
+                7: "LOW",
+                10: "DEFERRED",
+            }
+        
+            for priority in sorted(by_priority.keys()):
+                tasks = by_priority[priority]
+                priority_name = priority_names.get(priority, f"PRIORITY_{priority}")
+            
+                lines.append(f"### Priority {priority}: {priority_name}")
+                lines.append("")
+            
+                if not tasks:
+                    lines.append("(none)")
+                else:
+                    for task in tasks:
+                        status_icon = {
+                            TaskStatus.COMPLETED: "[x]",
+                            TaskStatus.SKIPPED: "[~]",
+                            TaskStatus.IN_PROGRESS: "[>]",
+                            TaskStatus.QA_FAILED: "[!]",
+                        }.get(task.status, "[ ]")
+                    
+                        lines.append(f"- {status_icon} `{task.target_file}` - {task.description[:60]}")
+                    
+                        if task.dependencies:
+                            deps = ", ".join(task.dependencies)
+                            lines.append(f"  - Depends on: {deps}")
+                    
+                        if task.attempts > 0:
+                            lines.append(f"  - Attempts: {task.attempts}")
+                    
+                        if task.errors:
+                            last_error = task.errors[-1]
+                            lines.append(f"  - Last error: {last_error.message[:50]}")
+            
+                lines.append("")
+        
+            # Completed tasks
+            completed = state.get_tasks_by_status(TaskStatus.COMPLETED)
+            if completed:
+                lines.append("## Completed Tasks")
+                lines.append("")
+                for task in completed:
+                    completed_time = self.format_timestamp(task.completed) if task.completed else "?"
+                    lines.append(f"- [x] `{task.target_file}` - Completed {completed_time}")
+                lines.append("")
+        
+            return "\n".join(lines)
