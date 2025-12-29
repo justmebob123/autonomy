@@ -160,6 +160,8 @@ class ToolCallHandler:
             "insert_after": self._handle_insert_after,
             "insert_before": self._handle_insert_before,
             "replace_between": self._handle_replace_between,
+            # Documentation tools
+            "analyze_documentation_needs": self._handle_analyze_documentation_needs,
         }
         
         # Register custom tools from registry (Integration Fix #1)
@@ -1854,6 +1856,42 @@ class ToolCallHandler:
             "sections_to_add": len(sections_to_add),
             "sections_to_update": len(sections_to_update),
             "rationale": rationale
+        }
+
+    def _handle_analyze_documentation_needs(self, args: Dict) -> Dict:
+        """
+        Handle analyze_documentation_needs tool.
+        
+        Analyzes what documentation needs to be updated based on recent changes.
+        """
+        readme_needs_update = args.get("readme_needs_update", False)
+        architecture_needs_update = args.get("architecture_needs_update", False)
+        documentation_quality_notes = args.get("documentation_quality_notes", "")
+        new_features_to_document = args.get("new_features_to_document", [])
+        readme_sections_outdated = args.get("readme_sections_outdated", [])
+        
+        self.logger.info("  📝 Documentation Analysis:")
+        self.logger.info(f"    README needs update: {readme_needs_update}")
+        self.logger.info(f"    ARCHITECTURE needs update: {architecture_needs_update}")
+        
+        if new_features_to_document:
+            self.logger.info(f"    New features to document: {len(new_features_to_document)}")
+            for feature in new_features_to_document:
+                self.logger.info(f"      • {feature}")
+        
+        if readme_sections_outdated:
+            self.logger.info(f"    Outdated README sections: {', '.join(readme_sections_outdated)}")
+        
+        if documentation_quality_notes:
+            self.logger.info(f"    Quality notes: {documentation_quality_notes}")
+        
+        return {
+            "tool": "analyze_documentation_needs",
+            "success": True,
+            "readme_needs_update": readme_needs_update,
+            "architecture_needs_update": architecture_needs_update,
+            "new_features_count": len(new_features_to_document),
+            "outdated_sections_count": len(readme_sections_outdated)
         }
 
     # ========================================================================
