@@ -93,6 +93,18 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 message="No tasks to implement"
             )
         
+        # CRITICAL: Skip tasks with empty target_file
+        if not task.target_file or task.target_file.strip() == "":
+            self.logger.warning(f"  ⚠️  Task {task.task_id} has empty target_file, marking as SKIPPED")
+            task.status = TaskStatus.SKIPPED
+            self.state_manager.save(state)
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message="Skipped task with empty target_file",
+                task_id=task.task_id
+            )
+        
         self.logger.info(f"  Task: {task.description[:60]}...")
         self.logger.info(f"  Target: {task.target_file}")
         self.logger.info(f"  Attempt: {task.attempts + 1}")
