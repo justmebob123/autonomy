@@ -37,11 +37,38 @@ The Document IPC system has a critical flaw:
 - [ ] Review `_update_architecture_doc()` method (TODO)
 
 ### 3. Fix All Phases Document Reading ⏳
-- [ ] Verify Planning phase reads strategic docs correctly
-- [ ] Verify Coding phase reads strategic docs correctly
-- [ ] Verify QA phase reads strategic docs correctly
-- [ ] Verify Debugging phase reads strategic docs correctly
-- [ ] Add error handling for missing documents
+
+#### Planning Phase
+- [ ] Add read_strategic_docs() at start of execute()
+- [ ] Read existing PRIMARY/SECONDARY/TERTIARY before updating
+- [ ] Implement merge logic (don't overwrite existing content)
+- [ ] Complete _update_secondary_objectives() implementation
+- [ ] Add _update_primary_objectives() method
+- [ ] Review _update_architecture_doc() method
+
+#### Coding Phase  
+- [ ] Add read_strategic_docs() at start of execute()
+- [ ] Read PRIMARY_OBJECTIVES for feature requirements
+- [ ] Read SECONDARY_OBJECTIVES for architectural guidance
+- [ ] Read TERTIARY_OBJECTIVES for specific fixes
+- [ ] Pass strategic context to LLM
+- [ ] Use architecture config for naming/structure
+
+#### QA Phase
+- [ ] Add read_strategic_docs() at start of execute()
+- [ ] Read PRIMARY_OBJECTIVES for success criteria
+- [ ] Read SECONDARY_OBJECTIVES for quality standards
+- [ ] Read TERTIARY_OBJECTIVES for known issues
+- [ ] Validate against success criteria
+- [ ] Check quality standards compliance
+
+#### Debugging Phase
+- [ ] Add read_strategic_docs() at start of execute()
+- [ ] Read TERTIARY_OBJECTIVES for integration conflicts
+- [ ] Read SECONDARY_OBJECTIVES for architectural requirements
+- [ ] Extract and prioritize conflicts
+- [ ] Implement conflict resolution logic
+- [ ] Use architecture config for fixes
 
 ### 4. Add Document Verification ⏳
 - [ ] Add method to verify all documents exist
