@@ -399,9 +399,9 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 self.logger.debug("  📖 Read QA phase output")
             
             # Read debugging output for bug fixes needed
-            debug_output = self.read_phase_output('debug')
+            debug_output = self.read_phase_output('debugging')
             if debug_output:
-                outputs['debug'] = debug_output
+                outputs['debugging'] = debug_output
                 self.logger.debug("  📖 Read debugging phase output")
                 
         except Exception as e:

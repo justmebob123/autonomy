@@ -708,11 +708,11 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         outputs = {}
         
         try:
-            # Read developer output for completed code
-            developer_output = self.read_phase_output('developer')
-            if developer_output:
-                outputs['developer'] = developer_output
-                self.logger.debug("  📖 Read developer phase output")
+            # Read coding output for completed code
+            coding_output = self.read_phase_output('coding')
+            if coding_output:
+                outputs['coding'] = coding_output
+                self.logger.debug("  📖 Read coding phase output")
             
             # Read planning output for quality criteria
             planning_output = self.read_phase_output('planning')
@@ -721,9 +721,9 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 self.logger.debug("  📖 Read planning phase output")
             
             # Read debugging output for known issues
-            debug_output = self.read_phase_output('debug')
+            debug_output = self.read_phase_output('debugging')
             if debug_output:
-                outputs['debug'] = debug_output
+                outputs['debugging'] = debug_output
                 self.logger.debug("  📖 Read debugging phase output")
                 
         except Exception as e:
@@ -770,7 +770,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 
                 debug_message += "\nPlease address these issues and resubmit for QA.\n"
                 
-                self.send_message_to_phase('debug', debug_message)
+                self.send_message_to_phase('debugging', debug_message)
                 self.logger.info(f"  📤 Sent {len(issues_found)} issues to debugging phase")
             else:
                 # Send approval to developer phase
