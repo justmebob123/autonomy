@@ -88,8 +88,33 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         
         self.logger.info(f"  Loaded MASTER_PLAN.md ({len(master_plan)} bytes)")
         
+        # IPC: Initialize documents on first run
+        self.initialize_ipc_documents()
+        
+        # IPC: Read outputs from other phases
+        phase_outputs = self._read_phase_outputs()
+        qa_output = phase_outputs.get('qa', '')
+        dev_output = phase_outputs.get('coding', '')
+        debug_output = phase_outputs.get('debugging', '')
+        
+        # IPC: Read strategic documents
+        strategic_docs = self.read_strategic_docs()
+        
         # Get existing files for context
         existing_files = self._get_existing_files()
+        
+        # DEEP ANALYSIS: Perform comprehensive codebase analysis
+        analysis_results = self._perform_deep_analysis(existing_files)
+        
+        # IPC: Update strategic documents with findings
+        self._update_secondary_objectives(analysis_results, qa_output, debug_output)
+        self._update_tertiary_objectives(analysis_results)
+        self._update_architecture_doc(analysis_results)
+        
+        # IPC: Check if MASTER_PLAN needs update (95% threshold)
+        if self._should_update_master_plan(state):
+            self.logger.info("  🎯 95% completion reached - MASTER_PLAN update needed")
+            # TODO: Implement MASTER_PLAN update logic
         
         # ANALYSIS INTEGRATION: Analyze existing codebase before planning
         analysis_context = self._analyze_existing_codebase(existing_files)
@@ -427,6 +452,119 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         
         return ""
     
+def _perform_deep_analysis(self, existing_files: List[str]) -> Dict:
+    self.logger.info("  🔍 Performing deep codebase analysis...")
+    results = {
+        'complexity_issues': [],
+        'dead_code': [],
+        'integration_gaps': [],
+        'architectural_issues': [],
+        'test_gaps': [],
+        'failures': []
+    }
+    python_files = [f for f in existing_files if f.endswith('.py')]
+    for filepath in python_files:
+        try:
+            # Complexity analysis
+            complexity_result = self.complexity_analyzer.analyze(filepath)
+            for func in complexity_result.results:
+                if func.complexity >= 30:
+                    results['complexity_issues'].append({
+                        'file': filepath,
+                        'function': func.name,
+                        'complexity': func.complexity,
+                        'line': func.line,
+                        'recommendation': f"Refactor - estimated {func.effort_days} days"
+                    })
+            # Dead code detection
+            dead_code_result = self.dead_code_detector.detect(filepath)
+            if dead_code_result.unused_functions:
+                for func_name, file, line in dead_code_result.unused_functions:
+                    if file == filepath or filepath in file:
+                        results['dead_code'].append({
+                            'file': filepath,
+                            'type': 'function',
+                            'name': func_name,
+                            'line': line,
+                            'recommendation': 'Remove or add usage'
+                        })
+            # Integration gaps
+            gap_result = self.gap_finder.find_gaps(filepath)
+            if gap_result.unused_classes:
+                for class_name, file, line in gap_result.unused_classes:
+                    if file == filepath or filepath in file:
+                        results['integration_gaps'].append({
+                            'file': filepath,
+                            'type': 'class',
+                            'name': class_name,
+                            'line': line,
+                            'recommendation': 'Complete integration or remove'
+                        })
+        except Exception as e:
+            self.logger.warning(f"  Analysis failed for {filepath}: {e}")
+    # Log summary
+    total_issues = sum(len(v) for v in results.values())
+    if total_issues > 0:
+        self.logger.info(f"  📊 Found {total_issues} total issues:")
+        if results['complexity_issues']:
+            self.logger.info(f"    - {len(results['complexity_issues'])} high complexity")
+        if results['dead_code']:
+            self.logger.info(f"    - {len(results['dead_code'])} dead code")
+        if results['integration_gaps']:
+            self.logger.info(f"    - {len(results['integration_gaps'])} integration gaps")
+    return results
+def _update_secondary_objectives(self, analysis_results: Dict, qa_output: str, debug_output: str):
+    self.logger.info("  📝 Updating TERTIARY_OBJECTIVES.md...")
+    content_parts = []
+    # Specific code fixes needed
+    if analysis_results['complexity_issues'] or analysis_results['dead_code']:
+        content_parts.append("## Specific Fixes Needed\n\n")
+        # High complexity fixes
+        for issue in analysis_results['complexity_issues'][:5]:
+            content_parts.append(f"### {issue['file']} - Line {issue['line']}\n")
+            content_parts.append(f"**Problem**: Function `{issue['function']}` has complexity {issue['complexity']}\n")
+            content_parts.append(f"**Fix**: {issue['recommendation']}\n")
+            content_parts.append("**Approach**: Break down into smaller functions, extract logic\n\n")
+        # Dead code removal
+        for dead in analysis_results['dead_code'][:5]:
+            content_parts.append(f"### {dead['file']} - Line {dead['line']}\n")
+            content_parts.append(f"**Problem**: {dead['type'].title()} `{dead['name']}` is unused\n")
+            content_parts.append(f"**Fix**: {dead['recommendation']}\n\n")
+    if content_parts:
+        full_content = "".join(content_parts)
+        try:
+            self.file_updater.update_section(
+                "TERTIARY_OBJECTIVES.md",
+                "## Implementation Details",
+                full_content
+            )
+            self.logger.info("  ✅ Updated TERTIARY_OBJECTIVES.md")
+        except Exception as e:
+            self.logger.warning(f"  Failed to update TERTIARY_OBJECTIVES.md: {e}")
+def _update_architecture_doc(self, analysis_results: Dict):
+    total_tasks = len(state.tasks)
+    if total_tasks == 0:
+        return False
+    completed_tasks = len([t for t in state.tasks if t.status == TaskStatus.COMPLETED])
+    completion_rate = completed_tasks / total_tasks
+    self.logger.debug(f"  Completion: {completed_tasks}/{total_tasks} = {completion_rate:.1%}")
+    return completion_rate >= 0.95
+def _read_phase_outputs(self) -> Dict[str, str]:
+    # Message to Developer
+    if tasks:
+        dev_tasks = [t for t in tasks if t.target_file.endswith('.py')]
+        if dev_tasks:
+            message = f"New tasks: {len(dev_tasks)} files to implement"
+            self.send_message_to_phase('coding', message)
+    # Message to QA
+    if analysis_results['complexity_issues']:
+        message = f"Review needed: {len(analysis_results['complexity_issues'])} high complexity functions"
+        self.send_message_to_phase('qa', message)
+    # Message to Debugging
+    if analysis_results['integration_gaps']:
+        message = f"Integration issues: {len(analysis_results['integration_gaps'])} gaps found"
+        self.send_message_to_phase('debugging', message)
+
     def generate_state_markdown(self, state: PipelineState) -> str:
         """Generate PLANNING_STATE.md content"""
         lines = [
