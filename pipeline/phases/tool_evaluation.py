@@ -45,7 +45,13 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
     def __init__(self, config: PipelineConfig, client: OllamaClient, **kwargs):
         BasePhase.__init__(self, config, client, **kwargs)
         self.init_loop_detection()
-        self.logger.info("Enhanced ToolEvaluationPhase initialized")
+        
+        # ARCHITECTURE CONFIG
+        from ..architecture_parser import get_architecture_config
+        self.architecture_config = get_architecture_config(self.project_dir)
+        self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
+        
+        self.logger.info("Enhanced ToolEvaluationPhase initialized with IPC integration")
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """
@@ -61,6 +67,19 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
         Returns:
             PhaseResult with evaluation results
         """
+        
+        # INITIALIZE IPC DOCUMENTS
+        self.initialize_ipc_documents()
+        
+        # READ STRATEGIC DOCUMENTS
+        strategic_docs = self.read_strategic_docs()
+        
+        # READ OWN TASKS
+        tasks_from_doc = self.read_own_tasks()
+        
+        # READ OTHER PHASES' OUTPUTS
+        tool_design_output = self.read_phase_output('tool_design')
+        
         # Extract parameters
         tool_spec = kwargs.get('tool_spec')
         tool_impl = kwargs.get('tool_impl')

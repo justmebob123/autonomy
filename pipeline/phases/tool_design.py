@@ -45,13 +45,18 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
         BasePhase.__init__(self, config, client, **kwargs)
         self.init_loop_detection()
         
+        # ARCHITECTURE CONFIG - Load project architecture configuration
+        from ..architecture_parser import get_architecture_config
+        self.architecture_config = get_architecture_config(self.project_dir)
+        self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
+        
         # Initialize tool analyzer
         self.tool_analyzer = ToolAnalyzer(
             handlers_path=str(Path(__file__).parent.parent / "handlers.py"),
             custom_tools_dir=str(Path(__file__).parent.parent / "tools" / "custom")
         )
         
-        self.logger.info("Enhanced ToolDesignPhase initialized with ToolAnalyzer")
+        self.logger.info("Enhanced ToolDesignPhase initialized with ToolAnalyzer and IPC integration")
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """
@@ -69,6 +74,19 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
         Returns:
             PhaseResult with success status and analysis results
         """
+        
+        # INITIALIZE IPC DOCUMENTS (if first run)
+        self.initialize_ipc_documents()
+        
+        # READ STRATEGIC DOCUMENTS for context
+        strategic_docs = self.read_strategic_docs()
+        
+        # READ OWN TASKS
+        tasks_from_doc = self.read_own_tasks()
+        
+        # READ OTHER PHASES' OUTPUTS for context
+        investigation_output = self.read_phase_output('investigation')
+        coding_output = self.read_phase_output('coding')
         # Extract context parameters
         tool_name = kwargs.get('tool_name')
         tool_description = kwargs.get('tool_description', '')
@@ -453,6 +471,30 @@ The specification must include:
                 # Register with ToolRegistry
                 if self.tool_registry.register_tool(spec):
                     self.logger.info(f"✅ Successfully registered tool: {spec['name']}")
+                    
+                    # WRITE STATUS
+                    from datetime import datetime
+                    status_content = f"""# Tool Design Phase Status
+
+**Last Updated**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+## Tool Created
+- Name: {spec['name']}
+- Description: {spec.get('description', '')}
+- Category: {spec.get('category', 'unknown')}
+
+## Files Created
+{chr(10).join(f"- {file}" for file in created_files)}
+
+## Next Steps
+- Tool Evaluation phase should test the tool
+- Coding phase can now use this tool
+"""
+                    self.write_own_status(status_content)
+                    
+                    # SEND MESSAGES to other phases
+                    self.send_message_to_phase('tool_evaluation', f"New tool created: {spec['name']} - ready for testing")
+                    self.send_message_to_phase('coding', f"New tool available: {spec['name']}")
                     
                     return PhaseResult(
                         success=True,

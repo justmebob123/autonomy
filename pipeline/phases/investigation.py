@@ -32,6 +32,11 @@ class InvestigationPhase(BasePhase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
+        # ARCHITECTURE CONFIG - Load project architecture configuration
+        from ..architecture_parser import get_architecture_config
+        self.architecture_config = get_architecture_config(self.project_dir)
+        self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
+        
         # CRITICAL: Investigation needs ALL analysis tools
         from ..analysis.complexity import ComplexityAnalyzer
         from ..analysis.dead_code import DeadCodeDetector
@@ -42,18 +47,31 @@ class InvestigationPhase(BasePhase):
         from ..analysis.dataflow import DataFlowAnalyzer
         
         self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
-        self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger)
+        self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger, self.architecture_config)
         self.gap_finder = IntegrationGapFinder(str(self.project_dir), self.logger)
         self.call_graph = CallGraphGenerator(str(self.project_dir), self.logger)
         self.bug_detector = BugDetector(str(self.project_dir), self.logger)
         self.antipattern_detector = AntiPatternDetector(str(self.project_dir), self.logger)
         self.dataflow_analyzer = DataFlowAnalyzer(str(self.project_dir), self.logger)
         
-        self.logger.info("  🔍 Investigation phase initialized with ALL analysis capabilities")
+        self.logger.info("  🔍 Investigation phase initialized with ALL analysis capabilities and IPC integration")
     
     def execute(self, state: PipelineState,
                 issue: Dict = None, **kwargs) -> PhaseResult:
         """Execute investigation for an issue"""
+        
+        # INITIALIZE IPC DOCUMENTS (if first run)
+        self.initialize_ipc_documents()
+        
+        # READ STRATEGIC DOCUMENTS for context
+        strategic_docs = self.read_strategic_docs()
+        
+        # READ OWN TASKS
+        tasks_from_doc = self.read_own_tasks()
+        
+        # READ OTHER PHASES' OUTPUTS for context
+        debugging_output = self.read_phase_output('debugging')
+        qa_output = self.read_phase_output('qa')
         
         if issue is None:
             return PhaseResult(
@@ -121,6 +139,31 @@ class InvestigationPhase(BasePhase):
             self.logger.info(f"  Root cause: {findings['root_cause']}")
         if findings.get('recommended_fix'):
             self.logger.info(f"  Recommended fix: {findings['recommended_fix']}")
+        
+        # WRITE STATUS to INVESTIGATION_WRITE.md
+        from datetime import datetime
+        status_content = f"""# Investigation Phase Status
+
+**Last Updated**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+
+## Issue Investigated
+- File: {filepath}
+- Issue: {issue.get('description', 'No description')}
+
+## Findings
+{chr(10).join(f"- {key}: {value}" for key, value in findings.items() if key != 'recommended_fix')}
+
+## Recommended Fix
+{findings.get('recommended_fix', 'No specific fix recommended')}
+
+## Next Steps
+- Debugging phase should implement the recommended fix
+"""
+        self.write_own_status(status_content)
+        
+        # SEND MESSAGES to other phases
+        if findings.get('recommended_fix'):
+            self.send_message_to_phase('debugging', f"Investigation complete for {filepath}: {findings.get('recommended_fix')}")
         
         return PhaseResult(
             success=True,
