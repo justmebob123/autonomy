@@ -198,6 +198,10 @@ class BasePhase(ABC):
         }
         self.self_awareness_level = 0.0
         self.adjacencies = []
+        
+        # Document-based IPC system
+        from ..document_ipc import DocumentIPC
+        self.doc_ipc = DocumentIPC(self.project_dir, self.logger)
         self.experience_count = 0
     
     @abstractmethod
@@ -414,6 +418,32 @@ class BasePhase(ABC):
         except IOError as e:
             self.logger.error(f"Failed to write {filepath}: {e}")
             return False
+    
+    # Document IPC Methods
+    
+    def read_own_tasks(self) -> str:
+        """Read tasks from own READ document."""
+        return self.doc_ipc.read_own_document(self.phase_name)
+    
+    def write_own_status(self, status: str):
+        """Write status to own WRITE document."""
+        self.doc_ipc.write_own_document(self.phase_name, status)
+    
+    def send_message_to_phase(self, to_phase: str, message: str):
+        """Send message to another phase's READ document."""
+        self.doc_ipc.write_to_phase(self.phase_name, to_phase, message)
+    
+    def read_phase_output(self, phase: str) -> str:
+        """Read another phase's WRITE document."""
+        return self.doc_ipc.read_phase_output(phase)
+    
+    def read_strategic_docs(self) -> Dict[str, str]:
+        """Read all strategic documents."""
+        return self.doc_ipc.read_all_strategic_documents()
+    
+    def initialize_ipc_documents(self):
+        """Initialize IPC documents if they don't exist."""
+        self.doc_ipc.initialize_documents()
     
     def format_timestamp(self, iso_timestamp: str = None) -> str:
         """Format a timestamp for display"""
