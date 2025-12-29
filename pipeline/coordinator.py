@@ -1299,7 +1299,28 @@ class PhaseCoordinator:
             else:
                 return {'phase': 'documentation', 'reason': 'All tasks complete, documenting work'}
         
-        # 6. Default: go to planning to create more tasks (or follow pattern)
+        # 6. Check if we're stuck in planning loop (no pending work but not all complete)
+        # This happens when planning keeps saying "no new tasks" but coordinator keeps returning to it
+        if current_phase == 'planning' and not pending and not qa_pending and not needs_fixes:
+            # Planning just ran and found no work to do
+            # Check if there are tasks in other statuses (FAILED, SKIPPED, etc.)
+            other_status = [t for t in state.tasks.values() 
+                          if t.status not in [TaskStatus.NEW, TaskStatus.IN_PROGRESS, 
+                                             TaskStatus.QA_PENDING, TaskStatus.NEEDS_FIXES,
+                                             TaskStatus.COMPLETED]]
+            
+            if other_status:
+                self.logger.warning(f"  ⚠️ Found {len(other_status)} tasks in other statuses: "
+                                  f"{set(t.status for t in other_status)}")
+                # Try to recover these tasks or mark them appropriately
+                # For now, move to documentation to avoid infinite loop
+                return {'phase': 'documentation', 'reason': f'Planning loop detected, {len(other_status)} tasks in limbo'}
+            else:
+                # No work at all - consider project complete
+                self.logger.info("  ✅ No pending work found, moving to documentation")
+                return {'phase': 'documentation', 'reason': 'No pending work, documenting progress'}
+        
+        # 7. Default: go to planning to create more tasks (or follow pattern)
         if pattern_override and pattern_override in self.phases:
             return {'phase': pattern_override, 'reason': f'Pattern-based suggestion (confidence > 0.8)'}
         return {'phase': 'planning', 'reason': 'Need to plan next steps'}
