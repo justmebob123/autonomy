@@ -1,44 +1,41 @@
-# Critical Bug Fix: full_file_rewrite Tool Doesn't Exist
+# Verbose Logging Enhancement Implementation
 
-## Problem 1: QA_FAILED Tasks Not Being Reactivated ✅ FIXED
-- **FIXED in commit 6c1cb39**
+## Goal
+Improve visibility into long-running model operations, especially for qwen-coder:32b queries that can take hours.
 
-## Problem 2: Error Context Lost on Reactivation ✅ FIXED  
-- **FIXED in commit 3489625**
+## Phase 1: Enhanced Model Interaction Logging ⚡ PRIORITY
+- [x] Add pre-call logging (server, model, context, message count)
+- [x] Add post-call logging (duration, tokens, success)
+- [ ] Add streaming progress indicators
+- [x] Show conversation history size
 
-## Problem 3: full_file_rewrite Tool Doesn't Exist 🔴 CRITICAL
-- Error messages tell LLM to use `full_file_rewrite` tool
-- But `full_file_rewrite` is NOT registered in handlers
-- Available tools: `create_file`, `modify_file`, etc.
-- LLM tries to use `full_file_rewrite` → "Unknown tool" error
-- Task fails again with same error
+## Phase 2: Tool Call Verbosity
+- [x] Log every tool call with full arguments (when verbose)
+- [x] Show tool execution time
+- [x] Display detailed tool results
+- [ ] Add tool call sequence numbering
 
-### Evidence
-```
-TOOL CALL FAILURE: Unknown tool 'full_file_rewrite'
-Available tools: create_file, modify_file, ...
-```
+## Phase 3: Detailed File Logging
+- [ ] Create separate verbose log file (pipeline_verbose.log)
+- [ ] Log complete model responses to file
+- [ ] Log full tool call details to file
+- [ ] Keep terminal output manageable
 
-### References to non-existent tool
-- `pipeline/phases/coding.py`: "Use the full_file_rewrite tool"
-- `pipeline/phases/coding.py`: "DO NOT use modify_file again - use full_file_rewrite"
-- `pipeline/handlers.py`: "use full_file_rewrite instead"
-- Multiple other files reference this non-existent tool
+## Phase 4: Signal Handlers for Status
+- [ ] Implement Ctrl+S signal handler for status display
+- [ ] Show current phase, task, operation
+- [ ] Display elapsed time for current operation
+- [ ] Show conversation history stats
 
-## Solution Options
-**Option A**: Add `full_file_rewrite` as alias for `create_file` in handlers
-**Option B**: Change all error messages to say `create_file` instead
-**Option C**: Create actual `full_file_rewrite` tool with proper implementation
+## Phase 5: Streaming Indicators
+- [ ] Add progress indicator for model calls
+- [ ] Show "Model thinking..." with elapsed time
+- [ ] Add periodic updates every 30 seconds
+- [ ] Display timeout warnings
 
-**CHOSEN**: Option A - Add alias (quickest, safest fix)
-
-## Tasks
-- [x] Identify QA_FAILED bug
-- [x] Fix QA_FAILED reactivation
-- [x] Identify error context bug
-- [x] Fix error context display
-- [x] Identify full_file_rewrite bug
-- [x] Add full_file_rewrite as alias for create_file in handlers
-- [x] Add full_file_rewrite tool definition
-- [x] Commit and push
-- [ ] User to test the complete fix
+## Implementation Order
+1. Start with Phase 1 (most critical for immediate visibility)
+2. Then Phase 5 (streaming indicators)
+3. Then Phase 2 (tool verbosity)
+4. Then Phase 3 (file logging)
+5. Finally Phase 4 (signal handlers)

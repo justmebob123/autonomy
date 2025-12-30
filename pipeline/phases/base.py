@@ -605,6 +605,25 @@ class BasePhase(ABC):
             host = self.config.servers[0].host if self.config.servers else "localhost"
             self.logger.warning(f"  No model found via get_model_for_task, using fallback: {model_name} on {host}")
         
+        # ENHANCED: Detailed pre-call logging
+        import time
+        self.logger.info(f"")
+        self.logger.info(f"{'='*70}")
+        self.logger.info(f"🤖 CALLING MODEL: {model_name}")
+        self.logger.info(f"{'='*70}")
+        self.logger.info(f"  📡 Server: {host}")
+        self.logger.info(f"  💬 Messages in conversation: {len(messages)}")
+        self.logger.info(f"  🔧 Tools available: {len(tools) if tools else 0}")
+        if tools:
+            tool_names = [t.get('function', {}).get('name', 'unknown') for t in tools]
+            self.logger.info(f"  🛠️  Tool names: {', '.join(tool_names[:10])}{' ...' if len(tool_names) > 10 else ''}")
+        total_chars = sum(len(str(m.get('content', ''))) for m in messages)
+        approx_tokens = total_chars // 4
+        self.logger.info(f"  📊 Approximate context: ~{approx_tokens:,} tokens ({total_chars:,} chars)")
+        self.logger.info(f"  ⏱️  Waiting for response...")
+        self.logger.info(f"{'='*70}")
+        start_time = time.time()
+        
         # Call model with conversation history
         response = self.client.chat(
             host=host,
@@ -612,6 +631,30 @@ class BasePhase(ABC):
             messages=messages,
             tools=tools
         )
+        
+        # ENHANCED: Detailed post-call logging
+        duration = time.time() - start_time
+        self.logger.info(f"")
+        self.logger.info(f"{'='*70}")
+        self.logger.info(f"✅ MODEL RESPONSE RECEIVED")
+        self.logger.info(f"{'='*70}")
+        self.logger.info(f"  ⏱️  Duration: {duration:.1f}s ({duration/60:.1f} minutes)")
+        message_obj = response.get("message", {})
+        content = message_obj.get("content", "")
+        tool_calls_raw = message_obj.get("tool_calls", [])
+        self.logger.info(f"  📝 Response length: {len(content):,} characters")
+        if tool_calls_raw:
+            self.logger.info(f"  🔧 Tool calls: {len(tool_calls_raw)}")
+            for i, tc in enumerate(tool_calls_raw[:5], 1):
+                func = tc.get('function', {})
+                self.logger.info(f"     {i}. {func.get('name', 'unknown')}")
+        else:
+            self.logger.info(f"  🔧 Tool calls: None")
+        if content:
+            preview = content[:200].replace('\n', ' ')
+            self.logger.info(f"  💬 Preview: {preview}{'...' if len(content) > 200 else ''}")
+        self.logger.info(f"{'='*70}")
+        self.logger.info(f"")
         
         # Add assistant response to conversation
         content = response.get("message", {}).get("content", "")

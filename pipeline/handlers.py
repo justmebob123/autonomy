@@ -388,6 +388,26 @@ class ToolCallHandler:
         # Log AI activity with details
         self._log_tool_activity(name, args)
         
+        # ENHANCED: Detailed tool execution logging
+        self.logger.info(f"")
+        self.logger.info(f"{'─'*70}")
+        self.logger.info(f"🔧 EXECUTING TOOL: {name}")
+        self.logger.info(f"{'─'*70}")
+        if args:
+            # Show arguments in a readable format
+            arg_preview = {}
+            for k, v in list(args.items())[:10]:  # Limit to first 10 args
+                if isinstance(v, str) and len(v) > 100:
+                    arg_preview[k] = f"{v[:100]}... ({len(v)} chars)"
+                else:
+                    arg_preview[k] = v
+            self.logger.info(f"  📋 Arguments:")
+            for k, v in arg_preview.items():
+                self.logger.info(f"     • {k}: {v}")
+            if len(args) > 10:
+                self.logger.info(f"     ... and {len(args) - 10} more arguments")
+        else:
+            self.logger.info(f"  📋 Arguments: None")
         self.logger.debug(f"Executing tool: {name}")
         
         handler = self._handlers.get(name)
@@ -457,6 +477,20 @@ class ToolCallHandler:
                 phase=None,  # Phase context not available here
                 error_type=error_type
             )
+            
+            # ENHANCED: Post-execution logging
+            status_icon = "✅" if success else "❌"
+            self.logger.info(f"  {status_icon} Result: {'SUCCESS' if success else 'FAILED'}")
+            self.logger.info(f"  ⏱️  Execution time: {execution_time:.2f}s")
+            if not success:
+                error_msg = result.get("error", "Unknown error")
+                self.logger.info(f"  ⚠️  Error: {error_msg[:200]}")
+            elif "message" in result:
+                msg = result.get("message", "")
+                if msg and len(msg) < 200:
+                    self.logger.info(f"  💬 Message: {msg}")
+            self.logger.info(f"{'─'*70}")
+            self.logger.info(f"")
             
             return result
             
