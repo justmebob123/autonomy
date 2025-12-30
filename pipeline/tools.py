@@ -92,6 +92,31 @@ TOOLS_CODING = [
     {
         "type": "function",
         "function": {
+            "name": "full_file_rewrite",
+            "description": "Completely rewrite an existing file with new content. Use this when modify_file fails or when you need to make extensive changes to a file.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath", "code"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Relative path from project root (e.g., 'core/config.py')"
+                    },
+                    "code": {
+                        "type": "string",
+                        "description": "Complete new file content"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "Why this complete rewrite is needed"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "modify_python_file",
             "description": "Modify an existing Python file by replacing specific code.",
             "parameters": {

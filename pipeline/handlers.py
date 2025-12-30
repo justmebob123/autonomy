@@ -105,6 +105,7 @@ class ToolCallHandler:
         self._handlers: Dict[str, Callable] = {
             "create_python_file": self._handle_create_file,
             "create_file": self._handle_create_file,  # Alias
+            "full_file_rewrite": self._handle_create_file,  # Alias for complete file rewrites
             "modify_python_file": self._handle_modify_file,
             "modify_file": self._handle_modify_file,  # Alias
             "report_issue": self._handle_report_issue,
