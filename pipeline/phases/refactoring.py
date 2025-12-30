@@ -553,3 +553,66 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             outputs["planning"] = planning_output
         
         return outputs
+    
+    def generate_state_markdown(self, state: PipelineState) -> str:
+        """Generate REFACTORING_STATE.md content"""
+        lines = [
+            "# Refactoring State",
+            f"Updated: {self.format_timestamp()}",
+            "",
+            "## Current Session Stats",
+            "",
+        ]
+        
+        if 'refactoring' in state.phases:
+            lines.extend([
+                f"- Refactoring Analyses: {state.phases['refactoring'].successes}",
+                f"- Failed Analyses: {state.phases['refactoring'].failures}",
+                f"- Total Runs: {state.phases['refactoring'].runs}",
+            ])
+        else:
+            lines.append("- Stats not available (phase not initialized)")
+        
+        lines.append("")
+        
+        # Add recent refactoring activities
+        lines.extend([
+            "## Recent Refactoring Activities",
+            "",
+        ])
+        
+        # Get recent refactoring results from REFACTORING_WRITE.md
+        refactoring_output = self.read_file(".ai/REFACTORING_WRITE.md")
+        if refactoring_output:
+            lines.append("### Latest Analysis")
+            lines.append("")
+            # Add first 500 chars of latest output
+            lines.append(refactoring_output[:500])
+            if len(refactoring_output) > 500:
+                lines.append("...")
+        else:
+            lines.append("No recent refactoring activities")
+        
+        lines.append("")
+        
+        # Add refactoring recommendations summary
+        lines.extend([
+            "## Pending Recommendations",
+            "",
+        ])
+        
+        # Check for pending refactoring tasks
+        pending_refactoring = [
+            task for task in state.tasks.values()
+            if task.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]
+            and task.description and 'refactor' in task.description.lower()
+        ]
+        
+        if pending_refactoring:
+            lines.append(f"- {len(pending_refactoring)} refactoring task(s) pending")
+            for task in pending_refactoring[:5]:  # Show first 5
+                lines.append(f"  - {task.task_id}: {task.description[:80]}...")
+        else:
+            lines.append("No pending refactoring tasks")
+        
+        return "\n".join(lines)
