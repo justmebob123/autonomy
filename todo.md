@@ -40,5 +40,5 @@ Available tools: create_file, modify_file, ...
 - [x] Identify full_file_rewrite bug
 - [x] Add full_file_rewrite as alias for create_file in handlers
 - [x] Add full_file_rewrite tool definition
-- [ ] Test the complete fix
-- [ ] Commit and push
+- [x] Commit and push
+- [ ] User to test the complete fix
