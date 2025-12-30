@@ -445,8 +445,8 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
         if context:
             parts.append(f"\nRelated code and dependency contents:\n{context}")
         
-        # Add error context if this is a retry
-        if error_context and task.attempts > 1:
+        # Add error context if available (regardless of attempts, since reactivation resets attempts)
+        if error_context:
             parts.append(f"\nPrevious attempt failed:\n{error_context}")
             parts.append("\nPlease fix the issues and try again.")
         
