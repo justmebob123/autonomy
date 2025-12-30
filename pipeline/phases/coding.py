@@ -281,57 +281,28 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
                                 phase="coding"
                             )
                             
-                            # IMMEDIATE RETRY: Give LLM the error context right away
+                            # CONTINUE CONVERSATION: Save state and return
+                            # The next iteration will pick up this task with the error context
+                            # and the LLM will see the full file content
                             self.logger.info("")
                             self.logger.info("="*70)
-                            self.logger.info("🔄 IMMEDIATE RETRY: modify_file failed, retrying with full file content")
+                            self.logger.info("💬 CONTINUING CONVERSATION: Error context added, will retry in next iteration")
                             self.logger.info("="*70)
+                            self.logger.info("  📝 Full file content added to error context")
+                            self.logger.info("  🔄 Task will be picked up in next iteration")
+                            self.logger.info("  ✅ LLM will see error context and can use full_file_rewrite")
                             
-                            # Get error context and rebuild message
-                            error_ctx = task.get_error_context()
-                            retry_message = self._build_user_message(task, context, error_ctx)
+                            # Save state with error context
+                            self.state_manager.save(state)
                             
-                            # Call model again with error context
-                            retry_response = self.chat_with_history(retry_message, tools)
-                            
-                            # Extract tool calls from retry
-                            retry_tool_calls = retry_response.get("tool_calls", [])
-                            
-                            if retry_tool_calls:
-                                self.logger.info(f"  ✅ Retry produced {len(retry_tool_calls)} tool calls")
-                                
-                                # Execute retry tool calls
-                                retry_handler = ToolCallHandler(
-                                    self.project_dir,
-                                    self.logger,
-                                    self.verbose,
-                                    self.tool_registry,
-                                    self.failure_analyzer
-                                )
-                                retry_results = retry_handler.process_tool_calls(retry_tool_calls)
-                                
-                                # Check if retry succeeded
-                                retry_files_created = retry_handler.files_created
-                                retry_files_modified = retry_handler.files_modified
-                                
-                                if retry_files_created or retry_files_modified:
-                                    self.logger.info(f"  ✅ Retry succeeded! Created {len(retry_files_created)} files, modified {len(retry_files_modified)}")
-                                    
-                                    # Mark task as completed
-                                    task.status = TaskStatus.COMPLETED
-                                    self.state_manager.save(state)
-                                    
-                                    return PhaseResult(
-                                        success=True,
-                                        phase=self.phase_name,
-                                        task_id=task.task_id,
-                                        message=f"Created {len(retry_files_created)} files, modified {len(retry_files_modified)} (after retry)",
-                                        next_phase="qa"
-                                    )
-                                else:
-                                    self.logger.warning("  ⚠️  Retry did not create/modify files")
-                            else:
-                                self.logger.warning("  ⚠️  Retry produced no tool calls")
+                            # Return success so coordinator continues
+                            # Task stays IN_PROGRESS and will be picked up next iteration
+                            return PhaseResult(
+                                success=True,
+                                phase=self.phase_name,
+                                task_id=task.task_id,
+                                message="Added error context for modify_file failure, continuing conversation in next iteration"
+                            )
                                 
                         except Exception as e:
                             # Fallback if we can't read the file
@@ -341,7 +312,7 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
                                 phase="coding"
                             )
             
-            # Only mark as FAILED if retry also failed
+            # Mark as FAILED for non-modify_file errors or if we couldn't read the file
             task.status = TaskStatus.FAILED
             task.failure_count = getattr(task, 'failure_count', 0) + 1
             
