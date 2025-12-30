@@ -1,4 +1,4 @@
-# PROJECT 1 ARCHITECTURE: AI-Powered Project Planning & Objective Management System
+# PROJECT 1 ARCHITECTURE: AI-Powered Project Management & Development Platform
 
 > **Companion Document**: See `project1_MASTER_PLAN.md` for objectives and requirements  
 > **Purpose**: Detailed technical architecture and implementation specifications  
@@ -12,13 +12,17 @@
 1. [System Overview](#system-overview)
 2. [Architecture Patterns](#architecture-patterns)
 3. [Component Design](#component-design)
-4. [Data Flow](#data-flow)
-5. [API Design](#api-design)
-6. [Database Design](#database-design)
-7. [Security Architecture](#security-architecture)
-8. [Performance Architecture](#performance-architecture)
-9. [Deployment Architecture](#deployment-architecture)
-10. [Integration Points](#integration-points)
+4. [Chat System Architecture](#chat-system-architecture)
+5. [File Management Architecture](#file-management-architecture)
+6. [Git Integration Architecture](#git-integration-architecture)
+7. [Ollama Integration Architecture](#ollama-integration-architecture)
+8. [Data Flow](#data-flow)
+9. [API Design](#api-design)
+10. [Database Design](#database-design)
+11. [Frontend Architecture](#frontend-architecture)
+12. [Security Architecture](#security-architecture)
+13. [Performance Architecture](#performance-architecture)
+14. [Deployment Architecture](#deployment-architecture)
 
 ---
 
@@ -1541,6 +1545,718 @@ This architecture provides:
 ---
 
 **Document Version**: 2.0.0  
+**Created**: 2024-12-30  
+**Updated**: 2024-12-30  
+**Status**: Design Complete - Ready for Development
+---
+
+## Chat System Architecture
+
+### Real-Time Communication
+
+**WebSocket/SSE Implementation**:
+```python
+class ChatService:
+    """Manages real-time chat with Ollama models"""
+    
+    def __init__(self, ollama_service: OllamaService):
+        self.ollama_service = ollama_service
+        self.active_streams = {}
+    
+    def stream_response(self, thread_id: str, message: str, 
+                       model: str, server: str) -> Generator:
+        """Stream response from Ollama model"""
+        # Store message
+        self._save_message(thread_id, 'user', message)
+        
+        # Stream from Ollama
+        response_text = ""
+        for chunk in self.ollama_service.stream_chat(
+            model=model,
+            server=server,
+            messages=self._get_thread_messages(thread_id)
+        ):
+            response_text += chunk
+            yield chunk
+        
+        # Save complete response
+        self._save_message(thread_id, 'assistant', response_text, model)
+```
+
+**Thread Management**:
+```python
+class ThreadRepository:
+    """Manage conversation threads"""
+    
+    def create_thread(self, user_id: str, project_id: str = None,
+                     title: str = "New Conversation") -> Thread:
+        """Create new conversation thread"""
+        
+    def assign_to_project(self, thread_id: str, project_id: str):
+        """Assign thread to project"""
+        
+    def get_project_threads(self, project_id: str) -> List[Thread]:
+        """Get all threads for a project"""
+        
+    def search_threads(self, query: str, user_id: str) -> List[Thread]:
+        """Search threads by content"""
+```
+
+---
+
+## File Management Architecture
+
+### File Browser Component
+
+**Tree View Implementation**:
+```python
+class FileBrowserService:
+    """Manage file operations"""
+    
+    def get_tree(self, project_id: str, path: str = "/") -> Dict:
+        """Get directory tree structure"""
+        project = self.project_repo.get_by_id(project_id)
+        base_path = Path(project.local_path)
+        
+        tree = {
+            'name': path,
+            'type': 'directory',
+            'children': []
+        }
+        
+        for item in (base_path / path).iterdir():
+            if item.is_dir():
+                tree['children'].append({
+                    'name': item.name,
+                    'type': 'directory',
+                    'path': str(item.relative_to(base_path))
+                })
+            else:
+                tree['children'].append({
+                    'name': item.name,
+                    'type': 'file',
+                    'path': str(item.relative_to(base_path)),
+                    'size': item.stat().st_size,
+                    'modified': item.stat().st_mtime
+                })
+        
+        return tree
+```
+
+**File Upload/Download**:
+```python
+class FileService:
+    """Handle file operations"""
+    
+    def upload_file(self, project_id: str, file_data: bytes,
+                   filename: str, path: str = "/"):
+        """Upload file to project"""
+        project = self.project_repo.get_by_id(project_id)
+        target_path = Path(project.local_path) / path / filename
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_bytes(file_data)
+        
+        # Store metadata
+        self.file_repo.create(File(
+            project_id=project_id,
+            path=str(target_path.relative_to(project.local_path)),
+            name=filename,
+            size=len(file_data),
+            hash=hashlib.sha256(file_data).hexdigest()
+        ))
+    
+    def download_file(self, project_id: str, filepath: str) -> bytes:
+        """Download file from project"""
+        project = self.project_repo.get_by_id(project_id)
+        file_path = Path(project.local_path) / filepath
+        return file_path.read_bytes()
+    
+    def create_zip(self, project_id: str) -> bytes:
+        """Create zip of entire project"""
+        import zipfile
+        from io import BytesIO
+        
+        project = self.project_repo.get_by_id(project_id)
+        base_path = Path(project.local_path)
+        
+        zip_buffer = BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for file_path in base_path.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(base_path)
+                    zipf.write(file_path, arcname)
+        
+        return zip_buffer.getvalue()
+```
+
+---
+
+## Git Integration Architecture
+
+### Git Operations Service
+
+**Git Status and Operations**:
+```python
+class GitService:
+    """Handle git operations using subprocess"""
+    
+    def __init__(self):
+        self.git_cmd = 'git'
+    
+    def get_status(self, project_id: str) -> Dict:
+        """Get git status"""
+        project = self.project_repo.get_by_id(project_id)
+        repo_path = Path(project.local_path)
+        
+        # Get branch
+        branch = self._run_git(repo_path, ['branch', '--show-current'])
+        
+        # Get status
+        status_output = self._run_git(repo_path, ['status', '--porcelain'])
+        
+        # Parse status
+        staged = []
+        unstaged = []
+        untracked = []
+        
+        for line in status_output.split('\n'):
+            if not line:
+                continue
+            status = line[:2]
+            filepath = line[3:]
+            
+            if status[0] in ['M', 'A', 'D']:
+                staged.append({'file': filepath, 'status': status[0]})
+            if status[1] in ['M', 'D']:
+                unstaged.append({'file': filepath, 'status': status[1]})
+            if status == '??':
+                untracked.append(filepath)
+        
+        return {
+            'branch': branch.strip(),
+            'staged': staged,
+            'unstaged': unstaged,
+            'untracked': untracked
+        }
+    
+    def stage_files(self, project_id: str, files: List[str]):
+        """Stage files for commit"""
+        project = self.project_repo.get_by_id(project_id)
+        repo_path = Path(project.local_path)
+        self._run_git(repo_path, ['add'] + files)
+    
+    def commit(self, project_id: str, message: str) -> str:
+        """Commit staged changes"""
+        project = self.project_repo.get_by_id(project_id)
+        repo_path = Path(project.local_path)
+        return self._run_git(repo_path, ['commit', '-m', message])
+    
+    def push(self, project_id: str, remote: str = 'origin',
+            branch: str = None) -> str:
+        """Push commits to remote"""
+        project = self.project_repo.get_by_id(project_id)
+        repo_path = Path(project.local_path)
+        
+        if not branch:
+            branch = self._run_git(repo_path, ['branch', '--show-current']).strip()
+        
+        return self._run_git(repo_path, ['push', remote, branch])
+    
+    def pull(self, project_id: str, remote: str = 'origin',
+            branch: str = None) -> str:
+        """Pull changes from remote"""
+        project = self.project_repo.get_by_id(project_id)
+        repo_path = Path(project.local_path)
+        
+        if not branch:
+            branch = self._run_git(repo_path, ['branch', '--show-current']).strip()
+        
+        return self._run_git(repo_path, ['pull', remote, branch])
+    
+    def get_diff(self, project_id: str, filepath: str = None) -> str:
+        """Get diff for file or all changes"""
+        project = self.project_repo.get_by_id(project_id)
+        repo_path = Path(project.local_path)
+        
+        cmd = ['diff']
+        if filepath:
+            cmd.append(filepath)
+        
+        return self._run_git(repo_path, cmd)
+    
+    def get_log(self, project_id: str, limit: int = 10) -> List[Dict]:
+        """Get commit history"""
+        project = self.project_repo.get_by_id(project_id)
+        repo_path = Path(project.local_path)
+        
+        log_output = self._run_git(repo_path, [
+            'log',
+            f'-{limit}',
+            '--pretty=format:%H|%an|%ae|%at|%s'
+        ])
+        
+        commits = []
+        for line in log_output.split('\n'):
+            if not line:
+                continue
+            hash, author, email, timestamp, message = line.split('|', 4)
+            commits.append({
+                'hash': hash,
+                'author': author,
+                'email': email,
+                'timestamp': int(timestamp),
+                'message': message
+            })
+        
+        return commits
+    
+    def _run_git(self, repo_path: Path, args: List[str]) -> str:
+        """Run git command"""
+        import subprocess
+        result = subprocess.run(
+            [self.git_cmd, '-C', str(repo_path)] + args,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout
+```
+
+**SSH Key Management**:
+```python
+class SSHKeyService:
+    """Manage SSH keys per project"""
+    
+    def add_key(self, project_id: str, private_key: str,
+               public_key: str = None):
+        """Add SSH key for project"""
+        project = self.project_repo.get_by_id(project_id)
+        key_dir = Path(project.local_path) / '.ssh'
+        key_dir.mkdir(exist_ok=True, mode=0o700)
+        
+        # Save private key
+        private_key_path = key_dir / 'id_rsa'
+        private_key_path.write_text(private_key)
+        private_key_path.chmod(0o600)
+        
+        # Save public key if provided
+        if public_key:
+            public_key_path = key_dir / 'id_rsa.pub'
+            public_key_path.write_text(public_key)
+            public_key_path.chmod(0o644)
+    
+    def get_key(self, project_id: str) -> Dict:
+        """Get SSH key for project"""
+        project = self.project_repo.get_by_id(project_id)
+        key_dir = Path(project.local_path) / '.ssh'
+        
+        private_key_path = key_dir / 'id_rsa'
+        public_key_path = key_dir / 'id_rsa.pub'
+        
+        return {
+            'private_key': private_key_path.read_text() if private_key_path.exists() else None,
+            'public_key': public_key_path.read_text() if public_key_path.exists() else None
+        }
+```
+
+---
+
+## Ollama Integration Architecture
+
+### Ollama Service
+
+**Server Management**:
+```python
+class OllamaService:
+    """Integrate with Ollama servers"""
+    
+    def __init__(self):
+        self.servers = {}
+    
+    def add_server(self, name: str, host: str, port: int = 11434):
+        """Add Ollama server"""
+        self.servers[name] = {
+            'host': host,
+            'port': port,
+            'base_url': f"http://{host}:{port}"
+        }
+    
+    def test_connection(self, server_name: str) -> bool:
+        """Test server connectivity"""
+        import urllib.request
+        server = self.servers[server_name]
+        try:
+            response = urllib.request.urlopen(
+                f"{server['base_url']}/api/tags",
+                timeout=5
+            )
+            return response.status == 200
+        except:
+            return False
+    
+    def list_models(self, server_name: str) -> List[Dict]:
+        """List available models on server"""
+        import urllib.request
+        import json
+        
+        server = self.servers[server_name]
+        response = urllib.request.urlopen(
+            f"{server['base_url']}/api/tags"
+        )
+        data = json.loads(response.read())
+        return data.get('models', [])
+    
+    def pull_model(self, server_name: str, model_name: str):
+        """Pull model to server"""
+        import urllib.request
+        import json
+        
+        server = self.servers[server_name]
+        data = json.dumps({'name': model_name}).encode('utf-8')
+        
+        req = urllib.request.Request(
+            f"{server['base_url']}/api/pull",
+            data=data,
+            headers={'Content-Type': 'application/json'}
+        )
+        
+        response = urllib.request.urlopen(req)
+        return response.read()
+    
+    def stream_chat(self, model: str, server: str,
+                   messages: List[Dict]) -> Generator:
+        """Stream chat response from Ollama"""
+        import urllib.request
+        import json
+        
+        server_config = self.servers[server]
+        data = json.dumps({
+            'model': model,
+            'messages': messages,
+            'stream': True
+        }).encode('utf-8')
+        
+        req = urllib.request.Request(
+            f"{server_config['base_url']}/api/chat",
+            data=data,
+            headers={'Content-Type': 'application/json'}
+        )
+        
+        with urllib.request.urlopen(req) as response:
+            for line in response:
+                if line:
+                    chunk = json.loads(line)
+                    if 'message' in chunk:
+                        yield chunk['message'].get('content', '')
+```
+
+**Model Configuration**:
+```python
+class ModelConfig:
+    """Model configuration per project"""
+    
+    def __init__(self, project_id: str):
+        self.project_id = project_id
+        self.config = self._load_config()
+    
+    def set_default_model(self, model: str, server: str):
+        """Set default model for project"""
+        self.config['default_model'] = model
+        self.config['default_server'] = server
+        self._save_config()
+    
+    def set_temperature(self, temperature: float):
+        """Set default temperature"""
+        self.config['temperature'] = temperature
+        self._save_config()
+    
+    def get_config(self) -> Dict:
+        """Get model configuration"""
+        return self.config
+```
+
+---
+
+## Frontend Architecture
+
+### Component Structure
+
+**Main Application**:
+```javascript
+class App {
+    constructor() {
+        this.api = new APIClient();
+        this.router = new Router();
+        this.state = new StateManager();
+        
+        this.components = {
+            sidebar: new Sidebar(),
+            dashboard: new Dashboard(),
+            chat: new ChatInterface(),
+            fileBrowser: new FileBrowser(),
+            gitUI: new GitInterface(),
+            editor: new CodeEditor()
+        };
+        
+        this.init();
+    }
+    
+    init() {
+        this.router.init();
+        this.loadUser();
+        this.setupEventListeners();
+    }
+}
+```
+
+**Chat Interface Component**:
+```javascript
+class ChatInterface {
+    constructor() {
+        this.threads = [];
+        this.currentThread = null;
+        this.ws = null;
+    }
+    
+    async sendMessage(message) {
+        // Add user message to UI
+        this.addMessage('user', message);
+        
+        // Stream response from server
+        const response = await this.api.streamChat(
+            this.currentThread.id,
+            message,
+            this.currentThread.model
+        );
+        
+        let assistantMessage = '';
+        for await (const chunk of response) {
+            assistantMessage += chunk;
+            this.updateStreamingMessage(assistantMessage);
+        }
+    }
+    
+    addMessage(role, content) {
+        const messageEl = document.createElement('div');
+        messageEl.className = `message message-${role}`;
+        messageEl.innerHTML = this.renderMarkdown(content);
+        document.getElementById('messages').appendChild(messageEl);
+    }
+    
+    renderMarkdown(text) {
+        // Custom markdown renderer
+        return this.markdownRenderer.render(text);
+    }
+}
+```
+
+**File Browser Component**:
+```javascript
+class FileBrowser {
+    constructor() {
+        this.currentPath = '/';
+        this.tree = null;
+    }
+    
+    async loadTree(projectId) {
+        this.tree = await this.api.getFileTree(projectId);
+        this.render();
+    }
+    
+    render() {
+        const treeEl = document.getElementById('file-tree');
+        treeEl.innerHTML = this.renderTree(this.tree);
+    }
+    
+    renderTree(node, level = 0) {
+        let html = '';
+        const indent = '  '.repeat(level);
+        
+        if (node.type === 'directory') {
+            html += `${indent}<div class="directory">📁 ${node.name}</div>`;
+            for (const child of node.children) {
+                html += this.renderTree(child, level + 1);
+            }
+        } else {
+            html += `${indent}<div class="file" data-path="${node.path}">📄 ${node.name}</div>`;
+        }
+        
+        return html;
+    }
+    
+    async uploadFile(file) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('path', this.currentPath);
+        
+        await this.api.uploadFile(this.projectId, formData);
+        await this.loadTree(this.projectId);
+    }
+}
+```
+
+**Git Interface Component**:
+```javascript
+class GitInterface {
+    constructor() {
+        this.status = null;
+    }
+    
+    async loadStatus(projectId) {
+        this.status = await this.api.getGitStatus(projectId);
+        this.render();
+    }
+    
+    render() {
+        const statusEl = document.getElementById('git-status');
+        statusEl.innerHTML = `
+            <div class="git-branch">Branch: ${this.status.branch}</div>
+            <div class="git-staged">Staged: ${this.status.staged.length}</div>
+            <div class="git-unstaged">Unstaged: ${this.status.unstaged.length}</div>
+            <div class="git-files">
+                ${this.renderFiles()}
+            </div>
+        `;
+    }
+    
+    async commit(message) {
+        await this.api.gitCommit(this.projectId, message);
+        await this.loadStatus(this.projectId);
+    }
+    
+    async push() {
+        await this.api.gitPush(this.projectId);
+        this.showNotification('Pushed successfully');
+    }
+}
+```
+
+**Code Editor Component**:
+```javascript
+class CodeEditor {
+    constructor() {
+        this.content = '';
+        this.language = 'python';
+        this.highlighter = new SyntaxHighlighter();
+    }
+    
+    load(filepath, content) {
+        this.filepath = filepath;
+        this.content = content;
+        this.language = this.detectLanguage(filepath);
+        this.render();
+    }
+    
+    render() {
+        const editorEl = document.getElementById('editor');
+        editorEl.innerHTML = `
+            <div class="editor-toolbar">
+                <button onclick="editor.save()">Save</button>
+                <button onclick="editor.download()">Download</button>
+            </div>
+            <div class="editor-content">
+                <textarea id="code-input">${this.content}</textarea>
+            </div>
+        `;
+        
+        this.highlighter.highlight(document.getElementById('code-input'));
+    }
+    
+    async save() {
+        const content = document.getElementById('code-input').value;
+        await this.api.saveFile(this.projectId, this.filepath, content);
+        this.showNotification('Saved successfully');
+    }
+}
+```
+
+---
+
+## API Design Extensions
+
+### Chat Endpoints
+
+```
+POST   /api/v1/threads                      # Create new thread
+GET    /api/v1/threads                      # List threads
+GET    /api/v1/threads/{id}                 # Get thread details
+PUT    /api/v1/threads/{id}                 # Update thread
+DELETE /api/v1/threads/{id}                 # Delete thread
+POST   /api/v1/threads/{id}/assign          # Assign to project
+
+POST   /api/v1/threads/{id}/messages        # Send message
+GET    /api/v1/threads/{id}/messages        # Get messages
+GET    /api/v1/threads/{id}/stream          # Stream response (SSE)
+```
+
+### File Management Endpoints
+
+```
+GET    /api/v1/projects/{id}/files          # List files
+GET    /api/v1/projects/{id}/files/tree     # Get file tree
+POST   /api/v1/projects/{id}/files/upload   # Upload file
+GET    /api/v1/projects/{id}/files/download # Download file
+POST   /api/v1/projects/{id}/files/zip      # Create project zip
+DELETE /api/v1/projects/{id}/files/{path}   # Delete file
+PUT    /api/v1/projects/{id}/files/{path}   # Update file
+```
+
+### Git Endpoints
+
+```
+GET    /api/v1/projects/{id}/git/status     # Get git status
+POST   /api/v1/projects/{id}/git/stage      # Stage files
+POST   /api/v1/projects/{id}/git/commit     # Commit changes
+POST   /api/v1/projects/{id}/git/push       # Push to remote
+POST   /api/v1/projects/{id}/git/pull       # Pull from remote
+GET    /api/v1/projects/{id}/git/log        # Get commit history
+GET    /api/v1/projects/{id}/git/diff       # Get diff
+POST   /api/v1/projects/{id}/git/keys       # Add SSH key
+GET    /api/v1/projects/{id}/git/keys       # Get SSH key
+```
+
+### Server Management Endpoints
+
+```
+GET    /api/v1/servers                      # List servers
+POST   /api/v1/servers                      # Add server
+PUT    /api/v1/servers/{id}                 # Update server
+DELETE /api/v1/servers/{id}                 # Delete server
+GET    /api/v1/servers/{id}/test            # Test connection
+GET    /api/v1/servers/{id}/models          # List models
+POST   /api/v1/servers/{id}/models/pull     # Pull model
+```
+
+### Prompt Management Endpoints
+
+```
+GET    /api/v1/prompts                      # List prompts
+POST   /api/v1/prompts                      # Create prompt
+GET    /api/v1/prompts/{id}                 # Get prompt
+PUT    /api/v1/prompts/{id}                 # Update prompt
+DELETE /api/v1/prompts/{id}                 # Delete prompt
+POST   /api/v1/prompts/{id}/test            # Test prompt
+```
+
+---
+
+## Conclusion
+
+This architecture provides a comprehensive project management platform with:
+- ✅ **Real-time AI Chat** - Streaming responses with thread management
+- ✅ **Complete File Management** - Upload, download, edit, browse
+- ✅ **Full Git Integration** - Status, commit, push, pull, SSH keys
+- ✅ **Ollama Management** - Server and model configuration
+- ✅ **Prompt Engineering** - Custom prompt creation and testing
+- ✅ **Project Analysis** - MASTER_PLAN parsing and gap analysis
+- ✅ **Modern UI** - Responsive, tabbed interface
+- ✅ **Custom Implementation** - No external framework dependencies
+
+**Ready for implementation following project1_MASTER_PLAN.md objectives.**
+
+---
+
+**Document Version**: 3.0.0  
 **Created**: 2024-12-30  
 **Updated**: 2024-12-30  
 **Status**: Design Complete - Ready for Development
