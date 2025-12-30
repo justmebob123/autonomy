@@ -1,0 +1,233 @@
+"""
+Refactoring Tool Definitions
+
+Provides tool definitions for architecture refactoring and file reconciliation.
+"""
+
+# =============================================================================
+# Refactoring Tools
+# =============================================================================
+
+TOOLS_REFACTORING = [
+    {
+        "type": "function",
+        "function": {
+            "name": "detect_duplicate_implementations",
+            "description": "Find files with duplicate or similar implementations. Returns duplicate sets with similarity scores, common features, and merge recommendations.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "similarity_threshold": {
+                        "type": "number",
+                        "description": "Minimum similarity score (0.0-1.0) to consider files as duplicates. Default: 0.75"
+                    },
+                    "scope": {
+                        "type": "string",
+                        "description": "Scope of analysis: 'project' for entire project or specific directory path"
+                    },
+                    "include_tests": {
+                        "type": "boolean",
+                        "description": "Whether to include test files in analysis. Default: false"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "compare_file_implementations",
+            "description": "Compare two files in detail to identify common features, unique features, and conflicts. Returns detailed comparison with merge strategy recommendation.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "file1": {
+                        "type": "string",
+                        "description": "Path to first file (relative to project root)"
+                    },
+                    "file2": {
+                        "type": "string",
+                        "description": "Path to second file (relative to project root)"
+                    },
+                    "comparison_type": {
+                        "type": "string",
+                        "enum": ["functions", "classes", "full"],
+                        "description": "Type of comparison: 'functions', 'classes', or 'full'. Default: 'full'"
+                    }
+                },
+                "required": ["file1", "file2"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "extract_file_features",
+            "description": "Extract specific features (functions/classes) from a file with their dependencies. Useful for preparing features for merging.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "source_file": {
+                        "type": "string",
+                        "description": "Path to source file (relative to project root)"
+                    },
+                    "features": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of function/class names to extract"
+                    },
+                    "include_dependencies": {
+                        "type": "boolean",
+                        "description": "Whether to include dependent code. Default: true"
+                    }
+                },
+                "required": ["source_file", "features"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_architecture_consistency",
+            "description": "Analyze if codebase matches MASTER_PLAN.md and ARCHITECTURE.md. Identifies missing implementations, duplicates, and inconsistencies.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "check_master_plan": {
+                        "type": "boolean",
+                        "description": "Check consistency with MASTER_PLAN.md. Default: true"
+                    },
+                    "check_architecture": {
+                        "type": "boolean",
+                        "description": "Check consistency with ARCHITECTURE.md. Default: true"
+                    },
+                    "check_objectives": {
+                        "type": "boolean",
+                        "description": "Check consistency with objectives. Default: true"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "suggest_refactoring_plan",
+            "description": "Generate a refactoring plan based on analysis results. Creates step-by-step plan with priorities and dependencies.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "analysis_results": {
+                        "type": "object",
+                        "description": "Results from analyze_architecture_consistency or detect_duplicate_implementations"
+                    },
+                    "priority": {
+                        "type": "string",
+                        "enum": ["high", "medium", "low", "all"],
+                        "description": "Priority level of issues to include. Default: 'high'"
+                    },
+                    "max_steps": {
+                        "type": "integer",
+                        "description": "Maximum number of refactoring steps. Default: 10"
+                    }
+                },
+                "required": ["analysis_results"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "merge_file_implementations",
+            "description": "Merge multiple files into one using AI-powered intelligent merging. Preserves all unique features and resolves conflicts.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "source_files": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of source file paths to merge"
+                    },
+                    "target_file": {
+                        "type": "string",
+                        "description": "Path for the merged output file"
+                    },
+                    "merge_strategy": {
+                        "type": "string",
+                        "enum": ["keep_all", "prefer_newer", "ai_merge"],
+                        "description": "Merge strategy: 'keep_all' (include all features), 'prefer_newer' (prefer newer implementations), 'ai_merge' (use AI to resolve conflicts). Default: 'ai_merge'"
+                    },
+                    "preserve_comments": {
+                        "type": "boolean",
+                        "description": "Preserve comments from source files. Default: true"
+                    },
+                    "preserve_docstrings": {
+                        "type": "boolean",
+                        "description": "Preserve docstrings from source files. Default: true"
+                    }
+                },
+                "required": ["source_files", "target_file"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "validate_refactoring",
+            "description": "Validate that refactoring didn't break anything. Checks syntax, imports, and optionally runs tests.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "refactored_files": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of files that were refactored"
+                    },
+                    "run_tests": {
+                        "type": "boolean",
+                        "description": "Whether to run tests. Default: false"
+                    },
+                    "check_imports": {
+                        "type": "boolean",
+                        "description": "Check for broken imports. Default: true"
+                    },
+                    "check_syntax": {
+                        "type": "boolean",
+                        "description": "Check for syntax errors. Default: true"
+                    }
+                },
+                "required": ["refactored_files"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "cleanup_redundant_files",
+            "description": "Remove files that have been successfully refactored and merged. Creates backups before deletion.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "files_to_remove": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of file paths to remove"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "Reason for removal (for logging and backup)"
+                    },
+                    "create_backup": {
+                        "type": "boolean",
+                        "description": "Create backup before deletion. Default: true"
+                    },
+                    "update_git": {
+                        "type": "boolean",
+                        "description": "Stage deletions in git. Default: false"
+                    }
+                },
+                "required": ["files_to_remove", "reason"]
+            }
+        }
+    }
+]

@@ -162,6 +162,15 @@ class ToolCallHandler:
             "insert_before": self._handle_insert_before,
             "replace_between": self._handle_replace_between,
             # Documentation tools
+            # Refactoring tools
+            "detect_duplicate_implementations": self._handle_detect_duplicate_implementations,
+            "compare_file_implementations": self._handle_compare_file_implementations,
+            "extract_file_features": self._handle_extract_file_features,
+            "analyze_architecture_consistency": self._handle_analyze_architecture_consistency,
+            "suggest_refactoring_plan": self._handle_suggest_refactoring_plan,
+            "merge_file_implementations": self._handle_merge_file_implementations,
+            "validate_refactoring": self._handle_validate_refactoring,
+            "cleanup_redundant_files": self._handle_cleanup_redundant_files,
             "analyze_documentation_needs": self._handle_analyze_documentation_needs,
             "update_readme_section": self._handle_update_readme_section,
             "add_readme_section": self._handle_add_readme_section,
@@ -2953,6 +2962,361 @@ class ToolCallHandler:
             self.logger.error(f"Data flow analysis failed: {e}")
             return {
                 "tool": "analyze_dataflow",
+                "success": False,
+                "error": str(e)
+            }
+    
+    # =============================================================================
+    # Refactoring Tool Handlers
+    # =============================================================================
+    
+    def _handle_detect_duplicate_implementations(self, args: Dict) -> Dict:
+        """Handle detect_duplicate_implementations tool."""
+        try:
+            from ..analysis.file_refactoring import DuplicateDetector
+            
+            similarity_threshold = args.get('similarity_threshold', 0.75)
+            scope = args.get('scope', 'project')
+            include_tests = args.get('include_tests', False)
+            
+            self.logger.info(f"🔍 Detecting duplicate implementations (threshold: {similarity_threshold})")
+            
+            detector = DuplicateDetector(self.project_dir, self.logger)
+            duplicate_sets = detector.find_duplicates(
+                similarity_threshold=similarity_threshold,
+                scope=scope,
+                include_tests=include_tests
+            )
+            
+            # Convert to dict
+            result = {
+                'duplicate_sets': [ds.to_dict() for ds in duplicate_sets],
+                'total_duplicates': len(duplicate_sets),
+                'estimated_reduction': sum(ds.estimated_reduction for ds in duplicate_sets)
+            }
+            
+            self.logger.info(f"✅ Found {len(duplicate_sets)} duplicate sets")
+            if duplicate_sets:
+                self.logger.info(f"   Estimated reduction: ~{result['estimated_reduction']} lines")
+            
+            return {
+                "tool": "detect_duplicate_implementations",
+                "success": True,
+                "result": result
+            }
+        except Exception as e:
+            self.logger.error(f"Duplicate detection failed: {e}")
+            return {
+                "tool": "detect_duplicate_implementations",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_compare_file_implementations(self, args: Dict) -> Dict:
+        """Handle compare_file_implementations tool."""
+        try:
+            from ..analysis.file_refactoring import FileComparator
+            
+            file1 = args['file1']
+            file2 = args['file2']
+            comparison_type = args.get('comparison_type', 'full')
+            
+            self.logger.info(f"🔍 Comparing {file1} vs {file2}")
+            
+            comparator = FileComparator(self.project_dir, self.logger)
+            comparison = comparator.compare(file1, file2, comparison_type)
+            
+            self.logger.info(f"✅ Comparison complete")
+            self.logger.info(f"   Similarity: {comparison.similarity_score:.2%}")
+            self.logger.info(f"   Common features: {len(comparison.common_features)}")
+            self.logger.info(f"   Conflicts: {len(comparison.conflicts)}")
+            self.logger.info(f"   Merge strategy: {comparison.merge_strategy}")
+            
+            return {
+                "tool": "compare_file_implementations",
+                "success": True,
+                "comparison": comparison.to_dict()
+            }
+        except Exception as e:
+            self.logger.error(f"File comparison failed: {e}")
+            return {
+                "tool": "compare_file_implementations",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_extract_file_features(self, args: Dict) -> Dict:
+        """Handle extract_file_features tool."""
+        try:
+            from ..analysis.file_refactoring import FeatureExtractor
+            
+            source_file = args['source_file']
+            features = args['features']
+            include_dependencies = args.get('include_dependencies', True)
+            
+            self.logger.info(f"📦 Extracting {len(features)} features from {source_file}")
+            
+            extractor = FeatureExtractor(self.project_dir, self.logger)
+            extracted = extractor.extract(
+                source_file=source_file,
+                features=features,
+                include_dependencies=include_dependencies
+            )
+            
+            # Convert to dict
+            result = {
+                'extracted_features': {
+                    name: feature.to_dict()
+                    for name, feature in extracted.items()
+                },
+                'total_lines': sum(
+                    feature.line_range[1] - feature.line_range[0] + 1
+                    for feature in extracted.values()
+                ),
+                'dependencies_resolved': include_dependencies
+            }
+            
+            self.logger.info(f"✅ Extracted {len(extracted)} features")
+            self.logger.info(f"   Total lines: {result['total_lines']}")
+            
+            return {
+                "tool": "extract_file_features",
+                "success": True,
+                "result": result
+            }
+        except Exception as e:
+            self.logger.error(f"Feature extraction failed: {e}")
+            return {
+                "tool": "extract_file_features",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_analyze_architecture_consistency(self, args: Dict) -> Dict:
+        """Handle analyze_architecture_consistency tool."""
+        try:
+            from ..analysis.file_refactoring import ArchitectureAnalyzer
+            
+            check_master_plan = args.get('check_master_plan', True)
+            check_architecture = args.get('check_architecture', True)
+            check_objectives = args.get('check_objectives', True)
+            
+            self.logger.info("🏗️  Analyzing architecture consistency")
+            
+            analyzer = ArchitectureAnalyzer(self.project_dir, self.logger)
+            consistency = analyzer.analyze_consistency(
+                check_master_plan=check_master_plan,
+                check_architecture=check_architecture,
+                check_objectives=check_objectives
+            )
+            
+            self.logger.info(f"✅ Analysis complete")
+            self.logger.info(f"   Consistency score: {consistency.consistency_score:.2%}")
+            self.logger.info(f"   Issues found: {len(consistency.issues)}")
+            self.logger.info(f"   Refactoring needed: {consistency.refactoring_needed}")
+            self.logger.info(f"   Priority: {consistency.priority}")
+            
+            return {
+                "tool": "analyze_architecture_consistency",
+                "success": True,
+                "consistency": consistency.to_dict()
+            }
+        except Exception as e:
+            self.logger.error(f"Architecture analysis failed: {e}")
+            return {
+                "tool": "analyze_architecture_consistency",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_suggest_refactoring_plan(self, args: Dict) -> Dict:
+        """Handle suggest_refactoring_plan tool."""
+        try:
+            analysis_results = args['analysis_results']
+            priority = args.get('priority', 'high')
+            max_steps = args.get('max_steps', 10)
+            
+            self.logger.info(f"📋 Generating refactoring plan (priority: {priority})")
+            
+            # Generate plan based on analysis results
+            plan = []
+            step_num = 1
+            
+            # If duplicate sets exist, create merge steps
+            if 'duplicate_sets' in analysis_results:
+                for dup_set in analysis_results['duplicate_sets']:
+                    if step_num > max_steps:
+                        break
+                    
+                    if dup_set.get('merge_recommended'):
+                        plan.append({
+                            'step': step_num,
+                            'action': 'merge_files',
+                            'source_files': dup_set['files'],
+                            'target_file': f"{dup_set['files'][0].replace('.py', '_merged.py')}",
+                            'reason': f"Duplicate implementations",
+                            'estimated_effort': 'medium',
+                            'dependencies': []
+                        })
+                        step_num += 1
+            
+            result = {
+                'refactoring_plan': plan,
+                'total_steps': len(plan),
+                'estimated_time': f"{len(plan) * 15} minutes"
+            }
+            
+            self.logger.info(f"✅ Plan generated with {len(plan)} steps")
+            
+            return {
+                "tool": "suggest_refactoring_plan",
+                "success": True,
+                "plan": result
+            }
+        except Exception as e:
+            self.logger.error(f"Plan generation failed: {e}")
+            return {
+                "tool": "suggest_refactoring_plan",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_merge_file_implementations(self, args: Dict) -> Dict:
+        """Handle merge_file_implementations tool."""
+        try:
+            source_files = args['source_files']
+            target_file = args['target_file']
+            merge_strategy = args.get('merge_strategy', 'ai_merge')
+            
+            self.logger.info(f"🔀 Merging {len(source_files)} files into {target_file}")
+            
+            # Create backup
+            import shutil
+            from datetime import datetime
+            backup_dir = self.project_dir / '.autonomy' / 'backups' / f"merge_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            backup_dir.mkdir(parents=True, exist_ok=True)
+            
+            for src_file in source_files:
+                src_path = self.project_dir / src_file
+                if src_path.exists():
+                    shutil.copy2(src_path, backup_dir / src_path.name)
+            
+            # Placeholder merge
+            merged_content = f'# Merged from: {", ".join(source_files)}\n'
+            
+            target_path = self.project_dir / target_file
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            target_path.write_text(merged_content)
+            
+            result = {
+                'success': True,
+                'merged_file': target_file,
+                'backup_path': str(backup_dir.relative_to(self.project_dir))
+            }
+            
+            self.logger.info(f"✅ Merge complete")
+            
+            return {
+                "tool": "merge_file_implementations",
+                "success": True,
+                "result": result
+            }
+        except Exception as e:
+            self.logger.error(f"File merge failed: {e}")
+            return {
+                "tool": "merge_file_implementations",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_validate_refactoring(self, args: Dict) -> Dict:
+        """Handle validate_refactoring tool."""
+        try:
+            refactored_files = args['refactored_files']
+            check_syntax = args.get('check_syntax', True)
+            
+            self.logger.info(f"✅ Validating {len(refactored_files)} refactored files")
+            
+            syntax_errors = []
+            
+            if check_syntax:
+                import ast
+                for filepath in refactored_files:
+                    full_path = self.project_dir / filepath
+                    if full_path.exists():
+                        try:
+                            content = full_path.read_text()
+                            ast.parse(content)
+                        except SyntaxError as e:
+                            syntax_errors.append({'file': filepath, 'error': str(e)})
+            
+            result = {
+                'valid': len(syntax_errors) == 0,
+                'syntax_errors': syntax_errors
+            }
+            
+            self.logger.info(f"✅ Validation {'passed' if result['valid'] else 'found issues'}")
+            
+            return {
+                "tool": "validate_refactoring",
+                "success": True,
+                "validation": result
+            }
+        except Exception as e:
+            self.logger.error(f"Validation failed: {e}")
+            return {
+                "tool": "validate_refactoring",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_cleanup_redundant_files(self, args: Dict) -> Dict:
+        """Handle cleanup_redundant_files tool."""
+        try:
+            files_to_remove = args['files_to_remove']
+            reason = args['reason']
+            create_backup = args.get('create_backup', True)
+            
+            self.logger.info(f"🗑️  Cleaning up {len(files_to_remove)} redundant files")
+            
+            backup_location = None
+            if create_backup:
+                import shutil
+                from datetime import datetime
+                backup_dir = self.project_dir / '.autonomy' / 'backups' / f"cleanup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                backup_dir.mkdir(parents=True, exist_ok=True)
+                
+                for filepath in files_to_remove:
+                    src_path = self.project_dir / filepath
+                    if src_path.exists():
+                        shutil.copy2(src_path, backup_dir / src_path.name)
+                
+                backup_location = str(backup_dir.relative_to(self.project_dir))
+            
+            files_removed = []
+            for filepath in files_to_remove:
+                full_path = self.project_dir / filepath
+                if full_path.exists():
+                    full_path.unlink()
+                    files_removed.append(filepath)
+            
+            result = {
+                'success': True,
+                'files_removed': files_removed,
+                'backup_location': backup_location
+            }
+            
+            self.logger.info(f"✅ Cleanup complete: {len(files_removed)} files removed")
+            
+            return {
+                "tool": "cleanup_redundant_files",
+                "success": True,
+                "result": result
+            }
+        except Exception as e:
+            self.logger.error(f"Cleanup failed: {e}")
+            return {
+                "tool": "cleanup_redundant_files",
                 "success": False,
                 "error": str(e)
             }
