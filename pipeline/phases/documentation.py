@@ -65,7 +65,7 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
                 if task.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]:
                     # Check if it's a documentation task
                     is_doc_task = False
-                    if task.target and task.target.endswith('.md'):
+                    if task.target_file and task.target_file.endswith('.md'):
                         is_doc_task = True
                     elif task.description:
                         doc_keywords = ['documentation', 'write docs', 'create docs', 'document', 'readme', 'guide']

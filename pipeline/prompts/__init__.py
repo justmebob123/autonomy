@@ -36,6 +36,7 @@ get_debug_prompt = _prompts_module.get_debug_prompt
 get_project_planning_prompt = _prompts_module.get_project_planning_prompt
 get_documentation_prompt = _prompts_module.get_documentation_prompt
 get_modification_decision_prompt = _prompts_module.get_modification_decision_prompt
+get_refactoring_prompt = _prompts_module.get_refactoring_prompt
 
 # Import meta-prompts from this directory
 from .prompt_architect import get_prompt_architect_prompt
@@ -53,6 +54,7 @@ __all__ = [
     "get_project_planning_prompt",
     "get_documentation_prompt",
     "get_modification_decision_prompt",
+    "get_refactoring_prompt",
     # Meta-prompts from this directory
     "get_prompt_architect_prompt",
     "get_tool_designer_prompt",

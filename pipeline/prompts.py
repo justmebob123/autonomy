@@ -4,6 +4,8 @@ System Prompts for Pipeline Phases
 Contains all system prompts used by the various pipeline phases.
 """
 
+from typing import List, Dict, Optional
+
 SYSTEM_PROMPTS = {
     "planning": """You are a senior software architect creating an implementation plan.
 
@@ -199,7 +201,7 @@ Provides SystemMonitor class for tracking CPU, memory, and load.
 &quot;&quot;&quot;
 
 import logging
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from dataclasses import dataclass
 
 import psutil
