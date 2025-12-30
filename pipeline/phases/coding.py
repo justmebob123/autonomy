@@ -234,7 +234,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                     )
                     
                     # CRITICAL: If modify_file failed, provide the ENTIRE file content and ask for full rewrite
-                    if result.get("tool") == "modify_file" and "Original code not found" in error_msg:
+                    if result.get("tool") == "modify_file" and ("Original code not found" in error_msg or "Missing original_code" in error_msg):
                         filepath = result.get("filepath", task.target_file)
                         full_path = self.project_dir / filepath
                         

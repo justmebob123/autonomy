@@ -628,11 +628,27 @@ class ToolCallHandler:
         new_code = args.get("new_code", args.get("replacement", ""))
         
         if not filepath:
-            return {"tool": "modify_file", "success": False, "error": "Missing filepath"}
+            return {
+                "tool": "modify_file", 
+                "success": False, 
+                "error": "Missing filepath parameter. You must provide the file path to modify.",
+                "filepath": None
+            }
         if not original:
-            return {"tool": "modify_file", "success": False, "error": "Missing original_code"}
+            return {
+                "tool": "modify_file", 
+                "success": False, 
+                "error": "Missing original_code parameter. You must provide the exact code to find and replace. "
+                        "If you cannot provide exact matching code, use full_file_rewrite instead.",
+                "filepath": filepath
+            }
         if new_code is None:  # Allow empty string for deletions
-            return {"tool": "modify_file", "success": False, "error": "Missing new_code"}
+            return {
+                "tool": "modify_file", 
+                "success": False, 
+                "error": "Missing new_code parameter. You must provide the replacement code.",
+                "filepath": filepath
+            }
         
         # CRITICAL: Normalize path to prevent absolute path issues
         filepath = self._normalize_filepath(filepath)
