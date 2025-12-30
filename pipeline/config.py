@@ -92,6 +92,9 @@ class PipelineConfig:
         "documentation":   ("qwen2.5-coder:14b", "ollama02.thiscluster.net"),
         "project_planning": ("qwen2.5-coder:32b", "ollama02.thiscluster.net"),
         
+        # Refactoring phase (architecture analysis and code improvement)
+        "refactoring":     ("qwen2.5-coder:32b", "ollama02.thiscluster.net"),
+        
         # Specialized phases (meta-operations on pipeline itself)
         "tool_design":     ("qwen2.5-coder:14b", "ollama02.thiscluster.net"),
         "tool_evaluation": ("qwen2.5-coder:14b", "ollama02.thiscluster.net"),
@@ -115,6 +118,7 @@ class PipelineConfig:
         "debug":     ["qwen2.5-coder:14b", "codellama:13b", "qwen2.5-coder:7b"],
         "documentation": ["qwen2.5-coder:7b", "qwen2.5:14b", "qwen2.5:7b"],
         "project_planning": ["qwen2.5-coder:14b", "qwen2.5:14b", "llama3.1:70b"],
+        "refactoring": ["qwen2.5-coder:14b", "qwen2.5:14b", "llama3.1:70b"],
         "tool_design": ["qwen2.5-coder:7b", "qwen2.5:14b"],
         "tool_evaluation": ["qwen2.5-coder:7b", "qwen2.5:14b"],
         "prompt_design": ["qwen2.5:7b", "llama3.1:70b"],

@@ -341,7 +341,7 @@ class PipelineState:
         
         # Initialize phase states (including new phases)
         # PRIMARY phases (normal development flow)
-        primary_phases = ["planning", "coding", "qa", "debug", "debugging", "project_planning", "documentation", "investigation"]
+        primary_phases = ["planning", "coding", "qa", "debug", "debugging", "project_planning", "documentation", "investigation", "refactoring"]
         # SPECIALIZED phases (on-demand only)
         specialized_phases = ["prompt_design", "tool_design", "role_design", "tool_evaluation", "prompt_improvement", "role_improvement"]
         
@@ -634,7 +634,7 @@ class StateManager:
     def get_all_phase_states(self) -> Dict[str, str]:
         """Get all phase state files"""
         states = {}
-        for phase in ["planning", "coding", "qa", "debug", "project_planning", "documentation"]:
+        for phase in ["planning", "coding", "qa", "debug", "project_planning", "documentation", "refactoring"]:
             content = self.read_phase_state(phase)
             if content:
                 states[phase] = content

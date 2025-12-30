@@ -179,6 +179,7 @@ class PhaseCoordinator:
             DocumentationPhase,
         )
         from .phases.investigation import InvestigationPhase
+        from .phases.refactoring import RefactoringPhase
         from .phases.prompt_design import PromptDesignPhase
         from .phases.tool_design import ToolDesignPhase
         from .phases.role_design import RoleDesignPhase
@@ -209,6 +210,7 @@ class PhaseCoordinator:
             "debug": DebuggingPhase(self.config, self.client, **shared_kwargs),  # Alias
             "project_planning": ProjectPlanningPhase(self.config, self.client, **shared_kwargs),
             "documentation": DocumentationPhase(self.config, self.client, **shared_kwargs),
+            "refactoring": RefactoringPhase(self.config, self.client, **shared_kwargs),
             # Meta-agent phases (Integration Point #1)
             "prompt_design": PromptDesignPhase(self.config, self.client, **shared_kwargs),
             "tool_design": ToolDesignPhase(self.config, self.client, **shared_kwargs),
@@ -291,6 +293,15 @@ class PhaseCoordinator:
             dims['context'] = 0.6      # Needs some context
             dims['error'] = 0.3        # Low error rate
         
+        elif phase_type == 'refactoring':
+            dims['context'] = 0.9      # Needs full codebase context
+            dims['data'] = 0.8         # Analyzes code data
+            dims['integration'] = 0.8  # High integration with codebase
+            dims['functional'] = 0.7   # Improves functionality
+            dims['temporal'] = 0.6     # Takes time to analyze
+            dims['error'] = 0.4        # Medium error focus
+            dims['state'] = 0.7        # Manages code state
+        
         # Phase-specific adjustments
         if 'debug' in phase_name.lower():
             dims['error'] = 0.9
@@ -304,6 +315,11 @@ class PhaseCoordinator:
             dims['context'] = 0.8
             dims['temporal'] = 0.4
             dims['error'] = 0.2
+        
+        if 'refactoring' in phase_name.lower():
+            dims['context'] = 0.9
+            dims['data'] = 0.8
+            dims['integration'] = 0.8
         
         return dims
 
@@ -325,7 +341,8 @@ class PhaseCoordinator:
             'debugging': 'correction',
             'investigation': 'analysis',
             'project_planning': 'planning',
-            'documentation': 'documentation'
+            'documentation': 'documentation',
+            'refactoring': 'refactoring'
         }
         
         # Only add PRIMARY phases to polytope
@@ -339,23 +356,27 @@ class PhaseCoordinator:
         # PRIMARY FLOW EDGES ONLY - no specialized phases
         self.polytope['edges'] = {
             # Core development flow
-            'planning': ['coding'],
-            'coding': ['qa', 'documentation'],
-            'qa': ['debugging', 'documentation'],
+            'planning': ['coding', 'refactoring'],
+            'coding': ['qa', 'documentation', 'refactoring'],
+            'qa': ['debugging', 'documentation', 'refactoring'],
             
             # Error handling triangle
             'debugging': ['investigation', 'coding'],
-            'investigation': ['debugging', 'coding'],  # REMOVED: prompt_design, role_design, tool_design
+            'investigation': ['debugging', 'coding', 'refactoring'],
             
             # Documentation flow
             'documentation': ['planning', 'qa'],
             
             # Project management
-            'project_planning': ['planning']
+            'project_planning': ['planning', 'refactoring'],
+            
+            # Refactoring flow (8th vertex)
+            'refactoring': ['coding', 'qa', 'planning']
         }
         
         self.logger.info(f"Polytopic structure: {len(self.polytope['vertices'])} PRIMARY vertices, 7D")
         self.logger.info("Specialized phases (tool/prompt/role design) available on-demand only")
+        self.logger.info("Refactoring phase integrated as 8th vertex with edges to planning/coding/qa/investigation/project_planning")
     
     def _should_force_transition(self, state, current_phase: str, last_result=None) -> bool:
         """

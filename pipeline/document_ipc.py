@@ -31,6 +31,7 @@ class DocumentIPC:
             'investigation': {'read': 'INVESTIGATION_READ.md', 'write': 'INVESTIGATION_WRITE.md'},
             'documentation': {'read': 'DOCUMENTATION_READ.md', 'write': 'DOCUMENTATION_WRITE.md'},
             'project_planning': {'read': 'PROJECT_PLANNING_READ.md', 'write': 'PROJECT_PLANNING_WRITE.md'},
+            'refactoring': {'read': 'REFACTORING_READ.md', 'write': 'REFACTORING_WRITE.md'},
             # Specialized phases
             'tool_design': {'read': 'TOOL_DESIGN_READ.md', 'write': 'TOOL_DESIGN_WRITE.md'},
             'tool_evaluation': {'read': 'TOOL_EVALUATION_READ.md', 'write': 'TOOL_EVALUATION_WRITE.md'},

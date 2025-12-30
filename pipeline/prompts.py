@@ -562,6 +562,75 @@ CRITICAL TOOL CALLING REQUIREMENTS:
 Your role is to analyze and improve agent roles.
 
 REMEMBER: You MUST use tools with non-empty name fields!""",
+
+    "refactoring": """You are a senior software architect specializing in code refactoring and architecture improvement.
+
+🎯 YOUR MISSION:
+Analyze code architecture, detect issues, and create actionable refactoring plans to improve code quality, eliminate duplicates, resolve conflicts, and align implementations with MASTER_PLAN.md.
+
+🔧 CRITICAL TOOL CALLING REQUIREMENTS:
+1. ALWAYS specify the tool name explicitly in the name field
+2. Tool names must be EXACTLY as defined (case-sensitive):
+   - detect_duplicate_implementations
+   - compare_file_implementations
+   - extract_file_features
+   - analyze_architecture_consistency
+   - suggest_refactoring_plan
+   - merge_file_implementations
+   - validate_refactoring
+   - cleanup_redundant_files
+3. NEVER leave the tool name empty, blank, or null
+4. Use proper JSON format with name and arguments fields
+5. Tools MUST be called - text descriptions are NOT acceptable
+
+📋 YOUR RESPONSIBILITIES:
+1. **Duplicate Detection**: Find similar/duplicate implementations
+2. **Conflict Resolution**: Identify and resolve conflicting implementations
+3. **Architecture Alignment**: Ensure code matches MASTER_PLAN design
+4. **Feature Consolidation**: Extract and merge common features
+5. **Safe Refactoring**: Create backups, validate changes, ensure safety
+
+🔍 ANALYSIS WORKFLOW:
+1. Use detect_duplicate_implementations to find duplicates (similarity >= 70%)
+2. Use compare_file_implementations to analyze differences
+3. Use extract_file_features to understand what each file provides
+4. Use analyze_architecture_consistency to check MASTER_PLAN alignment
+5. Use suggest_refactoring_plan to create actionable plan
+6. Use merge_file_implementations for safe consolidation
+7. Use validate_refactoring to verify correctness
+8. Use cleanup_redundant_files to remove obsolete code
+
+⚠️ SAFETY RULES:
+- ALWAYS create backups before making changes
+- NEVER delete files without validation
+- ALWAYS verify merged code compiles and works
+- Consider dependencies when planning changes
+- Prioritize by impact and risk
+- Test incrementally, not all at once
+
+📊 REFACTORING PRIORITIES:
+1. **Critical**: Duplicates causing bugs or conflicts
+2. **High**: Architecture misalignment with MASTER_PLAN
+3. **Medium**: Code organization and consolidation
+4. **Low**: Style improvements and minor optimizations
+
+💡 BEST PRACTICES:
+- Start with analysis tools before making changes
+- Create comprehensive refactoring plans
+- Consider impact on existing code
+- Preserve all necessary functionality
+- Document all changes and rationale
+- Validate results before cleanup
+
+🎯 DELIVERABLES:
+- Detailed analysis of code issues
+- Prioritized refactoring plan
+- Safe, validated changes
+- Clear documentation of improvements
+- Recommendations for next steps
+
+REMEMBER: You MUST use tools with non-empty name fields!
+Your refactoring results will be sent to appropriate phases (coding, qa, planning) for implementation and verification.""",
 }
 
 
@@ -1123,3 +1192,172 @@ Respond with: "DECISION: ROLLBACK - [explanation of why and what to try instead]
 
 **Make your decision now.**
 """
+
+
+def get_refactoring_prompt(refactoring_type: str, context: str,
+                          target_files: List[str] = None) -> str:
+    """Generate the user prompt for refactoring phase"""
+    
+    files_section = ""
+    if target_files:
+        files_section = f"""
+TARGET FILES:
+{chr(10).join(f"- {f}" for f in target_files)}
+"""
+    
+    ipc_guidance = """
+📚 STRATEGIC CONTEXT AVAILABLE:
+You have access to strategic documents and phase outputs:
+- MASTER_PLAN.md: Overall project architecture and objectives
+- ARCHITECTURE.md: Design patterns and structure guidelines
+- QA_WRITE.md: Quality issues and conflicts detected
+- INVESTIGATION_WRITE.md: Recommendations from investigation phase
+- PLANNING_WRITE.md: Recent architecture changes
+
+💡 GUIDANCE:
+- Review MASTER_PLAN and ARCHITECTURE for intended design
+- Check QA_WRITE for conflicts and duplicates
+- Consider INVESTIGATION_WRITE recommendations
+- Your refactoring results will be sent to appropriate phases
+- Always create backups before making changes
+"""
+    
+    if refactoring_type == "duplicate_detection":
+        return f"""Detect duplicate or similar implementations in the codebase.
+
+REFACTORING TYPE: Duplicate Detection
+{files_section}
+{ipc_guidance}
+
+CONTEXT:
+{context}
+
+Your Task:
+1. Use detect_duplicate_implementations to find duplicate/similar files
+2. Analyze the duplicates to understand their relationships
+3. Use compare_file_implementations to compare duplicates in detail
+4. Determine which files should be merged or consolidated
+5. Use suggest_refactoring_plan to create a plan for consolidation
+
+Requirements:
+- Identify all duplicate implementations (similarity >= 70%)
+- Compare duplicates to find conflicts and differences
+- Create a detailed refactoring plan
+- Prioritize based on impact and risk
+- Consider dependencies when planning merges
+
+Use the refactoring tools NOW to analyze duplicates."""
+
+    elif refactoring_type == "conflict_resolution":
+        return f"""Resolve conflicts between different file implementations.
+
+REFACTORING TYPE: Conflict Resolution
+{files_section}
+{ipc_guidance}
+
+CONTEXT:
+{context}
+
+Your Task:
+1. Use compare_file_implementations to analyze conflicts
+2. Identify conflicting implementations and their differences
+3. Use extract_file_features to understand what each file provides
+4. Use merge_file_implementations to create unified version
+5. Use validate_refactoring to verify the merge is correct
+
+Requirements:
+- Identify all conflicts between files
+- Understand the purpose of each conflicting implementation
+- Create a merged version that preserves all necessary functionality
+- Ensure no functionality is lost in the merge
+- Validate the merged result
+
+Use the refactoring tools NOW to resolve conflicts."""
+
+    elif refactoring_type == "architecture_consistency":
+        return f"""Check and fix architecture consistency with MASTER_PLAN.
+
+REFACTORING TYPE: Architecture Consistency
+{ipc_guidance}
+
+CONTEXT:
+{context}
+
+Your Task:
+1. Use analyze_architecture_consistency to check MASTER_PLAN alignment
+2. Identify files that don't match the intended architecture
+3. Use extract_file_features to understand current implementations
+4. Use suggest_refactoring_plan to create alignment plan
+5. Recommend specific changes to match MASTER_PLAN
+
+Requirements:
+- Compare current code structure with MASTER_PLAN objectives
+- Identify architectural mismatches
+- Create a plan to align code with intended architecture
+- Prioritize changes based on impact
+- Consider dependencies and risks
+
+Use the refactoring tools NOW to check architecture consistency."""
+
+    elif refactoring_type == "feature_extraction":
+        return f"""Extract features from files for consolidation.
+
+REFACTORING TYPE: Feature Extraction
+{files_section}
+{ipc_guidance}
+
+CONTEXT:
+{context}
+
+Your Task:
+1. Use extract_file_features to analyze each target file
+2. Identify common features across files
+3. Determine which features should be consolidated
+4. Use suggest_refactoring_plan to create consolidation plan
+5. Recommend new file structure
+
+Requirements:
+- Extract all features with dependencies
+- Identify common patterns and functionality
+- Create a plan for feature consolidation
+- Design new file structure
+- Consider impact on existing code
+
+Use the refactoring tools NOW to extract features."""
+
+    elif refactoring_type == "comprehensive":
+        return f"""Perform comprehensive refactoring analysis.
+
+REFACTORING TYPE: Comprehensive Analysis
+{ipc_guidance}
+
+CONTEXT:
+{context}
+
+Your Task:
+1. Use detect_duplicate_implementations to find duplicates
+2. Use analyze_architecture_consistency to check MASTER_PLAN alignment
+3. Use compare_file_implementations for any conflicts
+4. Use suggest_refactoring_plan to create comprehensive plan
+5. Prioritize refactoring actions
+
+Requirements:
+- Analyze all aspects: duplicates, conflicts, architecture
+- Create a comprehensive refactoring plan
+- Prioritize actions by impact and risk
+- Consider dependencies and order of operations
+- Provide clear recommendations
+
+Use the refactoring tools NOW for comprehensive analysis."""
+
+    else:
+        return f"""Perform refactoring analysis.
+
+REFACTORING TYPE: {refactoring_type}
+{files_section}
+{ipc_guidance}
+
+CONTEXT:
+{context}
+
+Use the available refactoring tools to analyze and improve the codebase."""
