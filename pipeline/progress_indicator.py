@@ -19,7 +19,7 @@ class ProgressIndicator:
         self.start_time: Optional[float] = None
         self.stop_flag = threading.Event()
         self.thread: Optional[threading.Thread] = None
-        self.update_interval = 30  # Update every 30 seconds
+        self.update_interval = 600  # Update every 10 minutes
         
     def start(self):
         """Start showing progress updates"""

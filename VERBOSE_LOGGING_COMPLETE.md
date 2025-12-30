@@ -65,13 +65,13 @@ Created `pipeline/progress_indicator.py` with background thread that shows perio
 
 **During Long Model Calls**:
 ```
-  ⏳ Model qwen2.5-coder:32b thinking... 30s elapsed
-  ⏳ Model qwen2.5-coder:32b thinking... 1m 0s elapsed
-  ⏳ Model qwen2.5-coder:32b thinking... 1m 30s elapsed
-  ⏳ Model qwen2.5-coder:32b thinking... 2m 0s elapsed
+  ⏳ Model qwen2.5-coder:32b thinking... 10m 0s elapsed
+  ⏳ Model qwen2.5-coder:32b thinking... 20m 0s elapsed
+  ⏳ Model qwen2.5-coder:32b thinking... 30m 0s elapsed
+  ⏳ Model qwen2.5-coder:32b thinking... 40m 0s elapsed
 ```
 
-Updates appear every 30 seconds automatically, so you know the system is still working.
+Updates appear every 10 minutes automatically, so you know the system is still working.
 
 ---
 

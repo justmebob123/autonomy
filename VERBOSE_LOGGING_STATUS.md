@@ -23,7 +23,7 @@
 
 - ✅ Progress indicator for model calls
 - ✅ Shows "Model thinking..." with elapsed time
-- ✅ Periodic updates every 30 seconds
+- ✅ Periodic updates every 10 minutes
 - ⏳ Timeout warnings (not yet implemented)
 
 ## 📋 REMAINING WORK
@@ -65,13 +65,13 @@ Your 2-hour qwen-coder:32b queries now show:
   📊 Approximate context: ~12,450 tokens
   ⏱️  Waiting for response...
 ======================================================================
-  ⏳ Model qwen2.5-coder:32b thinking... 30s elapsed
-  ⏳ Model qwen2.5-coder:32b thinking... 1m 0s elapsed
-  ⏳ Model qwen2.5-coder:32b thinking... 1m 30s elapsed
+  ⏳ Model qwen2.5-coder:32b thinking... 10m 0s elapsed
+  ⏳ Model qwen2.5-coder:32b thinking... 20m 0s elapsed
+  ⏳ Model qwen2.5-coder:32b thinking... 30m 0s elapsed
 ======================================================================
 ✅ MODEL RESPONSE RECEIVED
 ======================================================================
-  ⏱️  Duration: 94.2s (1.6 minutes)
+  ⏱️  Duration: 1847.3s (30.8 minutes)
   🔧 Tool calls: 1
 ──────────────────────────────────────────────────────────────────────
 🔧 EXECUTING TOOL: full_file_rewrite
