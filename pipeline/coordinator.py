@@ -1649,7 +1649,7 @@ class PhaseCoordinator:
                 self.logger.info(f"  🔄 Coordinator forcing reactivation of {len(other_status)} tasks")
                 reactivated = 0
                 for task in other_status[:10]:  # Reactivate up to 10
-                    if task.status in [TaskStatus.SKIPPED, TaskStatus.FAILED]:
+                    if task.status in [TaskStatus.SKIPPED, TaskStatus.FAILED, TaskStatus.QA_FAILED]:
                         # CRITICAL: Don't reactivate tasks with empty target_file
                         if not task.target_file or task.target_file.strip() == "":
                             self.logger.debug(f"    ⏭️  Skipping reactivation of task with empty target_file: {task.description[:60]}...")
