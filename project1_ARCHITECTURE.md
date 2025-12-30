@@ -1,9 +1,9 @@
-# PROJECT 1 ARCHITECTURE: AI-Powered Project Management & Development Platform
+# PROJECT 1 ARCHITECTURE: AI-Powered Project Planning & Management Platform
 
 > **Companion Document**: See `project1_MASTER_PLAN.md` for objectives and requirements  
 > **Purpose**: Detailed technical architecture and implementation specifications  
-> **Status**: Design Document - Ready for Implementation  
-> **Implementation**: Custom code using Python standard library only
+> **Technology**: Python standard library only (no external frameworks)  
+> **Status**: Design Document - Ready for Implementation
 
 ---
 
@@ -12,17 +12,15 @@
 1. [System Overview](#system-overview)
 2. [Architecture Patterns](#architecture-patterns)
 3. [Component Design](#component-design)
-4. [Chat System Architecture](#chat-system-architecture)
-5. [File Management Architecture](#file-management-architecture)
-6. [Git Integration Architecture](#git-integration-architecture)
-7. [Ollama Integration Architecture](#ollama-integration-architecture)
-8. [Data Flow](#data-flow)
+4. [Frontend Architecture](#frontend-architecture)
+5. [Backend Architecture](#backend-architecture)
+6. [Web Search Tool](#web-search-tool)
+7. [Planning Tools](#planning-tools)
+8. [Collaboration Features](#collaboration-features)
 9. [API Design](#api-design)
 10. [Database Design](#database-design)
-11. [Frontend Architecture](#frontend-architecture)
-12. [Security Architecture](#security-architecture)
-13. [Performance Architecture](#performance-architecture)
-14. [Deployment Architecture](#deployment-architecture)
+11. [Security Architecture](#security-architecture)
+12. [Deployment Architecture](#deployment-architecture)
 
 ---
 
@@ -33,2230 +31,1265 @@
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Client Layer                             │
-│  (REST API Clients, Web UI, CLI Tools, CI/CD Integrations)      │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         │ HTTPS/REST
-                         │
-┌────────────────────────▼────────────────────────────────────────┐
+│              (Web Browser - HTML/CSS/JavaScript)                 │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             │ HTTPS/REST + WebSocket
+                             │
+┌────────────────────────────▼────────────────────────────────────┐
 │                      API Gateway Layer                           │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
 │  │ Auth/JWT     │  │ Rate Limiter │  │ Validator    │          │
 │  └──────────────┘  └──────────────┘  └──────────────┘          │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────────────────┐
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────────────┐
 │                    Application Layer                             │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │              REST API Endpoints (Custom WSGI)            │   │
-│  │  /projects  /analyze  /objectives  /recommendations      │   │
-│  └────────────────────┬─────────────────────────────────────┘   │
-│                       │                                          │
-│  ┌────────────────────▼─────────────────────────────────────┐   │
-│  │                 Business Logic Layer                      │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │   │
-│  │  │ Analyzers   │  │ Engines     │  │ Processors  │      │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘      │   │
-│  └────────────────────┬─────────────────────────────────────┘   │
-└───────────────────────┼─────────────────────────────────────────┘
-                        │
-┌───────────────────────▼─────────────────────────────────────────┐
-│                    Data Access Layer                              │
+│  ┌──────────────────────────────────────────────────────────────┐│
+│  │         Custom WSGI Application (Python stdlib)              ││
+│  │  /projects  /objectives  /tasks  /search  /chat  /timeline  ││
+│  └──────────────────────┬───────────────────────────────────────┘│
+└─────────────────────────┼────────────────────────────────────────┘
+                          │
+┌─────────────────────────▼────────────────────────────────────────┐
+│                   Service Layer                                   │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │ Project  │  │Objective │  │   Task   │  │   Chat   │        │
+│  │ Service  │  │ Service  │  │ Service  │  │ Service  │        │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘        │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │   Web    │  │ Timeline │  │ Resource │  │   Risk   │        │
+│  │  Search  │  │Generator │  │Estimator │  │Assessment│        │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘        │
+└─────────────────────────┬────────────────────────────────────────┘
+                          │
+┌─────────────────────────▼────────────────────────────────────────┐
+│                   Analysis Engine Layer                           │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐         │
+│  │MASTER_   │  │   Gap    │  │Progress  │  │  Risk   │         │
+│  │PLAN      │  │ Detector │  │Calculator│  │ Analyzer│         │
+│  │ Parser   │  └──────────┘  └──────────┘  └─────────┘         │
+│  └──────────┘                                                    │
+└─────────────────────────┬────────────────────────────────────────┘
+                          │
+┌─────────────────────────▼────────────────────────────────────────┐
+│                   Data Access Layer                               │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│  │ Repositories │  │ Models       │  │ Migrations   │           │
+│  │ Repositories │  │ DB Abstraction│  │ Cache Layer  │           │
 │  └──────────────┘  └──────────────┘  └──────────────┘           │
-└───────────────────────┬─────────────────────────────────────────┘
-                        │
-┌───────────────────────▼─────────────────────────────────────────┐
+└─────────────────────────┬────────────────────────────────────────┘
+                          │
+┌─────────────────────────▼────────────────────────────────────────┐
 │                   Persistence Layer                               │
-│  ┌──────────────────────────────────────────────────────────┐    │
-│  │              SQLite/MySQL Database                       │    │
-│  │  Projects | Objectives | Analyses | Snapshots            │    │
-│  └──────────────────────────────────────────────────────────┘    │
+│  ┌──────────────────────────────────────────────────────────────┐│
+│  │         SQLite Database (or MySQL)                           ││
+│  │  Projects | Objectives | Tasks | Risks | Comments | Users   ││
+│  └──────────────────────────────────────────────────────────────┘│
 └──────────────────────────────────────────────────────────────────┘
 ```
 
 ### System Characteristics
 
 - **Architecture Style**: Layered + Service-Oriented
-- **API Style**: RESTful
-- **Data Storage**: SQLite (default) or MySQL
-- **Deployment**: Custom WSGI + Apache
-- **Scalability**: Vertical (single instance)
-- **Availability**: 99.9% target
-- **Implementation**: Python standard library only
+- **API Style**: RESTful + WebSocket for real-time
+- **Frontend**: Custom HTML/CSS/JavaScript (no frameworks)
+- **Backend**: Custom WSGI application (Python stdlib only)
+- **Data Storage**: SQLite (or MySQL)
+- **Deployment**: Apache + mod_wsgi
+- **Focus**: Document analysis and project planning
 
 ---
 
 ## Architecture Patterns
 
-### 1. Layered Architecture
+### 1. Layered Architecture Pattern
 
-**Layers** (from top to bottom):
-1. **Presentation Layer** - REST API endpoints
-2. **Application Layer** - Business logic orchestration
-3. **Domain Layer** - Core business logic
-4. **Infrastructure Layer** - Data access and external services
+**Purpose**: Separation of concerns across layers
 
-**Benefits**:
-- Clear separation of concerns
-- Easy to test each layer independently
-- Maintainable and extensible
+**Layers**:
+1. **Presentation Layer** - Frontend UI components
+2. **API Layer** - REST endpoints and WebSocket handlers
+3. **Service Layer** - Business logic and orchestration
+4. **Analysis Layer** - Document parsing and analysis
+5. **Data Access Layer** - Database operations
+6. **Persistence Layer** - SQLite/MySQL storage
 
-### 2. Repository Pattern
-
-**Purpose**: Abstract data access logic
-
-```python
-class ProjectRepository:
-    """Abstract data access for projects"""
-    
-    def get_by_id(self, project_id: str) -> Optional[Project]:
-        """Retrieve project by ID"""
-        
-    def get_all(self, filters: Dict = None) -> List[Project]:
-        """Retrieve all projects with optional filters"""
-        
-    def create(self, project: Project) -> Project:
-        """Create new project"""
-        
-    def update(self, project: Project) -> Project:
-        """Update existing project"""
-        
-    def delete(self, project_id: str) -> bool:
-        """Delete project"""
-```
-
-**Benefits**:
-- Decouples business logic from data access
-- Easy to swap database implementations
-- Simplifies testing with mock repositories
-
-### 3. Service Layer Pattern
+### 2. Service Pattern
 
 **Purpose**: Encapsulate business logic
 
 ```python
-class AnalysisService:
-    """Orchestrates analysis operations"""
+class ProjectService:
+    """Service for project operations"""
     
-    def __init__(self, 
-                 project_repo: ProjectRepository,
-                 masterplan_parser: MasterPlanParser,
-                 source_analyzer: SourceAnalyzer,
-                 gap_analyzer: GapAnalyzer):
+    def __init__(self, project_repo, objective_repo, master_plan_parser):
         self.project_repo = project_repo
-        self.masterplan_parser = masterplan_parser
-        self.source_analyzer = source_analyzer
-        self.gap_analyzer = gap_analyzer
+        self.objective_repo = objective_repo
+        self.parser = master_plan_parser
     
-    def analyze_project(self, project_id: str) -> AnalysisResult:
-        """Perform complete project analysis"""
-        # 1. Load project
-        # 2. Parse MASTER_PLAN.md
-        # 3. Analyze source code
-        # 4. Perform gap analysis
-        # 5. Generate recommendations
-        # 6. Store results
-        # 7. Return analysis
+    def analyze_master_plan(self, project_id: str) -> Analysis:
+        """Analyze MASTER_PLAN.md"""
+        project = self.project_repo.find_by_id(project_id)
+        content = self._read_master_plan(project.master_plan_path)
+        
+        # Parse objectives
+        objectives = self.parser.extract_objectives(content)
+        
+        # Save to database
+        for obj in objectives:
+            self.objective_repo.save(obj)
+        
+        # Detect gaps
+        gaps = self._detect_gaps(project_id, objectives)
+        
+        # Generate recommendations
+        recommendations = self._generate_recommendations(objectives, gaps)
+        
+        return Analysis(
+            objectives=objectives,
+            gaps=gaps,
+            recommendations=recommendations
+        )
 ```
 
-**Benefits**:
-- Coordinates multiple components
-- Implements complex workflows
-- Handles transactions and error recovery
+### 3. Repository Pattern
 
-### 4. Strategy Pattern
-
-**Purpose**: Pluggable analysis algorithms
+**Purpose**: Abstract data access
 
 ```python
-class AnalyzerStrategy(ABC):
-    """Base class for analysis strategies"""
+class ObjectiveRepository:
+    """Repository for objective data"""
     
-    @abstractmethod
-    def analyze(self, project: Project) -> AnalysisResult:
-        """Perform analysis"""
-        pass
-
-class PythonAnalyzer(AnalyzerStrategy):
-    """Python-specific analysis using ast module"""
+    def __init__(self, db):
+        self.db = db
     
-class JavaScriptAnalyzer(AnalyzerStrategy):
-    """JavaScript-specific analysis"""
-
-class AnalyzerFactory:
-    """Factory for creating appropriate analyzer"""
+    def find_by_project(self, project_id: str) -> List[Objective]:
+        """Find objectives by project"""
+        query = """
+            SELECT * FROM objectives 
+            WHERE project_id = ? 
+            ORDER BY priority DESC
+        """
+        rows = self.db.fetchall(query, (project_id,))
+        return [self._row_to_objective(row) for row in rows]
     
-    def create(self, language: str) -> AnalyzerStrategy:
-        if language == "python":
-            return PythonAnalyzer()
-        elif language == "javascript":
-            return JavaScriptAnalyzer()
-        # ...
-```
-
-### 5. Factory Pattern
-
-**Purpose**: Object creation abstraction
-
-```python
-class AnalysisFactory:
-    """Creates analysis components"""
-    
-    @staticmethod
-    def create_parser(format: str) -> Parser:
-        """Create appropriate parser"""
-        
-    @staticmethod
-    def create_analyzer(language: str) -> Analyzer:
-        """Create appropriate analyzer"""
-        
-    @staticmethod
-    def create_engine(type: str) -> Engine:
-        """Create appropriate engine"""
+    def save(self, objective: Objective) -> None:
+        """Save objective"""
+        query = """
+            INSERT OR REPLACE INTO objectives 
+            (id, project_id, type, title, description, status, priority)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """
+        self.db.execute(query, (
+            objective.id,
+            objective.project_id,
+            objective.type,
+            objective.title,
+            objective.description,
+            objective.status,
+            objective.priority
+        ))
+        self.db.commit()
 ```
 
 ---
 
 ## Component Design
 
-### 1. Custom WSGI Application
+### 1. Frontend Components
 
-**Responsibility**: Handle HTTP requests and route to appropriate handlers
+#### 1.1 Planning Dashboard Component
 
-**Architecture**:
-```
-WSGIApplication
-├── Router (URL routing)
-├── Request (request parsing)
-├── Response (response formatting)
-└── Middleware Stack
-    ├── AuthenticationMiddleware
-    ├── RateLimitMiddleware
-    └── ValidationMiddleware
-```
+**Purpose**: Project overview and key metrics
 
-**Implementation**:
-```python
-class WSGIApplication:
-    """Custom WSGI application using only standard library"""
+**HTML Structure**:
+```html
+<div id="planning-dashboard">
+    <div class="dashboard-header">
+        <h1 id="project-name">Project Name</h1>
+        <div class="dashboard-actions">
+            <button id="analyze-btn">Analyze MASTER_PLAN</button>
+            <button id="generate-timeline-btn">Generate Timeline</button>
+        </div>
+    </div>
     
-    def __init__(self):
-        self.router = Router()
-        self.middleware_stack = []
+    <div class="dashboard-metrics">
+        <div class="metric-card">
+            <h3>Completion</h3>
+            <div class="metric-value">65%</div>
+            <div class="metric-trend">↑ 5% this week</div>
+        </div>
+        <div class="metric-card">
+            <h3>Objectives</h3>
+            <div class="metric-value">12 / 20</div>
+            <div class="metric-trend">8 remaining</div>
+        </div>
+        <div class="metric-card">
+            <h3>Risks</h3>
+            <div class="metric-value">3 High</div>
+            <div class="metric-trend">2 new this week</div>
+        </div>
+        <div class="metric-card">
+            <h3>Velocity</h3>
+            <div class="metric-value">2.5 obj/week</div>
+            <div class="metric-trend">On track</div>
+        </div>
+    </div>
     
-    def __call__(self, environ: Dict, start_response: Callable) -> List[bytes]:
-        """WSGI application interface"""
-        # Build request object
-        request = Request(environ)
-        
-        # Apply middleware
-        for middleware in self.middleware_stack:
-            request = middleware.process_request(request)
-            if request.response:
-                return self._send_response(request.response, start_response)
-        
-        # Route request
-        try:
-            handler = self.router.match(request.method, request.path)
-            response = handler(request)
-        except RouteNotFound:
-            response = Response(status=404, body={'error': 'Not found'})
-        except Exception as e:
-            response = Response(status=500, body={'error': str(e)})
-        
-        return self._send_response(response, start_response)
-```
-
-### 2. Custom JWT Authentication
-
-**Responsibility**: Authenticate and authorize API requests
-
-**Architecture**:
-```
-JWTHandler
-├── encode() - Create JWT tokens
-├── decode() - Verify JWT tokens
-├── _sign() - HMAC signature
-└── _base64url_encode/decode() - Base64 encoding
-```
-
-**Implementation**:
-```python
-class JWTHandler:
-    """Custom JWT implementation using hmac and hashlib"""
+    <div class="dashboard-charts">
+        <div class="chart-container">
+            <h3>Progress Over Time</h3>
+            <canvas id="progress-chart"></canvas>
+        </div>
+        <div class="chart-container">
+            <h3>Burndown Chart</h3>
+            <canvas id="burndown-chart"></canvas>
+        </div>
+    </div>
     
-    def __init__(self, secret_key: str, algorithm: str = 'HS256'):
-        self.secret_key = secret_key.encode('utf-8')
-        self.algorithm = algorithm
-    
-    def encode(self, payload: Dict, expires_in: int = 86400) -> str:
-        """Encode JWT token"""
-        # Add standard claims
-        now = datetime.utcnow()
-        payload['iat'] = int(now.timestamp())
-        payload['exp'] = int((now + timedelta(seconds=expires_in)).timestamp())
-        
-        # Create header
-        header = {'typ': 'JWT', 'alg': self.algorithm}
-        
-        # Encode and sign
-        header_encoded = self._base64url_encode(json.dumps(header))
-        payload_encoded = self._base64url_encode(json.dumps(payload))
-        message = f"{header_encoded}.{payload_encoded}"
-        signature = self._sign(message)
-        
-        return f"{message}.{signature}"
-    
-    def _sign(self, message: str) -> str:
-        """Create HMAC signature"""
-        signature = hmac.new(
-            self.secret_key,
-            message.encode('utf-8'),
-            hashlib.sha256
-        ).digest()
-        return self._base64url_encode(signature)
+    <div class="dashboard-sections">
+        <div class="section">
+            <h3>Recent Activity</h3>
+            <div id="activity-feed"></div>
+        </div>
+        <div class="section">
+            <h3>Upcoming Milestones</h3>
+            <div id="milestones-list"></div>
+        </div>
+    </div>
+</div>
 ```
 
-### 3. Database Abstraction Layer
-
-**Responsibility**: Provide unified interface for SQLite and MySQL
-
-**Architecture**:
-```
-DatabaseConnection
-├── SQLiteAdapter
-│   ├── connect()
-│   ├── execute()
-│   ├── fetchone()
-│   └── fetchall()
-└── MySQLAdapter
-    ├── connect()
-    ├── execute()
-    ├── fetchone()
-    └── fetchall()
-```
-
-**Implementation**:
-```python
-class DatabaseConnection:
-    """Database connection manager supporting SQLite and MySQL"""
-    
-    def __init__(self, config: Dict):
-        self.config = config
-        self.db_type = config.get('type', 'sqlite')
-        
-        if self.db_type == 'sqlite':
-            self.adapter = SQLiteAdapter(config)
-        elif self.db_type == 'mysql':
-            self.adapter = MySQLAdapter(config)
-        else:
-            raise ValueError(f"Unsupported database type: {self.db_type}")
-    
-    def connect(self):
-        """Establish database connection"""
-        self.connection = self.adapter.connect()
-    
-    def execute(self, query: str, params: tuple = None) -> Any:
-        """Execute SQL query"""
-        return self.adapter.execute(self.connection, query, params)
-```
-
-### 4. MASTER_PLAN Parser Component
-
-**Responsibility**: Parse and extract structured data from MASTER_PLAN.md files
-
-**Architecture**:
-```
-MasterPlanParser
-├── MarkdownTokenizer (lexical analysis using re module)
-├── ObjectiveExtractor (semantic analysis)
-├── HierarchyBuilder (structure analysis)
-└── Validator (consistency checking)
-```
-
-**Implementation**:
-```python
-class MasterPlanParser:
-    """Parses MASTER_PLAN.md files using regex and string processing"""
-    
-    def __init__(self):
-        self.tokenizer = MarkdownTokenizer()
-        self.extractor = ObjectiveExtractor()
-        self.hierarchy_builder = HierarchyBuilder()
-        self.validator = Validator()
-    
-    def parse(self, content: str) -> ParsedMasterPlan:
-        """Parse MASTER_PLAN.md content"""
-        # 1. Tokenize markdown using regex
-        tokens = self.tokenizer.tokenize(content)
-        
-        # 2. Extract objectives
-        objectives = self.extractor.extract(tokens)
-        
-        # 3. Build hierarchy
-        hierarchy = self.hierarchy_builder.build(objectives)
-        
-        # 4. Validate structure
-        issues = self.validator.validate(hierarchy)
-        
-        return ParsedMasterPlan(
-            objectives=objectives,
-            hierarchy=hierarchy,
-            validation_issues=issues
-        )
-```
-
-**Key Algorithms**:
-
-1. **Objective Extraction**:
-```python
-def extract_objectives(self, tokens: List[Token]) -> List[Objective]:
-    """Extract objectives from markdown tokens"""
-    objectives = []
-    current_level = None
-    current_objective = None
-    
-    for token in tokens:
-        if token.type == "heading":
-            # Determine objective level from heading
-            level = self._determine_level(token)
-            if level:
-                if current_objective:
-                    objectives.append(current_objective)
-                current_objective = Objective(level=level)
-                current_level = level
-        
-        elif token.type == "list_item" and current_objective:
-            # Extract tasks, criteria, dependencies
-            self._extract_list_item(token, current_objective)
-    
-    if current_objective:
-        objectives.append(current_objective)
-    
-    return objectives
-```
-
-2. **Hierarchy Building**:
-```python
-def build_hierarchy(self, objectives: List[Objective]) -> ObjectiveTree:
-    """Build hierarchical tree of objectives"""
-    tree = ObjectiveTree()
-    
-    # Group by level
-    primary = [o for o in objectives if o.level == "primary"]
-    secondary = [o for o in objectives if o.level == "secondary"]
-    tertiary = [o for o in objectives if o.level == "tertiary"]
-    
-    # Build parent-child relationships
-    for obj in primary:
-        tree.add_root(obj)
-    
-    for obj in secondary:
-        parent = self._find_parent(obj, primary)
-        if parent:
-            tree.add_child(parent, obj)
-    
-    for obj in tertiary:
-        parent = self._find_parent(obj, secondary)
-        if parent:
-            tree.add_child(parent, obj)
-    
-    return tree
-```
-
-### 5. Source Code Analyzer Component
-
-**Responsibility**: Analyze project source code and build implementation model
-
-**Architecture**:
-```
-SourceAnalyzer
-├── FileScanner (directory traversal)
-├── LanguageDetector (file type detection)
-├── ASTParser (syntax tree generation using ast module)
-├── SymbolExtractor (function/class extraction)
-├── DependencyTracker (import analysis)
-└── MetricsCalculator (complexity, coverage)
-```
-
-**Implementation**:
-```python
-class SourceAnalyzer:
-    """Analyzes project source code using ast module"""
-    
-    def __init__(self):
-        self.scanner = FileScanner()
-        self.detector = LanguageDetector()
-        self.parsers = {
-            "python": PythonASTParser(),
-            "javascript": JavaScriptParser(),
-        }
-        self.symbol_extractor = SymbolExtractor()
-        self.dependency_tracker = DependencyTracker()
-        self.metrics_calculator = MetricsCalculator()
-    
-    def analyze(self, project_path: Path) -> ProjectModel:
-        """Analyze entire project"""
-        # 1. Scan directory
-        files = self.scanner.scan(project_path)
-        
-        # 2. Detect languages
-        file_info = []
-        for file in files:
-            language = self.detector.detect(file)
-            if language in self.parsers:
-                # 3. Parse AST
-                ast_tree = self.parsers[language].parse(file)
-                
-                # 4. Extract symbols
-                symbols = self.symbol_extractor.extract(ast_tree)
-                
-                # 5. Track dependencies
-                deps = self.dependency_tracker.track(ast_tree)
-                
-                # 6. Calculate metrics
-                metrics = self.metrics_calculator.calculate(ast_tree)
-                
-                file_info.append(FileInfo(
-                    path=file,
-                    language=language,
-                    symbols=symbols,
-                    dependencies=deps,
-                    metrics=metrics
-                ))
-        
-        # 7. Build project model
-        return ProjectModel(files=file_info)
-```
-
-**Key Algorithms**:
-
-1. **Symbol Extraction**:
-```python
-def extract_symbols(self, ast_tree) -> List[Symbol]:
-    """Extract functions, classes, variables from AST"""
-    symbols = []
-    
-    for node in ast.walk(ast_tree):
-        if isinstance(node, ast.FunctionDef):
-            symbols.append(Symbol(
-                type="function",
-                name=node.name,
-                line=node.lineno,
-                parameters=[arg.arg for arg in node.args.args],
-                docstring=ast.get_docstring(node)
-            ))
-        
-        elif isinstance(node, ast.ClassDef):
-            symbols.append(Symbol(
-                type="class",
-                name=node.name,
-                line=node.lineno,
-                methods=[m.name for m in node.body if isinstance(m, ast.FunctionDef)],
-                docstring=ast.get_docstring(node)
-            ))
-    
-    return symbols
-```
-
-2. **Dependency Tracking**:
-```python
-def track_dependencies(self, ast_tree) -> DependencyGraph:
-    """Build dependency graph from imports"""
-    graph = DependencyGraph()
-    
-    for node in ast.walk(ast_tree):
-        if isinstance(node, ast.Import):
-            for alias in node.names:
-                graph.add_dependency(alias.name)
-        
-        elif isinstance(node, ast.ImportFrom):
-            module = node.module or ""
-            for alias in node.names:
-                graph.add_dependency(f"{module}.{alias.name}")
-    
-    return graph
-```
-
-### 6. Gap Analyzer Component
-
-**Responsibility**: Compare objectives with implementation
-
-**Architecture**:
-```
-GapAnalyzer
-├── ObjectiveMatcher (semantic matching)
-├── CompletionCalculator (progress calculation)
-├── EvidenceCollector (proof gathering)
-└── GapClassifier (gap categorization)
-```
-
-**Implementation**:
-```python
-class GapAnalyzer:
-    """Analyzes gaps between plan and implementation"""
-    
-    def __init__(self):
-        self.matcher = ObjectiveMatcher()
-        self.calculator = CompletionCalculator()
-        self.collector = EvidenceCollector()
-        self.classifier = GapClassifier()
-    
-    def analyze(self, 
-                objectives: List[Objective],
-                project_model: ProjectModel) -> List[Gap]:
-        """Identify gaps"""
-        gaps = []
-        
-        for objective in objectives:
-            # 1. Match objective to implementation
-            matches = self.matcher.match(objective, project_model)
-            
-            # 2. Calculate completion
-            completion = self.calculator.calculate(objective, matches)
-            
-            # 3. Collect evidence
-            evidence = self.collector.collect(objective, matches)
-            
-            # 4. Classify gap
-            if completion < 1.0:
-                gap = self.classifier.classify(
-                    objective, completion, evidence
-                )
-                gaps.append(gap)
-        
-        return gaps
-```
-
-**Key Algorithms**:
-
-1. **Semantic Matching**:
-```python
-def match_objective(self, 
-                   objective: Objective,
-                   project_model: ProjectModel) -> List[Match]:
-    """Match objective to implementation using semantic similarity"""
-    matches = []
-    
-    # Extract keywords from objective
-    obj_keywords = self._extract_keywords(objective.description)
-    
-    # Search for matching symbols
-    for file in project_model.files:
-        for symbol in file.symbols:
-            # Calculate similarity score
-            symbol_keywords = self._extract_keywords(
-                symbol.name + " " + (symbol.docstring or "")
-            )
-            
-            similarity = self._calculate_similarity(
-                obj_keywords, symbol_keywords
-            )
-            
-            if similarity > 0.6:  # Threshold
-                matches.append(Match(
-                    objective=objective,
-                    symbol=symbol,
-                    confidence=similarity
-                ))
-    
-    return matches
-
-def _calculate_similarity(self, keywords1: Set[str], 
-                         keywords2: Set[str]) -> float:
-    """Calculate Jaccard similarity"""
-    intersection = keywords1 & keywords2
-    union = keywords1 | keywords2
-    return len(intersection) / len(union) if union else 0.0
-```
-
-2. **Completion Calculation**:
-```python
-def calculate_completion(self,
-                        objective: Objective,
-                        matches: List[Match]) -> float:
-    """Calculate objective completion percentage"""
-    if not objective.tasks:
-        # No tasks defined, use match confidence
-        if not matches:
-            return 0.0
-        return max(m.confidence for m in matches)
-    
-    # Calculate task completion
-    completed_tasks = 0
-    for task in objective.tasks:
-        task_keywords = self._extract_keywords(task)
-        for match in matches:
-            match_keywords = self._extract_keywords(
-                match.symbol.name + " " + (match.symbol.docstring or "")
-            )
-            similarity = self._calculate_similarity(
-                task_keywords, match_keywords
-            )
-            if similarity > 0.7:
-                completed_tasks += 1
-                break
-    
-    return completed_tasks / len(objective.tasks)
-```
-
-### 7. Recommendation Engine Component
-
-**Responsibility**: Generate actionable recommendations
-
-**Architecture**:
-```
-RecommendationEngine
-├── GapAnalyzer (input)
-├── PriorityScorer (scoring)
-├── EffortEstimator (estimation)
-├── ImpactAnalyzer (impact assessment)
-└── DependencyResolver (ordering)
-```
-
-**Implementation**:
-```python
-class RecommendationEngine:
-    """Generates prioritized recommendations"""
-    
-    def __init__(self):
-        self.scorer = PriorityScorer()
-        self.estimator = EffortEstimator()
-        self.impact_analyzer = ImpactAnalyzer()
-        self.dependency_resolver = DependencyResolver()
-    
-    def generate(self,
-                gaps: List[Gap],
-                project_model: ProjectModel,
-                objectives: List[Objective]) -> List[Recommendation]:
-        """Generate recommendations"""
-        recommendations = []
-        
-        for gap in gaps:
-            # 1. Create recommendation
-            rec = Recommendation(
-                type=self._determine_type(gap),
-                title=f"Implement {gap.objective.title}",
-                description=gap.description,
-                related_objective=gap.objective.id
-            )
-            
-            # 2. Score priority
-            rec.priority = self.scorer.score(gap, objectives)
-            
-            # 3. Estimate effort
-            rec.effort = self.estimator.estimate(gap, project_model)
-            
-            # 4. Analyze impact
-            rec.impact = self.impact_analyzer.analyze(gap, objectives)
-            
-            recommendations.append(rec)
-        
-        # 5. Resolve dependencies and order
-        return self.dependency_resolver.resolve(recommendations)
-```
-
-**Key Algorithms**:
-
-1. **Priority Scoring**:
-```python
-def score_priority(self, gap: Gap, objectives: List[Objective]) -> int:
-    """Calculate priority score (1-100)"""
-    score = 0
-    
-    # Factor 1: Objective level (40 points)
-    if gap.objective.level == "primary":
-        score += 40
-    elif gap.objective.level == "secondary":
-        score += 25
-    else:  # tertiary
-        score += 10
-    
-    # Factor 2: Gap severity (30 points)
-    if gap.severity == "critical":
-        score += 30
-    elif gap.severity == "high":
-        score += 20
-    elif gap.severity == "medium":
-        score += 10
-    
-    # Factor 3: Blocking other objectives (20 points)
-    blocked_count = len([o for o in objectives 
-                        if gap.objective.id in o.dependencies])
-    score += min(blocked_count * 5, 20)
-    
-    # Factor 4: Completion percentage (10 points)
-    # Lower completion = higher priority
-    score += int((1.0 - gap.objective.completion) * 10)
-    
-    return min(score, 100)
-```
-
-2. **Effort Estimation**:
-```python
-def estimate_effort(self, gap: Gap, 
-                   project_model: ProjectModel) -> str:
-    """Estimate implementation effort"""
-    # Calculate complexity factors
-    factors = {
-        "task_count": len(gap.objective.tasks),
-        "dependency_count": len(gap.objective.dependencies),
-        "avg_file_size": self._avg_file_size(project_model),
-        "complexity": self._avg_complexity(project_model)
+**JavaScript Implementation**:
+```javascript
+class PlanningDashboard {
+    constructor(projectId) {
+        this.projectId = projectId;
+        this.metrics = null;
+        this.charts = {};
     }
     
-    # Simple heuristic
-    score = (
-        factors["task_count"] * 2 +
-        factors["dependency_count"] * 3 +
-        (factors["complexity"] / 10)
-    )
+    async load() {
+        // Load dashboard data
+        const response = await fetch(`/api/v1/projects/${this.projectId}/dashboard`, {
+            headers: {'Authorization': `Bearer ${this.getToken()}`}
+        });
+        const data = await response.json();
+        
+        this.metrics = data.metrics;
+        this.renderMetrics();
+        this.renderCharts(data.charts);
+        this.renderActivity(data.activity);
+        this.renderMilestones(data.milestones);
+    }
     
-    if score < 10:
-        return "small"  # < 1 day
-    elif score < 30:
-        return "medium"  # 1-3 days
-    else:
-        return "large"  # > 3 days
+    renderMetrics() {
+        // Update metric cards
+        document.querySelector('.metric-card:nth-child(1) .metric-value')
+            .textContent = `${this.metrics.completion}%`;
+        document.querySelector('.metric-card:nth-child(2) .metric-value')
+            .textContent = `${this.metrics.completed} / ${this.metrics.total}`;
+        // ... more metrics
+    }
+    
+    renderCharts(chartData) {
+        // Render progress chart
+        this.charts.progress = this.createLineChart(
+            'progress-chart',
+            chartData.progress
+        );
+        
+        // Render burndown chart
+        this.charts.burndown = this.createLineChart(
+            'burndown-chart',
+            chartData.burndown
+        );
+    }
+    
+    createLineChart(canvasId, data) {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext('2d');
+        
+        // Simple line chart implementation
+        // (In production, could use Chart.js or custom implementation)
+        const width = canvas.width;
+        const height = canvas.height;
+        const padding = 40;
+        
+        // Draw axes
+        ctx.beginPath();
+        ctx.moveTo(padding, padding);
+        ctx.lineTo(padding, height - padding);
+        ctx.lineTo(width - padding, height - padding);
+        ctx.stroke();
+        
+        // Draw data points
+        const xScale = (width - 2 * padding) / (data.length - 1);
+        const yScale = (height - 2 * padding) / 100;
+        
+        ctx.beginPath();
+        data.forEach((value, index) => {
+            const x = padding + index * xScale;
+            const y = height - padding - value * yScale;
+            if (index === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+        ctx.strokeStyle = '#2196f3';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        return canvas;
+    }
+    
+    getToken() {
+        return localStorage.getItem('auth_token');
+    }
+}
+
+// Initialize dashboard
+const dashboard = new PlanningDashboard(projectId);
+dashboard.load();
 ```
 
----
+#### 1.2 Gantt Chart Component
 
-## Data Flow
+**Purpose**: Visualize project timeline
 
-### 1. Analysis Flow
+**JavaScript Implementation**:
+```javascript
+class GanttChart {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.tasks = [];
+        this.startDate = null;
+        this.endDate = null;
+    }
+    
+    async load(projectId) {
+        const response = await fetch(`/api/v1/projects/${projectId}/timeline`, {
+            headers: {'Authorization': `Bearer ${this.getToken()}`}
+        });
+        const data = await response.json();
+        
+        this.tasks = data.tasks;
+        this.startDate = new Date(data.start_date);
+        this.endDate = new Date(data.end_date);
+        
+        this.render();
+    }
+    
+    render() {
+        const html = `
+            <div class="gantt-chart">
+                <div class="gantt-header">
+                    <div class="gantt-timeline">
+                        ${this.renderTimeline()}
+                    </div>
+                </div>
+                <div class="gantt-body">
+                    ${this.renderTasks()}
+                </div>
+            </div>
+        `;
+        
+        this.container.innerHTML = html;
+        this.attachEventListeners();
+    }
+    
+    renderTimeline() {
+        const days = this.getDaysBetween(this.startDate, this.endDate);
+        const months = this.getMonthsBetween(this.startDate, this.endDate);
+        
+        let html = '<div class="gantt-months">';
+        months.forEach(month => {
+            html += `<div class="gantt-month" style="width: ${month.days * 30}px">
+                ${month.name}
+            </div>`;
+        });
+        html += '</div>';
+        
+        html += '<div class="gantt-days">';
+        days.forEach(day => {
+            html += `<div class="gantt-day">${day}</div>`;
+        });
+        html += '</div>';
+        
+        return html;
+    }
+    
+    renderTasks() {
+        return this.tasks.map(task => {
+            const startOffset = this.getDaysBetween(this.startDate, new Date(task.start_date));
+            const duration = this.getDaysBetween(new Date(task.start_date), new Date(task.end_date));
+            
+            return `
+                <div class="gantt-task-row">
+                    <div class="gantt-task-label">${task.title}</div>
+                    <div class="gantt-task-bar-container">
+                        <div class="gantt-task-bar ${task.status}" 
+                             style="left: ${startOffset * 30}px; width: ${duration * 30}px"
+                             data-task-id="${task.id}">
+                            <span class="gantt-task-progress" style="width: ${task.completion}%"></span>
+                        </div>
+                        ${this.renderDependencies(task)}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    renderDependencies(task) {
+        if (!task.dependencies || task.dependencies.length === 0) {
+            return '';
+        }
+        
+        // Draw dependency lines
+        return task.dependencies.map(depId => {
+            const depTask = this.tasks.find(t => t.id === depId);
+            if (!depTask) return '';
+            
+            return `<svg class="gantt-dependency-line">
+                <line x1="0" y1="0" x2="100" y2="0" stroke="#999" />
+            </svg>`;
+        }).join('');
+    }
+    
+    getDaysBetween(start, end) {
+        const days = [];
+        const current = new Date(start);
+        while (current <= end) {
+            days.push(current.getDate());
+            current.setDate(current.getDate() + 1);
+        }
+        return days;
+    }
+    
+    getMonthsBetween(start, end) {
+        const months = [];
+        const current = new Date(start);
+        while (current <= end) {
+            const monthStart = new Date(current);
+            const monthEnd = new Date(current.getFullYear(), current.getMonth() + 1, 0);
+            const days = this.getDaysBetween(monthStart, monthEnd).length;
+            
+            months.push({
+                name: current.toLocaleString('default', { month: 'short' }),
+                days: days
+            });
+            
+            current.setMonth(current.getMonth() + 1);
+        }
+        return months;
+    }
+    
+    attachEventListeners() {
+        // Add drag-and-drop for task bars
+        const taskBars = this.container.querySelectorAll('.gantt-task-bar');
+        taskBars.forEach(bar => {
+            bar.addEventListener('mousedown', (e) => this.startDrag(e, bar));
+        });
+    }
+    
+    startDrag(e, bar) {
+        // Implement drag-and-drop for rescheduling
+        // ... drag logic
+    }
+    
+    getToken() {
+        return localStorage.getItem('auth_token');
+    }
+}
 
+const gantt = new GanttChart('gantt-container');
+gantt.load(projectId);
 ```
-User Request
-    │
-    ▼
-POST /api/v1/projects/{id}/analyze
-    │
-    ▼
-┌───────────────────────────────────┐
-│   AnalysisService.analyze()      │
-│                                   │
-│   1. Load Project                 │
-│   2. Parse MASTER_PLAN.md         │
-│   3. Analyze Source Code          │
-│   4. Perform Gap Analysis         │
-│   5. Generate Recommendations     │
-│   6. Store Results                │
-│   7. Create Snapshot              │
-└────────────────┬──────────────────┘
-                 │
-                 ▼
-         AnalysisResult
-                 │
-                 ▼
-         Return to User
+
+#### 1.3 Objective Hierarchy Tree Component
+
+**Purpose**: Visualize objective relationships
+
+**JavaScript Implementation**:
+```javascript
+class ObjectiveTree {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.objectives = [];
+    }
+    
+    async load(projectId) {
+        const response = await fetch(`/api/v1/projects/${projectId}/objectives`, {
+            headers: {'Authorization': `Bearer ${this.getToken()}`}
+        });
+        const data = await response.json();
+        
+        this.objectives = data.objectives;
+        this.render();
+    }
+    
+    render() {
+        const tree = this.buildTree(this.objectives);
+        const html = this.renderNode(tree);
+        this.container.innerHTML = html;
+        this.attachEventListeners();
+    }
+    
+    buildTree(objectives) {
+        // Group by type
+        const primary = objectives.filter(o => o.type === 'primary');
+        const secondary = objectives.filter(o => o.type === 'secondary');
+        const tertiary = objectives.filter(o => o.type === 'tertiary');
+        
+        // Build hierarchy
+        return {
+            type: 'root',
+            children: primary.map(p => ({
+                ...p,
+                children: secondary.filter(s => 
+                    s.dependencies && s.dependencies.includes(p.id)
+                ).map(s => ({
+                    ...s,
+                    children: tertiary.filter(t =>
+                        t.dependencies && t.dependencies.includes(s.id)
+                    )
+                }))
+            }))
+        };
+    }
+    
+    renderNode(node, level = 0) {
+        if (node.type === 'root') {
+            return `<div class="objective-tree">
+                ${node.children.map(child => this.renderNode(child, 0)).join('')}
+            </div>`;
+        }
+        
+        const statusClass = node.status || 'not_started';
+        const completionPercent = node.completion_percentage || 0;
+        
+        return `
+            <div class="objective-node level-${level}" data-id="${node.id}">
+                <div class="objective-header ${statusClass}">
+                    <span class="objective-toggle">
+                        ${node.children && node.children.length > 0 ? '▼' : ''}
+                    </span>
+                    <span class="objective-type">${node.type}</span>
+                    <span class="objective-title">${node.title}</span>
+                    <span class="objective-completion">${completionPercent}%</span>
+                    <div class="objective-progress-bar">
+                        <div class="objective-progress-fill" 
+                             style="width: ${completionPercent}%"></div>
+                    </div>
+                </div>
+                ${node.children && node.children.length > 0 ? `
+                    <div class="objective-children">
+                        ${node.children.map(child => this.renderNode(child, level + 1)).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    attachEventListeners() {
+        // Toggle expand/collapse
+        const toggles = this.container.querySelectorAll('.objective-toggle');
+        toggles.forEach(toggle => {
+            toggle.addEventListener('click', (e) => {
+                const node = e.target.closest('.objective-node');
+                const children = node.querySelector('.objective-children');
+                if (children) {
+                    children.style.display = 
+                        children.style.display === 'none' ? 'block' : 'none';
+                    e.target.textContent = 
+                        children.style.display === 'none' ? '▶' : '▼';
+                }
+            });
+        });
+        
+        // Click to view details
+        const headers = this.container.querySelectorAll('.objective-header');
+        headers.forEach(header => {
+            header.addEventListener('click', (e) => {
+                if (e.target.classList.contains('objective-toggle')) return;
+                const node = e.target.closest('.objective-node');
+                const objectiveId = node.dataset.id;
+                this.showObjectiveDetails(objectiveId);
+            });
+        });
+    }
+    
+    showObjectiveDetails(objectiveId) {
+        // Show objective details in modal or side panel
+        window.location.href = `/objectives/${objectiveId}`;
+    }
+    
+    getToken() {
+        return localStorage.getItem('auth_token');
+    }
+}
+
+const objectiveTree = new ObjectiveTree('objective-tree-container');
+objectiveTree.load(projectId);
 ```
 
-### 2. Recommendation Flow
+### 2. Backend Components
 
-```
-Gap Analysis Results
-    │
-    ▼
-RecommendationEngine.generate()
-    │
-    ├─► PriorityScorer.score()
-    │       │
-    │       └─► Priority Score (1-100)
-    │
-    ├─► EffortEstimator.estimate()
-    │       │
-    │       └─► Effort (small/medium/large)
-    │
-    ├─► ImpactAnalyzer.analyze()
-    │       │
-    │       └─► Impact (low/medium/high)
-    │
-    └─► DependencyResolver.resolve()
-            │
-            └─► Ordered Recommendations
+#### 2.1 MASTER_PLAN.md Parser
+
+**Purpose**: Extract objectives from MASTER_PLAN.md
+
+```python
+import re
+from typing import List, Dict
+from dataclasses import dataclass
+
+@dataclass
+class Objective:
+    type: str  # primary, secondary, tertiary
+    title: str
+    description: str
+    dependencies: List[str]
+    success_criteria: List[str]
+
+class MasterPlanParser:
+    """Parse MASTER_PLAN.md files"""
+    
+    def __init__(self):
+        self.objective_pattern = re.compile(
+            r'^#{1,3}\s+(\d+\.?\d*\.?\d*)\s+(.+)$',
+            re.MULTILINE
+        )
+    
+    def parse(self, content: str) -> Dict:
+        """Parse MASTER_PLAN.md content"""
+        objectives = self.extract_objectives(content)
+        dependencies = self.extract_dependencies(content)
+        success_criteria = self.extract_success_criteria(content)
+        
+        return {
+            'objectives': objectives,
+            'dependencies': dependencies,
+            'success_criteria': success_criteria
+        }
+    
+    def extract_objectives(self, content: str) -> List[Objective]:
+        """Extract objectives from content"""
+        objectives = []
+        lines = content.split('
+')
+        
+        current_objective = None
+        current_description = []
+        
+        for line in lines:
+            # Check for objective header
+            match = self.objective_pattern.match(line)
+            if match:
+                # Save previous objective
+                if current_objective:
+                    current_objective.description = '
+'.join(current_description)
+                    objectives.append(current_objective)
+                
+                # Start new objective
+                number = match.group(1)
+                title = match.group(2)
+                obj_type = self._determine_type(number)
+                
+                current_objective = Objective(
+                    type=obj_type,
+                    title=title,
+                    description='',
+                    dependencies=[],
+                    success_criteria=[]
+                )
+                current_description = []
+            
+            elif current_objective:
+                # Add to description
+                current_description.append(line)
+        
+        # Save last objective
+        if current_objective:
+            current_objective.description = '
+'.join(current_description)
+            objectives.append(current_objective)
+        
+        return objectives
+    
+    def _determine_type(self, number: str) -> str:
+        """Determine objective type from number"""
+        parts = number.split('.')
+        if len(parts) == 1:
+            return 'primary'
+        elif len(parts) == 2:
+            return 'secondary'
+        else:
+            return 'tertiary'
+    
+    def extract_dependencies(self, content: str) -> Dict[str, List[str]]:
+        """Extract dependencies between objectives"""
+        dependencies = {}
+        
+        # Look for dependency keywords
+        dep_pattern = re.compile(
+            r'depends on|requires|needs|after|following',
+            re.IGNORECASE
+        )
+        
+        # ... dependency extraction logic
+        
+        return dependencies
+    
+    def extract_success_criteria(self, content: str) -> Dict[str, List[str]]:
+        """Extract success criteria"""
+        criteria = {}
+        
+        # Look for success criteria sections
+        criteria_pattern = re.compile(
+            r'success criteria:(.+?)(?=
+#|\Z)',
+            re.IGNORECASE | re.DOTALL
+        )
+        
+        # ... criteria extraction logic
+        
+        return criteria
 ```
 
-### 3. Progress Tracking Flow
+#### 2.2 Web Search Tool
 
+**Purpose**: Search the web for project research
+
+```python
+import urllib.request
+import urllib.parse
+import json
+from typing import List, Dict
+from dataclasses import dataclass
+
+@dataclass
+class SearchResult:
+    title: str
+    url: str
+    snippet: str
+    published_date: str
+    score: float
+
+class WebSearchTool:
+    """Custom web search tool"""
+    
+    def __init__(self, api_key: str = None):
+        self.api_key = api_key
+        self.cache = {}
+    
+    def search(self, query: str, num_results: int = 10) -> List[SearchResult]:
+        """Search the web"""
+        # Check cache
+        cache_key = f"{query}:{num_results}"
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+        
+        # Perform search
+        results = self._search_google(query, num_results)
+        
+        # Cache results
+        self.cache[cache_key] = results
+        
+        return results
+    
+    def _search_google(self, query: str, num_results: int) -> List[SearchResult]:
+        """Search using Google Custom Search API"""
+        base_url = "https://www.googleapis.com/customsearch/v1"
+        
+        params = {
+            'key': self.api_key,
+            'cx': 'your-search-engine-id',
+            'q': query,
+            'num': num_results
+        }
+        
+        url = f"{base_url}?{urllib.parse.urlencode(params)}"
+        
+        try:
+            with urllib.request.urlopen(url) as response:
+                data = json.loads(response.read().decode('utf-8'))
+                
+                results = []
+                for item in data.get('items', []):
+                    results.append(SearchResult(
+                        title=item.get('title', ''),
+                        url=item.get('link', ''),
+                        snippet=item.get('snippet', ''),
+                        published_date=item.get('pagemap', {}).get('metatags', [{}])[0].get('article:published_time', ''),
+                        score=1.0
+                    ))
+                
+                return results
+        
+        except Exception as e:
+            print(f"Search error: {e}")
+            return []
+    
+    def research_technology(self, tech_name: str) -> Dict:
+        """Research a specific technology"""
+        queries = [
+            f"{tech_name} documentation",
+            f"{tech_name} tutorial",
+            f"{tech_name} pros and cons",
+            f"{tech_name} best practices",
+            f"{tech_name} vs alternatives"
+        ]
+        
+        results = {}
+        for query in queries:
+            results[query] = self.search(query, num_results=5)
+        
+        return results
+    
+    def find_similar_projects(self, description: str) -> List[SearchResult]:
+        """Find similar projects"""
+        query = f"open source project {description}"
+        return self.search(query, num_results=20)
+    
+    def competitive_analysis(self, project_name: str) -> Dict:
+        """Analyze competitors"""
+        queries = [
+            f"{project_name} competitors",
+            f"{project_name} alternatives",
+            f"{project_name} comparison",
+            f"best {project_name} alternatives"
+        ]
+        
+        results = {}
+        for query in queries:
+            results[query] = self.search(query, num_results=10)
+        
+        return results
 ```
-Periodic Snapshot
-    │
-    ▼
-SnapshotService.create()
-    │
-    ├─► Capture Current Metrics
-    │       │
-    │       ├─► Objective Completion %
-    │       ├─► Gap Count
-    │       ├─► Recommendation Count
-    │       └─► Quality Metrics
-    │
-    ├─► Compare with Previous
-    │       │
-    │       └─► Calculate Trends
-    │
-    └─► Store Snapshot
-            │
-            └─► Database
+
+#### 2.3 Timeline Generator
+
+**Purpose**: Generate project timelines
+
+```python
+from datetime import datetime, timedelta
+from typing import List, Dict
+from dataclasses import dataclass
+
+@dataclass
+class Task:
+    id: str
+    title: str
+    duration_days: int
+    dependencies: List[str]
+    assigned_to: str
+    start_date: datetime
+    end_date: datetime
+
+class TimelineGenerator:
+    """Generate project timelines"""
+    
+    def __init__(self):
+        self.tasks = []
+    
+    def generate(self, objectives: List[Objective]) -> Dict:
+        """Generate timeline from objectives"""
+        # Convert objectives to tasks
+        tasks = self._objectives_to_tasks(objectives)
+        
+        # Calculate dependencies
+        dep_graph = self._build_dependency_graph(tasks)
+        
+        # Calculate critical path
+        critical_path = self._calculate_critical_path(dep_graph)
+        
+        # Schedule tasks
+        scheduled_tasks = self._schedule_tasks(tasks, dep_graph)
+        
+        # Calculate project duration
+        start_date = min(t.start_date for t in scheduled_tasks)
+        end_date = max(t.end_date for t in scheduled_tasks)
+        
+        return {
+            'tasks': scheduled_tasks,
+            'critical_path': critical_path,
+            'start_date': start_date,
+            'end_date': end_date,
+            'duration_days': (end_date - start_date).days
+        }
+    
+    def _objectives_to_tasks(self, objectives: List[Objective]) -> List[Task]:
+        """Convert objectives to tasks"""
+        tasks = []
+        
+        for obj in objectives:
+            # Estimate duration based on objective type
+            if obj.type == 'primary':
+                duration = 30  # 30 days
+            elif obj.type == 'secondary':
+                duration = 14  # 14 days
+            else:
+                duration = 7  # 7 days
+            
+            task = Task(
+                id=f"task_{len(tasks)}",
+                title=obj.title,
+                duration_days=duration,
+                dependencies=obj.dependencies,
+                assigned_to='',
+                start_date=datetime.now(),
+                end_date=datetime.now() + timedelta(days=duration)
+            )
+            tasks.append(task)
+        
+        return tasks
+    
+    def _build_dependency_graph(self, tasks: List[Task]) -> Dict:
+        """Build dependency graph"""
+        graph = {task.id: [] for task in tasks}
+        
+        for task in tasks:
+            for dep_id in task.dependencies:
+                if dep_id in graph:
+                    graph[dep_id].append(task.id)
+        
+        return graph
+    
+    def _calculate_critical_path(self, graph: Dict) -> List[str]:
+        """Calculate critical path using CPM"""
+        # Topological sort
+        sorted_tasks = self._topological_sort(graph)
+        
+        # Calculate earliest start times
+        earliest_start = {}
+        for task_id in sorted_tasks:
+            if not graph[task_id]:
+                earliest_start[task_id] = 0
+            else:
+                earliest_start[task_id] = max(
+                    earliest_start[dep] + self._get_task_duration(dep)
+                    for dep in graph[task_id]
+                )
+        
+        # Calculate latest start times
+        latest_start = {}
+        for task_id in reversed(sorted_tasks):
+            if not any(task_id in deps for deps in graph.values()):
+                latest_start[task_id] = earliest_start[task_id]
+            else:
+                latest_start[task_id] = min(
+                    latest_start[successor] - self._get_task_duration(task_id)
+                    for successor, deps in graph.items()
+                    if task_id in deps
+                )
+        
+        # Find critical path (tasks with zero slack)
+        critical_path = [
+            task_id for task_id in sorted_tasks
+            if earliest_start[task_id] == latest_start[task_id]
+        ]
+        
+        return critical_path
+    
+    def _topological_sort(self, graph: Dict) -> List[str]:
+        """Topological sort of dependency graph"""
+        visited = set()
+        stack = []
+        
+        def dfs(node):
+            visited.add(node)
+            for neighbor in graph[node]:
+                if neighbor not in visited:
+                    dfs(neighbor)
+            stack.append(node)
+        
+        for node in graph:
+            if node not in visited:
+                dfs(node)
+        
+        return list(reversed(stack))
+    
+    def _schedule_tasks(self, tasks: List[Task], graph: Dict) -> List[Task]:
+        """Schedule tasks based on dependencies"""
+        scheduled = {}
+        start_date = datetime.now()
+        
+        # Sort tasks by dependencies
+        sorted_tasks = self._topological_sort(graph)
+        
+        for task_id in sorted_tasks:
+            task = next(t for t in tasks if t.id == task_id)
+            
+            # Find latest end date of dependencies
+            if task.dependencies:
+                dep_end_dates = [
+                    scheduled[dep_id].end_date
+                    for dep_id in task.dependencies
+                    if dep_id in scheduled
+                ]
+                if dep_end_dates:
+                    task.start_date = max(dep_end_dates)
+                else:
+                    task.start_date = start_date
+            else:
+                task.start_date = start_date
+            
+            task.end_date = task.start_date + timedelta(days=task.duration_days)
+            scheduled[task_id] = task
+        
+        return list(scheduled.values())
+    
+    def _get_task_duration(self, task_id: str) -> int:
+        """Get task duration"""
+        task = next((t for t in self.tasks if t.id == task_id), None)
+        return task.duration_days if task else 0
+```
+
+#### 2.4 Resource Estimator
+
+**Purpose**: Estimate project resources
+
+```python
+from typing import List, Dict
+from dataclasses import dataclass
+
+@dataclass
+class ResourceEstimate:
+    total_hours: float
+    total_days: float
+    team_size: int
+    cost: float
+    skills_required: List[str]
+
+class ResourceEstimator:
+    """Estimate project resources"""
+    
+    def __init__(self):
+        self.hourly_rate = 100  # Default hourly rate
+        self.hours_per_day = 8
+    
+    def estimate(self, objectives: List[Objective]) -> ResourceEstimate:
+        """Estimate resources for objectives"""
+        # Calculate total effort
+        total_hours = self._calculate_effort(objectives)
+        
+        # Identify required skills
+        skills = self._identify_skills(objectives)
+        
+        # Recommend team size
+        team_size = self._recommend_team_size(total_hours, skills)
+        
+        # Calculate cost
+        cost = total_hours * self.hourly_rate
+        
+        # Calculate duration
+        total_days = total_hours / (self.hours_per_day * team_size)
+        
+        return ResourceEstimate(
+            total_hours=total_hours,
+            total_days=total_days,
+            team_size=team_size,
+            cost=cost,
+            skills_required=skills
+        )
+    
+    def _calculate_effort(self, objectives: List[Objective]) -> float:
+        """Calculate total effort in hours"""
+        total_hours = 0
+        
+        for obj in objectives:
+            # Estimate based on objective type and complexity
+            if obj.type == 'primary':
+                base_hours = 240  # 30 days * 8 hours
+            elif obj.type == 'secondary':
+                base_hours = 112  # 14 days * 8 hours
+            else:
+                base_hours = 56  # 7 days * 8 hours
+            
+            # Adjust for complexity
+            complexity_multiplier = self._estimate_complexity(obj)
+            total_hours += base_hours * complexity_multiplier
+        
+        return total_hours
+    
+    def _estimate_complexity(self, objective: Objective) -> float:
+        """Estimate objective complexity"""
+        # Simple heuristic based on description length and keywords
+        description = objective.description.lower()
+        
+        complexity = 1.0
+        
+        # Check for complexity keywords
+        if any(word in description for word in ['complex', 'advanced', 'sophisticated']):
+            complexity *= 1.5
+        if any(word in description for word in ['simple', 'basic', 'straightforward']):
+            complexity *= 0.7
+        if any(word in description for word in ['integration', 'api', 'database']):
+            complexity *= 1.2
+        
+        return complexity
+    
+    def _identify_skills(self, objectives: List[Objective]) -> List[str]:
+        """Identify required skills"""
+        skills = set()
+        
+        for obj in objectives:
+            description = obj.description.lower()
+            
+            # Identify skills from keywords
+            if 'frontend' in description or 'ui' in description:
+                skills.add('Frontend Development')
+            if 'backend' in description or 'api' in description:
+                skills.add('Backend Development')
+            if 'database' in description or 'sql' in description:
+                skills.add('Database Design')
+            if 'devops' in description or 'deployment' in description:
+                skills.add('DevOps')
+            if 'testing' in description or 'qa' in description:
+                skills.add('QA/Testing')
+            if 'design' in description or 'ux' in description:
+                skills.add('UI/UX Design')
+        
+        return list(skills)
+    
+    def _recommend_team_size(self, total_hours: float, skills: List[str]) -> int:
+        """Recommend team size"""
+        # Base team size on total hours
+        if total_hours < 500:
+            base_size = 2
+        elif total_hours < 2000:
+            base_size = 4
+        elif total_hours < 5000:
+            base_size = 6
+        else:
+            base_size = 8
+        
+        # Adjust for skill diversity
+        skill_adjustment = len(skills) // 2
+        
+        return base_size + skill_adjustment
 ```
 
 ---
 
 ## API Design
 
-### REST API Principles
+### Complete API Specification
 
-1. **Resource-Oriented**: URLs represent resources
-2. **HTTP Methods**: GET (read), POST (create), PUT (update), DELETE (delete)
-3. **Status Codes**: Proper HTTP status codes
-4. **JSON**: Request/response format
-5. **Versioning**: /api/v1/ prefix
-6. **Pagination**: For list endpoints
-7. **Filtering**: Query parameters
-8. **HATEOAS**: Links to related resources
+#### Projects
+- `GET /api/v1/projects` - List all projects
+- `POST /api/v1/projects` - Create new project
+- `GET /api/v1/projects/{id}` - Get project details
+- `PUT /api/v1/projects/{id}` - Update project
+- `DELETE /api/v1/projects/{id}` - Delete project
+- `GET /api/v1/projects/{id}/dashboard` - Get dashboard data
+- `POST /api/v1/projects/{id}/analyze` - Analyze MASTER_PLAN.md
+- `GET /api/v1/projects/{id}/progress` - Get progress metrics
+- `GET /api/v1/projects/{id}/timeline` - Get timeline
+- `POST /api/v1/projects/{id}/timeline/generate` - Generate timeline
 
-### Endpoint Design
+#### Objectives
+- `GET /api/v1/projects/{id}/objectives` - List objectives
+- `POST /api/v1/projects/{id}/objectives` - Create objective
+- `GET /api/v1/objectives/{id}` - Get objective details
+- `PUT /api/v1/objectives/{id}` - Update objective
+- `DELETE /api/v1/objectives/{id}` - Delete objective
+- `GET /api/v1/objectives/{id}/gaps` - Get gaps
+- `GET /api/v1/objectives/{id}/dependencies` - Get dependencies
 
-#### 1. Project Management
+#### Tasks
+- `GET /api/v1/objectives/{id}/tasks` - List tasks
+- `POST /api/v1/objectives/{id}/tasks` - Create task
+- `GET /api/v1/tasks/{id}` - Get task details
+- `PUT /api/v1/tasks/{id}` - Update task
+- `DELETE /api/v1/tasks/{id}` - Delete task
+- `POST /api/v1/tasks/{id}/assign` - Assign task
 
-```
-POST /api/v1/projects
-Request:
-{
-  "name": "My Project",
-  "description": "Project description",
-  "local_path": "/path/to/project",
-  "repository_url": "https://github.com/user/repo"
-}
+#### Web Search
+- `POST /api/v1/search` - Search the web
+- `POST /api/v1/search/technology` - Research technology
+- `POST /api/v1/search/projects` - Find similar projects
+- `POST /api/v1/search/competitive` - Competitive analysis
 
-Response: 201 Created
-{
-  "id": "proj_abc123",
-  "name": "My Project",
-  "description": "Project description",
-  "local_path": "/path/to/project",
-  "repository_url": "https://github.com/user/repo",
-  "created_at": "2024-12-30T10:00:00Z",
-  "updated_at": "2024-12-30T10:00:00Z",
-  "status": "active",
-  "_links": {
-    "self": "/api/v1/projects/proj_abc123",
-    "analyze": "/api/v1/projects/proj_abc123/analyze",
-    "objectives": "/api/v1/projects/proj_abc123/objectives"
-  }
-}
-```
+#### Resources
+- `POST /api/v1/projects/{id}/estimate` - Estimate resources
+- `GET /api/v1/projects/{id}/resources` - Get resource allocation
 
-#### 2. Analysis Trigger
+#### Risks
+- `GET /api/v1/projects/{id}/risks` - List risks
+- `POST /api/v1/projects/{id}/risks` - Create risk
+- `GET /api/v1/risks/{id}` - Get risk details
+- `PUT /api/v1/risks/{id}` - Update risk
+- `DELETE /api/v1/risks/{id}` - Delete risk
 
-```
-POST /api/v1/projects/{id}/analyze
-Request:
-{
-  "analysis_type": "full",  // full, incremental, targeted
-  "include_history": true,
-  "options": {
-    "parse_masterplan": true,
-    "analyze_source": true,
-    "gap_analysis": true,
-    "generate_recommendations": true
-  }
-}
-
-Response: 202 Accepted
-{
-  "analysis_id": "ana_xyz789",
-  "project_id": "proj_abc123",
-  "status": "pending",
-  "started_at": "2024-12-30T10:05:00Z",
-  "_links": {
-    "self": "/api/v1/analyses/ana_xyz789",
-    "status": "/api/v1/analyses/ana_xyz789/status",
-    "results": "/api/v1/analyses/ana_xyz789/results"
-  }
-}
-```
-
-#### 3. Get Recommendations
-
-```
-GET /api/v1/projects/{id}/recommendations?priority_min=70&limit=10
-
-Response: 200 OK
-{
-  "project_id": "proj_abc123",
-  "total": 25,
-  "returned": 10,
-  "recommendations": [
-    {
-      "id": "rec_001",
-      "type": "implement",
-      "priority": 95,
-      "title": "Implement user authentication",
-      "description": "Add JWT-based authentication system",
-      "rationale": "Required for primary objective AUTH-001",
-      "effort": "medium",
-      "impact": "high",
-      "related_objectives": ["primary_001"],
-      "dependencies": [],
-      "created_at": "2024-12-30T10:10:00Z"
-    }
-  ],
-  "_links": {
-    "self": "/api/v1/projects/proj_abc123/recommendations?priority_min=70&limit=10",
-    "next": "/api/v1/projects/proj_abc123/recommendations?priority_min=70&limit=10&offset=10"
-  }
-}
-```
-
-### Error Handling
-
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Invalid project path",
-    "details": {
-      "field": "local_path",
-      "reason": "Path does not exist"
-    },
-    "timestamp": "2024-12-30T10:00:00Z",
-    "request_id": "req_123456"
-  }
-}
-```
-
-**Error Codes**:
-- 400: Bad Request (validation errors)
-- 401: Unauthorized (authentication required)
-- 403: Forbidden (insufficient permissions)
-- 404: Not Found (resource doesn't exist)
-- 409: Conflict (duplicate resource)
-- 422: Unprocessable Entity (semantic errors)
-- 429: Too Many Requests (rate limit exceeded)
-- 500: Internal Server Error
-- 503: Service Unavailable
+#### Comments
+- `GET /api/v1/objectives/{id}/comments` - Get comments
+- `POST /api/v1/objectives/{id}/comments` - Add comment
+- `PUT /api/v1/comments/{id}` - Update comment
+- `DELETE /api/v1/comments/{id}` - Delete comment
 
 ---
 
 ## Database Design
 
-### Schema Design Principles
-
-1. **Normalization**: 3NF (Third Normal Form)
-2. **Indexing**: On frequently queried columns
-3. **Constraints**: Foreign keys, unique constraints
-4. **Timestamps**: created_at, updated_at on all tables
-5. **Soft Deletes**: status field instead of DELETE
-6. **JSON Columns**: For flexible metadata
-
-### Entity Relationship Diagram
-
-```
-┌─────────────┐         ┌──────────────┐         ┌─────────────┐
-│  Projects   │1      *│  Objectives  │1      *│    Tasks    │
-│─────────────│◄────────│──────────────│◄────────│─────────────│
-│ id (PK)     │         │ id (PK)      │         │ id (PK)     │
-│ name        │         │ project_id   │         │ objective_id│
-│ description │         │ level        │         │ description │
-│ local_path  │         │ title        │         │ status      │
-│ status      │         │ description  │         │ completed_at│
-│ created_at  │         │ status       │         └─────────────┘
-│ updated_at  │         │ completion_%  │
-└─────────────┘         │ created_at   │
-       │                │ updated_at   │
-       │                └──────────────┘
-       │1                      │1
-       │                       │
-       │*                      │*
-┌──────▼──────────┐         ┌──────▼──────────┐
-│  Analyses   │         │     Gaps     │
-│─────────────│         │──────────────│
-│ id (PK)     │1      *│ id (PK)      │
-│ project_id  │◄────────│ analysis_id  │
-│ type        │         │ objective_id │
-│ status      │         │ gap_type     │
-│ started_at  │         │ severity     │
-│ completed_at│         │ description  │
-│ results     │         │ evidence     │
-└─────────────┘         └──────────────┘
-       │1
-       │
-       │*
-┌──────▼──────────────┐
-│  Recommendations   │
-│────────────────────│
-│ id (PK)            │
-│ analysis_id        │
-│ type               │
-│ priority           │
-│ title              │
-│ description        │
-│ effort             │
-│ impact             │
-│ status             │
-└────────────────────┘
-```
-
-### Indexes
-
-```sql
--- Projects
-CREATE INDEX idx_projects_status ON projects(status);
-CREATE INDEX idx_projects_updated ON projects(updated_at);
-
--- Objectives
-CREATE INDEX idx_objectives_project ON objectives(project_id);
-CREATE INDEX idx_objectives_level ON objectives(level);
-CREATE INDEX idx_objectives_status ON objectives(status);
-
--- Analyses
-CREATE INDEX idx_analyses_project ON analyses(project_id);
-CREATE INDEX idx_analyses_status ON analyses(status);
-CREATE INDEX idx_analyses_completed ON analyses(completed_at);
-
--- Gaps
-CREATE INDEX idx_gaps_analysis ON gaps(analysis_id);
-CREATE INDEX idx_gaps_objective ON gaps(objective_id);
-CREATE INDEX idx_gaps_severity ON gaps(severity);
-
--- Recommendations
-CREATE INDEX idx_recommendations_analysis ON recommendations(analysis_id);
-CREATE INDEX idx_recommendations_priority ON recommendations(priority);
-CREATE INDEX idx_recommendations_status ON recommendations(status);
-```
+See project1_MASTER_PLAN.md for complete database schema.
 
 ---
 
 ## Security Architecture
 
 ### 1. Authentication
-
-**Custom JWT Implementation**:
-```python
-def generate_token(user_id: str) -> str:
-    """Generate JWT token using hmac"""
-    payload = {
-        "user_id": user_id,
-        "exp": datetime.utcnow() + timedelta(hours=24),
-        "iat": datetime.utcnow()
-    }
-    return jwt_handler.encode(payload)
-
-def verify_token(token: str) -> Optional[str]:
-    """Verify JWT token and return user_id"""
-    payload = jwt_handler.decode(token)
-    return payload.get("user_id") if payload else None
-```
+- JWT tokens with HMAC-SHA256
+- Token expiration (1 hour default)
+- Refresh token support
+- Secure password hashing (SHA-256 with salt)
 
 ### 2. Authorization
-
-**Role-Based Access Control (RBAC)**:
-```python
-class Permission(Enum):
-    READ_PROJECT = "read:project"
-    WRITE_PROJECT = "write:project"
-    DELETE_PROJECT = "delete:project"
-    TRIGGER_ANALYSIS = "trigger:analysis"
-
-class Role(Enum):
-    VIEWER = [Permission.READ_PROJECT]
-    DEVELOPER = [Permission.READ_PROJECT, Permission.TRIGGER_ANALYSIS]
-    ADMIN = [Permission.READ_PROJECT, Permission.WRITE_PROJECT, 
-             Permission.DELETE_PROJECT, Permission.TRIGGER_ANALYSIS]
-
-def require_permission(permission: Permission):
-    """Decorator to check permissions"""
-    def decorator(func):
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            user = get_current_user()
-            if not user.has_permission(permission):
-                raise PermissionDenied()
-            return func(*args, **kwargs)
-        return wrapper
-    return decorator
-```
+- Role-based access control (RBAC)
+- Project-level permissions
+- User can only access their own projects
+- Admin role for system management
 
 ### 3. Input Validation
-
-**Custom Validators**:
-```python
-class ProjectValidator:
-    """Validate project data"""
-    
-    @staticmethod
-    def validate_create(data: Dict) -> Tuple[bool, List[str]]:
-        """Validate project creation data"""
-        errors = []
-        
-        # Required fields
-        if not data.get('name'):
-            errors.append("name is required")
-        elif len(data['name']) > 255:
-            errors.append("name must be <= 255 characters")
-        
-        # Path validation
-        if 'local_path' in data:
-            path = Path(data['local_path'])
-            if not path.exists():
-                errors.append("local_path does not exist")
-            elif not path.is_dir():
-                errors.append("local_path must be a directory")
-        
-        return len(errors) == 0, errors
-```
-
-### 4. Rate Limiting
-
-```python
-class RateLimiter:
-    """Custom rate limiter using in-memory storage"""
-    
-    def __init__(self, max_requests: int = 100, window: int = 3600):
-        self.max_requests = max_requests
-        self.window = window
-        self.requests = {}
-    
-    def is_allowed(self, client_id: str) -> bool:
-        """Check if request is allowed"""
-        now = time.time()
-        
-        # Clean old entries
-        self.requests = {
-            k: v for k, v in self.requests.items()
-            if now - v['timestamp'] < self.window
-        }
-        
-        # Check limit
-        if client_id not in self.requests:
-            self.requests[client_id] = {'count': 1, 'timestamp': now}
-            return True
-        
-        if self.requests[client_id]['count'] >= self.max_requests:
-            return False
-        
-        self.requests[client_id]['count'] += 1
-        return True
-```
-
-### 5. SQL Injection Prevention
-
-**Use Parameterized Queries**:
-```python
-# SAFE - Using parameterized queries
-cursor.execute(
-    "SELECT * FROM projects WHERE id = ?",
-    (project_id,)
-)
-
-# UNSAFE - String interpolation (DON'T DO THIS)
-# cursor.execute(f"SELECT * FROM projects WHERE id = '{project_id}'")
-```
-
----
-
-## Performance Architecture
-
-### 1. Caching Strategy
-
-**Multi-Level Caching**:
-```python
-from functools import lru_cache
-
-# Function-level cache
-@lru_cache(maxsize=128)
-def parse_masterplan(content: str):
-    """Cache parsed MASTER_PLAN"""
-    return parser.parse(content)
-
-# Application-level cache
-class CacheManager:
-    """Simple in-memory cache"""
-    
-    def __init__(self, ttl: int = 300):
-        self.cache = {}
-        self.ttl = ttl
-    
-    def get(self, key: str) -> Optional[Any]:
-        """Get cached value"""
-        if key in self.cache:
-            value, timestamp = self.cache[key]
-            if time.time() - timestamp < self.ttl:
-                return value
-            del self.cache[key]
-        return None
-    
-    def set(self, key: str, value: Any):
-        """Set cached value"""
-        self.cache[key] = (value, time.time())
-```
-
-### 2. Database Optimization
-
-**Query Optimization**:
-```python
-# Use indexes
-cursor.execute("""
-    SELECT * FROM projects 
-    WHERE status = ? 
-    ORDER BY updated_at DESC
-""", ('active',))
-
-# Pagination
-def get_projects_paginated(page: int, per_page: int):
-    offset = (page - 1) * per_page
-    cursor.execute("""
-        SELECT * FROM projects 
-        LIMIT ? OFFSET ?
-    """, (per_page, offset))
-    return cursor.fetchall()
-```
-
-### 3. Performance Monitoring
-
-```python
-import time
-from functools import wraps
-
-def monitor_performance(func):
-    """Decorator to monitor function performance"""
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        start = time.time()
-        result = func(*args, **kwargs)
-        duration = time.time() - start
-        
-        logger.info(f"{func.__name__} took {duration:.2f}s")
-        
-        # Alert if slow
-        if duration > 5.0:
-            logger.warning(f"Slow operation: {func.__name__}")
-        
-        return result
-    return wrapper
-```
+- Validate all user inputs
+- Sanitize file paths
+- Prevent SQL injection
+- Prevent XSS attacks
 
 ---
 
 ## Deployment Architecture
 
-### Apache + mod_wsgi Configuration
+### Apache Configuration
 
-**Apache VirtualHost (HTTP)**:
-```apache
-<VirtualHost *:80>
-    ServerName project1.example.com
-    ServerAdmin admin@example.com
-    
-    # Redirect to HTTPS
-    Redirect permanent / https://project1.example.com/
-    
-    ErrorLog ${APACHE_LOG_DIR}/project1-error.log
-    CustomLog ${APACHE_LOG_DIR}/project1-access.log combined
-</VirtualHost>
-```
-
-**Apache VirtualHost (HTTPS)**:
 ```apache
 <VirtualHost *:443>
-    ServerName project1.example.com
-    ServerAdmin admin@example.com
+    ServerName planning-platform.example.com
     
-    # SSL Configuration
     SSLEngine on
-    SSLCertificateFile /etc/ssl/certs/project1.crt
-    SSLCertificateKeyFile /etc/ssl/private/project1.key
-    SSLCertificateChainFile /etc/ssl/certs/project1-chain.crt
+    SSLCertificateFile /path/to/cert.pem
+    SSLCertificateKeyFile /path/to/key.pem
     
-    # Security headers
-    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
-    Header always set X-Frame-Options "SAMEORIGIN"
-    Header always set X-Content-Type-Options "nosniff"
-    Header always set X-XSS-Protection "1; mode=block"
+    WSGIDaemonProcess planning user=www-data group=www-data threads=5
+    WSGIScriptAlias / /var/www/planning/wsgi.py
     
-    # WSGI Configuration
-    WSGIDaemonProcess project1 \
-        user=www-data \
-        group=www-data \
-        processes=4 \
-        threads=2 \
-        python-home=/opt/project1/venv \
-        python-path=/opt/project1
-    
-    WSGIProcessGroup project1
-    WSGIScriptAlias / /opt/project1/deployment/wsgi.py
-    
-    # Static files
-    Alias /static /opt/project1/frontend
-    <Directory /opt/project1/frontend>
-        Require all granted
-        Options -Indexes
-    </Directory>
-    
-    # Application directory
-    <Directory /opt/project1>
+    <Directory /var/www/planning>
+        WSGIProcessGroup planning
+        WSGIApplicationGroup %{GLOBAL}
         Require all granted
     </Directory>
     
-    # Logging
-    ErrorLog ${APACHE_LOG_DIR}/project1-ssl-error.log
-    CustomLog ${APACHE_LOG_DIR}/project1-ssl-access.log combined
-    
-    # Compression
-    <IfModule mod_deflate.c>
-        AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
-    </IfModule>
+    ErrorLog ${APACHE_LOG_DIR}/planning-error.log
+    CustomLog ${APACHE_LOG_DIR}/planning-access.log combined
 </VirtualHost>
 ```
-
-**WSGI Entry Point**:
-```python
-# deployment/wsgi.py
-import sys
-import os
-
-# Add project to path
-sys.path.insert(0, '/opt/project1')
-
-# Set environment
-os.environ['APP_ENV'] = 'production'
-os.environ['DATABASE_TYPE'] = 'sqlite'
-os.environ['DATABASE_PATH'] = '/var/lib/project1/db.sqlite'
-
-from app.wsgi import application
-```
-
-### Directory Structure
-
-```
-/opt/project1/
-├── app/                    # Application code
-├── venv/                   # Virtual environment
-├── deployment/
-│   ├── wsgi.py            # WSGI entry point
-│   └── config.py          # Production config
-├── data/
-│   └── db.sqlite          # Database
-└── logs/
-    ├── app.log            # Application logs
-    └── error.log          # Error logs
-```
-
----
-
-## Integration Points
-
-### 1. Git Integration
-
-```python
-import subprocess
-
-class GitIntegration:
-    """Integrate with Git repositories using subprocess"""
-    
-    def clone_repository(self, url: str, path: Path):
-        """Clone repository"""
-        subprocess.run(['git', 'clone', url, str(path)], check=True)
-    
-    def pull_updates(self, path: Path):
-        """Pull latest changes"""
-        subprocess.run(['git', '-C', str(path), 'pull'], check=True)
-    
-    def get_commit_history(self, path: Path, limit: int = 10):
-        """Get recent commits"""
-        result = subprocess.run(
-            ['git', '-C', str(path), 'log', f'-{limit}', '--oneline'],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return result.stdout.strip().split('\n')
-```
-
-### 2. CI/CD Integration
-
-**GitHub Actions Example**:
-```yaml
-name: Project Analysis
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      
-      - name: Trigger Analysis
-        run: |
-          curl -X POST \
-            -H "Authorization: Bearer ${{ secrets.API_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            -d '{"analysis_type": "incremental"}' \
-            https://project1.example.com/api/v1/projects/$PROJECT_ID/analyze
-      
-      - name: Get Recommendations
-        run: |
-          curl -H "Authorization: Bearer ${{ secrets.API_TOKEN }}" \
-            https://project1.example.com/api/v1/projects/$PROJECT_ID/recommendations
-```
-
-### 3. Webhook Integration
-
-```python
-def handle_github_webhook(request: Request) -> Response:
-    """Handle GitHub webhook"""
-    event = request.headers.get("X-GitHub-Event")
-    payload = request.body
-    
-    if event == "push":
-        # Trigger analysis on push
-        project_id = get_project_by_repo(payload["repository"]["url"])
-        if project_id:
-            trigger_analysis(project_id)
-    
-    return Response(status=200, body={"status": "ok"})
-```
-
----
-
-## Conclusion
-
-This architecture provides:
-- ✅ **Scalability** - Layered design allows independent scaling
-- ✅ **Maintainability** - Clear separation of concerns
-- ✅ **Testability** - Each component can be tested independently
-- ✅ **Extensibility** - Easy to add new analyzers and engines
-- ✅ **Performance** - Caching and optimization strategies
-- ✅ **Security** - Authentication, authorization, validation
-- ✅ **Reliability** - Error handling and monitoring
-- ✅ **Custom Implementation** - No external framework dependencies
-
-**Ready for implementation following project1_MASTER_PLAN.md objectives.**
-
----
-
-**Document Version**: 2.0.0  
-**Created**: 2024-12-30  
-**Updated**: 2024-12-30  
-**Status**: Design Complete - Ready for Development
----
-
-## Chat System Architecture
-
-### Real-Time Communication
-
-**WebSocket/SSE Implementation**:
-```python
-class ChatService:
-    """Manages real-time chat with Ollama models"""
-    
-    def __init__(self, ollama_service: OllamaService):
-        self.ollama_service = ollama_service
-        self.active_streams = {}
-    
-    def stream_response(self, thread_id: str, message: str, 
-                       model: str, server: str) -> Generator:
-        """Stream response from Ollama model"""
-        # Store message
-        self._save_message(thread_id, 'user', message)
-        
-        # Stream from Ollama
-        response_text = ""
-        for chunk in self.ollama_service.stream_chat(
-            model=model,
-            server=server,
-            messages=self._get_thread_messages(thread_id)
-        ):
-            response_text += chunk
-            yield chunk
-        
-        # Save complete response
-        self._save_message(thread_id, 'assistant', response_text, model)
-```
-
-**Thread Management**:
-```python
-class ThreadRepository:
-    """Manage conversation threads"""
-    
-    def create_thread(self, user_id: str, project_id: str = None,
-                     title: str = "New Conversation") -> Thread:
-        """Create new conversation thread"""
-        
-    def assign_to_project(self, thread_id: str, project_id: str):
-        """Assign thread to project"""
-        
-    def get_project_threads(self, project_id: str) -> List[Thread]:
-        """Get all threads for a project"""
-        
-    def search_threads(self, query: str, user_id: str) -> List[Thread]:
-        """Search threads by content"""
-```
-
----
-
-## File Management Architecture
-
-### File Browser Component
-
-**Tree View Implementation**:
-```python
-class FileBrowserService:
-    """Manage file operations"""
-    
-    def get_tree(self, project_id: str, path: str = "/") -> Dict:
-        """Get directory tree structure"""
-        project = self.project_repo.get_by_id(project_id)
-        base_path = Path(project.local_path)
-        
-        tree = {
-            'name': path,
-            'type': 'directory',
-            'children': []
-        }
-        
-        for item in (base_path / path).iterdir():
-            if item.is_dir():
-                tree['children'].append({
-                    'name': item.name,
-                    'type': 'directory',
-                    'path': str(item.relative_to(base_path))
-                })
-            else:
-                tree['children'].append({
-                    'name': item.name,
-                    'type': 'file',
-                    'path': str(item.relative_to(base_path)),
-                    'size': item.stat().st_size,
-                    'modified': item.stat().st_mtime
-                })
-        
-        return tree
-```
-
-**File Upload/Download**:
-```python
-class FileService:
-    """Handle file operations"""
-    
-    def upload_file(self, project_id: str, file_data: bytes,
-                   filename: str, path: str = "/"):
-        """Upload file to project"""
-        project = self.project_repo.get_by_id(project_id)
-        target_path = Path(project.local_path) / path / filename
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        target_path.write_bytes(file_data)
-        
-        # Store metadata
-        self.file_repo.create(File(
-            project_id=project_id,
-            path=str(target_path.relative_to(project.local_path)),
-            name=filename,
-            size=len(file_data),
-            hash=hashlib.sha256(file_data).hexdigest()
-        ))
-    
-    def download_file(self, project_id: str, filepath: str) -> bytes:
-        """Download file from project"""
-        project = self.project_repo.get_by_id(project_id)
-        file_path = Path(project.local_path) / filepath
-        return file_path.read_bytes()
-    
-    def create_zip(self, project_id: str) -> bytes:
-        """Create zip of entire project"""
-        import zipfile
-        from io import BytesIO
-        
-        project = self.project_repo.get_by_id(project_id)
-        base_path = Path(project.local_path)
-        
-        zip_buffer = BytesIO()
-        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            for file_path in base_path.rglob('*'):
-                if file_path.is_file():
-                    arcname = file_path.relative_to(base_path)
-                    zipf.write(file_path, arcname)
-        
-        return zip_buffer.getvalue()
-```
-
----
-
-## Git Integration Architecture
-
-### Git Operations Service
-
-**Git Status and Operations**:
-```python
-class GitService:
-    """Handle git operations using subprocess"""
-    
-    def __init__(self):
-        self.git_cmd = 'git'
-    
-    def get_status(self, project_id: str) -> Dict:
-        """Get git status"""
-        project = self.project_repo.get_by_id(project_id)
-        repo_path = Path(project.local_path)
-        
-        # Get branch
-        branch = self._run_git(repo_path, ['branch', '--show-current'])
-        
-        # Get status
-        status_output = self._run_git(repo_path, ['status', '--porcelain'])
-        
-        # Parse status
-        staged = []
-        unstaged = []
-        untracked = []
-        
-        for line in status_output.split('\n'):
-            if not line:
-                continue
-            status = line[:2]
-            filepath = line[3:]
-            
-            if status[0] in ['M', 'A', 'D']:
-                staged.append({'file': filepath, 'status': status[0]})
-            if status[1] in ['M', 'D']:
-                unstaged.append({'file': filepath, 'status': status[1]})
-            if status == '??':
-                untracked.append(filepath)
-        
-        return {
-            'branch': branch.strip(),
-            'staged': staged,
-            'unstaged': unstaged,
-            'untracked': untracked
-        }
-    
-    def stage_files(self, project_id: str, files: List[str]):
-        """Stage files for commit"""
-        project = self.project_repo.get_by_id(project_id)
-        repo_path = Path(project.local_path)
-        self._run_git(repo_path, ['add'] + files)
-    
-    def commit(self, project_id: str, message: str) -> str:
-        """Commit staged changes"""
-        project = self.project_repo.get_by_id(project_id)
-        repo_path = Path(project.local_path)
-        return self._run_git(repo_path, ['commit', '-m', message])
-    
-    def push(self, project_id: str, remote: str = 'origin',
-            branch: str = None) -> str:
-        """Push commits to remote"""
-        project = self.project_repo.get_by_id(project_id)
-        repo_path = Path(project.local_path)
-        
-        if not branch:
-            branch = self._run_git(repo_path, ['branch', '--show-current']).strip()
-        
-        return self._run_git(repo_path, ['push', remote, branch])
-    
-    def pull(self, project_id: str, remote: str = 'origin',
-            branch: str = None) -> str:
-        """Pull changes from remote"""
-        project = self.project_repo.get_by_id(project_id)
-        repo_path = Path(project.local_path)
-        
-        if not branch:
-            branch = self._run_git(repo_path, ['branch', '--show-current']).strip()
-        
-        return self._run_git(repo_path, ['pull', remote, branch])
-    
-    def get_diff(self, project_id: str, filepath: str = None) -> str:
-        """Get diff for file or all changes"""
-        project = self.project_repo.get_by_id(project_id)
-        repo_path = Path(project.local_path)
-        
-        cmd = ['diff']
-        if filepath:
-            cmd.append(filepath)
-        
-        return self._run_git(repo_path, cmd)
-    
-    def get_log(self, project_id: str, limit: int = 10) -> List[Dict]:
-        """Get commit history"""
-        project = self.project_repo.get_by_id(project_id)
-        repo_path = Path(project.local_path)
-        
-        log_output = self._run_git(repo_path, [
-            'log',
-            f'-{limit}',
-            '--pretty=format:%H|%an|%ae|%at|%s'
-        ])
-        
-        commits = []
-        for line in log_output.split('\n'):
-            if not line:
-                continue
-            hash, author, email, timestamp, message = line.split('|', 4)
-            commits.append({
-                'hash': hash,
-                'author': author,
-                'email': email,
-                'timestamp': int(timestamp),
-                'message': message
-            })
-        
-        return commits
-    
-    def _run_git(self, repo_path: Path, args: List[str]) -> str:
-        """Run git command"""
-        import subprocess
-        result = subprocess.run(
-            [self.git_cmd, '-C', str(repo_path)] + args,
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return result.stdout
-```
-
-**SSH Key Management**:
-```python
-class SSHKeyService:
-    """Manage SSH keys per project"""
-    
-    def add_key(self, project_id: str, private_key: str,
-               public_key: str = None):
-        """Add SSH key for project"""
-        project = self.project_repo.get_by_id(project_id)
-        key_dir = Path(project.local_path) / '.ssh'
-        key_dir.mkdir(exist_ok=True, mode=0o700)
-        
-        # Save private key
-        private_key_path = key_dir / 'id_rsa'
-        private_key_path.write_text(private_key)
-        private_key_path.chmod(0o600)
-        
-        # Save public key if provided
-        if public_key:
-            public_key_path = key_dir / 'id_rsa.pub'
-            public_key_path.write_text(public_key)
-            public_key_path.chmod(0o644)
-    
-    def get_key(self, project_id: str) -> Dict:
-        """Get SSH key for project"""
-        project = self.project_repo.get_by_id(project_id)
-        key_dir = Path(project.local_path) / '.ssh'
-        
-        private_key_path = key_dir / 'id_rsa'
-        public_key_path = key_dir / 'id_rsa.pub'
-        
-        return {
-            'private_key': private_key_path.read_text() if private_key_path.exists() else None,
-            'public_key': public_key_path.read_text() if public_key_path.exists() else None
-        }
-```
-
----
-
-## Ollama Integration Architecture
-
-### Ollama Service
-
-**Server Management**:
-```python
-class OllamaService:
-    """Integrate with Ollama servers"""
-    
-    def __init__(self):
-        self.servers = {}
-    
-    def add_server(self, name: str, host: str, port: int = 11434):
-        """Add Ollama server"""
-        self.servers[name] = {
-            'host': host,
-            'port': port,
-            'base_url': f"http://{host}:{port}"
-        }
-    
-    def test_connection(self, server_name: str) -> bool:
-        """Test server connectivity"""
-        import urllib.request
-        server = self.servers[server_name]
-        try:
-            response = urllib.request.urlopen(
-                f"{server['base_url']}/api/tags",
-                timeout=5
-            )
-            return response.status == 200
-        except:
-            return False
-    
-    def list_models(self, server_name: str) -> List[Dict]:
-        """List available models on server"""
-        import urllib.request
-        import json
-        
-        server = self.servers[server_name]
-        response = urllib.request.urlopen(
-            f"{server['base_url']}/api/tags"
-        )
-        data = json.loads(response.read())
-        return data.get('models', [])
-    
-    def pull_model(self, server_name: str, model_name: str):
-        """Pull model to server"""
-        import urllib.request
-        import json
-        
-        server = self.servers[server_name]
-        data = json.dumps({'name': model_name}).encode('utf-8')
-        
-        req = urllib.request.Request(
-            f"{server['base_url']}/api/pull",
-            data=data,
-            headers={'Content-Type': 'application/json'}
-        )
-        
-        response = urllib.request.urlopen(req)
-        return response.read()
-    
-    def stream_chat(self, model: str, server: str,
-                   messages: List[Dict]) -> Generator:
-        """Stream chat response from Ollama"""
-        import urllib.request
-        import json
-        
-        server_config = self.servers[server]
-        data = json.dumps({
-            'model': model,
-            'messages': messages,
-            'stream': True
-        }).encode('utf-8')
-        
-        req = urllib.request.Request(
-            f"{server_config['base_url']}/api/chat",
-            data=data,
-            headers={'Content-Type': 'application/json'}
-        )
-        
-        with urllib.request.urlopen(req) as response:
-            for line in response:
-                if line:
-                    chunk = json.loads(line)
-                    if 'message' in chunk:
-                        yield chunk['message'].get('content', '')
-```
-
-**Model Configuration**:
-```python
-class ModelConfig:
-    """Model configuration per project"""
-    
-    def __init__(self, project_id: str):
-        self.project_id = project_id
-        self.config = self._load_config()
-    
-    def set_default_model(self, model: str, server: str):
-        """Set default model for project"""
-        self.config['default_model'] = model
-        self.config['default_server'] = server
-        self._save_config()
-    
-    def set_temperature(self, temperature: float):
-        """Set default temperature"""
-        self.config['temperature'] = temperature
-        self._save_config()
-    
-    def get_config(self) -> Dict:
-        """Get model configuration"""
-        return self.config
-```
-
----
-
-## Frontend Architecture
-
-### Component Structure
-
-**Main Application**:
-```javascript
-class App {
-    constructor() {
-        this.api = new APIClient();
-        this.router = new Router();
-        this.state = new StateManager();
-        
-        this.components = {
-            sidebar: new Sidebar(),
-            dashboard: new Dashboard(),
-            chat: new ChatInterface(),
-            fileBrowser: new FileBrowser(),
-            gitUI: new GitInterface(),
-            editor: new CodeEditor()
-        };
-        
-        this.init();
-    }
-    
-    init() {
-        this.router.init();
-        this.loadUser();
-        this.setupEventListeners();
-    }
-}
-```
-
-**Chat Interface Component**:
-```javascript
-class ChatInterface {
-    constructor() {
-        this.threads = [];
-        this.currentThread = null;
-        this.ws = null;
-    }
-    
-    async sendMessage(message) {
-        // Add user message to UI
-        this.addMessage('user', message);
-        
-        // Stream response from server
-        const response = await this.api.streamChat(
-            this.currentThread.id,
-            message,
-            this.currentThread.model
-        );
-        
-        let assistantMessage = '';
-        for await (const chunk of response) {
-            assistantMessage += chunk;
-            this.updateStreamingMessage(assistantMessage);
-        }
-    }
-    
-    addMessage(role, content) {
-        const messageEl = document.createElement('div');
-        messageEl.className = `message message-${role}`;
-        messageEl.innerHTML = this.renderMarkdown(content);
-        document.getElementById('messages').appendChild(messageEl);
-    }
-    
-    renderMarkdown(text) {
-        // Custom markdown renderer
-        return this.markdownRenderer.render(text);
-    }
-}
-```
-
-**File Browser Component**:
-```javascript
-class FileBrowser {
-    constructor() {
-        this.currentPath = '/';
-        this.tree = null;
-    }
-    
-    async loadTree(projectId) {
-        this.tree = await this.api.getFileTree(projectId);
-        this.render();
-    }
-    
-    render() {
-        const treeEl = document.getElementById('file-tree');
-        treeEl.innerHTML = this.renderTree(this.tree);
-    }
-    
-    renderTree(node, level = 0) {
-        let html = '';
-        const indent = '  '.repeat(level);
-        
-        if (node.type === 'directory') {
-            html += `${indent}<div class="directory">📁 ${node.name}</div>`;
-            for (const child of node.children) {
-                html += this.renderTree(child, level + 1);
-            }
-        } else {
-            html += `${indent}<div class="file" data-path="${node.path}">📄 ${node.name}</div>`;
-        }
-        
-        return html;
-    }
-    
-    async uploadFile(file) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('path', this.currentPath);
-        
-        await this.api.uploadFile(this.projectId, formData);
-        await this.loadTree(this.projectId);
-    }
-}
-```
-
-**Git Interface Component**:
-```javascript
-class GitInterface {
-    constructor() {
-        this.status = null;
-    }
-    
-    async loadStatus(projectId) {
-        this.status = await this.api.getGitStatus(projectId);
-        this.render();
-    }
-    
-    render() {
-        const statusEl = document.getElementById('git-status');
-        statusEl.innerHTML = `
-            <div class="git-branch">Branch: ${this.status.branch}</div>
-            <div class="git-staged">Staged: ${this.status.staged.length}</div>
-            <div class="git-unstaged">Unstaged: ${this.status.unstaged.length}</div>
-            <div class="git-files">
-                ${this.renderFiles()}
-            </div>
-        `;
-    }
-    
-    async commit(message) {
-        await this.api.gitCommit(this.projectId, message);
-        await this.loadStatus(this.projectId);
-    }
-    
-    async push() {
-        await this.api.gitPush(this.projectId);
-        this.showNotification('Pushed successfully');
-    }
-}
-```
-
-**Code Editor Component**:
-```javascript
-class CodeEditor {
-    constructor() {
-        this.content = '';
-        this.language = 'python';
-        this.highlighter = new SyntaxHighlighter();
-    }
-    
-    load(filepath, content) {
-        this.filepath = filepath;
-        this.content = content;
-        this.language = this.detectLanguage(filepath);
-        this.render();
-    }
-    
-    render() {
-        const editorEl = document.getElementById('editor');
-        editorEl.innerHTML = `
-            <div class="editor-toolbar">
-                <button onclick="editor.save()">Save</button>
-                <button onclick="editor.download()">Download</button>
-            </div>
-            <div class="editor-content">
-                <textarea id="code-input">${this.content}</textarea>
-            </div>
-        `;
-        
-        this.highlighter.highlight(document.getElementById('code-input'));
-    }
-    
-    async save() {
-        const content = document.getElementById('code-input').value;
-        await this.api.saveFile(this.projectId, this.filepath, content);
-        this.showNotification('Saved successfully');
-    }
-}
-```
-
----
-
-## API Design Extensions
-
-### Chat Endpoints
-
-```
-POST   /api/v1/threads                      # Create new thread
-GET    /api/v1/threads                      # List threads
-GET    /api/v1/threads/{id}                 # Get thread details
-PUT    /api/v1/threads/{id}                 # Update thread
-DELETE /api/v1/threads/{id}                 # Delete thread
-POST   /api/v1/threads/{id}/assign          # Assign to project
-
-POST   /api/v1/threads/{id}/messages        # Send message
-GET    /api/v1/threads/{id}/messages        # Get messages
-GET    /api/v1/threads/{id}/stream          # Stream response (SSE)
-```
-
-### File Management Endpoints
-
-```
-GET    /api/v1/projects/{id}/files          # List files
-GET    /api/v1/projects/{id}/files/tree     # Get file tree
-POST   /api/v1/projects/{id}/files/upload   # Upload file
-GET    /api/v1/projects/{id}/files/download # Download file
-POST   /api/v1/projects/{id}/files/zip      # Create project zip
-DELETE /api/v1/projects/{id}/files/{path}   # Delete file
-PUT    /api/v1/projects/{id}/files/{path}   # Update file
-```
-
-### Git Endpoints
-
-```
-GET    /api/v1/projects/{id}/git/status     # Get git status
-POST   /api/v1/projects/{id}/git/stage      # Stage files
-POST   /api/v1/projects/{id}/git/commit     # Commit changes
-POST   /api/v1/projects/{id}/git/push       # Push to remote
-POST   /api/v1/projects/{id}/git/pull       # Pull from remote
-GET    /api/v1/projects/{id}/git/log        # Get commit history
-GET    /api/v1/projects/{id}/git/diff       # Get diff
-POST   /api/v1/projects/{id}/git/keys       # Add SSH key
-GET    /api/v1/projects/{id}/git/keys       # Get SSH key
-```
-
-### Server Management Endpoints
-
-```
-GET    /api/v1/servers                      # List servers
-POST   /api/v1/servers                      # Add server
-PUT    /api/v1/servers/{id}                 # Update server
-DELETE /api/v1/servers/{id}                 # Delete server
-GET    /api/v1/servers/{id}/test            # Test connection
-GET    /api/v1/servers/{id}/models          # List models
-POST   /api/v1/servers/{id}/models/pull     # Pull model
-```
-
-### Prompt Management Endpoints
-
-```
-GET    /api/v1/prompts                      # List prompts
-POST   /api/v1/prompts                      # Create prompt
-GET    /api/v1/prompts/{id}                 # Get prompt
-PUT    /api/v1/prompts/{id}                 # Update prompt
-DELETE /api/v1/prompts/{id}                 # Delete prompt
-POST   /api/v1/prompts/{id}/test            # Test prompt
-```
-
----
-
-## Conclusion
-
-This architecture provides a comprehensive project management platform with:
-- ✅ **Real-time AI Chat** - Streaming responses with thread management
-- ✅ **Complete File Management** - Upload, download, edit, browse
-- ✅ **Full Git Integration** - Status, commit, push, pull, SSH keys
-- ✅ **Ollama Management** - Server and model configuration
-- ✅ **Prompt Engineering** - Custom prompt creation and testing
-- ✅ **Project Analysis** - MASTER_PLAN parsing and gap analysis
-- ✅ **Modern UI** - Responsive, tabbed interface
-- ✅ **Custom Implementation** - No external framework dependencies
-
-**Ready for implementation following project1_MASTER_PLAN.md objectives.**
 
 ---
 
 **Document Version**: 3.0.0  
 **Created**: 2024-12-30  
 **Updated**: 2024-12-30  
-**Status**: Design Complete - Ready for Development
+**Status**: Ready for Implementation
