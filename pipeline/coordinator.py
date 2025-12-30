@@ -1660,8 +1660,17 @@ class PhaseCoordinator:
                         reactivated += 1
                         self.logger.info(f"    ✅ Reactivated: {task.description[:60]}...")
                 
-                state.rebuild_queue()
-                return {'phase': 'coding', 'reason': f'Reactivated {reactivated} tasks'}
+                # Only route to coding if we actually reactivated tasks
+                if reactivated > 0:
+                    state.rebuild_queue()
+                    self.state_manager.save(state)
+                    return {'phase': 'coding', 'reason': f'Reactivated {reactivated} tasks'}
+                else:
+                    # No tasks were reactivated (all had empty target_file or other issues)
+                    # These tasks are permanently stuck, so consider them done
+                    self.logger.info(f"  ⚠️  Could not reactivate any of the {len(other_status)} tasks (all have issues)")
+                    self.logger.info("  ✅ Moving to documentation phase")
+                    return {'phase': 'documentation', 'reason': 'No valid tasks to reactivate, documenting progress'}
             else:
                 # No work at all - consider project complete
                 self.logger.info("  ✅ No pending work found, moving to documentation")
