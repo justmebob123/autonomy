@@ -1,9 +1,10 @@
 # PROJECT 1 MASTER PLAN: AI-Powered Project Planning & Objective Management System
 
-> **Project Type**: REST API Web Application (WSGI + Apache)  
+> **Project Type**: REST API Web Application (Custom WSGI + Apache)  
 > **Purpose**: Deep analysis and improvement of project MASTER_PLAN.md files  
 > **Focus**: Objective management, progress tracking, and intelligent recommendations  
-> **Independence**: Completely separate from autonomy pipeline
+> **Independence**: Completely separate from autonomy pipeline  
+> **Implementation**: Custom code using Python standard library only
 
 ---
 
@@ -37,10 +38,10 @@ This system will serve as an **external strategic advisor** for software project
 - Identify technology stack requirements
 
 **Technical Approach**:
-- Markdown AST parsing (using `markdown-it-py` or `mistune`)
+- Custom markdown parser using regex and string processing
 - Custom grammar for objective extraction
-- Regex patterns for common structures
-- Hierarchical data model
+- Pattern matching for common structures
+- Hierarchical data model using dataclasses
 - Validation and consistency checking
 
 ### 2. Source Code Analysis Engine
@@ -48,21 +49,20 @@ This system will serve as an **external strategic advisor** for software project
 
 **Capabilities**:
 - Recursive directory traversal
-- Multi-language file analysis (Python, JavaScript, Java, Go, etc.)
-- AST parsing for Python files
+- Multi-language file analysis (Python primary, JavaScript/HTML/CSS)
+- AST parsing for Python files using standard library `ast` module
 - Import/dependency graph generation
 - Function/class inventory
-- Complexity metrics
+- Complexity metrics calculation
 - Test coverage estimation
-- Documentation coverage
+- Documentation coverage analysis
 - Architecture pattern detection
 
 **Technical Approach**:
-- Adapt `bin/deep_analyze.py` methodology
-- Use `ast` module for Python
-- Use language-specific parsers for others
+- Use `ast` module for Python analysis
+- Custom parsers for JavaScript/HTML/CSS
 - Build comprehensive project model
-- Store in structured database
+- Store in custom database abstraction layer
 
 ### 3. Gap Analysis Engine
 **Goal**: Compare planned vs. actual implementation
@@ -78,7 +78,7 @@ This system will serve as an **external strategic advisor** for software project
 - Detect architectural mismatches
 
 **Technical Approach**:
-- Semantic matching algorithms
+- Semantic matching algorithms using keyword extraction
 - Keyword extraction and matching
 - File path pattern matching
 - Function/class name analysis
@@ -120,11 +120,11 @@ This system will serve as an **external strategic advisor** for software project
 - Predict completion dates
 
 **Technical Approach**:
-- Time-series database (SQLite with temporal tables)
+- Time-series storage in database
 - Snapshot comparison algorithms
 - Trend analysis
 - Statistical modeling
-- Visualization generation
+- Visualization data generation
 
 ### 6. REST API Interface
 **Goal**: Provide programmatic access to all features
@@ -150,107 +150,132 @@ POST   /api/v1/compare                     # Compare plan vs. implementation
 ```
 
 **Technical Approach**:
-- Flask or FastAPI framework
-- WSGI deployment (mod_wsgi for Apache)
-- JWT authentication
-- Rate limiting
-- Request validation
+- Custom WSGI application (no Flask/FastAPI)
+- Apache deployment via mod_wsgi
+- Custom JWT authentication using `hmac` module
+- Custom rate limiting
+- Request validation using custom validators
 - Comprehensive error handling
-- OpenAPI/Swagger documentation
+- Pagination support
+- Filtering and sorting
+
+### 7. HTML5 Frontend Interface
+**Goal**: Provide web-based user interface
+
+**Capabilities**:
+- Project dashboard
+- Analysis results visualization
+- Objective tracking
+- Gap analysis display
+- Recommendation management
+- Progress charts and graphs
+- Historical trend visualization
+- Interactive reports
+
+**Technical Approach**:
+- Custom HTML5 markup
+- Custom CSS styling (responsive design)
+- Custom JavaScript for interactivity
+- RESTful API client
+- No frontend frameworks
+- Progressive enhancement
 
 ---
 
 ## Architecture
 
 ```
-project-planner/
+project1/
 ├── app/
-│   ├── __init__.py                 # Flask/FastAPI app factory
-│   ├── config.py                   # Configuration management
+│   ├── __init__.py
+│   ├── wsgi.py                     # WSGI application entry point
+│   ├── core/
+│   │   ├── application.py          # Main WSGI application
+│   │   ├── router.py               # URL routing
+│   │   ├── request.py              # Request parsing
+│   │   ├── response.py             # Response formatting
+│   │   └── middleware.py           # Middleware stack
+│   ├── auth/
+│   │   ├── jwt_handler.py          # Custom JWT implementation
+│   │   ├── api_keys.py             # API key management
+│   │   └── rbac.py                 # Role-based access control
+│   ├── database/
+│   │   ├── connection.py           # Database connection manager
+│   │   ├── sqlite_adapter.py       # SQLite implementation
+│   │   ├── mysql_adapter.py        # MySQL implementation (optional)
+│   │   ├── query_builder.py        # SQL query builder
+│   │   └── migrations.py           # Schema migrations
 │   ├── models/
-│   │   ├── __init__.py
+│   │   ├── base.py                 # Base model class
 │   │   ├── project.py              # Project model
 │   │   ├── objective.py            # Objective model
-│   │   ├── analysis.py             # Analysis result model
+│   │   ├── analysis.py             # Analysis model
 │   │   ├── recommendation.py       # Recommendation model
-│   │   └── snapshot.py             # Historical snapshot model
-│   ├── api/
-│   │   ├── __init__.py
-│   │   ├── v1/
-│   │   │   ├── __init__.py
-│   │   │   ├── projects.py         # Project endpoints
-│   │   │   ├── analysis.py         # Analysis endpoints
-│   │   │   ├── objectives.py       # Objective endpoints
-│   │   │   ├── recommendations.py  # Recommendation endpoints
-│   │   │   └── progress.py         # Progress endpoints
-│   │   └── middleware.py           # Auth, rate limiting, etc.
+│   │   └── snapshot.py             # Snapshot model
+│   ├── repositories/
+│   │   ├── base.py                 # Base repository
+│   │   ├── project_repo.py         # Project repository
+│   │   ├── objective_repo.py       # Objective repository
+│   │   ├── analysis_repo.py        # Analysis repository
+│   │   └── recommendation_repo.py  # Recommendation repository
 │   ├── analyzers/
-│   │   ├── __init__.py
-│   │   ├── base.py                 # Base analyzer class
-│   │   ├── masterplan_parser.py    # MASTER_PLAN.md parser
+│   │   ├── base.py                 # Base analyzer
+│   │   ├── masterplan_parser.py    # Custom markdown parser
 │   │   ├── source_analyzer.py      # Source code analyzer
-│   │   ├── python_analyzer.py      # Python-specific analyzer
+│   │   ├── python_analyzer.py      # Python AST analyzer
 │   │   ├── javascript_analyzer.py  # JavaScript analyzer
-│   │   ├── gap_analyzer.py         # Gap analysis engine
-│   │   └── complexity_analyzer.py  # Complexity metrics
+│   │   ├── gap_analyzer.py         # Gap analysis
+│   │   └── complexity.py           # Complexity metrics
 │   ├── engines/
-│   │   ├── __init__.py
 │   │   ├── recommendation.py       # Recommendation engine
 │   │   ├── matching.py             # Objective matching
 │   │   ├── scoring.py              # Priority scoring
 │   │   └── estimation.py           # Effort estimation
-│   ├── storage/
-│   │   ├── __init__.py
-│   │   ├── database.py             # Database connection
-│   │   ├── repositories/
-│   │   │   ├── __init__.py
-│   │   │   ├── project_repo.py
-│   │   │   ├── objective_repo.py
-│   │   │   ├── analysis_repo.py
-│   │   │   └── snapshot_repo.py
-│   │   └── migrations/             # Database migrations
+│   ├── services/
+│   │   ├── analysis_service.py     # Analysis orchestration
+│   │   ├── project_service.py      # Project management
+│   │   └── snapshot_service.py     # Progress tracking
+│   ├── api/
+│   │   └── v1/
+│   │       ├── projects.py         # Project endpoints
+│   │       ├── analysis.py         # Analysis endpoints
+│   │       ├── objectives.py       # Objective endpoints
+│   │       ├── recommendations.py  # Recommendation endpoints
+│   │       └── progress.py         # Progress endpoints
 │   ├── utils/
-│   │   ├── __init__.py
-│   │   ├── markdown_parser.py      # Markdown utilities
-│   │   ├── ast_utils.py            # AST utilities
-│   │   ├── file_utils.py           # File operations
-│   │   └── validation.py           # Input validation
-│   └── schemas/
-│       ├── __init__.py
-│       ├── project.py              # Pydantic schemas
-│       ├── objective.py
-│       ├── analysis.py
-│       └── recommendation.py
-├── tests/
-│   ├── __init__.py
-│   ├── conftest.py                 # Pytest fixtures
-│   ├── test_api/
-│   ├── test_analyzers/
-│   ├── test_engines/
-│   └── test_integration/
+│   │   ├── pagination.py           # Pagination helper
+│   │   ├── filtering.py            # Query filtering
+│   │   ├── sorting.py              # Result sorting
+│   │   └── rate_limiter.py         # Rate limiting
+│   └── config.py                   # Configuration management
+├── frontend/
+│   ├── index.html                  # Main HTML page
+│   ├── css/
+│   │   ├── main.css                # Main stylesheet
+│   │   ├── components.css          # Component styles
+│   │   └── responsive.css          # Responsive design
+│   ├── js/
+│   │   ├── app.js                  # Main application
+│   │   ├── api.js                  # API client
+│   │   ├── components.js           # UI components
+│   │   └── utils.js                # Utility functions
+│   └── assets/
+│       └── images/                 # Images and icons
 ├── deployment/
-│   ├── wsgi.py                     # WSGI entry point
 │   ├── apache/
-│   │   └── project-planner.conf    # Apache config
-│   ├── nginx/
-│   │   └── project-planner.conf    # Nginx config (alternative)
-│   └── systemd/
-│       └── project-planner.service # Systemd service
-├── docs/
-│   ├── api.md                      # API documentation
-│   ├── architecture.md             # Architecture overview
-│   ├── deployment.md               # Deployment guide
-│   └── examples.md                 # Usage examples
-├── scripts/
-│   ├── setup_db.py                 # Database setup
-│   ├── migrate.py                  # Run migrations
-│   └── seed_data.py                # Seed test data
-├── requirements.txt
-├── requirements-dev.txt
-├── pyproject.toml
-├── README.md
-├── CHANGELOG.md
-└── LICENSE
+│   │   ├── http.conf               # HTTP vhost config
+│   │   └── https.conf              # HTTPS vhost config
+│   └── wsgi.py                     # WSGI entry point
+├── tests/
+│   ├── test_auth.py
+│   ├── test_database.py
+│   ├── test_analyzers.py
+│   ├── test_api.py
+│   └── test_integration.py
+└── scripts/
+    ├── setup_db.py                 # Database setup
+    ├── create_admin.py             # Create admin user
+    └── migrate.py                  # Run migrations
 ```
 
 ---
@@ -312,7 +337,7 @@ class SourceAnalyzer:
         """Analyze entire project directory"""
         
     def analyze_python_file(self, path: Path) -> FileInfo:
-        """Analyze single Python file"""
+        """Analyze single Python file using ast module"""
         
     def build_call_graph(self, files: List[FileInfo]) -> Dict[str, List[str]]:
         """Build function call graph"""
@@ -509,90 +534,24 @@ curl http://localhost:5000/api/v1/projects/proj_123/recommendations?priority_min
 
 ## Technology Stack
 
-### Core Framework
-- **Flask** or **FastAPI** (REST API)
-- **SQLAlchemy** (ORM)
-- **Alembic** (migrations)
-- **Pydantic** (validation)
+### Core (Python Standard Library Only)
+- **wsgiref** - WSGI reference implementation
+- **sqlite3** - SQLite database (default)
+- **ast** - Python AST parsing
+- **re** - Regular expressions for markdown parsing
+- **json** - JSON handling
+- **hmac** - HMAC for JWT authentication
+- **hashlib** - Hashing algorithms
+- **pathlib** - Path operations
+- **dataclasses** - Data structures
+- **typing** - Type hints
 
-### Analysis Libraries
-- **ast** (Python AST parsing)
-- **markdown-it-py** (Markdown parsing)
-- **radon** (complexity metrics)
-- **networkx** (graph analysis)
-- **scikit-learn** (matching algorithms)
+### Optional External
+- **mysql-connector-python** - MySQL support (only if MySQL is used instead of SQLite)
 
 ### Deployment
-- **mod_wsgi** (Apache integration)
-- **gunicorn** (WSGI server alternative)
-- **Apache 2.4+** (web server)
-- **SQLite** (database)
-
-### Development
-- **pytest** (testing)
-- **black** (formatting)
-- **ruff** (linting)
-- **mypy** (type checking)
-
----
-
-## Development Phases
-
-### Phase 1: Foundation (Weeks 1-2)
-- [ ] Project structure setup
-- [ ] Database schema and migrations
-- [ ] Basic API skeleton
-- [ ] Authentication and middleware
-- [ ] Configuration management
-
-### Phase 2: Parsing (Weeks 3-4)
-- [ ] MASTER_PLAN.md parser
-- [ ] Objective extraction
-- [ ] Hierarchy detection
-- [ ] Dependency parsing
-- [ ] Validation logic
-
-### Phase 3: Analysis (Weeks 5-7)
-- [ ] Source code analyzer
-- [ ] Python AST analysis
-- [ ] Call graph generation
-- [ ] Complexity metrics
-- [ ] Project model building
-
-### Phase 4: Gap Analysis (Weeks 8-9)
-- [ ] Objective matching
-- [ ] Gap detection
-- [ ] Completion calculation
-- [ ] Evidence collection
-- [ ] Confidence scoring
-
-### Phase 5: Recommendations (Weeks 10-11)
-- [ ] Recommendation engine
-- [ ] Priority scoring
-- [ ] Effort estimation
-- [ ] Impact analysis
-- [ ] Dependency resolution
-
-### Phase 6: Progress Tracking (Weeks 12-13)
-- [ ] Snapshot system
-- [ ] Historical comparison
-- [ ] Trend analysis
-- [ ] Metrics calculation
-- [ ] Visualization data
-
-### Phase 7: Polish (Weeks 14-15)
-- [ ] API documentation
-- [ ] Error handling
-- [ ] Performance optimization
-- [ ] Security audit
-- [ ] Deployment scripts
-
-### Phase 8: Testing (Week 16)
-- [ ] Unit tests (80%+ coverage)
-- [ ] Integration tests
-- [ ] API tests
-- [ ] Performance tests
-- [ ] Security tests
+- **Apache 2.4+** - Web server with mod_wsgi
+- **mod_wsgi** - WSGI interface for Apache
 
 ---
 
@@ -627,9 +586,11 @@ curl http://localhost:5000/api/v1/projects/proj_123/recommendations?priority_min
 5. **Document** - API docs from day one
 6. **Performance** - Profile and optimize hot paths
 7. **Security** - Validate all inputs, sanitize outputs
+8. **Custom Implementation** - No external frameworks, all custom code
 
 ---
 
-**Document Version**: 1.0.0  
+**Document Version**: 2.0.0  
 **Created**: 2024-12-30  
+**Updated**: 2024-12-30  
 **Status**: Ready for Implementation
