@@ -61,14 +61,14 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             ArchitectureAnalyzer
         )
         from ..analysis.dead_code import DeadCodeDetector
-        from ..analysis.integration_conflicts import ConflictDetector
+        from ..analysis.integration_conflicts import IntegrationConflictDetector
         
         self.duplicate_detector = DuplicateDetector(str(self.project_dir), self.logger)
         self.file_comparator = FileComparator(str(self.project_dir), self.logger)
         self.feature_extractor = FeatureExtractor(str(self.project_dir), self.logger)
         self.architecture_analyzer = ArchitectureAnalyzer(str(self.project_dir), self.logger)
         self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger, self.architecture_config)
-        self.conflict_detector = ConflictDetector(str(self.project_dir), self.logger)
+        self.conflict_detector = IntegrationConflictDetector(str(self.project_dir), self.logger)
         
         self.logger.info("  🔧 Refactoring phase initialized with analysis capabilities")
     
