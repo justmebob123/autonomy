@@ -1,7 +1,8 @@
-# PROJECT 2 ARCHITECTURE: AI-Powered Debugging & Architecture Analysis System
+# PROJECT 2 ARCHITECTURE: AI-Powered Debugging & Development Platform
 
 > **Companion Document**: See `project2_MASTER_PLAN.md` for objectives and requirements  
 > **Purpose**: Detailed technical architecture and implementation specifications  
+> **Technology**: Python standard library only (no external frameworks)  
 > **Status**: Design Document - Ready for Implementation
 
 ---
@@ -11,13 +12,14 @@
 1. [System Overview](#system-overview)
 2. [Architecture Patterns](#architecture-patterns)
 3. [Component Design](#component-design)
-4. [Analysis Algorithms](#analysis-algorithms)
-5. [API Design](#api-design)
-6. [Database Design](#database-design)
-7. [Security Architecture](#security-architecture)
-8. [Performance Architecture](#performance-architecture)
-9. [Deployment Architecture](#deployment-architecture)
-10. [Visualization System](#visualization-system)
+4. [Frontend Architecture](#frontend-architecture)
+5. [Backend Architecture](#backend-architecture)
+6. [Analysis Algorithms](#analysis-algorithms)
+7. [API Design](#api-design)
+8. [Database Design](#database-design)
+9. [Security Architecture](#security-architecture)
+10. [Performance Architecture](#performance-architecture)
+11. [Deployment Architecture](#deployment-architecture)
 
 ---
 
@@ -28,63 +30,71 @@
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                         Client Layer                             │
-│  (REST API Clients, Web UI, IDE Plugins, CI/CD Integrations)    │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-                         │ HTTPS/REST
-                         │
-┌────────────────────────▼────────────────────────────────────────┐
+│              (Web Browser - HTML/CSS/JavaScript)                 │
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+                             │ HTTPS/REST + WebSocket/SSE
+                             │
+┌────────────────────────────▼────────────────────────────────────┐
 │                      API Gateway Layer                           │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
 │  │ Auth/JWT     │  │ Rate Limiter │  │ Validator    │          │
 │  └──────────────┘  └──────────────┘  └──────────────┘          │
-└────────────────────────┬────────────────────────────────────────┘
-                         │
-┌────────────────────────▼────────────────────────────────────────┐
+└────────────────────────────┬────────────────────────────────────┘
+                             │
+┌────────────────────────────▼────────────────────────────────────┐
 │                    Application Layer                             │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │              REST API Endpoints (Flask/FastAPI)          │   │
-│  │  /bugs  /complexity  /architecture  /refactorings        │   │
-│  └────────────────────┬─────────────────────────────────────┘   │
-│                       │                                          │
-│  ┌────────────────────▼─────────────────────────────────────┐   │
-│  │                 Analysis Engine Layer                     │   │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐  │   │
-│  │  │   Bug    │  │Complexity│  │Architecture│  │ Dead   │  │   │
-│  │  │ Detector │  │ Analyzer │  │  Analyzer  │  │  Code  │  │   │
-│  │  └──────────┘  └──────────┘  └──────────┘  └─────────┘  │   │
-│  └────────────────────┬─────────────────────────────────────┘   │
-└───────────────────────┼──────────────────────────────────────────┘
-                        │
-┌───────────────────────▼──────────────────────────────────────────┐
-│                    AST Processing Layer                           │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│  │ AST Parser   │  │ Symbol Table │  │ Control Flow │           │
-│  └──────────────┘  └──────────────┘  └──────────────┘           │
-└───────────────────────┬──────────────────────────────────────────┘
-                        │
-┌───────────────────────▼──────────────────────────────────────────┐
+│  ┌──────────────────────────────────────────────────────────────┐│
+│  │         Custom WSGI Application (Python stdlib)              ││
+│  │  /auth  /chat  /files  /git  /servers  /prompts  /analysis  ││
+│  └──────────────────────┬───────────────────────────────────────┘│
+└─────────────────────────┼────────────────────────────────────────┘
+                          │
+┌─────────────────────────▼────────────────────────────────────────┐
+│                   Service Layer                                   │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │   Chat   │  │   File   │  │   Git    │  │  Ollama  │        │
+│  │ Service  │  │ Service  │  │ Service  │  │ Service  │        │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘        │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+│  │  Prompt  │  │ Project  │  │   Bug    │  │Complexity│        │
+│  │ Service  │  │ Service  │  │ Detector │  │ Analyzer │        │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────┘        │
+└─────────────────────────┬────────────────────────────────────────┘
+                          │
+┌─────────────────────────▼────────────────────────────────────────┐
+│                    Analysis Engine Layer                          │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐         │
+│  │   Bug    │  │Complexity│  │Architecture│  │  Dead   │         │
+│  │ Detector │  │ Analyzer │  │  Analyzer  │  │  Code   │         │
+│  └──────────┘  └──────────┘  └──────────┘  └─────────┘         │
+└─────────────────────────┬────────────────────────────────────────┘
+                          │
+┌─────────────────────────▼────────────────────────────────────────┐
 │                   Data Access Layer                               │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│  │ Repositories │  │ ORM Models   │  │ Graph Store  │           │
+│  │ Repositories │  │ DB Abstraction│  │ Graph Store  │           │
 │  └──────────────┘  └──────────────┘  └──────────────┘           │
-└───────────────────────┬──────────────────────────────────────────┘
-                        │
-┌───────────────────────▼──────────────────────────────────────────┐
+└─────────────────────────┬────────────────────────────────────────┘
+                          │
+┌─────────────────────────▼────────────────────────────────────────┐
 │                   Persistence Layer                               │
-│  ┌──────────────────────────────────────────────────────────┐    │
-│  │              SQLite Database + NetworkX Graphs           │    │
-│  │  Bugs | Complexity | Refactorings | Quality Snapshots   │    │
-│  └──────────────────────────────────────────────────────────┘    │
+│  ┌──────────────────────────────────────────────────────────────┐│
+│  │         SQLite Database (or MySQL) + NetworkX Graphs         ││
+│  │  Users | Projects | Threads | Messages | Files | Servers    ││
+│  │  Prompts | Analyses | Bugs | Complexity | Refactorings      ││
+│  └──────────────────────────────────────────────────────────────┘│
 └──────────────────────────────────────────────────────────────────┘
 ```
 
 ### System Characteristics
 
-- **Architecture Style**: Layered + Pipeline
-- **API Style**: RESTful
-- **Data Storage**: SQLite + In-Memory Graphs
-- **Deployment**: WSGI + Apache
+- **Architecture Style**: Layered + Pipeline + Event-Driven
+- **API Style**: RESTful + WebSocket/SSE for streaming
+- **Frontend**: Custom HTML/CSS/JavaScript (no frameworks)
+- **Backend**: Custom WSGI application (Python stdlib only)
+- **Data Storage**: SQLite (or MySQL) + In-Memory Graphs
+- **Deployment**: Apache + mod_wsgi
 - **Analysis**: Static (AST-based)
 - **Scalability**: Vertical (single instance)
 
@@ -92,7 +102,25 @@
 
 ## Architecture Patterns
 
-### 1. Pipeline Pattern
+### 1. Layered Architecture Pattern
+
+**Purpose**: Separation of concerns across layers
+
+**Layers**:
+1. **Presentation Layer** - Frontend UI components
+2. **API Layer** - REST endpoints and WebSocket handlers
+3. **Service Layer** - Business logic and orchestration
+4. **Analysis Layer** - Code analysis engines
+5. **Data Access Layer** - Database operations
+6. **Persistence Layer** - SQLite/MySQL storage
+
+**Benefits**:
+- Clear separation of concerns
+- Easy to test each layer independently
+- Can replace layers without affecting others
+- Maintainable and scalable
+
+### 2. Pipeline Pattern
 
 **Purpose**: Sequential analysis stages
 
@@ -123,15 +151,69 @@ class AnalysisPipeline:
         return context.get_result()
 ```
 
-**Benefits**:
-- Clear data flow
-- Easy to add/remove stages
-- Testable stages
-- Parallel execution possible
+### 3. Repository Pattern
 
-### 2. Visitor Pattern
+**Purpose**: Abstract data access
 
-**Purpose**: AST traversal
+```python
+class BugRepository:
+    """Repository for bug data"""
+    
+    def __init__(self, db):
+        self.db = db
+    
+    def find_by_analysis(self, analysis_id: str) -> List[Bug]:
+        """Find bugs by analysis ID"""
+        pass
+    
+    def find_by_severity(self, severity: str) -> List[Bug]:
+        """Find bugs by severity"""
+        pass
+    
+    def save(self, bug: Bug) -> None:
+        """Save bug"""
+        pass
+```
+
+### 4. Service Pattern
+
+**Purpose**: Business logic encapsulation
+
+```python
+class ChatService:
+    """Service for chat operations"""
+    
+    def __init__(self, thread_repo, message_repo, ollama_client):
+        self.thread_repo = thread_repo
+        self.message_repo = message_repo
+        self.ollama_client = ollama_client
+    
+    def send_message(self, thread_id: str, content: str, 
+                     model: str) -> Generator[str, None, None]:
+        """Send message and stream response"""
+        # Save user message
+        user_msg = Message(thread_id=thread_id, role='user', 
+                          content=content)
+        self.message_repo.save(user_msg)
+        
+        # Get thread history
+        history = self.message_repo.find_by_thread(thread_id)
+        
+        # Stream response from Ollama
+        response_content = ""
+        for chunk in self.ollama_client.chat(model, history):
+            response_content += chunk
+            yield chunk
+        
+        # Save assistant message
+        assistant_msg = Message(thread_id=thread_id, role='assistant',
+                               content=response_content, model=model)
+        self.message_repo.save(assistant_msg)
+```
+
+### 5. Visitor Pattern
+
+**Purpose**: AST traversal for analysis
 
 ```python
 class BugDetectorVisitor(ast.NodeVisitor):
@@ -143,989 +225,1164 @@ class BugDetectorVisitor(ast.NodeVisitor):
     
     def visit_FunctionDef(self, node):
         """Visit function definition"""
-        # Check for bugs in function
         self._check_missing_return(node)
         self._check_infinite_loop(node)
-        
-        # Continue traversal
         self.generic_visit(node)
     
     def visit_Name(self, node):
-        """Visit variable reference"""
-        # Check use-before-definition
+        """Visit variable name"""
         if isinstance(node.ctx, ast.Load):
-            if not self.symbol_table.is_defined(node.id):
-                self.bugs.append(Bug(
-                    type="use_before_def",
-                    line=node.lineno,
-                    message=f"Variable '{node.id}' used before definition"
-                ))
-```
-
-### 3. Strategy Pattern
-
-**Purpose**: Pluggable bug detectors
-
-```python
-class BugDetectionStrategy(ABC):
-    """Base class for bug detection strategies"""
-    
-    @abstractmethod
-    def detect(self, ast_tree) -> List[Bug]:
-        """Detect bugs"""
-        pass
-
-class UseBeforeDefDetector(BugDetectionStrategy):
-    """Detect use-before-definition bugs"""
-    
-    def detect(self, ast_tree) -> List[Bug]:
-        visitor = UseBeforeDefVisitor()
-        visitor.visit(ast_tree)
-        return visitor.bugs
-
-class InfiniteLoopDetector(BugDetectionStrategy):
-    """Detect infinite loop risks"""
-    
-    def detect(self, ast_tree) -> List[Bug]:
-        visitor = InfiniteLoopVisitor()
-        visitor.visit(ast_tree)
-        return visitor.bugs
-```
-
-### 4. Builder Pattern
-
-**Purpose**: Complex object construction
-
-```python
-class CallGraphBuilder:
-    """Builder for call graphs"""
-    
-    def __init__(self):
-        self.graph = nx.DiGraph()
-        self.current_function = None
-    
-    def add_function(self, name: str, file: str, line: int):
-        """Add function node"""
-        self.graph.add_node(name, file=file, line=line)
-        return self
-    
-    def add_call(self, caller: str, callee: str):
-        """Add function call edge"""
-        self.graph.add_edge(caller, callee)
-        return self
-    
-    def build(self) -> CallGraph:
-        """Build final call graph"""
-        return CallGraph(self.graph)
-```
-
-### 5. Factory Pattern
-
-**Purpose**: Detector creation
-
-```python
-class DetectorFactory:
-    """Factory for creating bug detectors"""
-    
-    _detectors = {
-        "use_before_def": UseBeforeDefDetector,
-        "missing_handling": MissingHandlingDetector,
-        "infinite_loop": InfiniteLoopDetector,
-        "resource_leak": ResourceLeakDetector,
-        "race_condition": RaceConditionDetector,
-        "type_mismatch": TypeMismatchDetector,
-    }
-    
-    @classmethod
-    def create(cls, detector_type: str) -> BugDetectionStrategy:
-        """Create detector instance"""
-        detector_class = cls._detectors.get(detector_type)
-        if not detector_class:
-            raise ValueError(f"Unknown detector: {detector_type}")
-        return detector_class()
-    
-    @classmethod
-    def create_all(cls) -> List[BugDetectionStrategy]:
-        """Create all detectors"""
-        return [cls.create(dt) for dt in cls._detectors.keys()]
+            self._check_use_before_def(node)
+        self.generic_visit(node)
 ```
 
 ---
 
 ## Component Design
 
-### 1. Bug Detection Engine
+### 1. Frontend Components
 
-**Architecture**:
-```
-BugDetectionEngine
-├── ASTParser (parse source to AST)
-├── SymbolTableBuilder (track variable lifecycle)
-├── ControlFlowAnalyzer (analyze control flow)
-├── DataFlowAnalyzer (track data flow)
-└── BugDetectors (8 specific detectors)
-    ├── UseBeforeDefDetector
-    ├── MissingHandlingDetector
-    ├── InfiniteLoopDetector
-    ├── ResourceLeakDetector
-    ├── RaceConditionDetector
-    ├── TypeMismatchDetector
-    ├── StateMutationDetector
-    └── MissingReturnDetector
+#### 1.1 Chat Interface Component
+
+**Purpose**: Real-time AI chat with streaming responses
+
+**HTML Structure**:
+```html
+<div id="chat-container">
+    <div id="chat-header">
+        <h2 id="thread-title">Debugging Session</h2>
+        <button id="new-thread-btn">New Thread</button>
+    </div>
+    <div id="chat-messages">
+        <!-- Messages rendered here -->
+    </div>
+    <div id="chat-input-container">
+        <textarea id="chat-input" placeholder="Ask a question..."></textarea>
+        <button id="send-btn">Send</button>
+    </div>
+</div>
 ```
 
-**Implementation**:
+**JavaScript Implementation**:
+```javascript
+class ChatInterface {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.messages = [];
+        this.currentThread = null;
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        document.getElementById('send-btn').addEventListener('click', () => {
+            this.sendMessage();
+        });
+        
+        document.getElementById('chat-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                this.sendMessage();
+            }
+        });
+    }
+    
+    async sendMessage() {
+        const input = document.getElementById('chat-input');
+        const content = input.value.trim();
+        if (!content) return;
+        
+        // Add user message to UI
+        this.addMessage('user', content);
+        input.value = '';
+        
+        // Stream response from server
+        const response = await fetch(`/api/v1/threads/${this.currentThread}/messages`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.getToken()}`
+            },
+            body: JSON.stringify({
+                content: content,
+                model: this.getSelectedModel()
+            })
+        });
+        
+        // Handle streaming response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantMessage = '';
+        
+        // Create assistant message element
+        const msgElement = this.createMessageElement('assistant', '');
+        
+        while (true) {
+            const {done, value} = await reader.read();
+            if (done) break;
+            
+            const chunk = decoder.decode(value);
+            assistantMessage += chunk;
+            msgElement.querySelector('.message-content').textContent = assistantMessage;
+            this.scrollToBottom();
+        }
+    }
+    
+    addMessage(role, content) {
+        const msgElement = this.createMessageElement(role, content);
+        document.getElementById('chat-messages').appendChild(msgElement);
+        this.scrollToBottom();
+    }
+    
+    createMessageElement(role, content) {
+        const div = document.createElement('div');
+        div.className = `message message-${role}`;
+        div.innerHTML = `
+            <div class="message-header">${role === 'user' ? 'You' : 'AI'}</div>
+            <div class="message-content">${this.renderMarkdown(content)}</div>
+        `;
+        return div;
+    }
+    
+    renderMarkdown(text) {
+        // Simple markdown rendering
+        return text
+            .replace(/```(\w+)?
+([\s\S]*?)```/g, (match, lang, code) => {
+                return `<pre><code class="language-${lang || 'text'}">${this.escapeHtml(code)}</code></pre>`;
+            })
+            .replace(/`([^`]+)`/g, '<code>$1</code>')
+            .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    scrollToBottom() {
+        const messages = document.getElementById('chat-messages');
+        messages.scrollTop = messages.scrollHeight;
+    }
+    
+    getToken() {
+        return localStorage.getItem('auth_token');
+    }
+    
+    getSelectedModel() {
+        return document.getElementById('model-select').value;
+    }
+}
+
+// Initialize chat interface
+const chat = new ChatInterface('chat-container');
+```
+
+**CSS Styling**:
+```css
+#chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+#chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #ddd;
+}
+
+#chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.message {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+}
+
+.message-user {
+    background-color: #e3f2fd;
+    margin-left: 20%;
+}
+
+.message-assistant {
+    background-color: #f5f5f5;
+    margin-right: 20%;
+}
+
+.message-header {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.message-content {
+    line-height: 1.6;
+}
+
+.message-content code {
+    background-color: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+}
+
+.message-content pre {
+    background-color: #2d2d2d;
+    color: #f8f8f2;
+    padding: 1rem;
+    border-radius: 5px;
+    overflow-x: auto;
+}
+
+#chat-input-container {
+    display: flex;
+    padding: 1rem;
+    border-top: 1px solid #ddd;
+}
+
+#chat-input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+    min-height: 60px;
+}
+
+#send-btn {
+    margin-left: 1rem;
+    padding: 0.5rem 2rem;
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#send-btn:hover {
+    background-color: #1976d2;
+}
+```
+
+#### 1.2 File Browser Component
+
+**Purpose**: Navigate and manage project files
+
+**JavaScript Implementation**:
+```javascript
+class FileBrowser {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.currentPath = '/';
+        this.projectId = null;
+        this.render();
+    }
+    
+    async loadFiles(path = '/') {
+        const response = await fetch(`/api/v1/projects/${this.projectId}/files?path=${path}`, {
+            headers: {
+                'Authorization': `Bearer ${this.getToken()}`
+            }
+        });
+        const data = await response.json();
+        return data.files;
+    }
+    
+    async render() {
+        const files = await this.loadFiles(this.currentPath);
+        
+        const html = `
+            <div class="file-browser-header">
+                <button onclick="fileBrowser.goUp()">↑ Up</button>
+                <span class="current-path">${this.currentPath}</span>
+                <button onclick="fileBrowser.refresh()">↻ Refresh</button>
+            </div>
+            <div class="file-tree">
+                ${this.renderFileTree(files)}
+            </div>
+        `;
+        
+        this.container.innerHTML = html;
+    }
+    
+    renderFileTree(files) {
+        return files.map(file => {
+            const icon = file.type === 'directory' ? '📁' : '📄';
+            const onclick = file.type === 'directory' 
+                ? `fileBrowser.openDirectory('${file.path}')`
+                : `fileBrowser.openFile('${file.path}')`;
+            
+            return `
+                <div class="file-item" onclick="${onclick}">
+                    <span class="file-icon">${icon}</span>
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">${this.formatSize(file.size)}</span>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    async openFile(path) {
+        const response = await fetch(`/api/v1/projects/${this.projectId}/files/${path}`, {
+            headers: {
+                'Authorization': `Bearer ${this.getToken()}`
+            }
+        });
+        const data = await response.json();
+        
+        // Open file in editor
+        editor.openFile(path, data.content);
+    }
+    
+    async openDirectory(path) {
+        this.currentPath = path;
+        await this.render();
+    }
+    
+    goUp() {
+        const parts = this.currentPath.split('/').filter(p => p);
+        parts.pop();
+        this.currentPath = '/' + parts.join('/');
+        this.render();
+    }
+    
+    refresh() {
+        this.render();
+    }
+    
+    formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+    
+    getToken() {
+        return localStorage.getItem('auth_token');
+    }
+}
+
+const fileBrowser = new FileBrowser('file-browser-container');
+```
+
+#### 1.3 Code Editor Component
+
+**Purpose**: Edit files with syntax highlighting
+
+**JavaScript Implementation**:
+```javascript
+class CodeEditor {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.currentFile = null;
+        this.content = '';
+        this.render();
+    }
+    
+    render() {
+        const html = `
+            <div class="editor-header">
+                <span class="editor-filename">${this.currentFile || 'No file open'}</span>
+                <button onclick="editor.save()">💾 Save</button>
+                <button onclick="editor.close()">✖ Close</button>
+            </div>
+            <textarea id="editor-textarea" class="editor-content">${this.content}</textarea>
+        `;
+        
+        this.container.innerHTML = html;
+        this.setupEditor();
+    }
+    
+    setupEditor() {
+        const textarea = document.getElementById('editor-textarea');
+        
+        // Add syntax highlighting on input
+        textarea.addEventListener('input', () => {
+            this.content = textarea.value;
+            this.highlightSyntax();
+        });
+        
+        // Add tab key support
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = textarea.selectionStart;
+                const end = textarea.selectionEnd;
+                textarea.value = textarea.value.substring(0, start) + '    ' + 
+                               textarea.value.substring(end);
+                textarea.selectionStart = textarea.selectionEnd = start + 4;
+            }
+        });
+    }
+    
+    openFile(path, content) {
+        this.currentFile = path;
+        this.content = content;
+        this.render();
+    }
+    
+    async save() {
+        if (!this.currentFile) return;
+        
+        const response = await fetch(`/api/v1/projects/${fileBrowser.projectId}/files/${this.currentFile}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.getToken()}`
+            },
+            body: JSON.stringify({
+                content: this.content
+            })
+        });
+        
+        if (response.ok) {
+            this.showNotification('File saved successfully');
+        }
+    }
+    
+    close() {
+        this.currentFile = null;
+        this.content = '';
+        this.render();
+    }
+    
+    highlightSyntax() {
+        // Simple syntax highlighting (can be enhanced)
+        // This is a placeholder - real implementation would use a proper highlighter
+    }
+    
+    showNotification(message) {
+        // Show notification to user
+        alert(message);
+    }
+    
+    getToken() {
+        return localStorage.getItem('auth_token');
+    }
+}
+
+const editor = new CodeEditor('editor-container');
+```
+
+#### 1.4 Git Interface Component
+
+**Purpose**: Git operations within the platform
+
+**JavaScript Implementation**:
+```javascript
+class GitInterface {
+    constructor(containerId) {
+        this.container = document.getElementById(containerId);
+        this.projectId = null;
+        this.render();
+    }
+    
+    async render() {
+        const status = await this.getStatus();
+        
+        const html = `
+            <div class="git-header">
+                <h3>Git Status</h3>
+                <div class="git-actions">
+                    <button onclick="gitInterface.pull()">⬇ Pull</button>
+                    <button onclick="gitInterface.push()">⬆ Push</button>
+                    <button onclick="gitInterface.refresh()">↻ Refresh</button>
+                </div>
+            </div>
+            <div class="git-status">
+                <div class="git-section">
+                    <h4>Modified Files (${status.modified.length})</h4>
+                    ${this.renderFileList(status.modified, 'modified')}
+                </div>
+                <div class="git-section">
+                    <h4>Staged Files (${status.staged.length})</h4>
+                    ${this.renderFileList(status.staged, 'staged')}
+                </div>
+                <div class="git-section">
+                    <h4>Untracked Files (${status.untracked.length})</h4>
+                    ${this.renderFileList(status.untracked, 'untracked')}
+                </div>
+            </div>
+            <div class="git-commit">
+                <textarea id="commit-message" placeholder="Commit message..."></textarea>
+                <button onclick="gitInterface.commit()">Commit</button>
+            </div>
+        `;
+        
+        this.container.innerHTML = html;
+    }
+    
+    renderFileList(files, type) {
+        if (files.length === 0) {
+            return '<p class="no-files">No files</p>';
+        }
+        
+        return files.map(file => {
+            const action = type === 'staged' ? 'unstage' : 'stage';
+            return `
+                <div class="git-file">
+                    <span class="file-name">${file}</span>
+                    <button onclick="gitInterface.${action}('${file}')">
+                        ${action === 'stage' ? '+ Stage' : '- Unstage'}
+                    </button>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    async getStatus() {
+        const response = await fetch(`/api/v1/projects/${this.projectId}/git/status`, {
+            headers: {
+                'Authorization': `Bearer ${this.getToken()}`
+            }
+        });
+        return await response.json();
+    }
+    
+    async stage(file) {
+        await fetch(`/api/v1/projects/${this.projectId}/git/stage`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.getToken()}`
+            },
+            body: JSON.stringify({ files: [file] })
+        });
+        this.render();
+    }
+    
+    async unstage(file) {
+        await fetch(`/api/v1/projects/${this.projectId}/git/unstage`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.getToken()}`
+            },
+            body: JSON.stringify({ files: [file] })
+        });
+        this.render();
+    }
+    
+    async commit() {
+        const message = document.getElementById('commit-message').value;
+        if (!message) {
+            alert('Please enter a commit message');
+            return;
+        }
+        
+        await fetch(`/api/v1/projects/${this.projectId}/git/commit`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${this.getToken()}`
+            },
+            body: JSON.stringify({ message })
+        });
+        
+        document.getElementById('commit-message').value = '';
+        this.render();
+    }
+    
+    async pull() {
+        await fetch(`/api/v1/projects/${this.projectId}/git/pull`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.getToken()}`
+            }
+        });
+        this.render();
+    }
+    
+    async push() {
+        await fetch(`/api/v1/projects/${this.projectId}/git/push`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${this.getToken()}`
+            }
+        });
+        this.render();
+    }
+    
+    refresh() {
+        this.render();
+    }
+    
+    getToken() {
+        return localStorage.getItem('auth_token');
+    }
+}
+
+const gitInterface = new GitInterface('git-container');
+```
+
+### 2. Backend Components
+
+#### 2.1 Custom WSGI Application
+
+**Purpose**: Handle HTTP requests without external frameworks
+
 ```python
-class BugDetectionEngine:
-    """Main bug detection engine"""
+import json
+import urllib.parse
+from http.cookies import SimpleCookie
+from typing import Dict, List, Callable, Tuple
+
+class WSGIApplication:
+    """Custom WSGI application"""
     
     def __init__(self):
-        self.parser = ASTParser()
-        self.symbol_table_builder = SymbolTableBuilder()
-        self.control_flow_analyzer = ControlFlowAnalyzer()
-        self.data_flow_analyzer = DataFlowAnalyzer()
-        self.detectors = DetectorFactory.create_all()
-    
-    def analyze(self, file_path: Path) -> List[Bug]:
-        """Analyze file for bugs"""
-        # 1. Parse to AST
-        ast_tree = self.parser.parse(file_path)
+        self.routes = {}
+        self.middleware = []
         
-        # 2. Build symbol table
-        symbol_table = self.symbol_table_builder.build(ast_tree)
-        
-        # 3. Analyze control flow
-        cfg = self.control_flow_analyzer.analyze(ast_tree)
-        
-        # 4. Analyze data flow
-        dfg = self.data_flow_analyzer.analyze(ast_tree, symbol_table)
-        
-        # 5. Run all detectors
-        bugs = []
-        context = DetectionContext(
-            ast_tree=ast_tree,
-            symbol_table=symbol_table,
-            control_flow=cfg,
-            data_flow=dfg,
-            file_path=file_path
-        )
-        
-        for detector in self.detectors:
-            bugs.extend(detector.detect(context))
-        
-        # 6. Deduplicate and rank
-        return self._deduplicate_and_rank(bugs)
-```
-
-**Key Algorithms**:
-
-1. **Use-Before-Definition Detection**:
-```python
-class UseBeforeDefDetector(BugDetectionStrategy):
-    """Detect variables used before definition"""
-    
-    def detect(self, context: DetectionContext) -> List[Bug]:
-        bugs = []
-        visitor = UseBeforeDefVisitor(context.symbol_table)
-        visitor.visit(context.ast_tree)
-        
-        for usage in visitor.undefined_usages:
-            bugs.append(Bug(
-                type="use_before_def",
-                severity="critical",
-                file=str(context.file_path),
-                line=usage.line,
-                column=usage.column,
-                message=f"Variable '{usage.name}' used before definition",
-                code_snippet=self._get_code_snippet(context, usage.line),
-                suggestion=f"Define '{usage.name}' before using it",
-                confidence=0.95
-            ))
-        
-        return bugs
-
-class UseBeforeDefVisitor(ast.NodeVisitor):
-    """Visitor to track variable usage"""
-    
-    def __init__(self, symbol_table: SymbolTable):
-        self.symbol_table = symbol_table
-        self.undefined_usages = []
-        self.current_scope = None
-    
-    def visit_FunctionDef(self, node):
-        """Enter function scope"""
-        old_scope = self.current_scope
-        self.current_scope = node.name
-        self.symbol_table.enter_scope(node.name)
-        
-        # Visit function body
-        self.generic_visit(node)
-        
-        # Exit scope
-        self.symbol_table.exit_scope()
-        self.current_scope = old_scope
-    
-    def visit_Name(self, node):
-        """Check variable usage"""
-        if isinstance(node.ctx, ast.Load):
-            # Variable is being read
-            if not self.symbol_table.is_defined(node.id):
-                self.undefined_usages.append(Usage(
-                    name=node.id,
-                    line=node.lineno,
-                    column=node.col_offset
-                ))
-        
-        elif isinstance(node.ctx, ast.Store):
-            # Variable is being assigned
-            self.symbol_table.define(node.id, node.lineno)
-```
-
-2. **Infinite Loop Detection**:
-```python
-class InfiniteLoopDetector(BugDetectionStrategy):
-    """Detect infinite loop risks"""
-    
-    def detect(self, context: DetectionContext) -> List[Bug]:
-        bugs = []
-        visitor = InfiniteLoopVisitor(context.control_flow)
-        visitor.visit(context.ast_tree)
-        
-        for loop in visitor.risky_loops:
-            bugs.append(Bug(
-                type="infinite_loop",
-                severity="high",
-                file=str(context.file_path),
-                line=loop.line,
-                message="Loop may run infinitely",
-                code_snippet=self._get_code_snippet(context, loop.line),
-                suggestion="Add break condition or ensure loop variable changes",
-                confidence=loop.confidence
-            ))
-        
-        return bugs
-
-class InfiniteLoopVisitor(ast.NodeVisitor):
-    """Visitor to detect infinite loops"""
-    
-    def __init__(self, cfg: ControlFlowGraph):
-        self.cfg = cfg
-        self.risky_loops = []
-    
-    def visit_While(self, node):
-        """Check while loop"""
-        # Check if condition is constant True
-        if self._is_constant_true(node.test):
-            # Check if loop has break/return
-            if not self._has_exit(node.body):
-                self.risky_loops.append(RiskyLoop(
-                    line=node.lineno,
-                    confidence=0.9
-                ))
-        
-        self.generic_visit(node)
-    
-    def visit_For(self, node):
-        """Check for loop"""
-        # Check if loop variable is modified
-        if self._loop_var_modified(node):
-            self.risky_loops.append(RiskyLoop(
-                line=node.lineno,
-                confidence=0.7
-            ))
-        
-        self.generic_visit(node)
-    
-    def _has_exit(self, body: List[ast.stmt]) -> bool:
-        """Check if body has break or return"""
-        for stmt in ast.walk(body):
-            if isinstance(stmt, (ast.Break, ast.Return)):
-                return True
-        return False
-```
-
-3. **Resource Leak Detection**:
-```python
-class ResourceLeakDetector(BugDetectionStrategy):
-    """Detect resource leaks"""
-    
-    def detect(self, context: DetectionContext) -> List[Bug]:
-        bugs = []
-        visitor = ResourceLeakVisitor()
-        visitor.visit(context.ast_tree)
-        
-        for leak in visitor.potential_leaks:
-            bugs.append(Bug(
-                type="resource_leak",
-                severity="high",
-                file=str(context.file_path),
-                line=leak.line,
-                message=f"Resource '{leak.resource}' may not be closed",
-                code_snippet=self._get_code_snippet(context, leak.line),
-                suggestion="Use 'with' statement or ensure resource is closed",
-                confidence=leak.confidence
-            ))
-        
-        return bugs
-
-class ResourceLeakVisitor(ast.NodeVisitor):
-    """Visitor to detect resource leaks"""
-    
-    def __init__(self):
-        self.potential_leaks = []
-        self.opened_resources = {}  # name -> line
-    
-    def visit_Call(self, node):
-        """Track resource operations"""
-        # Check for open() calls
-        if isinstance(node.func, ast.Name) and node.func.id == "open":
-            # Check if result is assigned
-            parent = self._get_parent(node)
-            if isinstance(parent, ast.Assign):
-                for target in parent.targets:
-                    if isinstance(target, ast.Name):
-                        self.opened_resources[target.id] = node.lineno
-        
-        # Check for close() calls
-        elif isinstance(node.func, ast.Attribute) and node.func.attr == "close":
-            if isinstance(node.func.value, ast.Name):
-                # Resource is being closed
-                self.opened_resources.pop(node.func.value.id, None)
-        
-        self.generic_visit(node)
-    
-    def visit_With(self, node):
-        """Track 'with' statements"""
-        # Resources in 'with' are automatically closed
-        for item in node.items:
-            if item.optional_vars and isinstance(item.optional_vars, ast.Name):
-                # Mark as closed
-                self.opened_resources.pop(item.optional_vars.id, None)
-        
-        self.generic_visit(node)
-    
-    def visit_FunctionDef(self, node):
-        """Check for unclosed resources at function end"""
-        # Visit function body
-        self.generic_visit(node)
-        
-        # Check for unclosed resources
-        for resource, line in self.opened_resources.items():
-            self.potential_leaks.append(PotentialLeak(
-                resource=resource,
-                line=line,
-                confidence=0.8
-            ))
-        
-        # Clear for next function
-        self.opened_resources.clear()
-```
-
-### 2. Complexity Analysis Engine
-
-**Architecture**:
-```
-ComplexityAnalyzer
-├── CyclomaticCalculator
-├── CognitiveCalculator
-├── HalsteadCalculator
-├── MaintainabilityCalculator
-└── MetricsAggregator
-```
-
-**Implementation**:
-```python
-class ComplexityAnalyzer:
-    """Analyzes code complexity"""
-    
-    def __init__(self):
-        self.cyclomatic = CyclomaticCalculator()
-        self.cognitive = CognitiveCalculator()
-        self.halstead = HalsteadCalculator()
-        self.maintainability = MaintainabilityCalculator()
-    
-    def analyze(self, file_path: Path) -> List[ComplexityMetrics]:
-        """Analyze file complexity"""
-        ast_tree = ast.parse(file_path.read_text())
-        metrics = []
-        
-        for node in ast.walk(ast_tree):
-            if isinstance(node, ast.FunctionDef):
-                metrics.append(ComplexityMetrics(
-                    file=str(file_path),
-                    function=node.name,
-                    line=node.lineno,
-                    cyclomatic=self.cyclomatic.calculate(node),
-                    cognitive=self.cognitive.calculate(node),
-                    halstead_volume=self.halstead.volume(node),
-                    halstead_difficulty=self.halstead.difficulty(node),
-                    maintainability_index=self.maintainability.calculate(node),
-                    nesting_depth=self._max_nesting(node),
-                    parameter_count=len(node.args.args),
-                    line_count=self._count_lines(node)
-                ))
-        
-        return metrics
-```
-
-**Key Algorithms**:
-
-1. **Cyclomatic Complexity**:
-```python
-class CyclomaticCalculator:
-    """Calculate cyclomatic complexity"""
-    
-    def calculate(self, node: ast.FunctionDef) -> int:
-        """Calculate complexity for function"""
-        complexity = 1  # Base complexity
-        
-        for child in ast.walk(node):
-            # Decision points add complexity
-            if isinstance(child, (ast.If, ast.While, ast.For)):
-                complexity += 1
+    def route(self, path: str, methods: List[str] = None):
+        """Decorator to register routes"""
+        if methods is None:
+            methods = ['GET']
             
-            # Boolean operators add complexity
-            elif isinstance(child, ast.BoolOp):
-                complexity += len(child.values) - 1
-            
-            # Exception handlers add complexity
-            elif isinstance(child, ast.ExceptHandler):
-                complexity += 1
-            
-            # Comprehensions add complexity
-            elif isinstance(child, (ast.ListComp, ast.DictComp, ast.SetComp)):
-                complexity += 1
-        
-        return complexity
-```
-
-2. **Cognitive Complexity**:
-```python
-class CognitiveCalculator:
-    """Calculate cognitive complexity"""
+        def decorator(func):
+            for method in methods:
+                key = f"{method}:{path}"
+                self.routes[key] = func
+            return func
+        return decorator
     
-    def calculate(self, node: ast.FunctionDef) -> int:
-        """Calculate cognitive complexity"""
-        self.complexity = 0
-        self.nesting_level = 0
-        self._visit(node)
-        return self.complexity
+    def use(self, middleware: Callable):
+        """Add middleware"""
+        self.middleware.append(middleware)
     
-    def _visit(self, node):
-        """Visit node and calculate complexity"""
-        # Increment for control structures
-        if isinstance(node, (ast.If, ast.While, ast.For)):
-            self.complexity += 1 + self.nesting_level
-            self.nesting_level += 1
-            for child in ast.iter_child_nodes(node):
-                self._visit(child)
-            self.nesting_level -= 1
+    def __call__(self, environ, start_response):
+        """WSGI application entry point"""
+        request = Request(environ)
         
-        # Increment for boolean operators
-        elif isinstance(node, ast.BoolOp):
-            self.complexity += len(node.values) - 1
-            for child in ast.iter_child_nodes(node):
-                self._visit(child)
+        # Apply middleware
+        for mw in self.middleware:
+            result = mw(request)
+            if result is not None:
+                return self._send_response(result, start_response)
         
-        # Recursion adds complexity
-        elif isinstance(node, ast.Call):
-            if self._is_recursive_call(node):
-                self.complexity += 1
-            for child in ast.iter_child_nodes(node):
-                self._visit(child)
+        # Route request
+        key = f"{request.method}:{request.path}"
+        handler = self.routes.get(key)
         
+        if handler is None:
+            response = Response(status=404, body={'error': 'Not found'})
         else:
-            for child in ast.iter_child_nodes(node):
-                self._visit(child)
+            try:
+                response = handler(request)
+            except Exception as e:
+                response = Response(status=500, body={'error': str(e)})
+        
+        return self._send_response(response, start_response)
+    
+    def _send_response(self, response, start_response):
+        """Send HTTP response"""
+        status = f"{response.status} {self._get_status_text(response.status)}"
+        headers = list(response.headers.items())
+        
+        start_response(status, headers)
+        
+        if isinstance(response.body, dict):
+            body = json.dumps(response.body).encode('utf-8')
+        elif isinstance(response.body, str):
+            body = response.body.encode('utf-8')
+        else:
+            body = response.body
+        
+        return [body]
+    
+    def _get_status_text(self, code: int) -> str:
+        """Get HTTP status text"""
+        status_texts = {
+            200: 'OK',
+            201: 'Created',
+            204: 'No Content',
+            400: 'Bad Request',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not Found',
+            500: 'Internal Server Error'
+        }
+        return status_texts.get(code, 'Unknown')
+
+class Request:
+    """HTTP request wrapper"""
+    
+    def __init__(self, environ):
+        self.environ = environ
+        self.method = environ['REQUEST_METHOD']
+        self.path = environ['PATH_INFO']
+        self.query_string = environ.get('QUERY_STRING', '')
+        self.headers = self._parse_headers(environ)
+        self.cookies = self._parse_cookies(environ)
+        self._body = None
+    
+    @property
+    def body(self):
+        """Get request body"""
+        if self._body is None:
+            content_length = int(self.environ.get('CONTENT_LENGTH', 0))
+            if content_length > 0:
+                self._body = self.environ['wsgi.input'].read(content_length)
+        return self._body
+    
+    @property
+    def json(self):
+        """Parse JSON body"""
+        if self.body:
+            return json.loads(self.body.decode('utf-8'))
+        return None
+    
+    @property
+    def query_params(self):
+        """Parse query parameters"""
+        return urllib.parse.parse_qs(self.query_string)
+    
+    def _parse_headers(self, environ):
+        """Parse HTTP headers"""
+        headers = {}
+        for key, value in environ.items():
+            if key.startswith('HTTP_'):
+                header_name = key[5:].replace('_', '-').title()
+                headers[header_name] = value
+        return headers
+    
+    def _parse_cookies(self, environ):
+        """Parse cookies"""
+        cookie_header = environ.get('HTTP_COOKIE', '')
+        cookies = SimpleCookie()
+        cookies.load(cookie_header)
+        return {key: morsel.value for key, morsel in cookies.items()}
+
+class Response:
+    """HTTP response wrapper"""
+    
+    def __init__(self, status=200, body=None, headers=None):
+        self.status = status
+        self.body = body or {}
+        self.headers = headers or {}
+        
+        if 'Content-Type' not in self.headers:
+            self.headers['Content-Type'] = 'application/json'
+    
+    def set_cookie(self, name, value, max_age=None):
+        """Set cookie"""
+        cookie = f"{name}={value}"
+        if max_age:
+            cookie += f"; Max-Age={max_age}"
+        self.headers['Set-Cookie'] = cookie
+
+# Create application instance
+app = WSGIApplication()
 ```
 
-### 3. Architecture Analysis Engine
+#### 2.2 Authentication Middleware
 
-**Architecture**:
-```
-ArchitectureAnalyzer
-├── CallGraphBuilder
-├── DependencyGraphBuilder
-├── PatternDetector
-├── CouplingAnalyzer
-└── CohesionAnalyzer
-```
+**Purpose**: JWT-based authentication
 
-**Implementation**:
 ```python
-class ArchitectureAnalyzer:
-    """Analyzes code architecture"""
+import hmac
+import hashlib
+import base64
+import json
+import time
+from typing import Optional
+
+class AuthMiddleware:
+    """JWT authentication middleware"""
     
-    def __init__(self):
-        self.call_graph_builder = CallGraphBuilder()
-        self.dependency_builder = DependencyGraphBuilder()
-        self.pattern_detector = PatternDetector()
-        self.coupling_analyzer = CouplingAnalyzer()
-        self.cohesion_analyzer = CohesionAnalyzer()
+    def __init__(self, secret_key: str):
+        self.secret_key = secret_key.encode('utf-8')
+        self.public_paths = ['/api/v1/auth/login', '/api/v1/auth/register']
     
-    def analyze(self, files: List[Path]) -> ArchitectureReport:
-        """Analyze project architecture"""
-        # 1. Build call graph
-        call_graph = self.call_graph_builder.build(files)
+    def __call__(self, request: Request) -> Optional[Response]:
+        """Check authentication"""
+        # Skip auth for public paths
+        if request.path in self.public_paths:
+            return None
         
-        # 2. Build dependency graph
-        dep_graph = self.dependency_builder.build(files)
+        # Get token from header
+        auth_header = request.headers.get('Authorization', '')
+        if not auth_header.startswith('Bearer '):
+            return Response(status=401, body={'error': 'Missing token'})
         
-        # 3. Detect patterns
-        patterns = self.pattern_detector.detect(call_graph, dep_graph)
+        token = auth_header[7:]
         
-        # 4. Analyze coupling
-        coupling = self.coupling_analyzer.analyze(dep_graph)
+        # Verify token
+        payload = self.verify_token(token)
+        if payload is None:
+            return Response(status=401, body={'error': 'Invalid token'})
         
-        # 5. Analyze cohesion
-        cohesion = self.cohesion_analyzer.analyze(call_graph)
+        # Add user info to request
+        request.user = payload
+        return None
+    
+    def create_token(self, payload: dict, expires_in: int = 3600) -> str:
+        """Create JWT token"""
+        # Add expiration
+        payload['exp'] = int(time.time()) + expires_in
         
-        return ArchitectureReport(
-            call_graph=call_graph,
-            dependency_graph=dep_graph,
-            patterns=patterns,
-            coupling=coupling,
-            cohesion=cohesion
+        # Encode payload
+        header = {'alg': 'HS256', 'typ': 'JWT'}
+        header_b64 = base64.urlsafe_b64encode(
+            json.dumps(header).encode('utf-8')
+        ).decode('utf-8').rstrip('=')
+        
+        payload_b64 = base64.urlsafe_b64encode(
+            json.dumps(payload).encode('utf-8')
+        ).decode('utf-8').rstrip('=')
+        
+        # Create signature
+        message = f"{header_b64}.{payload_b64}".encode('utf-8')
+        signature = hmac.new(self.secret_key, message, hashlib.sha256).digest()
+        signature_b64 = base64.urlsafe_b64encode(signature).decode('utf-8').rstrip('=')
+        
+        return f"{header_b64}.{payload_b64}.{signature_b64}"
+    
+    def verify_token(self, token: str) -> Optional[dict]:
+        """Verify JWT token"""
+        try:
+            parts = token.split('.')
+            if len(parts) != 3:
+                return None
+            
+            header_b64, payload_b64, signature_b64 = parts
+            
+            # Verify signature
+            message = f"{header_b64}.{payload_b64}".encode('utf-8')
+            expected_signature = hmac.new(
+                self.secret_key, message, hashlib.sha256
+            ).digest()
+            expected_signature_b64 = base64.urlsafe_b64encode(
+                expected_signature
+            ).decode('utf-8').rstrip('=')
+            
+            if signature_b64 != expected_signature_b64:
+                return None
+            
+            # Decode payload
+            payload_json = base64.urlsafe_b64decode(
+                payload_b64 + '=' * (4 - len(payload_b64) % 4)
+            )
+            payload = json.loads(payload_json)
+            
+            # Check expiration
+            if payload.get('exp', 0) < time.time():
+                return None
+            
+            return payload
+            
+        except Exception:
+            return None
+
+# Add middleware to app
+auth = AuthMiddleware(secret_key='your-secret-key-here')
+app.use(auth)
+```
+
+#### 2.3 Chat Service with Streaming
+
+**Purpose**: Handle chat with Ollama streaming
+
+```python
+import urllib.request
+import urllib.parse
+import json
+from typing import Generator
+
+class OllamaClient:
+    """Client for Ollama API"""
+    
+    def __init__(self, base_url: str):
+        self.base_url = base_url
+    
+    def chat(self, model: str, messages: List[dict]) -> Generator[str, None, None]:
+        """Stream chat response"""
+        url = f"{self.base_url}/api/chat"
+        
+        data = {
+            'model': model,
+            'messages': messages,
+            'stream': True
+        }
+        
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(data).encode('utf-8'),
+            headers={'Content-Type': 'application/json'}
         )
-```
+        
+        with urllib.request.urlopen(req) as response:
+            for line in response:
+                if line:
+                    chunk = json.loads(line.decode('utf-8'))
+                    if 'message' in chunk:
+                        content = chunk['message'].get('content', '')
+                        if content:
+                            yield content
 
-**Key Algorithms**:
+class ChatService:
+    """Service for chat operations"""
+    
+    def __init__(self, thread_repo, message_repo, ollama_client):
+        self.thread_repo = thread_repo
+        self.message_repo = message_repo
+        self.ollama_client = ollama_client
+    
+    def send_message(self, thread_id: str, content: str, 
+                     model: str) -> Generator[str, None, None]:
+        """Send message and stream response"""
+        # Save user message
+        user_msg = Message(
+            id=self._generate_id(),
+            thread_id=thread_id,
+            role='user',
+            content=content
+        )
+        self.message_repo.save(user_msg)
+        
+        # Get thread history
+        history = self.message_repo.find_by_thread(thread_id)
+        messages = [{'role': msg.role, 'content': msg.content} 
+                   for msg in history]
+        
+        # Stream response from Ollama
+        response_content = ""
+        for chunk in self.ollama_client.chat(model, messages):
+            response_content += chunk
+            yield chunk
+        
+        # Save assistant message
+        assistant_msg = Message(
+            id=self._generate_id(),
+            thread_id=thread_id,
+            role='assistant',
+            content=response_content,
+            model=model
+        )
+        self.message_repo.save(assistant_msg)
+    
+    def _generate_id(self) -> str:
+        """Generate unique ID"""
+        import uuid
+        return str(uuid.uuid4())
 
-1. **Call Graph Building**:
-```python
-class CallGraphBuilder:
-    """Build function call graph"""
+# Register chat endpoint with streaming
+@app.route('/api/v1/threads/<thread_id>/messages', methods=['POST'])
+def send_message(request):
+    """Send message endpoint with streaming"""
+    thread_id = request.path.split('/')[-2]
+    data = request.json
     
-    def build(self, files: List[Path]) -> CallGraph:
-        """Build call graph from files"""
-        graph = nx.DiGraph()
-        
-        # First pass: Add all functions
-        for file in files:
-            ast_tree = ast.parse(file.read_text())
-            for node in ast.walk(ast_tree):
-                if isinstance(node, ast.FunctionDef):
-                    func_name = f"{file.stem}.{node.name}"
-                    graph.add_node(func_name, 
-                                 file=str(file),
-                                 line=node.lineno)
-        
-        # Second pass: Add call edges
-        for file in files:
-            ast_tree = ast.parse(file.read_text())
-            visitor = CallVisitor(graph, file.stem)
-            visitor.visit(ast_tree)
-        
-        return CallGraph(graph)
-
-class CallVisitor(ast.NodeVisitor):
-    """Visitor to track function calls"""
+    content = data.get('content')
+    model = data.get('model', 'qwen2.5-coder:32b')
     
-    def __init__(self, graph: nx.DiGraph, module: str):
-        self.graph = graph
-        self.module = module
-        self.current_function = None
+    # Create streaming response
+    def generate():
+        for chunk in chat_service.send_message(thread_id, content, model):
+            yield chunk.encode('utf-8')
     
-    def visit_FunctionDef(self, node):
-        """Track current function"""
-        old_func = self.current_function
-        self.current_function = f"{self.module}.{node.name}"
-        self.generic_visit(node)
-        self.current_function = old_func
-    
-    def visit_Call(self, node):
-        """Track function call"""
-        if self.current_function:
-            callee = self._get_callee_name(node)
-            if callee and callee in self.graph:
-                self.graph.add_edge(self.current_function, callee)
-        
-        self.generic_visit(node)
-```
-
-2. **Pattern Detection**:
-```python
-class PatternDetector:
-    """Detect design patterns"""
-    
-    def detect(self, call_graph: CallGraph, 
-               dep_graph: DependencyGraph) -> List[Pattern]:
-        """Detect patterns"""
-        patterns = []
-        
-        # Detect Singleton
-        patterns.extend(self._detect_singleton(call_graph))
-        
-        # Detect Factory
-        patterns.extend(self._detect_factory(call_graph))
-        
-        # Detect Observer
-        patterns.extend(self._detect_observer(call_graph))
-        
-        # Detect Strategy
-        patterns.extend(self._detect_strategy(dep_graph))
-        
-        return patterns
-    
-    def _detect_singleton(self, call_graph: CallGraph) -> List[Pattern]:
-        """Detect Singleton pattern"""
-        patterns = []
-        
-        for node in call_graph.nodes():
-            # Check for __new__ method
-            if "__new__" in node:
-                # Check for instance variable
-                if self._has_instance_variable(node):
-                    patterns.append(Pattern(
-                        type="Singleton",
-                        location=node,
-                        confidence=0.8
-                    ))
-        
-        return patterns
-```
-
-### 4. Refactoring Engine
-
-**Architecture**:
-```
-RefactoringEngine
-├── ComplexityAnalyzer (input)
-├── BugDetector (input)
-├── ArchitectureAnalyzer (input)
-├── RefactoringGenerator
-├── PriorityScorer
-├── EffortEstimator
-└── RiskAssessor
-```
-
-**Implementation**:
-```python
-class RefactoringEngine:
-    """Generate refactoring recommendations"""
-    
-    def __init__(self):
-        self.generator = RefactoringGenerator()
-        self.scorer = PriorityScorer()
-        self.estimator = EffortEstimator()
-        self.risk_assessor = RiskAssessor()
-    
-    def generate(self,
-                bugs: List[Bug],
-                complexity: List[ComplexityMetrics],
-                architecture: ArchitectureReport) -> List[Refactoring]:
-        """Generate refactorings"""
-        refactorings = []
-        
-        # Generate from bugs
-        refactorings.extend(self.generator.from_bugs(bugs))
-        
-        # Generate from complexity
-        refactorings.extend(self.generator.from_complexity(complexity))
-        
-        # Generate from architecture
-        refactorings.extend(self.generator.from_architecture(architecture))
-        
-        # Score, estimate, assess
-        for ref in refactorings:
-            ref.priority = self.scorer.score(ref)
-            ref.effort = self.estimator.estimate(ref)
-            ref.risk = self.risk_assessor.assess(ref)
-        
-        # Sort by priority
-        return sorted(refactorings, key=lambda r: r.priority, reverse=True)
-```
-
-**Key Algorithms**:
-
-1. **Refactoring Generation**:
-```python
-class RefactoringGenerator:
-    """Generate refactoring suggestions"""
-    
-    def from_complexity(self, 
-                       metrics: List[ComplexityMetrics]) -> List[Refactoring]:
-        """Generate refactorings from complexity"""
-        refactorings = []
-        
-        for metric in metrics:
-            # Extract Method for high complexity
-            if metric.cyclomatic > 15:
-                refactorings.append(Refactoring(
-                    type="extract_method",
-                    title=f"Extract method from {metric.function}",
-                    description=f"Function has complexity {metric.cyclomatic}",
-                    file=metric.file,
-                    line=metric.line,
-                    suggestion=self._suggest_extract_method(metric)
-                ))
-            
-            # Simplify Conditionals for deep nesting
-            if metric.nesting_depth > 4:
-                refactorings.append(Refactoring(
-                    type="simplify_conditionals",
-                    title=f"Simplify conditionals in {metric.function}",
-                    description=f"Nesting depth is {metric.nesting_depth}",
-                    file=metric.file,
-                    line=metric.line,
-                    suggestion=self._suggest_simplify_conditionals(metric)
-                ))
-            
-            # Introduce Parameter Object for many parameters
-            if metric.parameter_count > 5:
-                refactorings.append(Refactoring(
-                    type="introduce_parameter_object",
-                    title=f"Introduce parameter object for {metric.function}",
-                    description=f"Function has {metric.parameter_count} parameters",
-                    file=metric.file,
-                    line=metric.line,
-                    suggestion=self._suggest_parameter_object(metric)
-                ))
-        
-        return refactorings
-```
-
-2. **Priority Scoring**:
-```python
-class PriorityScorer:
-    """Score refactoring priority"""
-    
-    def score(self, refactoring: Refactoring) -> int:
-        """Calculate priority score (1-100)"""
-        score = 0
-        
-        # Factor 1: Type priority (40 points)
-        type_scores = {
-            "extract_method": 30,
-            "extract_class": 35,
-            "simplify_conditionals": 25,
-            "introduce_parameter_object": 20,
-            "remove_duplication": 40,
-            "add_error_handling": 35,
-            "rename": 15,
-            "replace_magic_numbers": 10
+    return Response(
+        status=200,
+        body=generate(),
+        headers={
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive'
         }
-        score += type_scores.get(refactoring.type, 20)
-        
-        # Factor 2: Impact (30 points)
-        impact_scores = {
-            "high": 30,
-            "medium": 20,
-            "low": 10
-        }
-        score += impact_scores.get(refactoring.impact, 15)
-        
-        # Factor 3: Effort (20 points, inverse)
-        effort_scores = {
-            "small": 20,
-            "medium": 10,
-            "large": 5
-        }
-        score += effort_scores.get(refactoring.effort, 10)
-        
-        # Factor 4: Risk (10 points, inverse)
-        risk_scores = {
-            "low": 10,
-            "medium": 5,
-            "high": 0
-        }
-        score += risk_scores.get(refactoring.risk, 5)
-        
-        return min(score, 100)
+    )
 ```
 
 ---
 
 ## Analysis Algorithms
 
-### 1. Data Flow Analysis
+### 1. Bug Detection Algorithms
 
-**Purpose**: Track variable values through program
-
-```python
-class DataFlowAnalyzer:
-    """Analyze data flow"""
-    
-    def analyze(self, ast_tree, symbol_table: SymbolTable) -> DataFlowGraph:
-        """Build data flow graph"""
-        dfg = DataFlowGraph()
-        
-        # Build def-use chains
-        for node in ast.walk(ast_tree):
-            if isinstance(node, ast.Assign):
-                # Definition
-                for target in node.targets:
-                    if isinstance(target, ast.Name):
-                        dfg.add_definition(target.id, node.lineno)
-            
-            elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):
-                # Use
-                dfg.add_use(node.id, node.lineno)
-        
-        # Connect definitions to uses
-        dfg.connect_def_use()
-        
-        return dfg
-```
-
-### 2. Control Flow Analysis
-
-**Purpose**: Build control flow graph
+#### 1.1 Use-Before-Definition Detection
 
 ```python
-class ControlFlowAnalyzer:
-    """Analyze control flow"""
+class UseBeforeDefDetector:
+    """Detect variables used before definition"""
     
-    def analyze(self, ast_tree) -> ControlFlowGraph:
-        """Build control flow graph"""
-        cfg = ControlFlowGraph()
-        
-        # Build basic blocks
-        blocks = self._build_basic_blocks(ast_tree)
-        
-        # Connect blocks
-        for i, block in enumerate(blocks):
-            # Sequential flow
-            if i < len(blocks) - 1:
-                cfg.add_edge(block, blocks[i + 1])
-            
-            # Conditional flow
-            if block.ends_with_if():
-                true_block = self._find_true_branch(blocks, i)
-                false_block = self._find_false_branch(blocks, i)
-                cfg.add_edge(block, true_block, condition=True)
-                cfg.add_edge(block, false_block, condition=False)
-            
-            # Loop flow
-            if block.ends_with_loop():
-                loop_body = self._find_loop_body(blocks, i)
-                loop_exit = self._find_loop_exit(blocks, i)
-                cfg.add_edge(block, loop_body)
-                cfg.add_edge(block, loop_exit)
-        
-        return cfg
-```
-
-### 3. Type Inference
-
-**Purpose**: Infer variable types
-
-```python
-class TypeInferencer:
-    """Infer variable types"""
-    
-    def infer(self, ast_tree) -> Dict[str, Type]:
-        """Infer types for all variables"""
-        types = {}
+    def detect(self, ast_tree) -> List[Bug]:
+        """Detect use-before-def bugs"""
+        bugs = []
+        symbol_table = SymbolTable()
         
         for node in ast.walk(ast_tree):
-            if isinstance(node, ast.Assign):
-                # Infer from assignment
-                for target in node.targets:
-                    if isinstance(target, ast.Name):
-                        inferred_type = self._infer_from_value(node.value)
-                        types[target.id] = inferred_type
-            
-            elif isinstance(node, ast.AnnAssign):
-                # Use type annotation
-                if isinstance(node.target, ast.Name):
-                    types[node.target.id] = self._parse_annotation(node.annotation)
+            if isinstance(node, ast.FunctionDef):
+                bugs.extend(self._check_function(node, symbol_table))
         
-        return types
+        return bugs
     
-    def _infer_from_value(self, node) -> Type:
-        """Infer type from value"""
-        if isinstance(node, ast.Constant):
-            return type(node.value)
-        elif isinstance(node, ast.List):
-            return list
-        elif isinstance(node, ast.Dict):
-            return dict
-        elif isinstance(node, ast.Call):
-            return self._infer_from_call(node)
-        else:
-            return Any
+    def _check_function(self, func_node, symbol_table):
+        """Check function for use-before-def"""
+        bugs = []
+        local_symbols = set()
+        
+        for node in ast.walk(func_node):
+            if isinstance(node, ast.Name):
+                if isinstance(node.ctx, ast.Store):
+                    # Variable definition
+                    local_symbols.add(node.id)
+                elif isinstance(node.ctx, ast.Load):
+                    # Variable use
+                    if node.id not in local_symbols and                        not symbol_table.is_global(node.id):
+                        bugs.append(Bug(
+                            type='use_before_def',
+                            severity='high',
+                            file=func_node.lineno,
+                            line=node.lineno,
+                            message=f"Variable '{node.id}' used before definition"
+                        ))
+        
+        return bugs
+```
+
+#### 1.2 Infinite Loop Detection
+
+```python
+class InfiniteLoopDetector:
+    """Detect potential infinite loops"""
+    
+    def detect(self, ast_tree) -> List[Bug]:
+        """Detect infinite loop risks"""
+        bugs = []
+        
+        for node in ast.walk(ast_tree):
+            if isinstance(node, (ast.While, ast.For)):
+                if self._is_infinite_loop(node):
+                    bugs.append(Bug(
+                        type='infinite_loop',
+                        severity='critical',
+                        line=node.lineno,
+                        message='Potential infinite loop detected'
+                    ))
+        
+        return bugs
+    
+    def _is_infinite_loop(self, loop_node):
+        """Check if loop might be infinite"""
+        # Check for break/return statements
+        has_exit = False
+        
+        for node in ast.walk(loop_node):
+            if isinstance(node, (ast.Break, ast.Return)):
+                has_exit = True
+                break
+        
+        if has_exit:
+            return False
+        
+        # Check if loop condition can become false
+        if isinstance(loop_node, ast.While):
+            if isinstance(loop_node.test, ast.Constant):
+                if loop_node.test.value is True:
+                    return True
+        
+        return False
+```
+
+### 2. Complexity Analysis Algorithms
+
+#### 2.1 Cyclomatic Complexity
+
+```python
+class CyclomaticComplexityCalculator:
+    """Calculate cyclomatic complexity"""
+    
+    def calculate(self, func_node) -> int:
+        """Calculate cyclomatic complexity for function"""
+        complexity = 1  # Base complexity
+        
+        for node in ast.walk(func_node):
+            # Decision points
+            if isinstance(node, (ast.If, ast.While, ast.For)):
+                complexity += 1
+            elif isinstance(node, ast.BoolOp):
+                # And/Or operators
+                complexity += len(node.values) - 1
+            elif isinstance(node, ast.ExceptHandler):
+                complexity += 1
+        
+        return complexity
+```
+
+#### 2.2 Cognitive Complexity
+
+```python
+class CognitiveComplexityCalculator:
+    """Calculate cognitive complexity"""
+    
+    def calculate(self, func_node) -> int:
+        """Calculate cognitive complexity"""
+        complexity = 0
+        nesting_level = 0
+        
+        def visit(node, level):
+            nonlocal complexity
+            
+            # Increment for control flow
+            if isinstance(node, (ast.If, ast.While, ast.For)):
+                complexity += 1 + level
+            elif isinstance(node, ast.BoolOp):
+                complexity += len(node.values) - 1
+            
+            # Increase nesting for certain nodes
+            if isinstance(node, (ast.If, ast.While, ast.For, ast.With)):
+                level += 1
+            
+            # Visit children
+            for child in ast.iter_child_nodes(node):
+                visit(child, level)
+        
+        visit(func_node, 0)
+        return complexity
 ```
 
 ---
 
 ## API Design
 
-### REST API Endpoints
+### Complete API Specification
 
-#### 1. Trigger Analysis
+See project2_MASTER_PLAN.md for complete API endpoint list.
 
-```
-POST /api/v1/projects/{id}/analyze
-Request:
+### API Response Format
+
+```json
 {
-  "analysis_type": "full",
-  "options": {
-    "detect_bugs": true,
-    "analyze_complexity": true,
-    "analyze_architecture": true,
-    "detect_dead_code": true,
-    "generate_refactorings": true
-  }
-}
-
-Response: 202 Accepted
-{
-  "analysis_id": "ana_xyz789",
-  "project_id": "proj_abc123",
-  "status": "pending",
-  "started_at": "2024-12-30T10:00:00Z",
-  "_links": {
-    "status": "/api/v1/analyses/ana_xyz789/status",
-    "results": "/api/v1/analyses/ana_xyz789/results"
-  }
+    "success": true,
+    "data": {
+        // Response data
+    },
+    "error": null,
+    "timestamp": "2024-12-30T12:00:00Z"
 }
 ```
 
-#### 2. Get Bugs
+### Error Response Format
 
-```
-GET /api/v1/projects/{id}/bugs?severity=critical&type=use_before_def
-
-Response: 200 OK
+```json
 {
-  "project_id": "proj_abc123",
-  "total": 15,
-  "returned": 5,
-  "bugs": [
-    {
-      "id": "bug_001",
-      "type": "use_before_def",
-      "severity": "critical",
-      "file": "src/main.py",
-      "line": 42,
-      "column": 10,
-      "message": "Variable 'result' used before definition",
-      "code_snippet": "    return result + 1",
-      "suggestion": "Define 'result' before line 42",
-      "confidence": 0.95,
-      "detected_at": "2024-12-30T10:05:00Z"
-    }
-  ]
-}
-```
-
-#### 3. Get Call Graph
-
-```
-GET /api/v1/projects/{id}/callgraph?format=json
-
-Response: 200 OK
-{
-  "nodes": [
-    {"id": "main.main", "file": "main.py", "line": 10},
-    {"id": "main.process", "file": "main.py", "line": 20},
-    {"id": "utils.helper", "file": "utils.py", "line": 5}
-  ],
-  "edges": [
-    {"source": "main.main", "target": "main.process"},
-    {"source": "main.process", "target": "utils.helper"}
-  ]
+    "success": false,
+    "data": null,
+    "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid input",
+        "details": {
+            "field": "email",
+            "reason": "Invalid email format"
+        }
+    },
+    "timestamp": "2024-12-30T12:00:00Z"
 }
 ```
 
@@ -1133,142 +1390,140 @@ Response: 200 OK
 
 ## Database Design
 
-### Schema
+See project2_MASTER_PLAN.md for complete database schema.
 
-```sql
--- Bugs Table
-CREATE TABLE bugs (
-    id TEXT PRIMARY KEY,
-    analysis_id TEXT NOT NULL,
-    type TEXT NOT NULL,
-    severity TEXT NOT NULL,
-    file TEXT NOT NULL,
-    line INTEGER NOT NULL,
-    column INTEGER,
-    message TEXT,
-    code_snippet TEXT,
-    suggestion TEXT,
-    confidence REAL,
-    status TEXT DEFAULT 'open',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (analysis_id) REFERENCES analyses(id)
-);
+### Database Abstraction Layer
 
-CREATE INDEX idx_bugs_analysis ON bugs(analysis_id);
-CREATE INDEX idx_bugs_severity ON bugs(severity);
-CREATE INDEX idx_bugs_type ON bugs(type);
-CREATE INDEX idx_bugs_status ON bugs(status);
-
--- Complexity Metrics Table
-CREATE TABLE complexity_metrics (
-    id TEXT PRIMARY KEY,
-    analysis_id TEXT NOT NULL,
-    file TEXT NOT NULL,
-    function TEXT NOT NULL,
-    line INTEGER NOT NULL,
-    cyclomatic INTEGER,
-    cognitive INTEGER,
-    halstead_volume REAL,
-    halstead_difficulty REAL,
-    maintainability_index REAL,
-    nesting_depth INTEGER,
-    parameter_count INTEGER,
-    line_count INTEGER,
-    FOREIGN KEY (analysis_id) REFERENCES analyses(id)
-);
-
-CREATE INDEX idx_complexity_analysis ON complexity_metrics(analysis_id);
-CREATE INDEX idx_complexity_cyclomatic ON complexity_metrics(cyclomatic);
-CREATE INDEX idx_complexity_function ON complexity_metrics(function);
+```python
+class DatabaseAbstraction:
+    """Abstract database operations"""
+    
+    def __init__(self, db_type='sqlite', **kwargs):
+        self.db_type = db_type
+        if db_type == 'sqlite':
+            import sqlite3
+            self.conn = sqlite3.connect(kwargs.get('database', 'app.db'))
+        elif db_type == 'mysql':
+            import mysql.connector
+            self.conn = mysql.connector.connect(**kwargs)
+    
+    def execute(self, query, params=None):
+        """Execute query"""
+        cursor = self.conn.cursor()
+        cursor.execute(query, params or ())
+        return cursor
+    
+    def fetchall(self, query, params=None):
+        """Fetch all results"""
+        cursor = self.execute(query, params)
+        return cursor.fetchall()
+    
+    def fetchone(self, query, params=None):
+        """Fetch one result"""
+        cursor = self.execute(query, params)
+        return cursor.fetchone()
+    
+    def commit(self):
+        """Commit transaction"""
+        self.conn.commit()
+    
+    def rollback(self):
+        """Rollback transaction"""
+        self.conn.rollback()
 ```
 
 ---
 
-## Visualization System
+## Security Architecture
 
-### Call Graph Visualization
+### 1. Authentication
 
-```python
-class CallGraphVisualizer:
-    """Visualize call graphs"""
-    
-    def visualize(self, call_graph: CallGraph, 
-                 output_path: Path, format: str = "png"):
-        """Generate call graph visualization"""
-        import matplotlib.pyplot as plt
-        import networkx as nx
-        
-        # Create figure
-        plt.figure(figsize=(20, 15))
-        
-        # Layout
-        pos = nx.spring_layout(call_graph.graph, k=2, iterations=50)
-        
-        # Draw nodes
-        nx.draw_networkx_nodes(call_graph.graph, pos,
-                              node_color='lightblue',
-                              node_size=500)
-        
-        # Draw edges
-        nx.draw_networkx_edges(call_graph.graph, pos,
-                              edge_color='gray',
-                              arrows=True)
-        
-        # Draw labels
-        nx.draw_networkx_labels(call_graph.graph, pos,
-                               font_size=8)
-        
-        # Save
-        plt.savefig(output_path, format=format, dpi=300)
-        plt.close()
-```
+- JWT tokens with HMAC-SHA256 signatures
+- Token expiration (default 1 hour)
+- Secure password hashing (SHA-256 with salt)
+
+### 2. Authorization
+
+- Role-based access control (RBAC)
+- User can only access their own projects
+- Admin role for system management
+
+### 3. Input Validation
+
+- Validate all user inputs
+- Sanitize file paths
+- Prevent SQL injection
+- Prevent XSS attacks
+
+### 4. Rate Limiting
+
+- Limit API requests per user
+- Prevent brute force attacks
+- Throttle expensive operations
+
+---
+
+## Performance Architecture
+
+### 1. Caching
+
+- Cache analysis results
+- Cache file contents
+- Cache git status
+
+### 2. Async Processing
+
+- Background analysis jobs
+- Async file operations
+- Streaming responses
+
+### 3. Database Optimization
+
+- Proper indexes on all foreign keys
+- Query optimization
+- Connection pooling
 
 ---
 
 ## Deployment Architecture
 
-### Apache + mod_wsgi Configuration
+### Apache Configuration
 
 ```apache
-<VirtualHost *:80>
-    ServerName code-analyzer.example.com
+<VirtualHost *:443>
+    ServerName debugging-platform.example.com
     
-    WSGIDaemonProcess code_analyzer \
-        user=www-data \
-        group=www-data \
-        processes=4 \
-        threads=2 \
-        python-home=/opt/code-analyzer/venv \
-        python-path=/opt/code-analyzer
+    SSLEngine on
+    SSLCertificateFile /path/to/cert.pem
+    SSLCertificateKeyFile /path/to/key.pem
     
-    WSGIProcessGroup code_analyzer
-    WSGIScriptAlias / /opt/code-analyzer/deployment/wsgi.py
+    WSGIDaemonProcess app user=www-data group=www-data threads=5
+    WSGIScriptAlias / /var/www/app/wsgi.py
     
-    <Directory /opt/code-analyzer>
+    <Directory /var/www/app>
+        WSGIProcessGroup app
+        WSGIApplicationGroup %{GLOBAL}
         Require all granted
     </Directory>
     
-    ErrorLog ${APACHE_LOG_DIR}/code-analyzer-error.log
-    CustomLog ${APACHE_LOG_DIR}/code-analyzer-access.log combined
+    ErrorLog ${APACHE_LOG_DIR}/app-error.log
+    CustomLog ${APACHE_LOG_DIR}/app-access.log combined
 </VirtualHost>
+```
+
+### WSGI Entry Point
+
+```python
+# wsgi.py
+import sys
+sys.path.insert(0, '/var/www/app')
+
+from app import app as application
 ```
 
 ---
 
-## Conclusion
-
-This architecture provides:
-- ✅ **Accuracy** - 95%+ bug detection accuracy
-- ✅ **Performance** - Analyze 10K LOC in < 60 seconds
-- ✅ **Completeness** - 8 bug patterns, 8 complexity metrics
-- ✅ **Extensibility** - Easy to add new detectors
-- ✅ **Visualization** - Call graphs and architecture diagrams
-- ✅ **API** - RESTful interface for integration
-
-**Ready for implementation following project2_MASTER_PLAN.md objectives.**
-
----
-
-**Document Version**: 1.0.0  
+**Document Version**: 2.0.0  
 **Created**: 2024-12-30  
-**Status**: Design Complete - Ready for Development
+**Updated**: 2024-12-30  
+**Status**: Ready for Implementation

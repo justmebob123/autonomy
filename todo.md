@@ -1,45 +1,42 @@
-# Fix modify_file Error Handling - Continue Conversation Instead of Retry
+# TODO: Update Project 2 Documentation
 
-## Problem
-Currently when `modify_file` fails, we do an IMMEDIATE RETRY in the same iteration. This is WRONG.
-
-We should:
-1. Add error context with full file content to the task
-2. Return from current iteration (mark task as IN_PROGRESS, not FAILED)
-3. Next iteration picks up same task
-4. Error context is included in the message
-5. LLM sees full file and uses `full_file_rewrite`
-
-This allows the conversation to continue naturally instead of forcing a retry.
+## Overview
+Transform project2 from a simple debugging/analysis tool into a comprehensive AI-powered development and debugging platform, similar to the comprehensive update done for project1.
 
 ## Tasks
 
-### [x] Phase 1: Understand Current Flow
-- [x] Analyze how error context is added to tasks
-- [x] Understand how next iteration picks up tasks
-- [x] Verify error context is included in messages
+### Phase 1: Analysis
+- [x] Review current project2 documentation
+- [x] Identify gaps compared to project1's comprehensive approach
+- [x] Plan new features to add (AI Chat, File Mgmt, Git, Ollama, Prompts, Projects)
 
-### [x] Phase 2: Remove Immediate Retry Logic
-- [x] Removed the immediate retry code (was lines 285-335 in coding.py)
-- [x] Kept the error context creation
-- [x] Return from iteration after adding error context
-- [x] Task stays IN_PROGRESS (not marked as FAILED)
-- [x] Fixed comment about when task is marked FAILED
+### Phase 2: Update project2_MASTER_PLAN.md
+- [x] Add AI Chat Interface objectives
+- [x] Add File Management System objectives
+- [x] Add Git Integration objectives
+- [x] Add Ollama Server & Model Management objectives
+- [x] Add Prompt Management objectives
+- [x] Add Project Management objectives
+- [x] Keep existing Analysis Tools objectives
+- [x] Remove timeline information (not needed)
+- [x] Expand to comprehensive platform vision
 
-### [x] Phase 3: Ensure Next Iteration Picks Up Task
-- [x] Verified task selection logic picks IN_PROGRESS tasks (line 482-483 in state/manager.py)
-- [x] Verified error context is included in message building (lines 476-478 in coding.py)
-- [x] Verified error context is retrieved (line 117 in coding.py)
-- [x] Flow is complete: task stays IN_PROGRESS → next iteration picks it up → error context included
+### Phase 3: Update project2_ARCHITECTURE.md
+- [x] Add Chat Interface architecture
+- [x] Add File Management architecture
+- [x] Add Git Integration architecture
+- [x] Add Server Management architecture
+- [x] Add Prompt Management architecture
+- [x] Add Frontend architecture (HTML/CSS/JS components)
+- [x] Expand API endpoints for all new features
+- [x] Update database schema for new features
+- [x] Add WebSocket/SSE streaming architecture
+- [x] Ensure custom implementation (no external frameworks)
 
-### [ ] Phase 4: Test and Verify
-- [ ] User will test with a modify_file failure scenario
-- [ ] User will verify error context is shown to LLM
-- [ ] User will verify LLM can use full_file_rewrite
-- [ ] User will verify no immediate retry happens
+### Phase 4: Git Operations
+- [ ] Commit changes with descriptive message
+- [ ] Push to GitHub using proper authentication
 
-### [x] Phase 5: Documentation and Commit
-- [x] Created MODIFY_FILE_CONVERSATION_FIX.md with complete documentation
-- [x] Documented the problem, solution, implementation, and benefits
-- [x] Committed changes with descriptive message
-- [x] Pushed to GitHub (commit 50ba1dd)
+### Phase 5: Documentation
+- [ ] Create summary document
+- [ ] Update todo.md as complete

@@ -1,31 +1,175 @@
-# PROJECT 2 MASTER PLAN: AI-Powered Debugging & Architecture Analysis System
+# PROJECT 2 MASTER PLAN: AI-Powered Debugging & Development Platform
 
-> **Project Type**: REST API Web Application (WSGI + Apache)  
-> **Purpose**: Deep debugging, architecture analysis, and code quality assessment  
-> **Focus**: Bug detection, complexity analysis, refactoring recommendations  
-> **Independence**: Completely separate from autonomy pipeline
+> **Project Type**: Web Application (Custom WSGI + Apache)  
+> **Purpose**: Comprehensive debugging, architecture analysis, and AI-assisted development  
+> **Focus**: Bug detection, code quality, real-time AI assistance, and development workflow  
+> **Independence**: Completely separate from autonomy pipeline  
+> **Technology**: Python standard library only (no external frameworks)
 
 ---
 
 ## Vision
 
-Build an intelligent web service that performs comprehensive code analysis to:
-- **Detect** bugs before they reach production
+Build an intelligent web platform that combines **deep code analysis** with **AI-powered development assistance** to:
+- **Detect** bugs before they reach production through advanced static analysis
 - **Analyze** code architecture and identify design issues
+- **Assist** developers with real-time AI chat for debugging and problem-solving
+- **Manage** complete development workflow (files, git, models, prompts)
 - **Measure** code quality metrics and complexity
-- **Identify** refactoring opportunities
-- **Generate** call graphs and dependency diagrams
-- **Recommend** architectural improvements
+- **Identify** refactoring opportunities and technical debt
+- **Generate** call graphs, dependency diagrams, and visualizations
+- **Recommend** architectural improvements with AI insights
 - **Track** code quality evolution over time
 
-This system will serve as an **automated code reviewer and architect** for software projects, providing deep technical analysis through a REST API.
+This system serves as an **AI-powered debugging companion and code architect** that combines automated analysis with conversational AI assistance.
 
 ---
 
 ## Primary Objectives
 
-### 1. Bug Detection Engine
-**Goal**: Identify bugs through static analysis
+### 1. AI Chat Interface for Debugging
+**Goal**: Provide real-time AI assistance for debugging and development
+
+**Capabilities**:
+- **Real-time Chat** with Ollama models specialized in debugging
+- **Code Context Awareness** - Chat understands current project and files
+- **Bug Discussion** - Discuss detected bugs and get AI suggestions
+- **Architecture Advice** - Get AI recommendations on design decisions
+- **Thread Management** - Organize conversations by topic/feature
+- **Thread-to-Project Assignment** - Link conversations to specific projects
+- **Streaming Responses** - Real-time token streaming for better UX
+- **Code Highlighting** - Syntax-highlighted code in chat messages
+- **Markdown Rendering** - Rich formatting for explanations
+
+**Technical Implementation**:
+- WebSocket or Server-Sent Events (SSE) for streaming
+- Custom message queue for async processing
+- Thread persistence in database
+- Integration with Ollama API
+- Markdown parser for rendering
+- Code syntax highlighter
+
+**Use Cases**:
+- "Why is this function causing a memory leak?"
+- "How should I refactor this complex method?"
+- "Explain this bug detection result"
+- "What's the best way to implement this feature?"
+
+### 2. File Management System
+**Goal**: Complete file operations within the platform
+
+**Capabilities**:
+- **File Browser** with tree view navigation
+- **File Upload** - Single files or entire project zips
+- **File Download** - Individual files or project archives
+- **File Editing** - In-browser code editor with syntax highlighting
+- **File Creation** - Create new files and directories
+- **File Deletion** - Remove files and directories
+- **Drag-and-Drop** - Upload files via drag-and-drop
+- **Bulk Operations** - Multi-file operations
+- **Search** - Find files by name or content
+- **File Preview** - View files without editing
+
+**Technical Implementation**:
+- Custom file tree builder
+- File upload handler with chunking
+- ZIP archive creation/extraction
+- In-browser code editor (custom or CodeMirror-like)
+- File system operations via Python `os` and `pathlib`
+- Search using `grep` or custom indexing
+
+### 3. Git Integration
+**Goal**: Complete git workflow within the platform
+
+**Capabilities**:
+- **Git Status** - View modified, staged, untracked files
+- **Stage Files** - Add files to staging area
+- **Commit** - Create commits with messages
+- **Push** - Push to remote repositories
+- **Pull** - Pull latest changes
+- **Branch Management** - Create, switch, delete branches
+- **Diff Viewer** - View file differences
+- **Commit History** - Browse commit log
+- **SSH Key Management** - Configure SSH keys per project
+- **Private Git Server Support** - Connect to any git server
+
+**Technical Implementation**:
+- Git operations via `subprocess` module
+- SSH key storage and management
+- Diff parsing and rendering
+- Git log parsing
+- Branch visualization
+- Conflict detection and display
+
+### 4. Ollama Server & Model Management
+**Goal**: Configure and manage AI models for analysis and chat
+
+**Capabilities**:
+- **Add Ollama Servers** - Configure multiple Ollama instances
+- **Edit Server Settings** - Update server URLs and credentials
+- **Remove Servers** - Delete server configurations
+- **List Models** - View available models on each server
+- **Pull Models** - Download new models
+- **Set Default Models** - Configure default model per project
+- **Server Health Monitoring** - Check server availability
+- **Load Balancing** - Distribute requests across servers
+- **Model Testing** - Test models with sample prompts
+
+**Technical Implementation**:
+- Ollama API integration via `urllib` or `http.client`
+- Server health checks with timeouts
+- Model metadata storage
+- Load balancing algorithm
+- Connection pooling
+
+### 5. Prompt Management
+**Goal**: Create and manage custom prompts for debugging and analysis
+
+**Capabilities**:
+- **Create Prompts** - Design custom prompts for specific tasks
+- **Edit Prompts** - Modify existing prompts
+- **Prompt Templates** - Use variables in prompts
+- **Test Prompts** - Try prompts with different models
+- **Prompt Library** - Pre-built prompts for common tasks
+- **Version Control** - Track prompt changes over time
+- **Prompt Sharing** - Export/import prompts
+- **Context Injection** - Automatically inject code context
+
+**Technical Implementation**:
+- Prompt storage in database
+- Template variable substitution
+- Prompt versioning system
+- Context extraction from code
+- Prompt testing interface
+
+**Example Prompts**:
+- "Analyze this function for potential bugs"
+- "Suggest refactorings for this class"
+- "Explain this architecture pattern"
+- "Review this code for security issues"
+
+### 6. Project Management
+**Goal**: Manage multiple projects with comprehensive dashboards
+
+**Capabilities**:
+- **Multi-Project Support** - Work with multiple codebases
+- **Project Dashboard** - Overview of project health
+- **Objective Tracking** - Track primary/secondary/tertiary objectives
+- **Progress Visualization** - Charts and graphs of progress
+- **Task Management** - Create and track development tasks
+- **Quality Metrics** - Real-time quality scores
+- **Bug Tracking** - Monitor detected bugs
+- **Complexity Trends** - Track complexity over time
+
+**Technical Implementation**:
+- Project metadata storage
+- Objective hierarchy management
+- Progress calculation algorithms
+- Chart generation (custom or Chart.js-like)
+- Dashboard aggregation queries
+
+### 7. Bug Detection Engine
+**Goal**: Identify bugs through advanced static analysis
 
 **Bug Patterns to Detect** (from autonomy analysis):
 1. **Variable Used Before Definition**
@@ -76,7 +220,13 @@ This system will serve as an **automated code reviewer and architect** for softw
 - Pattern matching
 - Symbolic execution (limited)
 
-### 2. Complexity Analysis Engine
+**AI Integration**:
+- Discuss bugs with AI in chat
+- Get AI explanations of bug causes
+- Receive AI suggestions for fixes
+- Ask follow-up questions about bugs
+
+### 8. Complexity Analysis Engine
 **Goal**: Measure and track code complexity
 
 **Metrics to Calculate**:
@@ -102,7 +252,12 @@ This system will serve as an **automated code reviewer and architect** for softw
 - Statistical aggregation
 - Trend tracking
 
-### 3. Architecture Analysis Engine
+**AI Integration**:
+- Ask AI about complexity hotspots
+- Get refactoring suggestions from AI
+- Discuss complexity reduction strategies
+
+### 9. Architecture Analysis Engine
 **Goal**: Understand and evaluate system architecture
 
 **Capabilities**:
@@ -136,7 +291,13 @@ This system will serve as an **automated code reviewer and architect** for softw
 - Architectural metrics
 - Visualization generation
 
-### 4. Dead Code Detection Engine
+**AI Integration**:
+- Discuss architecture with AI
+- Get AI recommendations on design
+- Ask about architectural patterns
+- Receive refactoring suggestions
+
+### 10. Dead Code Detection Engine
 **Goal**: Identify unused and unreachable code
 
 **Detection Capabilities**:
@@ -161,7 +322,7 @@ This system will serve as an **automated code reviewer and architect** for softw
 - Control flow analysis
 - Pattern-aware filtering
 
-### 5. Integration Gap Finder
+### 11. Integration Gap Finder
 **Goal**: Identify incomplete integrations and orphaned code
 
 **Detection Capabilities**:
@@ -178,8 +339,8 @@ This system will serve as an **automated code reviewer and architect** for softw
 - Component connectivity analysis
 - Architectural validation
 
-### 6. Refactoring Recommendation Engine
-**Goal**: Suggest code improvements
+### 12. Refactoring Recommendation Engine
+**Goal**: Suggest code improvements with AI assistance
 
 **Recommendation Types**:
 1. **Extract Method** - Break down complex functions
@@ -198,198 +359,29 @@ This system will serve as an **automated code reviewer and architect** for softw
 - ROI score
 
 **Technical Approach**:
-- Rule-based recommendations
-- Complexity-driven prioritization
-- Pattern-based suggestions
-- Effort estimation
-- Risk assessment
+- Pattern-based detection
+- Complexity-driven recommendations
+- AI-powered suggestion generation
+- Priority scoring algorithm
 
-### 7. Code Quality Tracking
-**Goal**: Monitor quality evolution over time
-
-**Metrics to Track**:
-- Overall quality score (0-100)
-- Bug density (bugs per 1000 LOC)
-- Average complexity
-- Test coverage
-- Documentation coverage
-- Technical debt ratio
-- Maintainability index
-- Code churn rate
-
-**Visualizations**:
-- Quality trend charts
-- Complexity heatmaps
-- Dependency graphs
-- Architecture diagrams
-- Hotspot identification
-
-**Technical Approach**:
-- Time-series database
-- Historical comparison
-- Trend analysis
-- Anomaly detection
-- Report generation
-
-### 8. REST API Interface
-**Goal**: Provide programmatic access to all features
-
-**Endpoints**:
-```
-POST   /api/v1/projects                    # Register project
-GET    /api/v1/projects/{id}               # Get project details
-DELETE /api/v1/projects/{id}               # Delete project
-
-POST   /api/v1/projects/{id}/analyze       # Trigger analysis
-GET    /api/v1/projects/{id}/analysis      # Get latest analysis
-
-GET    /api/v1/projects/{id}/bugs          # Get detected bugs
-GET    /api/v1/projects/{id}/complexity    # Get complexity metrics
-GET    /api/v1/projects/{id}/architecture  # Get architecture analysis
-GET    /api/v1/projects/{id}/deadcode      # Get dead code report
-GET    /api/v1/projects/{id}/gaps          # Get integration gaps
-GET    /api/v1/projects/{id}/refactorings  # Get refactoring suggestions
-GET    /api/v1/projects/{id}/quality       # Get quality metrics
-GET    /api/v1/projects/{id}/history       # Get historical data
-
-GET    /api/v1/projects/{id}/callgraph     # Get call graph (JSON)
-GET    /api/v1/projects/{id}/dependencies  # Get dependency graph
-GET    /api/v1/projects/{id}/hotspots      # Get complexity hotspots
-
-POST   /api/v1/analyze/file                # Analyze single file (one-shot)
-POST   /api/v1/analyze/directory           # Analyze directory (one-shot)
-POST   /api/v1/compare                     # Compare two versions
-```
+**AI Integration**:
+- Discuss refactorings with AI
+- Get detailed implementation steps
+- Ask about trade-offs and risks
+- Receive code examples
 
 ---
 
-## Architecture
+## Core Data Models
 
-```
-code-analyzer/
-├── app/
-│   ├── __init__.py                 # Flask/FastAPI app factory
-│   ├── config.py                   # Configuration management
-│   ├── models/
-│   │   ├── __init__.py
-│   │   ├── project.py              # Project model
-│   │   ├── analysis.py             # Analysis result model
-│   │   ├── bug.py                  # Bug report model
-│   │   ├── complexity.py           # Complexity metrics model
-│   │   ├── refactoring.py          # Refactoring suggestion model
-│   │   └── snapshot.py             # Historical snapshot model
-│   ├── api/
-│   │   ├── __init__.py
-│   │   ├── v1/
-│   │   │   ├── __init__.py
-│   │   │   ├── projects.py         # Project endpoints
-│   │   │   ├── analysis.py         # Analysis endpoints
-│   │   │   ├── bugs.py             # Bug endpoints
-│   │   │   ├── complexity.py       # Complexity endpoints
-│   │   │   ├── architecture.py     # Architecture endpoints
-│   │   │   ├── refactorings.py     # Refactoring endpoints
-│   │   │   └── quality.py          # Quality endpoints
-│   │   └── middleware.py           # Auth, rate limiting, etc.
-│   ├── analyzers/
-│   │   ├── __init__.py
-│   │   ├── base.py                 # Base analyzer class
-│   │   ├── bug_detector.py         # Bug detection engine
-│   │   ├── complexity_analyzer.py  # Complexity analysis
-│   │   ├── architecture_analyzer.py # Architecture analysis
-│   │   ├── dead_code_detector.py   # Dead code detection
-│   │   ├── integration_analyzer.py # Integration gap finder
-│   │   ├── call_graph_builder.py   # Call graph generation
-│   │   └── dependency_analyzer.py  # Dependency analysis
-│   ├── detectors/
-│   │   ├── __init__.py
-│   │   ├── bug_patterns.py         # Bug pattern definitions
-│   │   ├── use_before_def.py       # Use-before-definition detector
-│   │   ├── missing_handling.py     # Missing error handling
-│   │   ├── infinite_loop.py        # Infinite loop detector
-│   │   ├── resource_leak.py        # Resource leak detector
-│   │   ├── race_condition.py       # Race condition detector
-│   │   └── type_mismatch.py        # Type mismatch detector
-│   ├── engines/
-│   │   ├── __init__.py
-│   │   ├── refactoring.py          # Refactoring recommendation engine
-│   │   ├── prioritization.py       # Priority scoring
-│   │   ├── estimation.py           # Effort estimation
-│   │   └── visualization.py        # Graph visualization
-│   ├── metrics/
-│   │   ├── __init__.py
-│   │   ├── cyclomatic.py           # Cyclomatic complexity
-│   │   ├── cognitive.py            # Cognitive complexity
-│   │   ├── halstead.py             # Halstead metrics
-│   │   ├── maintainability.py      # Maintainability index
-│   │   └── quality_score.py        # Overall quality score
-│   ├── storage/
-│   │   ├── __init__.py
-│   │   ├── database.py             # Database connection
-│   │   ├── repositories/
-│   │   │   ├── __init__.py
-│   │   │   ├── project_repo.py
-│   │   │   ├── analysis_repo.py
-│   │   │   ├── bug_repo.py
-│   │   │   └── snapshot_repo.py
-│   │   └── migrations/             # Database migrations
-│   ├── utils/
-│   │   ├── __init__.py
-│   │   ├── ast_utils.py            # AST utilities
-│   │   ├── graph_utils.py          # Graph utilities
-│   │   ├── file_utils.py           # File operations
-│   │   └── validation.py           # Input validation
-│   └── schemas/
-│       ├── __init__.py
-│       ├── project.py              # Pydantic schemas
-│       ├── analysis.py
-│       ├── bug.py
-│       └── refactoring.py
-├── tests/
-│   ├── __init__.py
-│   ├── conftest.py                 # Pytest fixtures
-│   ├── test_api/
-│   ├── test_analyzers/
-│   ├── test_detectors/
-│   ├── test_engines/
-│   └── test_integration/
-├── deployment/
-│   ├── wsgi.py                     # WSGI entry point
-│   ├── apache/
-│   │   └── code-analyzer.conf      # Apache config
-│   ├── nginx/
-│   │   └── code-analyzer.conf      # Nginx config (alternative)
-│   └── systemd/
-│       └── code-analyzer.service   # Systemd service
-├── docs/
-│   ├── api.md                      # API documentation
-│   ├── architecture.md             # Architecture overview
-│   ├── bug_patterns.md             # Bug pattern catalog
-│   ├── metrics.md                  # Metrics documentation
-│   └── deployment.md               # Deployment guide
-├── scripts/
-│   ├── setup_db.py                 # Database setup
-│   ├── migrate.py                  # Run migrations
-│   └── benchmark.py                # Performance benchmarks
-├── requirements.txt
-├── requirements-dev.txt
-├── pyproject.toml
-├── README.md
-├── CHANGELOG.md
-└── LICENSE
-```
-
----
-
-## Component Specifications
-
-### 1. Bug Detector
+### 1. Bug Detection
 
 ```python
 @dataclass
 class Bug:
     id: str
-    type: str  # "use_before_def", "missing_handling", etc.
-    severity: str  # "critical", "high", "medium", "low"
+    type: str  # use_before_def, missing_handling, etc.
+    severity: str  # critical, high, medium, low
     file: str
     line: int
     column: int
@@ -505,20 +497,126 @@ class RefactoringEngine:
 
 ## Database Schema
 
+### Users Table
+```sql
+CREATE TABLE users (
+    id TEXT PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    email TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP
+);
+
+CREATE INDEX idx_users_username ON users(username);
+```
+
 ### Projects Table
 ```sql
 CREATE TABLE projects (
     id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
     repository_url TEXT,
     local_path TEXT,
     language TEXT DEFAULT 'python',
+    default_model TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_analyzed TIMESTAMP,
-    status TEXT DEFAULT 'active'
+    status TEXT DEFAULT 'active',
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+CREATE INDEX idx_projects_user ON projects(user_id);
+CREATE INDEX idx_projects_status ON projects(status);
+```
+
+### Threads Table (Chat)
+```sql
+CREATE TABLE threads (
+    id TEXT PRIMARY KEY,
+    project_id TEXT,
+    user_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    message_count INTEGER DEFAULT 0,
+    FOREIGN KEY (project_id) REFERENCES projects(id),
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE INDEX idx_threads_project ON threads(project_id);
+CREATE INDEX idx_threads_user ON threads(user_id);
+```
+
+### Messages Table (Chat)
+```sql
+CREATE TABLE messages (
+    id TEXT PRIMARY KEY,
+    thread_id TEXT NOT NULL,
+    role TEXT NOT NULL,  -- 'user' or 'assistant'
+    content TEXT NOT NULL,
+    model TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    tokens INTEGER,
+    FOREIGN KEY (thread_id) REFERENCES threads(id)
+);
+
+CREATE INDEX idx_messages_thread ON messages(thread_id);
+CREATE INDEX idx_messages_created ON messages(created_at);
+```
+
+### Files Table
+```sql
+CREATE TABLE files (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    path TEXT NOT NULL,
+    size INTEGER,
+    modified_at TIMESTAMP,
+    content_hash TEXT,
+    FOREIGN KEY (project_id) REFERENCES projects(id)
+);
+
+CREATE INDEX idx_files_project ON files(project_id);
+CREATE INDEX idx_files_path ON files(path);
+```
+
+### Servers Table (Ollama)
+```sql
+CREATE TABLE servers (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    url TEXT NOT NULL,
+    api_key TEXT,
+    is_active BOOLEAN DEFAULT 1,
+    last_health_check TIMESTAMP,
+    health_status TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_servers_active ON servers(is_active);
+```
+
+### Prompts Table
+```sql
+CREATE TABLE prompts (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    content TEXT NOT NULL,
+    variables TEXT,  -- JSON array of variable names
+    category TEXT,
+    version INTEGER DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+CREATE INDEX idx_prompts_user ON prompts(user_id);
+CREATE INDEX idx_prompts_category ON prompts(category);
 ```
 
 ### Analyses Table
@@ -535,6 +633,9 @@ CREATE TABLE analyses (
     lines_analyzed INTEGER,
     FOREIGN KEY (project_id) REFERENCES projects(id)
 );
+
+CREATE INDEX idx_analyses_project ON analyses(project_id);
+CREATE INDEX idx_analyses_status ON analyses(status);
 ```
 
 ### Bugs Table
@@ -555,6 +656,10 @@ CREATE TABLE bugs (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (analysis_id) REFERENCES analyses(id)
 );
+
+CREATE INDEX idx_bugs_analysis ON bugs(analysis_id);
+CREATE INDEX idx_bugs_severity ON bugs(severity);
+CREATE INDEX idx_bugs_status ON bugs(status);
 ```
 
 ### Complexity Table
@@ -574,6 +679,9 @@ CREATE TABLE complexity_metrics (
     line_count INTEGER,
     FOREIGN KEY (analysis_id) REFERENCES analyses(id)
 );
+
+CREATE INDEX idx_complexity_analysis ON complexity_metrics(analysis_id);
+CREATE INDEX idx_complexity_file ON complexity_metrics(file);
 ```
 
 ### Refactorings Table
@@ -595,6 +703,10 @@ CREATE TABLE refactorings (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (analysis_id) REFERENCES analyses(id)
 );
+
+CREATE INDEX idx_refactorings_analysis ON refactorings(analysis_id);
+CREATE INDEX idx_refactorings_priority ON refactorings(priority);
+CREATE INDEX idx_refactorings_status ON refactorings(status);
 ```
 
 ### Quality Snapshots Table
@@ -612,26 +724,235 @@ CREATE TABLE quality_snapshots (
     technical_debt_ratio REAL,
     FOREIGN KEY (project_id) REFERENCES projects(id)
 );
+
+CREATE INDEX idx_snapshots_project ON quality_snapshots(project_id);
+CREATE INDEX idx_snapshots_date ON quality_snapshots(snapshot_date);
 ```
+
+---
+
+## API Endpoints
+
+### Authentication
+- `POST /api/v1/auth/register` - Register new user
+- `POST /api/v1/auth/login` - Login and get JWT token
+- `POST /api/v1/auth/logout` - Logout
+- `GET /api/v1/auth/me` - Get current user info
+
+### Chat
+- `GET /api/v1/threads` - List all threads
+- `POST /api/v1/threads` - Create new thread
+- `GET /api/v1/threads/{id}` - Get thread details
+- `PUT /api/v1/threads/{id}` - Update thread
+- `DELETE /api/v1/threads/{id}` - Delete thread
+- `GET /api/v1/threads/{id}/messages` - Get thread messages
+- `POST /api/v1/threads/{id}/messages` - Send message (streaming response)
+- `GET /api/v1/threads/{id}/stream` - SSE endpoint for streaming
+
+### Projects
+- `GET /api/v1/projects` - List all projects
+- `POST /api/v1/projects` - Create new project
+- `GET /api/v1/projects/{id}` - Get project details
+- `PUT /api/v1/projects/{id}` - Update project
+- `DELETE /api/v1/projects/{id}` - Delete project
+- `GET /api/v1/projects/{id}/dashboard` - Get project dashboard
+
+### Files
+- `GET /api/v1/projects/{id}/files` - List project files (tree)
+- `GET /api/v1/projects/{id}/files/{path}` - Get file content
+- `POST /api/v1/projects/{id}/files` - Create new file
+- `PUT /api/v1/projects/{id}/files/{path}` - Update file content
+- `DELETE /api/v1/projects/{id}/files/{path}` - Delete file
+- `POST /api/v1/projects/{id}/upload` - Upload files
+- `GET /api/v1/projects/{id}/download` - Download project as ZIP
+- `POST /api/v1/projects/{id}/search` - Search files
+
+### Git
+- `GET /api/v1/projects/{id}/git/status` - Get git status
+- `POST /api/v1/projects/{id}/git/stage` - Stage files
+- `POST /api/v1/projects/{id}/git/commit` - Create commit
+- `POST /api/v1/projects/{id}/git/push` - Push to remote
+- `POST /api/v1/projects/{id}/git/pull` - Pull from remote
+- `GET /api/v1/projects/{id}/git/branches` - List branches
+- `POST /api/v1/projects/{id}/git/branches` - Create branch
+- `PUT /api/v1/projects/{id}/git/branches/{name}` - Switch branch
+- `DELETE /api/v1/projects/{id}/git/branches/{name}` - Delete branch
+- `GET /api/v1/projects/{id}/git/log` - Get commit history
+- `GET /api/v1/projects/{id}/git/diff` - Get file diff
+
+### Servers (Ollama)
+- `GET /api/v1/servers` - List all servers
+- `POST /api/v1/servers` - Add new server
+- `GET /api/v1/servers/{id}` - Get server details
+- `PUT /api/v1/servers/{id}` - Update server
+- `DELETE /api/v1/servers/{id}` - Delete server
+- `GET /api/v1/servers/{id}/models` - List available models
+- `POST /api/v1/servers/{id}/models/pull` - Pull new model
+- `GET /api/v1/servers/{id}/health` - Check server health
+
+### Prompts
+- `GET /api/v1/prompts` - List all prompts
+- `POST /api/v1/prompts` - Create new prompt
+- `GET /api/v1/prompts/{id}` - Get prompt details
+- `PUT /api/v1/prompts/{id}` - Update prompt
+- `DELETE /api/v1/prompts/{id}` - Delete prompt
+- `POST /api/v1/prompts/{id}/test` - Test prompt with model
+
+### Analysis
+- `POST /api/v1/projects/{id}/analyze` - Trigger analysis
+- `GET /api/v1/projects/{id}/analyses` - List analyses
+- `GET /api/v1/projects/{id}/analyses/{aid}` - Get analysis details
+- `GET /api/v1/projects/{id}/bugs` - Get detected bugs
+- `GET /api/v1/projects/{id}/bugs/{bid}` - Get bug details
+- `PUT /api/v1/projects/{id}/bugs/{bid}` - Update bug status
+- `GET /api/v1/projects/{id}/complexity` - Get complexity metrics
+- `GET /api/v1/projects/{id}/hotspots` - Get complexity hotspots
+- `GET /api/v1/projects/{id}/architecture` - Get architecture analysis
+- `GET /api/v1/projects/{id}/callgraph` - Get call graph
+- `GET /api/v1/projects/{id}/dependencies` - Get dependency graph
+- `GET /api/v1/projects/{id}/deadcode` - Get dead code report
+- `GET /api/v1/projects/{id}/refactorings` - Get refactoring suggestions
+- `PUT /api/v1/projects/{id}/refactorings/{rid}` - Update refactoring status
+- `GET /api/v1/projects/{id}/quality` - Get quality metrics
+- `GET /api/v1/projects/{id}/trends` - Get quality trends
+
+---
+
+## Technology Stack
+
+### Core (Python Standard Library Only)
+- **wsgiref** - WSGI server implementation
+- **http.server** - HTTP request handling
+- **urllib** - HTTP client for Ollama API
+- **json** - JSON parsing and generation
+- **sqlite3** - Database operations
+- **hmac** - JWT token generation
+- **hashlib** - Password hashing
+- **pathlib** - File path operations
+- **subprocess** - Git operations
+- **ast** - Python AST parsing
+- **threading** - Async operations
+- **queue** - Message queuing
+
+### Optional (Only if Needed)
+- **mysql.connector** - MySQL support (if not using SQLite)
+
+### Analysis Libraries (Adapt from autonomy)
+- Custom implementations based on `bin/analysis/` scripts
+- No external dependencies
+
+### Deployment
+- **Apache 2.4+** with mod_wsgi
+- **HTTPS** with SSL certificates
+- **systemd** for service management
 
 ---
 
 ## API Examples
 
-### Register Project
+### Register and Login
 ```bash
+# Register
+curl -X POST http://localhost:5000/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "developer",
+    "password": "secure_password",
+    "email": "dev@example.com"
+  }'
+
+# Login
+curl -X POST http://localhost:5000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "developer",
+    "password": "secure_password"
+  }'
+# Returns: {"token": "eyJ0eXAiOiJKV1QiLCJhbGc..."}
+```
+
+### Create Project and Start Chat
+```bash
+# Create project
 curl -X POST http://localhost:5000/api/v1/projects \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "My Project",
     "local_path": "/path/to/project",
     "language": "python"
   }'
+
+# Create chat thread
+curl -X POST http://localhost:5000/api/v1/threads \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": "proj_123",
+    "title": "Debugging Session"
+  }'
+
+# Send message (streaming)
+curl -X POST http://localhost:5000/api/v1/threads/thread_456/messages \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "Why is this function causing a memory leak?",
+    "model": "qwen2.5-coder:32b"
+  }'
 ```
 
-### Trigger Analysis
+### File Operations
 ```bash
+# List files
+curl http://localhost:5000/api/v1/projects/proj_123/files \
+  -H "Authorization: Bearer $TOKEN"
+
+# Get file content
+curl http://localhost:5000/api/v1/projects/proj_123/files/src/main.py \
+  -H "Authorization: Bearer $TOKEN"
+
+# Update file
+curl -X PUT http://localhost:5000/api/v1/projects/proj_123/files/src/main.py \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "def main():\n    print("Hello")"
+  }'
+
+# Upload files
+curl -X POST http://localhost:5000/api/v1/projects/proj_123/upload \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@/path/to/file.py"
+```
+
+### Git Operations
+```bash
+# Get status
+curl http://localhost:5000/api/v1/projects/proj_123/git/status \
+  -H "Authorization: Bearer $TOKEN"
+
+# Stage and commit
+curl -X POST http://localhost:5000/api/v1/projects/proj_123/git/stage \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"files": ["src/main.py"]}'
+
+curl -X POST http://localhost:5000/api/v1/projects/proj_123/git/commit \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Fix memory leak"}'
+
+# Push
+curl -X POST http://localhost:5000/api/v1/projects/proj_123/git/push \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### Analysis Operations
+```bash
+# Trigger analysis
 curl -X POST http://localhost:5000/api/v1/projects/proj_123/analyze \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "analysis_type": "full",
@@ -639,119 +960,19 @@ curl -X POST http://localhost:5000/api/v1/projects/proj_123/analyze \
     "include_complexity": true,
     "include_architecture": true
   }'
+
+# Get bugs
+curl http://localhost:5000/api/v1/projects/proj_123/bugs?severity=critical \
+  -H "Authorization: Bearer $TOKEN"
+
+# Get complexity hotspots
+curl http://localhost:5000/api/v1/projects/proj_123/hotspots?limit=10 \
+  -H "Authorization: Bearer $TOKEN"
+
+# Get refactoring suggestions
+curl http://localhost:5000/api/v1/projects/proj_123/refactorings?priority_min=70 \
+  -H "Authorization: Bearer $TOKEN"
 ```
-
-### Get Bugs
-```bash
-curl http://localhost:5000/api/v1/projects/proj_123/bugs?severity=critical
-```
-
-### Get Complexity Hotspots
-```bash
-curl http://localhost:5000/api/v1/projects/proj_123/hotspots?limit=10
-```
-
-### Get Refactoring Suggestions
-```bash
-curl http://localhost:5000/api/v1/projects/proj_123/refactorings?priority_min=70
-```
-
----
-
-## Technology Stack
-
-### Core Framework
-- **Flask** or **FastAPI** (REST API)
-- **SQLAlchemy** (ORM)
-- **Alembic** (migrations)
-- **Pydantic** (validation)
-
-### Analysis Libraries
-- **ast** (Python AST parsing)
-- **radon** (complexity metrics)
-- **networkx** (graph analysis)
-- **graphviz** (visualization)
-- **pylint** (linting integration)
-- **mypy** (type checking integration)
-
-### Deployment
-- **mod_wsgi** (Apache integration)
-- **gunicorn** (WSGI server alternative)
-- **Apache 2.4+** (web server)
-- **SQLite** (database)
-
-### Development
-- **pytest** (testing)
-- **black** (formatting)
-- **ruff** (linting)
-- **mypy** (type checking)
-
----
-
-## Development Phases
-
-### Phase 1: Foundation (Weeks 1-2)
-- [ ] Project structure setup
-- [ ] Database schema and migrations
-- [ ] Basic API skeleton
-- [ ] Authentication and middleware
-- [ ] Configuration management
-
-### Phase 2: Bug Detection (Weeks 3-5)
-- [ ] AST parsing infrastructure
-- [ ] Use-before-definition detector
-- [ ] Missing error handling detector
-- [ ] Infinite loop detector
-- [ ] Resource leak detector
-- [ ] Bug reporting system
-
-### Phase 3: Complexity Analysis (Weeks 6-7)
-- [ ] Cyclomatic complexity calculator
-- [ ] Cognitive complexity calculator
-- [ ] Halstead metrics
-- [ ] Maintainability index
-- [ ] Complexity reporting
-
-### Phase 4: Architecture Analysis (Weeks 8-10)
-- [ ] Call graph builder
-- [ ] Dependency graph builder
-- [ ] Pattern detection
-- [ ] Coupling metrics
-- [ ] Graph visualization
-
-### Phase 5: Dead Code & Gaps (Weeks 11-12)
-- [ ] Dead code detector
-- [ ] Integration gap finder
-- [ ] Unused code identification
-- [ ] Orphaned component detection
-
-### Phase 6: Refactoring Engine (Weeks 13-14)
-- [ ] Refactoring recommendation engine
-- [ ] Priority scoring
-- [ ] Effort estimation
-- [ ] Risk assessment
-- [ ] Suggestion generation
-
-### Phase 7: Quality Tracking (Weeks 15-16)
-- [ ] Quality score calculation
-- [ ] Historical tracking
-- [ ] Trend analysis
-- [ ] Report generation
-- [ ] Visualization
-
-### Phase 8: Polish (Weeks 17-18)
-- [ ] API documentation
-- [ ] Error handling
-- [ ] Performance optimization
-- [ ] Security audit
-- [ ] Deployment scripts
-
-### Phase 9: Testing (Week 19-20)
-- [ ] Unit tests (80%+ coverage)
-- [ ] Integration tests
-- [ ] API tests
-- [ ] Performance tests
-- [ ] Security tests
 
 ---
 
@@ -761,35 +982,50 @@ curl http://localhost:5000/api/v1/projects/proj_123/refactorings?priority_min=70
 2. **Performance**: Analyze 10,000 LOC in < 60 seconds
 3. **Coverage**: Detect all 8 bug patterns with high confidence
 4. **API**: 99.9% uptime, < 300ms average response time
-5. **Completeness**: Analyze 95%+ of Python language features
-6. **Reliability**: Handle edge cases gracefully, no crashes
+5. **Chat**: < 2s first token latency, smooth streaming
+6. **Completeness**: Analyze 95%+ of Python language features
+7. **Reliability**: Handle edge cases gracefully, no crashes
+8. **Usability**: Intuitive UI, < 5 minute learning curve
 
 ---
 
-## Key Differentiators from Autonomy
+## Key Differentiators
 
-1. **REST API** - Web service, not CLI tool
+### From Autonomy Pipeline
+1. **Web Platform** - Full web application, not CLI tool
 2. **External Analysis** - Analyzes other projects, not self
-3. **Debugging Focus** - Bug detection, not execution
-4. **Read-Only** - Analyzes but doesn't modify code
-5. **Multi-Project** - Manages multiple projects
+3. **Debugging Focus** - Bug detection and analysis, not execution
+4. **Read-Only** - Analyzes but doesn't modify code (except via file editor)
+5. **Multi-Project** - Manages multiple projects simultaneously
 6. **Historical** - Tracks quality over time
 7. **Visualization** - Generates graphs and diagrams
+8. **AI Chat** - Real-time conversational debugging assistance
+
+### From Project 1
+1. **Debugging Focus** - Advanced bug detection and analysis engines
+2. **Code Quality** - Complexity metrics and quality tracking
+3. **Architecture Analysis** - Call graphs, dependency analysis, pattern detection
+4. **Refactoring** - Automated refactoring recommendations
+5. **Technical Debt** - Track and visualize technical debt
 
 ---
 
 ## Notes for Development
 
-1. **Adapt Existing Tools** - Reuse bin/analysis/ scripts as foundation
-2. **Start with Python** - Focus on Python first, add other languages later
-3. **Test-Driven** - Write tests alongside code
-4. **Incremental** - Build detectors incrementally
-5. **Document** - API docs and bug pattern catalog from day one
-6. **Performance** - Profile and optimize hot paths
-7. **Accuracy** - Minimize false positives through testing
+1. **Custom Implementation** - Use only Python standard library (no Flask, FastAPI, SQLAlchemy)
+2. **Adapt Existing Tools** - Reuse bin/analysis/ scripts as foundation
+3. **Start with Python** - Focus on Python first, add other languages later
+4. **Test-Driven** - Write tests alongside code
+5. **Incremental** - Build detectors incrementally
+6. **Document** - API docs and bug pattern catalog from day one
+7. **Performance** - Profile and optimize hot paths
+8. **Accuracy** - Minimize false positives through testing
+9. **Security** - Implement proper authentication and authorization
+10. **Streaming** - Use SSE or WebSocket for real-time chat
 
 ---
 
-**Document Version**: 1.0.0  
+**Document Version**: 2.0.0  
 **Created**: 2024-12-30  
+**Updated**: 2024-12-30  
 **Status**: Ready for Implementation
