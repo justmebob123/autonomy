@@ -607,6 +607,8 @@ class BasePhase(ABC):
         
         # ENHANCED: Detailed pre-call logging
         import time
+        from ..progress_indicator import ProgressIndicator
+        
         self.logger.info(f"")
         self.logger.info(f"{'='*70}")
         self.logger.info(f"🤖 CALLING MODEL: {model_name}")
@@ -624,13 +626,14 @@ class BasePhase(ABC):
         self.logger.info(f"{'='*70}")
         start_time = time.time()
         
-        # Call model with conversation history
-        response = self.client.chat(
-            host=host,
-            model=model_name,
-            messages=messages,
-            tools=tools
-        )
+        # Call model with conversation history and progress indicator
+        with ProgressIndicator(self.logger, f"Model {model_name} thinking"):
+            response = self.client.chat(
+                host=host,
+                model=model_name,
+                messages=messages,
+                tools=tools
+            )
         
         # ENHANCED: Detailed post-call logging
         duration = time.time() - start_time

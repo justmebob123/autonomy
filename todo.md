@@ -28,9 +28,9 @@ Improve visibility into long-running model operations, especially for qwen-coder
 - [ ] Show conversation history stats
 
 ## Phase 5: Streaming Indicators
-- [ ] Add progress indicator for model calls
-- [ ] Show "Model thinking..." with elapsed time
-- [ ] Add periodic updates every 30 seconds
+- [x] Add progress indicator for model calls
+- [x] Show "Model thinking..." with elapsed time
+- [x] Add periodic updates every 30 seconds
 - [ ] Display timeout warnings
 
 ## Implementation Order
