@@ -579,20 +579,19 @@ class ToolCallHandler:
         # Validate and fix syntax
         is_valid, fixed_code, error_msg = self.syntax_validator.validate_and_fix(code, filepath)
         
+        # Use fixed code if it was modified
+        if fixed_code != code:
+            self.logger.info(f"Applied automatic syntax fixes")
+            code = fixed_code
+        
+        # CRITICAL: Save file even if syntax validation fails
+        # This allows the debugging phase to see and fix the file
+        syntax_error = None
         if not is_valid:
             self.logger.error(f"Syntax validation failed for {filepath}")
             self.logger.error(error_msg)
-            return {
-                "tool": "create_file",
-                "success": False,
-                "error": f"Syntax error: {error_msg}",
-                "filepath": filepath
-            }
-        
-        # Use fixed code if it was modified
-        if fixed_code != code:
-            self.logger.info(f"Using auto-fixed code for {filepath}")
-            code = fixed_code
+            self.logger.warning(f"⚠️  Saving file anyway for debugging phase to fix")
+            syntax_error = error_msg
         
         # CRITICAL FIX: Auto-create __init__.py files for Python packages
         if filepath.endswith('.py') and '/' in filepath:
@@ -622,6 +621,19 @@ class ToolCallHandler:
             
             self.files_created.append(filepath)
             self.logger.info(f"  📝 Created: {filepath} ({len(code)} bytes)")
+            
+            # Return success=False if there was a syntax error, but file is saved
+            if syntax_error:
+                return {
+                    "tool": "create_file", 
+                    "success": False,
+                    "error": f"Syntax error: {syntax_error}",
+                    "filepath": filepath, 
+                    "size": len(code),
+                    "full_path": str(full_path),
+                    "file_saved": True,
+                    "needs_debugging": True
+                }
             
             return {
                 "tool": "create_file", 
@@ -896,20 +908,19 @@ class ToolCallHandler:
         # Validate syntax before writing
         is_valid, fixed_content, error_msg = self.syntax_validator.validate_and_fix(new_content, filepath)
         
+        # Use fixed content if it was modified
+        if fixed_content != new_content:
+            self.logger.info(f"Applied automatic syntax fixes")
+            new_content = fixed_content
+        
+        # CRITICAL: Save file even if syntax validation fails
+        # This allows the debugging phase to see and fix the file
+        syntax_error = None
         if not is_valid:
             self.logger.error(f"Syntax validation failed for modified {filepath}")
             self.logger.error(error_msg)
-            return {
-                "tool": "modify_file",
-                "success": False,
-                "error": f"Syntax error after modification: {error_msg}",
-                "filepath": filepath
-            }
-        
-        # Use fixed content if it was modified
-        if fixed_content != new_content:
-            self.logger.info(f"Using auto-fixed code for {filepath}")
-            new_content = fixed_content
+            self.logger.warning(f"⚠️  Saving file anyway for debugging phase to fix")
+            syntax_error = error_msg
         
         full_path.write_text(new_content)
         
@@ -1037,6 +1048,18 @@ class ToolCallHandler:
         self.logger.info(f"  ✅ Verification passed")
         self.files_modified.append(filepath)
         self.logger.info(f"  ✏️ Modified: {filepath}")
+        
+        # Return success=False if there was a syntax error, but file is saved
+        if syntax_error:
+            return {
+                "tool": "modify_file", 
+                "success": False,
+                "error": f"Syntax error: {syntax_error}",
+                "filepath": filepath, 
+                "verified": True,
+                "file_saved": True,
+                "needs_debugging": True
+            }
         
         return {"tool": "modify_file", "success": True, "filepath": filepath, "verified": True}
     
