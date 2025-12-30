@@ -1,41 +1,24 @@
-# Verbose Logging Enhancement Implementation
+# Critical Bug Fix: modify_file Failures Not Retried
 
-## Goal
-Improve visibility into long-running model operations, especially for qwen-coder:32b queries that can take hours.
+## Problem
+When modify_file fails with "Original code not found":
+1. Error context created with full file content
+2. Task marked as FAILED
+3. Phase returns
+4. **Different task picked up next iteration**
+5. Failed task never retried with error context
+6. LLM never sees the full file content
 
-## Phase 1: Enhanced Model Interaction Logging ⚡ PRIORITY
-- [x] Add pre-call logging (server, model, context, message count)
-- [x] Add post-call logging (duration, tokens, success)
-- [ ] Add streaming progress indicators
-- [x] Show conversation history size
+## Solution: Immediate Retry
+When modify_file fails:
+1. Add error context to task
+2. **Retry immediately in same iteration**
+3. LLM sees full file content right away
+4. Can use full_file_rewrite to fix the issue
+5. Only mark FAILED if retry also fails
 
-## Phase 2: Tool Call Verbosity
-- [x] Log every tool call with full arguments (when verbose)
-- [x] Show tool execution time
-- [x] Display detailed tool results
-- [ ] Add tool call sequence numbering
-
-## Phase 3: Detailed File Logging
-- [ ] Create separate verbose log file (pipeline_verbose.log)
-- [ ] Log complete model responses to file
-- [ ] Log full tool call details to file
-- [ ] Keep terminal output manageable
-
-## Phase 4: Signal Handlers for Status
-- [ ] Implement Ctrl+S signal handler for status display
-- [ ] Show current phase, task, operation
-- [ ] Display elapsed time for current operation
-- [ ] Show conversation history stats
-
-## Phase 5: Streaming Indicators
-- [x] Add progress indicator for model calls
-- [x] Show "Model thinking..." with elapsed time
-- [x] Add periodic updates every 10 minutes
-- [ ] Display timeout warnings
-
-## Implementation Order
-1. Start with Phase 1 (most critical for immediate visibility)
-2. Then Phase 5 (streaming indicators)
-3. Then Phase 2 (tool verbosity)
-4. Then Phase 3 (file logging)
-5. Finally Phase 4 (signal handlers)
+## Tasks
+- [x] Identify the issue (tasks not retried immediately)
+- [x] Implement immediate retry logic
+- [ ] Test the fix
+- [ ] Commit and push
