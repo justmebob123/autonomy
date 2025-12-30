@@ -1,42 +1,66 @@
-# TODO: Update Project 2 Documentation
+# TODO: Comprehensive Project 1 & Project 2 Updates
 
 ## Overview
-Transform project2 from a simple debugging/analysis tool into a comprehensive AI-powered development and debugging platform, similar to the comprehensive update done for project1.
+Make both projects truly distinct with appropriate features for their specific purposes:
+- **Project 1**: Planning & Management Platform (document-centric)
+- **Project 2**: Debugging & Development Platform (execution-centric)
 
 ## Tasks
 
-### Phase 1: Analysis
-- [x] Review current project2 documentation
-- [x] Identify gaps compared to project1's comprehensive approach
-- [x] Plan new features to add (AI Chat, File Mgmt, Git, Ollama, Prompts, Projects)
+### Phase 1: Analysis & Planning
+- [x] Identify gaps in both projects
+- [x] Create comprehensive update plan
+- [x] Define distinct features for each project
 
-### Phase 2: Update project2_MASTER_PLAN.md
-- [x] Add AI Chat Interface objectives
-- [x] Add File Management System objectives
-- [x] Add Git Integration objectives
-- [x] Add Ollama Server & Model Management objectives
-- [x] Add Prompt Management objectives
-- [x] Add Project Management objectives
-- [x] Keep existing Analysis Tools objectives
-- [x] Remove timeline information (not needed)
-- [x] Expand to comprehensive platform vision
+### Phase 2: Update Project 1 MASTER_PLAN
+- [x] Add Web Search Integration Tool
+- [x] Add Timeline & Resource Planning
+- [x] Add Risk Assessment & Mitigation
+- [x] Add Progress Tracking & Analytics
+- [x] Add Team Collaboration Features
+- [x] Add Visualization & Reporting
+- [x] Ensure planning/management focus
 
-### Phase 3: Update project2_ARCHITECTURE.md
-- [x] Add Chat Interface architecture
-- [x] Add File Management architecture
-- [x] Add Git Integration architecture
-- [x] Add Server Management architecture
-- [x] Add Prompt Management architecture
-- [x] Add Frontend architecture (HTML/CSS/JS components)
-- [x] Expand API endpoints for all new features
-- [x] Update database schema for new features
-- [x] Add WebSocket/SSE streaming architecture
-- [x] Ensure custom implementation (no external frameworks)
+### Phase 3: Update Project 2 MASTER_PLAN
+- [x] Add Log Display System (PRIMARY INTERFACE)
+- [x] Add Comprehensive Chat Interface (ALL conversations)
+- [x] Add Custom Tool Framework
+- [x] Add Session Management (long-running)
+- [x] Add Variable State Inspector
+- [x] Add Execution Trace Viewer
+- [x] Add Breakpoint Manager
+- [x] Add Step-through Debugger
+- [x] Ensure debugging/execution focus
 
-### Phase 4: Git Operations
-- [x] Commit changes with descriptive message
-- [x] Push to GitHub using proper authentication
+### Phase 4: Update Project 1 ARCHITECTURE
+- [ ] Add Web Search Tool implementation
+- [ ] Add Planning Tools architecture
+- [ ] Add Collaboration Features architecture
+- [ ] Add Timeline Generator implementation
+- [ ] Add Resource Estimator implementation
+- [ ] Add Risk Assessment implementation
+- [ ] Add Dashboard components
+- [ ] Add Gantt chart visualization
+- [ ] Update API endpoints
+- [ ] Update database schema
 
-### Phase 5: Documentation
-- [x] Create summary document
-- [x] Update todo.md as complete
+### Phase 5: Update Project 2 ARCHITECTURE
+- [ ] Add Log Display System architecture
+- [ ] Add Comprehensive Chat Interface architecture
+- [ ] Add Custom Tool Framework architecture
+- [ ] Add Session Management architecture
+- [ ] Add Variable Inspector architecture
+- [ ] Add Execution Trace Viewer architecture
+- [ ] Add Breakpoint Manager architecture
+- [ ] Add Debugger Controls architecture
+- [ ] Update interface layout (logs PRIMARY)
+- [ ] Update API endpoints
+- [ ] Update database schema
+
+### Phase 6: Git Operations
+- [ ] Commit all changes with descriptive messages
+- [ ] Push to GitHub using proper authentication
+
+### Phase 7: Documentation
+- [ ] Create comprehensive summary document
+- [ ] Update todo.md as complete

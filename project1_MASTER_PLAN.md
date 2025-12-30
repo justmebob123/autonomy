@@ -1,453 +1,627 @@
-# PROJECT 1 MASTER PLAN: AI-Powered Project Management & Development Platform
+# PROJECT 1 MASTER PLAN: AI-Powered Project Planning & Management Platform
 
 > **Project Type**: Web Application (Custom WSGI + Apache)  
-> **Purpose**: Comprehensive project management platform with AI-powered analysis and chat interface  
-> **Focus**: Project planning, code analysis, AI chat, file management, git integration, and intelligent recommendations  
+> **Purpose**: Comprehensive project planning, management, and tracking with AI assistance  
+> **Focus**: MASTER_PLAN.md analysis, resource planning, team collaboration, progress tracking  
 > **Independence**: Completely separate from autonomy pipeline  
-> **Implementation**: Custom code using Python standard library only
+> **Technology**: Python standard library only (no external frameworks)
 
 ---
 
 ## Vision
 
-Build a comprehensive web-based project management platform that combines:
-- **AI Chat Interface** - Real-time conversations with Ollama models
-- **Project Management** - Complete project lifecycle management
-- **Code Analysis** - Deep analysis of MASTER_PLAN.md and source code
-- **File Management** - Upload, download, navigate, and edit project files
-- **Git Integration** - Full git operations (status, commit, push, pull)
-- **Model Management** - Configure Ollama servers and models per project
-- **Prompt Engineering** - Create and manage custom prompts
-- **Thread Management** - Organize conversations by project and topic
+Build an intelligent web platform that helps teams **plan, manage, and track** software projects from conception to completion by:
+- **Analyzing** MASTER_PLAN.md files to extract objectives and requirements
+- **Planning** project timelines, resources, and dependencies with AI assistance
+- **Researching** technologies, best practices, and competitive solutions via web search
+- **Managing** team collaboration, task assignment, and progress tracking
+- **Tracking** project health, velocity, and completion over time
+- **Recommending** next steps, risk mitigation, and optimization strategies
+- **Visualizing** project structure, dependencies, and progress with interactive charts
+- **Collaborating** with team members through comments, assignments, and notifications
 
-This system serves as a **complete development environment** with AI assistance, providing strategic planning, code analysis, and interactive development support through a modern web interface.
+This system serves as an **AI-powered project management companion** that combines document analysis with intelligent planning assistance.
 
 ---
 
 ## Primary Objectives
 
-### 1. AI Chat Interface
-**Goal**: Real-time conversational interface with Ollama models
+### 1. MASTER_PLAN.md Analysis Engine
+**Goal**: Parse and analyze project planning documents
 
 **Capabilities**:
-- Live streaming responses from Ollama models
-- Multiple conversation threads per project
-- Thread assignment to specific projects
-- Conversation history and search
-- Model selection per conversation
-- Temperature and parameter controls
-- Tool calling support in chat
-- Code highlighting in responses
-- Markdown rendering
-- File attachments in chat
-- Export conversations
+- **Document Parsing**
+  - Extract objectives (primary, secondary, tertiary)
+  - Identify tasks and subtasks
+  - Parse dependencies and relationships
+  - Extract success criteria
+  - Identify milestones and phases
 
-**Technical Approach**:
-- WebSocket or Server-Sent Events (SSE) for streaming
-- Custom chat UI with HTML5/CSS/JavaScript
-- Real-time token streaming from Ollama
-- Thread management with database storage
-- Message persistence and retrieval
+- **Semantic Analysis**
+  - Understand objective intent
+  - Detect ambiguities and conflicts
+  - Identify missing information
+  - Assess completeness
+  - Evaluate feasibility
 
-### 2. Project Management System
-**Goal**: Complete project lifecycle management
+- **Gap Detection**
+  - Compare plan to codebase
+  - Identify unimplemented features
+  - Find incomplete objectives
+  - Detect scope creep
+  - Highlight blockers
 
-**Capabilities**:
-- Create new projects
-- Project dashboard with status overview
-- Project settings and configuration
-- Objective tracking (primary/secondary/tertiary)
-- Task management and assignment
-- Progress visualization
-- Project templates
-- Multi-project support
-- Project archiving and deletion
-- Project search and filtering
+- **Recommendation Generation**
+  - Suggest next tasks
+  - Prioritize objectives
+  - Identify quick wins
+  - Recommend refactoring
+  - Propose optimizations
 
-**Technical Approach**:
-- Project model with full metadata
-- Dashboard with real-time updates
-- Objective hierarchy management
-- Progress calculation algorithms
-- Template system for common project types
+**Technical Implementation**:
+- Custom markdown parser
+- Natural language processing
+- Dependency graph builder
+- Semantic similarity matching
+- AI-powered analysis via Ollama
 
-### 3. File Management System
-**Goal**: Complete file operations within projects
+**Use Cases**:
+- "What should we work on next?"
+- "Which objectives are incomplete?"
+- "What's blocking our progress?"
+- "How complete is this project?"
 
-**Capabilities**:
-- File browser with tree view
-- Create new files and directories
-- Upload files (individual or zip)
-- Download files (individual or project zip)
-- File editing with syntax highlighting
-- File preview (code, markdown, images)
-- File search within project
-- File history and versions
-- Drag-and-drop upload
-- Bulk operations
-- File permissions
-
-**Technical Approach**:
-- Custom file browser UI
-- File upload/download handlers
-- Zip file creation and extraction
-- Syntax highlighting with custom JavaScript
-- File watcher for changes
-- Temporary file storage
-
-### 4. Git Integration
-**Goal**: Full git operations within the platform
+### 2. Web Search Integration Tool
+**Goal**: Research projects, technologies, and best practices
 
 **Capabilities**:
-- View git status
-- Stage and unstage files
-- Commit with messages
-- Push to remote
-- Pull from remote
-- Branch management
-- View commit history
-- Diff viewer
-- Merge conflict resolution
-- Add remote repositories
-- SSH key management per project
-- Private git server support
-- Clone repositories
+- **Project Research**
+  - Find similar projects
+  - Analyze competitive solutions
+  - Discover existing implementations
+  - Learn from case studies
+  - Identify industry trends
 
-**Technical Approach**:
-- Git operations using subprocess
-- Custom git UI components
-- SSH key storage and management
-- Remote repository configuration
-- Diff visualization
-- Conflict resolution interface
+- **Technology Research**
+  - Research frameworks and libraries
+  - Compare technology stacks
+  - Find documentation and tutorials
+  - Discover best practices
+  - Evaluate pros and cons
 
-### 5. Ollama Server & Model Management
-**Goal**: Configure and manage Ollama servers and models
+- **Problem Solving**
+  - Search for solutions to technical challenges
+  - Find code examples
+  - Discover design patterns
+  - Learn from Stack Overflow
+  - Access technical blogs
+
+- **Market Research**
+  - Analyze market demand
+  - Identify target users
+  - Research competitors
+  - Find pricing strategies
+  - Discover marketing approaches
+
+**Technical Implementation**:
+- Custom web search tool
+- Search API integration (Google, Bing, DuckDuckGo)
+- Result parsing and ranking
+- Content extraction
+- Summary generation via AI
+
+**Use Cases**:
+- "What frameworks should we use for this project?"
+- "How have others solved this problem?"
+- "What are the best practices for X?"
+- "Who are our competitors?"
+
+### 3. AI Chat Interface for Planning
+**Goal**: Provide real-time AI assistance for project planning
 
 **Capabilities**:
-- Add/edit/remove Ollama servers
-- Test server connectivity
-- List available models per server
-- Pull new models
-- Delete models
-- Set default models per project
-- Model performance monitoring
-- Server load balancing
-- Fallback model configuration
-- Model capabilities tagging
-- Temperature settings per model
+- **Planning Discussions**
+  - Discuss project goals and scope
+  - Brainstorm features and approaches
+  - Evaluate trade-offs
+  - Make architectural decisions
+  - Plan sprints and iterations
 
-**Technical Approach**:
-- Server configuration storage
+- **Document Context Awareness**
+  - Chat understands MASTER_PLAN.md
+  - References specific objectives
+  - Suggests based on project state
+  - Maintains conversation context
+  - Links to relevant documents
+
+- **Research Integration**
+  - Automatically search web when needed
+  - Provide researched answers
+  - Cite sources
+  - Compare options
+  - Recommend solutions
+
+- **Thread Management**
+  - Organize conversations by topic
+  - Link threads to objectives
+  - Track decision history
+  - Export conversations
+  - Search conversation history
+
+**Technical Implementation**:
+- WebSocket/SSE for streaming
 - Ollama API integration
-- Model discovery and listing
-- Health check system
-- Load balancing algorithms
-- Configuration per project
+- Context injection from documents
+- Web search tool integration
+- Thread persistence
 
-### 6. Prompt Management System
-**Goal**: Create, edit, and manage custom prompts
+**Use Cases**:
+- "How should we architect this feature?"
+- "What's the best approach for X?"
+- "Should we use technology A or B?"
+- "How do we break down this objective?"
 
-**Capabilities**:
-- Browse existing prompts
-- Create new prompts
-- Edit prompt templates
-- Test prompts with models
-- Prompt versioning
-- Prompt categories
-- Import/export prompts
-- Prompt variables and templates
-- Prompt effectiveness tracking
-- Share prompts between projects
-
-**Technical Approach**:
-- Prompt storage in database
-- Template variable system
-- Version control for prompts
-- Testing interface
-- Analytics on prompt usage
-
-### 7. MASTER_PLAN Analysis Engine
-**Goal**: Deep understanding of project planning documents
+### 4. Timeline & Resource Planning
+**Goal**: Generate project timelines and resource estimates
 
 **Capabilities**:
-- Parse MASTER_PLAN.md files
-- Extract objective hierarchies
-- Identify acceptance criteria
-- Extract dependencies and blockers
-- Parse task lists and checklists
-- Understand project phases
-- Extract success criteria
-- Validate structure
-- Generate objective reports
+- **Timeline Generation**
+  - Auto-generate Gantt charts
+  - Identify critical path
+  - Calculate project duration
+  - Set milestone dates
+  - Adjust for dependencies
 
-**Technical Approach**:
-- Custom markdown parser using regex
-- Objective extraction algorithms
-- Hierarchical data model
-- Validation rules
-- Report generation
+- **Resource Estimation**
+  - Estimate time per task
+  - Calculate total effort
+  - Recommend team size
+  - Identify skill requirements
+  - Estimate costs
 
-### 8. Source Code Analysis Engine
-**Goal**: Understand actual project implementation
+- **Dependency Management**
+  - Map task dependencies
+  - Identify blockers
+  - Optimize task ordering
+  - Detect circular dependencies
+  - Suggest parallelization
 
-**Capabilities**:
-- Recursive directory traversal
-- Multi-language file analysis (Python, JavaScript, HTML, CSS)
-- AST parsing for Python using `ast` module
-- Import/dependency graph generation
-- Function/class inventory
-- Complexity metrics
-- Test coverage estimation
-- Documentation coverage
-- Architecture pattern detection
-- Code quality metrics
+- **Scenario Planning**
+  - Best/worst/expected case
+  - What-if analysis
+  - Risk-adjusted timelines
+  - Resource allocation scenarios
+  - Budget variations
 
-**Technical Approach**:
-- Use `ast` module for Python
-- Custom parsers for other languages
-- Build comprehensive project model
-- Store analysis results in database
+**Technical Implementation**:
+- Critical path algorithm
+- PERT/CPM calculations
+- Monte Carlo simulation
+- Resource leveling
+- Gantt chart generation
 
-### 9. Gap Analysis Engine
-**Goal**: Compare planned vs. actual implementation
+**Use Cases**:
+- "How long will this project take?"
+- "How many developers do we need?"
+- "What's the critical path?"
+- "What if we add 2 more developers?"
 
-**Capabilities**:
-- Match objectives to implemented features
-- Identify missing implementations
-- Detect partially completed objectives
-- Find over-implemented features
-- Calculate completion percentages
-- Estimate remaining work
-- Identify technical debt
-- Detect architectural mismatches
-- Generate gap reports
-
-**Technical Approach**:
-- Semantic matching algorithms
-- Keyword extraction and matching
-- File path pattern matching
-- Function/class name analysis
-- Confidence scoring
-
-### 10. Recommendation Engine
-**Goal**: Provide actionable next steps
+### 5. Risk Assessment & Mitigation
+**Goal**: Identify and manage project risks
 
 **Capabilities**:
-- Prioritize next objectives
-- Suggest task breakdown
-- Identify quick wins
-- Recommend refactoring targets
-- Suggest documentation improvements
-- Identify testing gaps
-- Recommend dependency updates
-- Suggest architecture improvements
-- Generate implementation plans
+- **Risk Identification**
+  - Technical risks
+  - Resource risks
+  - Schedule risks
+  - Budget risks
+  - External dependencies
 
-**Technical Approach**:
-- Rule-based recommendation system
-- Priority scoring algorithms
-- Dependency-aware scheduling
-- Risk assessment
-- Effort estimation
-- Impact analysis
+- **Risk Analysis**
+  - Probability assessment
+  - Impact evaluation
+  - Risk scoring
+  - Risk prioritization
+  - Trend analysis
 
-### 11. Analysis Dashboard
-**Goal**: Visualize project status and metrics
+- **Mitigation Planning**
+  - Suggest mitigation strategies
+  - Create contingency plans
+  - Assign risk owners
+  - Track mitigation progress
+  - Update risk status
+
+- **Risk Monitoring**
+  - Track risk indicators
+  - Alert on threshold breaches
+  - Update risk assessments
+  - Generate risk reports
+  - Historical risk analysis
+
+**Technical Implementation**:
+- Risk scoring algorithms
+- Probability models
+- Impact assessment framework
+- Mitigation strategy database
+- Alert system
+
+**Use Cases**:
+- "What are the biggest risks?"
+- "How likely is this risk?"
+- "How do we mitigate this risk?"
+- "Are our risks increasing?"
+
+### 6. Progress Tracking & Analytics
+**Goal**: Monitor project health and progress
 
 **Capabilities**:
-- Project overview dashboard
-- Objective completion charts
-- Code quality metrics
-- Complexity trends
-- Gap analysis visualization
-- Recommendation priority matrix
-- Progress over time graphs
-- Team velocity metrics
-- Risk indicators
+- **Completion Tracking**
+  - Calculate completion percentage
+  - Track objective status
+  - Monitor task completion
+  - Measure velocity
+  - Predict completion date
 
-**Technical Approach**:
-- Custom charting with JavaScript
-- Real-time data updates
-- Interactive visualizations
-- Export to PDF/PNG
+- **Burndown Charts**
+  - Sprint burndown
+  - Release burndown
+  - Scope changes
+  - Velocity trends
+  - Forecast accuracy
 
-### 12. User Interface Components
-**Goal**: Modern, responsive web interface
+- **Health Metrics**
+  - Schedule variance
+  - Budget variance
+  - Quality metrics
+  - Team productivity
+  - Risk exposure
+
+- **Trend Analysis**
+  - Velocity trends
+  - Scope creep detection
+  - Quality trends
+  - Resource utilization
+  - Bottleneck identification
+
+**Technical Implementation**:
+- Statistical analysis
+- Trend detection algorithms
+- Forecasting models
+- Chart generation
+- Dashboard aggregation
+
+**Use Cases**:
+- "How complete is the project?"
+- "Are we on schedule?"
+- "What's our velocity?"
+- "When will we finish?"
+
+### 7. Team Collaboration Features
+**Goal**: Enable multi-user project management
 
 **Capabilities**:
-- Responsive design (desktop, tablet, mobile)
-- Dark/light theme toggle
-- Tabbed interface for different views
-- Split-pane layouts
-- Drag-and-drop support
-- Keyboard shortcuts
-- Context menus
-- Modal dialogs
-- Toast notifications
-- Loading indicators
-- Progress bars
+- **User Management**
+  - User roles (admin, manager, developer, viewer)
+  - Permissions management
+  - Team organization
+  - User profiles
+  - Activity tracking
 
-**Technical Approach**:
-- Custom HTML5/CSS3
-- Vanilla JavaScript (no frameworks)
-- CSS Grid and Flexbox
-- Local storage for preferences
-- Service workers for offline support
+- **Task Assignment**
+  - Assign tasks to team members
+  - Track task status
+  - Set due dates
+  - Monitor workload
+  - Balance assignments
+
+- **Comment System**
+  - Comment on objectives
+  - Discussion threads
+  - @mentions
+  - Notifications
+  - Comment history
+
+- **Notifications**
+  - Task assignments
+  - Due date reminders
+  - Status changes
+  - Mentions
+  - Project updates
+
+**Technical Implementation**:
+- User authentication (JWT)
+- Role-based access control
+- Real-time notifications
+- Comment threading
+- Activity feed
+
+**Use Cases**:
+- "Assign this task to John"
+- "Who's working on what?"
+- "Notify team about milestone"
+- "Discuss this objective"
+
+### 8. File Management System
+**Goal**: Manage project documents and files
+
+**Capabilities**:
+- **Document Management**
+  - Upload/download documents
+  - Version control
+  - Document search
+  - Document preview
+  - Document linking
+
+- **MASTER_PLAN.md Editor**
+  - In-browser editing
+  - Syntax highlighting
+  - Auto-save
+  - Version history
+  - Collaborative editing
+
+- **File Organization**
+  - Folder structure
+  - File tagging
+  - File search
+  - File sharing
+  - Access control
+
+**Technical Implementation**:
+- File storage system
+- Version control integration
+- Document parser
+- Search indexing
+- Access control
+
+### 9. Git Integration
+**Goal**: Connect to project repositories
+
+**Capabilities**:
+- **Repository Connection**
+  - Connect to GitHub/GitLab/Bitbucket
+  - Clone repositories
+  - Monitor commits
+  - Track branches
+  - View commit history
+
+- **Code Analysis**
+  - Analyze codebase structure
+  - Count lines of code
+  - Identify file types
+  - Detect languages
+  - Map code to objectives
+
+- **Progress Correlation**
+  - Link commits to tasks
+  - Track implementation progress
+  - Identify active areas
+  - Detect stale code
+  - Measure code velocity
+
+**Technical Implementation**:
+- Git operations via subprocess
+- Repository analysis
+- Commit parsing
+- Code metrics
+- Objective mapping
+
+### 10. Visualization & Reporting
+**Goal**: Visualize project data and generate reports
+
+**Capabilities**:
+- **Interactive Charts**
+  - Gantt charts
+  - Burndown charts
+  - Dependency graphs
+  - Org charts
+  - Progress bars
+
+- **Dashboards**
+  - Project overview
+  - Team dashboard
+  - Executive summary
+  - Risk dashboard
+  - Velocity dashboard
+
+- **Report Generation**
+  - Status reports
+  - Progress reports
+  - Risk reports
+  - Resource reports
+  - Custom reports
+
+**Technical Implementation**:
+- Chart generation (custom or Chart.js-like)
+- Dashboard layout engine
+- Report templates
+- Export to PDF/Excel
+- Scheduled reports
+
+### 11. Ollama Server & Model Management
+**Goal**: Configure AI models for planning assistance
+
+**Capabilities**:
+- **Server Management**
+  - Add/edit/remove Ollama servers
+  - Server health monitoring
+  - Load balancing
+  - Failover support
+
+- **Model Management**
+  - List available models
+  - Pull new models
+  - Set default models per project
+  - Model testing
+  - Model performance tracking
+
+**Technical Implementation**:
+- Ollama API integration
+- Server health checks
+- Model metadata storage
+- Load balancing algorithm
+
+### 12. Prompt Management
+**Goal**: Create custom prompts for planning tasks
+
+**Capabilities**:
+- **Prompt Library**
+  - Pre-built planning prompts
+  - Custom prompt creation
+  - Prompt templates
+  - Variable substitution
+  - Prompt versioning
+
+- **Prompt Categories**
+  - Planning prompts
+  - Research prompts
+  - Analysis prompts
+  - Review prompts
+  - Decision prompts
+
+**Technical Implementation**:
+- Prompt storage
+- Template engine
+- Context injection
+- Prompt testing
 
 ---
 
-## Architecture
+## Core Data Models
 
+### 1. Project Model
+
+```python
+@dataclass
+class Project:
+    id: str
+    user_id: str
+    name: str
+    description: str
+    master_plan_path: str
+    repository_url: str
+    local_path: str
+    status: str  # planning, active, on_hold, completed
+    created_at: datetime
+    updated_at: datetime
+    completion_percentage: float
+    
+class ProjectService:
+    def analyze_master_plan(self, project_id: str) -> Analysis:
+        """Analyze MASTER_PLAN.md"""
+        pass
+    
+    def calculate_progress(self, project_id: str) -> float:
+        """Calculate completion percentage"""
+        pass
+    
+    def generate_timeline(self, project_id: str) -> Timeline:
+        """Generate project timeline"""
+        pass
 ```
-project1/
-├── app/
-│   ├── __init__.py
-│   ├── wsgi.py                     # WSGI application entry point
-│   ├── core/
-│   │   ├── application.py          # Main WSGI application
-│   │   ├── router.py               # URL routing
-│   │   ├── request.py              # Request parsing
-│   │   ├── response.py             # Response formatting
-│   │   ├── websocket.py            # WebSocket support for chat
-│   │   └── middleware.py           # Middleware stack
-│   ├── auth/
-│   │   ├── jwt_handler.py          # Custom JWT implementation
-│   │   ├── api_keys.py             # API key management
-│   │   ├── session.py              # Session management
-│   │   └── rbac.py                 # Role-based access control
-│   ├── database/
-│   │   ├── connection.py           # Database connection manager
-│   │   ├── sqlite_adapter.py       # SQLite implementation
-│   │   ├── mysql_adapter.py        # MySQL implementation (optional)
-│   │   ├── query_builder.py        # SQL query builder
-│   │   └── migrations.py           # Schema migrations
-│   ├── models/
-│   │   ├── base.py                 # Base model class
-│   │   ├── user.py                 # User model
-│   │   ├── project.py              # Project model
-│   │   ├── objective.py            # Objective model
-│   │   ├── thread.py               # Conversation thread model
-│   │   ├── message.py              # Chat message model
-│   │   ├── file.py                 # File metadata model
-│   │   ├── server.py               # Ollama server model
-│   │   ├── prompt.py               # Prompt template model
-│   │   ├── analysis.py             # Analysis result model
-│   │   ├── recommendation.py       # Recommendation model
-│   │   └── snapshot.py             # Snapshot model
-│   ├── repositories/
-│   │   ├── base.py                 # Base repository
-│   │   ├── user_repo.py            # User repository
-│   │   ├── project_repo.py         # Project repository
-│   │   ├── thread_repo.py          # Thread repository
-│   │   ├── message_repo.py         # Message repository
-│   │   ├── file_repo.py            # File repository
-│   │   ├── server_repo.py          # Server repository
-│   │   ├── prompt_repo.py          # Prompt repository
-│   │   └── analysis_repo.py        # Analysis repository
-│   ├── services/
-│   │   ├── chat_service.py         # Chat orchestration
-│   │   ├── ollama_service.py       # Ollama API integration
-│   │   ├── project_service.py      # Project management
-│   │   ├── file_service.py         # File operations
-│   │   ├── git_service.py          # Git operations
-│   │   ├── analysis_service.py     # Analysis orchestration
-│   │   └── prompt_service.py       # Prompt management
-│   ├── analyzers/
-│   │   ├── base.py                 # Base analyzer
-│   │   ├── masterplan_parser.py    # Custom markdown parser
-│   │   ├── source_analyzer.py      # Source code analyzer
-│   │   ├── python_analyzer.py      # Python AST analyzer
-│   │   ├── javascript_analyzer.py  # JavaScript analyzer
-│   │   ├── gap_analyzer.py         # Gap analysis
-│   │   └── complexity.py           # Complexity metrics
-│   ├── engines/
-│   │   ├── recommendation.py       # Recommendation engine
-│   │   ├── matching.py             # Objective matching
-│   │   ├── scoring.py              # Priority scoring
-│   │   └── estimation.py           # Effort estimation
-│   ├── api/
-│   │   └── v1/
-│   │       ├── auth.py             # Authentication endpoints
-│   │       ├── projects.py         # Project endpoints
-│   │       ├── files.py            # File management endpoints
-│   │       ├── chat.py             # Chat endpoints
-│   │       ├── threads.py          # Thread management endpoints
-│   │       ├── git.py              # Git operation endpoints
-│   │       ├── servers.py          # Server management endpoints
-│   │       ├── models.py           # Model management endpoints
-│   │       ├── prompts.py          # Prompt management endpoints
-│   │       ├── analysis.py         # Analysis endpoints
-│   │       ├── objectives.py       # Objective endpoints
-│   │       └── recommendations.py  # Recommendation endpoints
-│   ├── utils/
-│   │   ├── pagination.py           # Pagination helper
-│   │   ├── filtering.py            # Query filtering
-│   │   ├── sorting.py              # Result sorting
-│   │   ├── rate_limiter.py         # Rate limiting
-│   │   ├── file_utils.py           # File utilities
-│   │   └── git_utils.py            # Git utilities
-│   └── config.py                   # Configuration management
-├── frontend/
-│   ├── index.html                  # Main application page
-│   ├── css/
-│   │   ├── main.css                # Main stylesheet
-│   │   ├── components.css          # Component styles
-│   │   ├── chat.css                # Chat interface styles
-│   │   ├── editor.css              # Code editor styles
-│   │   ├── dashboard.css           # Dashboard styles
-│   │   └── responsive.css          # Responsive design
-│   ├── js/
-│   │   ├── app.js                  # Main application
-│   │   ├── api.js                  # API client
-│   │   ├── chat.js                 # Chat interface
-│   │   ├── editor.js               # Code editor
-│   │   ├── file-browser.js         # File browser
-│   │   ├── git-ui.js               # Git interface
-│   │   ├── dashboard.js            # Dashboard
-│   │   ├── components.js           # UI components
-│   │   ├── markdown.js             # Markdown renderer
-│   │   ├── syntax-highlighter.js   # Syntax highlighting
-│   │   └── utils.js                # Utility functions
-│   └── assets/
-│       ├── images/                 # Images and icons
-│       └── fonts/                  # Custom fonts
-├── deployment/
-│   ├── apache/
-│   │   ├── http.conf               # HTTP vhost config
-│   │   └── https.conf              # HTTPS vhost config
-│   ├── wsgi.py                     # WSGI entry point
-│   └── requirements.txt            # Minimal dependencies
-├── tests/
-│   ├── test_auth.py
-│   ├── test_chat.py
-│   ├── test_file_management.py
-│   ├── test_git.py
-│   ├── test_analyzers.py
-│   └── test_api.py
-└── scripts/
-    ├── setup_db.py                 # Database setup
-    ├── create_admin.py             # Create admin user
-    └── migrate.py                  # Run migrations
+
+### 2. Objective Model
+
+```python
+@dataclass
+class Objective:
+    id: str
+    project_id: str
+    type: str  # primary, secondary, tertiary
+    title: str
+    description: str
+    status: str  # not_started, in_progress, completed, blocked
+    priority: int
+    dependencies: List[str]
+    assigned_to: str
+    due_date: datetime
+    completion_percentage: float
+    
+class ObjectiveService:
+    def extract_from_master_plan(self, content: str) -> List[Objective]:
+        """Extract objectives from MASTER_PLAN.md"""
+        pass
+    
+    def detect_gaps(self, project_id: str) -> List[Gap]:
+        """Detect implementation gaps"""
+        pass
+    
+    def recommend_next(self, project_id: str) -> List[Objective]:
+        """Recommend next objectives"""
+        pass
+```
+
+### 3. Web Search Tool
+
+```python
+class WebSearchTool:
+    """Custom web search tool"""
+    
+    def search(self, query: str, num_results: int = 10) -> List[SearchResult]:
+        """Search the web"""
+        pass
+    
+    def research_technology(self, tech_name: str) -> TechResearch:
+        """Research a technology"""
+        pass
+    
+    def find_similar_projects(self, description: str) -> List[Project]:
+        """Find similar projects"""
+        pass
+    
+    def competitive_analysis(self, project_id: str) -> CompetitiveAnalysis:
+        """Analyze competitors"""
+        pass
+```
+
+### 4. Timeline Generator
+
+```python
+class TimelineGenerator:
+    """Generate project timelines"""
+    
+    def generate(self, objectives: List[Objective]) -> Timeline:
+        """Generate timeline from objectives"""
+        pass
+    
+    def calculate_critical_path(self, timeline: Timeline) -> List[Objective]:
+        """Calculate critical path"""
+        pass
+    
+    def estimate_duration(self, objective: Objective) -> timedelta:
+        """Estimate objective duration"""
+        pass
+    
+    def optimize_schedule(self, timeline: Timeline) -> Timeline:
+        """Optimize task scheduling"""
+        pass
+```
+
+### 5. Resource Estimator
+
+```python
+class ResourceEstimator:
+    """Estimate project resources"""
+    
+    def estimate_effort(self, objectives: List[Objective]) -> Effort:
+        """Estimate total effort"""
+        pass
+    
+    def recommend_team_size(self, effort: Effort, duration: timedelta) -> int:
+        """Recommend team size"""
+        pass
+    
+    def identify_skills(self, objectives: List[Objective]) -> List[Skill]:
+        """Identify required skills"""
+        pass
+    
+    def estimate_cost(self, effort: Effort, team_size: int) -> Cost:
+        """Estimate project cost"""
+        pass
 ```
 
 ---
 
 ## Database Schema
-
-### Users Table
-```sql
-CREATE TABLE users (
-    id TEXT PRIMARY KEY,
-    username TEXT UNIQUE NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    role TEXT DEFAULT 'user',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_login TIMESTAMP
-);
-```
 
 ### Projects Table
 ```sql
@@ -456,96 +630,18 @@ CREATE TABLE projects (
     user_id TEXT NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
+    master_plan_path TEXT,
+    repository_url TEXT,
     local_path TEXT,
-    git_url TEXT,
-    git_branch TEXT DEFAULT 'main',
-    default_model TEXT,
-    default_server TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_analyzed TIMESTAMP,
-    status TEXT DEFAULT 'active',
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
-```
-
-### Threads Table
-```sql
-CREATE TABLE threads (
-    id TEXT PRIMARY KEY,
-    project_id TEXT,
-    user_id TEXT NOT NULL,
-    title TEXT NOT NULL,
-    model TEXT,
-    server TEXT,
-    temperature REAL DEFAULT 0.7,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES projects(id),
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
-```
-
-### Messages Table
-```sql
-CREATE TABLE messages (
-    id TEXT PRIMARY KEY,
-    thread_id TEXT NOT NULL,
-    role TEXT NOT NULL,  -- user, assistant, system
-    content TEXT NOT NULL,
-    model TEXT,
-    tokens_used INTEGER,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (thread_id) REFERENCES threads(id)
-);
-```
-
-### Files Table
-```sql
-CREATE TABLE files (
-    id TEXT PRIMARY KEY,
-    project_id TEXT NOT NULL,
-    path TEXT NOT NULL,
-    name TEXT NOT NULL,
-    size INTEGER,
-    mime_type TEXT,
-    hash TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES projects(id)
-);
-```
-
-### Servers Table
-```sql
-CREATE TABLE servers (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    name TEXT NOT NULL,
-    host TEXT NOT NULL,
-    port INTEGER DEFAULT 11434,
-    capabilities TEXT,  -- JSON array
-    online BOOLEAN DEFAULT FALSE,
+    status TEXT DEFAULT 'planning',
+    completion_percentage REAL DEFAULT 0.0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
-```
 
-### Prompts Table
-```sql
-CREATE TABLE prompts (
-    id TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    name TEXT NOT NULL,
-    category TEXT,
-    template TEXT NOT NULL,
-    variables TEXT,  -- JSON array
-    version INTEGER DEFAULT 1,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-);
+CREATE INDEX idx_projects_user ON projects(user_id);
+CREATE INDEX idx_projects_status ON projects(status);
 ```
 
 ### Objectives Table
@@ -553,210 +649,254 @@ CREATE TABLE prompts (
 CREATE TABLE objectives (
     id TEXT PRIMARY KEY,
     project_id TEXT NOT NULL,
-    level TEXT NOT NULL,  -- primary, secondary, tertiary
+    type TEXT NOT NULL,  -- primary, secondary, tertiary
     title TEXT NOT NULL,
     description TEXT,
-    status TEXT DEFAULT 'proposed',
+    status TEXT DEFAULT 'not_started',
+    priority INTEGER DEFAULT 0,
+    dependencies TEXT,  -- JSON array of objective IDs
+    assigned_to TEXT,
+    due_date TIMESTAMP,
     completion_percentage REAL DEFAULT 0.0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (project_id) REFERENCES projects(id)
+    FOREIGN KEY (project_id) REFERENCES projects(id),
+    FOREIGN KEY (assigned_to) REFERENCES users(id)
 );
+
+CREATE INDEX idx_objectives_project ON objectives(project_id);
+CREATE INDEX idx_objectives_status ON objectives(status);
+CREATE INDEX idx_objectives_assigned ON objectives(assigned_to);
 ```
 
-### Analyses Table
+### Tasks Table
 ```sql
-CREATE TABLE analyses (
+CREATE TABLE tasks (
     id TEXT PRIMARY KEY,
-    project_id TEXT NOT NULL,
-    analysis_type TEXT NOT NULL,
-    status TEXT DEFAULT 'pending',
-    started_at TIMESTAMP,
-    completed_at TIMESTAMP,
-    results JSON,
-    FOREIGN KEY (project_id) REFERENCES projects(id)
-);
-```
-
-### Recommendations Table
-```sql
-CREATE TABLE recommendations (
-    id TEXT PRIMARY KEY,
-    analysis_id TEXT NOT NULL,
-    type TEXT NOT NULL,
-    priority INTEGER NOT NULL,
+    objective_id TEXT NOT NULL,
     title TEXT NOT NULL,
     description TEXT,
-    effort TEXT,
-    impact TEXT,
+    status TEXT DEFAULT 'not_started',
+    assigned_to TEXT,
+    due_date TIMESTAMP,
+    estimated_hours REAL,
+    actual_hours REAL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (objective_id) REFERENCES objectives(id),
+    FOREIGN KEY (assigned_to) REFERENCES users(id)
+);
+
+CREATE INDEX idx_tasks_objective ON tasks(objective_id);
+CREATE INDEX idx_tasks_assigned ON tasks(assigned_to);
+```
+
+### Gaps Table
+```sql
+CREATE TABLE gaps (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    objective_id TEXT,
+    type TEXT NOT NULL,  -- missing_implementation, incomplete_feature, etc.
+    title TEXT NOT NULL,
+    description TEXT,
+    severity TEXT,  -- low, medium, high, critical
     status TEXT DEFAULT 'open',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (analysis_id) REFERENCES analyses(id)
+    resolved_at TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id),
+    FOREIGN KEY (objective_id) REFERENCES objectives(id)
 );
+
+CREATE INDEX idx_gaps_project ON gaps(project_id);
+CREATE INDEX idx_gaps_status ON gaps(status);
+```
+
+### Risks Table
+```sql
+CREATE TABLE risks (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    probability REAL,  -- 0.0 to 1.0
+    impact REAL,  -- 0.0 to 1.0
+    score REAL,  -- probability * impact
+    status TEXT DEFAULT 'identified',
+    mitigation_plan TEXT,
+    owner TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id),
+    FOREIGN KEY (owner) REFERENCES users(id)
+);
+
+CREATE INDEX idx_risks_project ON risks(project_id);
+CREATE INDEX idx_risks_score ON risks(score);
+```
+
+### Comments Table
+```sql
+CREATE TABLE comments (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    objective_id TEXT,
+    task_id TEXT,
+    user_id TEXT NOT NULL,
+    content TEXT NOT NULL,
+    parent_id TEXT,  -- For threaded comments
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id),
+    FOREIGN KEY (objective_id) REFERENCES objectives(id),
+    FOREIGN KEY (task_id) REFERENCES tasks(id),
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (parent_id) REFERENCES comments(id)
+);
+
+CREATE INDEX idx_comments_project ON comments(project_id);
+CREATE INDEX idx_comments_objective ON comments(objective_id);
+CREATE INDEX idx_comments_task ON comments(task_id);
+```
+
+### Search Results Cache Table
+```sql
+CREATE TABLE search_cache (
+    id TEXT PRIMARY KEY,
+    query TEXT NOT NULL,
+    results TEXT NOT NULL,  -- JSON
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP
+);
+
+CREATE INDEX idx_search_query ON search_cache(query);
+CREATE INDEX idx_search_expires ON search_cache(expires_at);
 ```
 
 ---
 
-## User Interface Layout
+## API Endpoints
 
-### Main Application Layout
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Header: Logo | Project Selector | User Menu               │
-├─────────────────────────────────────────────────────────────┤
-│ Sidebar          │  Main Content Area                       │
-│                  │                                           │
-│ • Dashboard      │  ┌─────────────────────────────────────┐ │
-│ • Chat           │  │  Tab Bar: Dashboard | Chat | Files  │ │
-│ • Files          │  ├─────────────────────────────────────┤ │
-│ • Analysis       │  │                                     │ │
-│ • Objectives     │  │  Content based on selected tab      │ │
-│ • Git            │  │                                     │ │
-│ • Servers        │  │                                     │ │
-│ • Prompts        │  │                                     │ │
-│ • Settings       │  │                                     │ │
-│                  │  └─────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
+### Projects
+- `GET /api/v1/projects` - List all projects
+- `POST /api/v1/projects` - Create new project
+- `GET /api/v1/projects/{id}` - Get project details
+- `PUT /api/v1/projects/{id}` - Update project
+- `DELETE /api/v1/projects/{id}` - Delete project
+- `GET /api/v1/projects/{id}/dashboard` - Get project dashboard
+- `POST /api/v1/projects/{id}/analyze` - Analyze MASTER_PLAN.md
+- `GET /api/v1/projects/{id}/progress` - Get progress metrics
+- `GET /api/v1/projects/{id}/timeline` - Get project timeline
+- `POST /api/v1/projects/{id}/timeline/generate` - Generate timeline
 
-### Chat Interface
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Thread List     │  Chat Area                               │
-│                  │                                           │
-│  ┌────────────┐  │  ┌─────────────────────────────────────┐ │
-│  │ Thread 1   │  │  │ User: How do I implement auth?      │ │
-│  │ Thread 2   │  │  │ Assistant: Here's how...            │ │
-│  │ + New      │  │  │ [Code block with syntax highlight]  │ │
-│  └────────────┘  │  └─────────────────────────────────────┘ │
-│                  │  ┌─────────────────────────────────────┐ │
-│                  │  │ [Type message...]        [Send]     │ │
-│                  │  │ Model: qwen2.5-coder:32b  Temp: 0.7 │ │
-│                  │  └─────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
+### Objectives
+- `GET /api/v1/projects/{id}/objectives` - List objectives
+- `POST /api/v1/projects/{id}/objectives` - Create objective
+- `GET /api/v1/objectives/{id}` - Get objective details
+- `PUT /api/v1/objectives/{id}` - Update objective
+- `DELETE /api/v1/objectives/{id}` - Delete objective
+- `GET /api/v1/objectives/{id}/gaps` - Get implementation gaps
+- `GET /api/v1/objectives/{id}/dependencies` - Get dependencies
 
-### File Browser
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Tree View       │  File Content / Editor                   │
-│                  │                                           │
-│  📁 project/     │  ┌─────────────────────────────────────┐ │
-│    📁 src/       │  │ Line numbers | Code with syntax     │ │
-│      📄 main.py  │  │ highlighting                        │ │
-│      📄 utils.py │  │                                     │ │
-│    📁 tests/     │  │ [Edit] [Save] [Download]            │ │
-│    📄 README.md  │  └─────────────────────────────────────┘ │
-│                  │                                           │
-│  [Upload] [New]  │  [Search files...]                       │
-└─────────────────────────────────────────────────────────────┘
-```
+### Tasks
+- `GET /api/v1/objectives/{id}/tasks` - List tasks
+- `POST /api/v1/objectives/{id}/tasks` - Create task
+- `GET /api/v1/tasks/{id}` - Get task details
+- `PUT /api/v1/tasks/{id}` - Update task
+- `DELETE /api/v1/tasks/{id}` - Delete task
+- `POST /api/v1/tasks/{id}/assign` - Assign task
 
-### Git Interface
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Status          │  Diff Viewer                             │
-│                  │                                           │
-│  Branch: main    │  ┌─────────────────────────────────────┐ │
-│  ✓ 3 staged      │  │ - old line                          │ │
-│  ✗ 2 unstaged    │  │ + new line                          │ │
-│                  │  │                                     │ │
-│  Modified:       │  └─────────────────────────────────────┘ │
-│  □ file1.py      │                                           │
-│  ☑ file2.py      │  Commit Message:                         │
-│                  │  [Implement feature X]                   │
-│  [Commit] [Push] │  [Commit] [Push] [Pull]                 │
-└─────────────────────────────────────────────────────────────┘
-```
+### Web Search
+- `POST /api/v1/search` - Search the web
+- `POST /api/v1/search/technology` - Research technology
+- `POST /api/v1/search/projects` - Find similar projects
+- `POST /api/v1/search/competitive` - Competitive analysis
 
----
+### Resources
+- `POST /api/v1/projects/{id}/estimate` - Estimate resources
+- `GET /api/v1/projects/{id}/resources` - Get resource allocation
+- `POST /api/v1/projects/{id}/optimize` - Optimize schedule
 
-## Key Features
+### Risks
+- `GET /api/v1/projects/{id}/risks` - List risks
+- `POST /api/v1/projects/{id}/risks` - Create risk
+- `GET /api/v1/risks/{id}` - Get risk details
+- `PUT /api/v1/risks/{id}` - Update risk
+- `DELETE /api/v1/risks/{id}` - Delete risk
 
-### Real-Time Chat
-- Streaming responses from Ollama
-- Code syntax highlighting
-- Markdown rendering
-- File attachments
-- Thread organization
-- Search history
+### Comments
+- `GET /api/v1/objectives/{id}/comments` - Get comments
+- `POST /api/v1/objectives/{id}/comments` - Add comment
+- `PUT /api/v1/comments/{id}` - Update comment
+- `DELETE /api/v1/comments/{id}` - Delete comment
 
-### Project Management
-- Multi-project support
-- Project templates
-- Objective tracking
-- Progress visualization
-- Team collaboration
+### Chat (from previous design)
+- `GET /api/v1/threads` - List threads
+- `POST /api/v1/threads` - Create thread
+- `POST /api/v1/threads/{id}/messages` - Send message (streaming)
 
-### File Operations
-- Upload/download
-- Zip import/export
-- Syntax highlighting
-- Code editing
-- File search
+### Files (from previous design)
+- `GET /api/v1/projects/{id}/files` - List files
+- `GET /api/v1/projects/{id}/files/{path}` - Get file
+- `PUT /api/v1/projects/{id}/files/{path}` - Update file
 
-### Git Integration
-- Status viewing
-- Commit/push/pull
-- Branch management
-- Diff viewer
-- SSH key management
+### Git (from previous design)
+- `GET /api/v1/projects/{id}/git/status` - Git status
+- `POST /api/v1/projects/{id}/git/analyze` - Analyze codebase
 
-### Analysis Tools
-- MASTER_PLAN parsing
-- Source code analysis
-- Gap detection
-- Recommendations
-- Progress tracking
-
-### Model Management
-- Server configuration
-- Model selection
-- Performance monitoring
-- Load balancing
-
-### Prompt Engineering
-- Custom prompts
-- Template variables
-- Version control
-- Testing interface
-
----
-
-## Success Criteria
-
-1. **Chat Performance**: < 100ms response start time
-2. **File Operations**: Handle 10,000+ files per project
-3. **Analysis Speed**: Analyze 10,000 LOC in < 30 seconds
-4. **UI Responsiveness**: < 50ms interaction response
-5. **Concurrent Users**: Support 100+ simultaneous users
-6. **Uptime**: 99.9% availability
-7. **Data Integrity**: Zero data loss
-8. **Security**: Pass security audit
+### Servers & Prompts (from previous design)
+- Server and prompt management endpoints
 
 ---
 
 ## Technology Stack
 
 ### Core (Python Standard Library Only)
-- **wsgiref** - WSGI reference implementation
-- **sqlite3** - SQLite database (default)
-- **ast** - Python AST parsing
-- **re** - Regular expressions
-- **json** - JSON handling
-- **hmac** - HMAC for JWT
-- **hashlib** - Hashing
-- **pathlib** - Path operations
+- **wsgiref** - WSGI server
+- **http.server** - HTTP handling
+- **urllib** - HTTP client for APIs
+- **json** - JSON processing
+- **sqlite3** - Database
+- **hmac** - JWT tokens
+- **hashlib** - Password hashing
+- **pathlib** - File operations
 - **subprocess** - Git operations
-- **threading** - Concurrent operations
-- **queue** - Message queuing
+- **ast** - Code analysis
+- **re** - Regex for parsing
 
-### Optional External
-- **mysql-connector-python** - MySQL support (optional)
+### Optional
+- **mysql.connector** - MySQL support
 
-### Deployment
-- **Apache 2.4+** - Web server with mod_wsgi
-- **mod_wsgi** - WSGI interface for Apache
+---
+
+## Success Criteria
+
+1. ✅ **Analysis**: Parse MASTER_PLAN.md and extract objectives
+2. ✅ **Research**: Search web for project information
+3. ✅ **Planning**: Generate timelines and resource estimates
+4. ✅ **Tracking**: Monitor progress and calculate completion
+5. ✅ **Collaboration**: Support multi-user teams
+6. ✅ **Visualization**: Display Gantt charts and dashboards
+7. ✅ **AI Assistance**: Provide intelligent recommendations
+8. ✅ **Integration**: Connect to Git repositories
+
+---
+
+## Key Differentiators
+
+### From Autonomy Pipeline
+1. ✅ Web platform for project management
+2. ✅ Document-centric (MASTER_PLAN.md)
+3. ✅ Team collaboration features
+4. ✅ Planning and estimation tools
+5. ✅ Web search integration
+
+### From Project 2
+1. ✅ **Planning focus** - Not debugging
+2. ✅ **Document analysis** - Not code execution
+3. ✅ **Team collaboration** - Multi-user
+4. ✅ **Long-term tracking** - Not real-time debugging
+5. ✅ **Resource planning** - Not performance analysis
 
 ---
 
