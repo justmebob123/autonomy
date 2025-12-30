@@ -261,7 +261,8 @@ class ToolCallHandler:
             file_lines.append(f"[{activity['timestamp']}] LIST: {directory}")
             
         elif tool_name == 'create_python_file' or tool_name == 'create_file':
-            file_path = args.get('file_path', 'unknown')
+            # Try multiple parameter names (filepath, file_path, path)
+            file_path = args.get('filepath') or args.get('file_path') or args.get('path') or 'unknown'
             console_lines.append(f"✨ [AI Activity] Creating file: {file_path}")
             file_lines.append(f"[{activity['timestamp']}] CREATE: {file_path}")
             
