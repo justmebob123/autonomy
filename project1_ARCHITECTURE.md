@@ -1261,35 +1261,846 @@ See project1_MASTER_PLAN.md for complete database schema.
 
 ---
 
-## Deployment Architecture
+## Configuration Management
 
-### Apache Configuration
+### Configuration File Structure
 
-```apache
-<VirtualHost *:443>
-    ServerName planning-platform.example.com
+The application uses a standard INI configuration file for all settings.
+
+**File**: `config/config.ini`
+
+```ini
+[server]
+host = 0.0.0.0
+port = 5000
+workers = 4
+threads = 2
+debug = false
+
+[database]
+type = sqlite
+path = /var/www/planning/data/planning.db
+
+# For MySQL (optional):
+# type = mysql
+# host = localhost
+# port = 3306
+# database = planning
+# user = planning_user
+# password = secure_password
+# pool_size = 10
+# pool_recycle = 3600
+
+[security]
+jwt_secret = CHANGE_THIS_SECRET_KEY_IN_PRODUCTION
+jwt_algorithm = HS256
+jwt_expiry_seconds = 3600
+password_hash_algorithm = sha256
+password_salt_rounds = 10
+session_timeout_seconds = 7200
+max_login_attempts = 5
+lockout_duration_seconds = 900
+
+[ollama]
+default_server = http://localhost:11434
+default_model = qwen2.5-coder:32b
+timeout_seconds = 300
+max_retries = 3
+retry_delay_seconds = 5
+
+[git]
+ssh_key_path = /var/www/planning/.ssh/id_rsa
+default_branch = main
+clone_timeout_seconds = 300
+fetch_timeout_seconds = 60
+
+[logging]
+level = INFO
+file = /var/www/planning/logs/application.log
+max_size_bytes = 10485760
+backup_count = 5
+format = %(asctime)s - %(name)s - %(levelname)s - %(message)s
+
+[paths]
+project_root = /var/www/planning
+data_dir = /var/www/planning/data
+upload_dir = /var/www/planning/uploads
+temp_dir = /var/www/planning/temp
+static_dir = /var/www/planning/static
+log_dir = /var/www/planning/logs
+
+[web_search]
+google_api_key = YOUR_GOOGLE_API_KEY
+google_cx = YOUR_GOOGLE_CX
+max_results = 10
+timeout_seconds = 30
+
+[limits]
+max_upload_size_mb = 100
+max_file_count = 1000
+max_project_size_mb = 1000
+max_thread_messages = 1000
+max_concurrent_requests = 100
+```
+
+### Configuration Loading
+
+```python
+# config/loader.py
+import configparser
+import os
+from pathlib import Path
+
+class ConfigLoader:
+    """Load and validate configuration from INI file."""
     
-    SSLEngine on
-    SSLCertificateFile /path/to/cert.pem
-    SSLCertificateKeyFile /path/to/key.pem
+    def __init__(self, config_path: str = None):
+        if config_path is None:
+            config_path = os.environ.get('PLANNING_CONFIG', 'config/config.ini')
+        
+        self.config_path = Path(config_path)
+        self.config = configparser.ConfigParser()
+        self._load()
+        self._validate()
     
-    WSGIDaemonProcess planning user=www-data group=www-data threads=5
-    WSGIScriptAlias / /var/www/planning/wsgi.py
+    def _load(self):
+        """Load configuration from file."""
+        if not self.config_path.exists():
+            raise FileNotFoundError(f"Configuration file not found: {self.config_path}")
+        
+        self.config.read(self.config_path)
     
-    <Directory /var/www/planning>
-        WSGIProcessGroup planning
-        WSGIApplicationGroup %{GLOBAL}
-        Require all granted
-    </Directory>
+    def _validate(self):
+        """Validate required configuration sections and keys."""
+        required_sections = ['server', 'database', 'security', 'paths']
+        for section in required_sections:
+            if section not in self.config:
+                raise ValueError(f"Missing required configuration section: {section}")
+        
+        # Validate critical settings
+        if self.config['security']['jwt_secret'] == 'CHANGE_THIS_SECRET_KEY_IN_PRODUCTION':
+            raise ValueError("JWT secret must be changed in production")
     
-    ErrorLog ${APACHE_LOG_DIR}/planning-error.log
-    CustomLog ${APACHE_LOG_DIR}/planning-access.log combined
-</VirtualHost>
+    def get(self, section: str, key: str, fallback=None):
+        """Get configuration value."""
+        return self.config.get(section, key, fallback=fallback)
+    
+    def getint(self, section: str, key: str, fallback=None):
+        """Get integer configuration value."""
+        return self.config.getint(section, key, fallback=fallback)
+    
+    def getboolean(self, section: str, key: str, fallback=None):
+        """Get boolean configuration value."""
+        return self.config.getboolean(section, key, fallback=fallback)
+```
+
+### Environment Variable Support
+
+Configuration values can be overridden using environment variables:
+
+```bash
+# Override database settings
+export PLANNING_DB_TYPE=mysql
+export PLANNING_DB_HOST=db.example.com
+export PLANNING_DB_PASSWORD=secure_password
+
+# Override security settings
+export PLANNING_JWT_SECRET=production_secret_key
+
+# Override Ollama settings
+export PLANNING_OLLAMA_SERVER=http://ollama.example.com:11434
 ```
 
 ---
 
-**Document Version**: 3.0.0  
+## Deployment Architecture
+
+### Directory Structure
+
+```
+/var/www/planning/
+├── config/
+│   ├── config.ini              # Main configuration
+│   └── apache/
+│       ├── http.conf           # HTTP vhost
+│       └── https.conf          # HTTPS vhost
+├── wsgi/
+│   ├── application.py          # Custom WSGI application
+│   ├── router.py              # Custom routing
+│   ├── request.py             # Request parser
+│   ├── response.py            # Response builder
+│   ├── middleware.py          # Middleware
+│   └── server.py              # WSGI entry point
+├── api/
+│   ├── projects.py            # Project endpoints
+│   ├── objectives.py          # Objective endpoints
+│   ├── chat.py               # Chat endpoints
+│   └── ...                   # Other endpoints
+├── static/
+│   ├── css/
+│   ├── js/
+│   └── images/
+├── data/
+│   └── planning.db           # SQLite database
+├── uploads/                  # User uploads
+├── temp/                     # Temporary files
+└── logs/                     # Application logs
+```
+
+### Apache Configuration
+
+#### HTTP Virtual Host (Port 80)
+
+**File**: `config/apache/http.conf`
+
+```apache
+<VirtualHost *:80>
+    ServerName planning-platform.example.com
+    ServerAdmin admin@example.com
+    
+    # Redirect all HTTP traffic to HTTPS
+    Redirect permanent / https://planning-platform.example.com/
+    
+    # Logging
+    ErrorLog ${APACHE_LOG_DIR}/planning-http-error.log
+    CustomLog ${APACHE_LOG_DIR}/planning-http-access.log combined
+    LogLevel warn
+</VirtualHost>
+```
+
+#### HTTPS Virtual Host (Port 443)
+
+**File**: `config/apache/https.conf`
+
+```apache
+<VirtualHost *:443>
+    ServerName planning-platform.example.com
+    ServerAdmin admin@example.com
+    
+    # SSL/TLS Configuration
+    SSLEngine on
+    SSLProtocol all -SSLv2 -SSLv3 -TLSv1 -TLSv1.1
+    SSLCipherSuite HIGH:!aNULL:!MD5:!3DES
+    SSLHonorCipherOrder on
+    
+    # SSL Certificates
+    SSLCertificateFile /etc/ssl/certs/planning-platform.crt
+    SSLCertificateKeyFile /etc/ssl/private/planning-platform.key
+    SSLCertificateChainFile /etc/ssl/certs/planning-platform-chain.crt
+    
+    # Security Headers
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';"
+    
+    # WSGI Configuration
+    WSGIDaemonProcess planning \
+        user=www-data \
+        group=www-data \
+        processes=4 \
+        threads=2 \
+        python-path=/var/www/planning \
+        home=/var/www/planning \
+        display-name=%{GROUP}
+    
+    WSGIProcessGroup planning
+    WSGIApplicationGroup %{GLOBAL}
+    WSGIScriptAlias / /var/www/planning/wsgi/server.py
+    WSGIPassAuthorization On
+    
+    # Application Directory
+    <Directory /var/www/planning>
+        Require all granted
+        Options -Indexes +FollowSymLinks
+        AllowOverride None
+    </Directory>
+    
+    # WSGI Script
+    <Files wsgi/server.py>
+        Require all granted
+    </Files>
+    
+    # Static Files
+    Alias /static /var/www/planning/static
+    <Directory /var/www/planning/static>
+        Require all granted
+        Options -Indexes -FollowSymLinks
+        AllowOverride None
+        
+        # Cache static files for 1 year
+        <IfModule mod_expires.c>
+            ExpiresActive On
+            ExpiresDefault "access plus 1 year"
+        </IfModule>
+        
+        # Compress static files
+        <IfModule mod_deflate.c>
+            AddOutputFilterByType DEFLATE text/css text/javascript application/javascript
+        </IfModule>
+    </Directory>
+    
+    # Uploads Directory (protected)
+    Alias /uploads /var/www/planning/uploads
+    <Directory /var/www/planning/uploads>
+        Require all denied
+    </Directory>
+    
+    # Logging
+    ErrorLog ${APACHE_LOG_DIR}/planning-https-error.log
+    CustomLog ${APACHE_LOG_DIR}/planning-https-access.log combined
+    LogLevel info
+    
+    # Performance Tuning
+    KeepAlive On
+    KeepAliveTimeout 5
+    MaxKeepAliveRequests 100
+</VirtualHost>
+```
+
+### Custom WSGI Application
+
+#### WSGI Entry Point
+
+**File**: `wsgi/server.py`
+
+```python
+"""
+WSGI Server Entry Point
+
+This is the entry point for Apache mod_wsgi.
+Uses only Python standard library - NO external frameworks.
+"""
+
+import sys
+import os
+from pathlib import Path
+
+# Add project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+# Import custom WSGI application
+from wsgi.application import WSGIApplication
+from config.loader import ConfigLoader
+
+# Load configuration
+config = ConfigLoader()
+
+# Create WSGI application instance
+application = WSGIApplication(config)
+
+# This 'application' callable is what Apache mod_wsgi will use
+```
+
+#### Custom WSGI Application Class
+
+**File**: `wsgi/application.py`
+
+```python
+"""
+Custom WSGI Application
+
+Implements a complete WSGI application using only Python standard library.
+NO external frameworks (Flask, FastAPI, etc.)
+"""
+
+from wsgi.router import Router
+from wsgi.request import Request
+from wsgi.response import Response
+from wsgi.middleware import MiddlewareStack
+import logging
+
+class WSGIApplication:
+    """Custom WSGI application class."""
+    
+    def __init__(self, config):
+        self.config = config
+        self.logger = logging.getLogger(__name__)
+        
+        # Initialize router
+        self.router = Router()
+        
+        # Initialize middleware stack
+        self.middleware = MiddlewareStack()
+        self.middleware.add('cors', self._cors_middleware)
+        self.middleware.add('auth', self._auth_middleware)
+        self.middleware.add('logging', self._logging_middleware)
+        
+        # Register routes
+        self._register_routes()
+    
+    def __call__(self, environ, start_response):
+        """
+        WSGI application callable.
+        
+        This is called by Apache mod_wsgi for each request.
+        """
+        try:
+            # Parse request
+            request = Request(environ)
+            
+            # Apply middleware
+            response = self.middleware.process_request(request)
+            if response:
+                return response(environ, start_response)
+            
+            # Route request
+            response = self.router.route(request)
+            
+            # Apply response middleware
+            response = self.middleware.process_response(request, response)
+            
+            # Return WSGI response
+            return response(environ, start_response)
+            
+        except Exception as e:
+            self.logger.error(f"Application error: {e}", exc_info=True)
+            response = Response(
+                body={'error': 'Internal server error'},
+                status=500
+            )
+            return response(environ, start_response)
+    
+    def _register_routes(self):
+        """Register all application routes."""
+        from api import projects, objectives, chat, files, git, servers, prompts
+        
+        # Project routes
+        self.router.add_route('GET', '/api/projects', projects.list_projects)
+        self.router.add_route('POST', '/api/projects', projects.create_project)
+        self.router.add_route('GET', '/api/projects/<id>', projects.get_project)
+        self.router.add_route('PUT', '/api/projects/<id>', projects.update_project)
+        self.router.add_route('DELETE', '/api/projects/<id>', projects.delete_project)
+        
+        # Objective routes
+        self.router.add_route('GET', '/api/projects/<project_id>/objectives', objectives.list_objectives)
+        self.router.add_route('POST', '/api/projects/<project_id>/objectives', objectives.create_objective)
+        
+        # Chat routes
+        self.router.add_route('GET', '/api/threads', chat.list_threads)
+        self.router.add_route('POST', '/api/threads', chat.create_thread)
+        self.router.add_route('GET', '/api/threads/<id>/messages', chat.get_messages)
+        self.router.add_route('POST', '/api/threads/<id>/messages', chat.send_message)
+        
+        # ... more routes ...
+    
+    def _cors_middleware(self, request):
+        """CORS middleware."""
+        # Add CORS headers if needed
+        return None
+    
+    def _auth_middleware(self, request):
+        """Authentication middleware."""
+        # Check JWT token
+        # Validate user session
+        return None
+    
+    def _logging_middleware(self, request):
+        """Logging middleware."""
+        self.logger.info(f"{request.method} {request.path}")
+        return None
+```
+
+#### Custom Router
+
+**File**: `wsgi/router.py`
+
+```python
+"""
+Custom Router
+
+Implements URL routing using only Python standard library.
+"""
+
+import re
+from typing import Callable, Dict, List, Tuple
+
+class Router:
+    """Custom URL router."""
+    
+    def __init__(self):
+        self.routes: List[Tuple[str, str, Callable]] = []
+    
+    def add_route(self, method: str, pattern: str, handler: Callable):
+        """Add a route."""
+        # Convert pattern to regex
+        # /api/projects/<id> -> /api/projects/(?P<id>[^/]+)
+        regex_pattern = re.sub(r'<(\w+)>', r'(?P<\1>[^/]+)', pattern)
+        regex_pattern = f'^{regex_pattern}$'
+        
+        self.routes.append((method, regex_pattern, handler))
+    
+    def route(self, request):
+        """Route a request to the appropriate handler."""
+        from wsgi.response import Response
+        
+        for method, pattern, handler in self.routes:
+            if method != request.method:
+                continue
+            
+            match = re.match(pattern, request.path)
+            if match:
+                # Extract path parameters
+                kwargs = match.groupdict()
+                
+                # Call handler
+                try:
+                    result = handler(request, **kwargs)
+                    
+                    # Convert result to Response
+                    if isinstance(result, Response):
+                        return result
+                    elif isinstance(result, dict):
+                        return Response(body=result)
+                    elif isinstance(result, tuple):
+                        body, status = result
+                        return Response(body=body, status=status)
+                    else:
+                        return Response(body=result)
+                        
+                except Exception as e:
+                    return Response(
+                        body={'error': str(e)},
+                        status=500
+                    )
+        
+        # No route found
+        return Response(
+            body={'error': 'Not found'},
+            status=404
+        )
+```
+
+#### Custom Request Parser
+
+**File**: `wsgi/request.py`
+
+```python
+"""
+Custom Request Parser
+
+Parses WSGI environ into a request object.
+"""
+
+import json
+from urllib.parse import parse_qs
+from io import BytesIO
+
+class Request:
+    """Custom request object."""
+    
+    def __init__(self, environ):
+        self.environ = environ
+        self.method = environ['REQUEST_METHOD']
+        self.path = environ['PATH_INFO']
+        self.query_string = environ.get('QUERY_STRING', '')
+        self.content_type = environ.get('CONTENT_TYPE', '')
+        self.content_length = int(environ.get('CONTENT_LENGTH', 0) or 0)
+        
+        # Parse query parameters
+        self.query_params = parse_qs(self.query_string)
+        
+        # Parse headers
+        self.headers = self._parse_headers(environ)
+        
+        # Parse body
+        self._body = None
+        self._json = None
+    
+    def _parse_headers(self, environ):
+        """Parse HTTP headers from environ."""
+        headers = {}
+        for key, value in environ.items():
+            if key.startswith('HTTP_'):
+                header_name = key[5:].replace('_', '-').title()
+                headers[header_name] = value
+        return headers
+    
+    @property
+    def body(self):
+        """Get request body as bytes."""
+        if self._body is None:
+            if self.content_length > 0:
+                self._body = self.environ['wsgi.input'].read(self.content_length)
+            else:
+                self._body = b''
+        return self._body
+    
+    @property
+    def json(self):
+        """Parse request body as JSON."""
+        if self._json is None:
+            if self.content_type == 'application/json':
+                self._json = json.loads(self.body.decode('utf-8'))
+            else:
+                self._json = {}
+        return self._json
+    
+    def get_header(self, name, default=None):
+        """Get a header value."""
+        return self.headers.get(name, default)
+```
+
+#### Custom Response Builder
+
+**File**: `wsgi/response.py`
+
+```python
+"""
+Custom Response Builder
+
+Builds WSGI responses.
+"""
+
+import json
+
+class Response:
+    """Custom response object."""
+    
+    def __init__(self, body=None, status=200, headers=None):
+        self.body = body
+        self.status = status
+        self.headers = headers or {}
+        
+        # Set default headers
+        if 'Content-Type' not in self.headers:
+            if isinstance(body, dict) or isinstance(body, list):
+                self.headers['Content-Type'] = 'application/json'
+            else:
+                self.headers['Content-Type'] = 'text/plain'
+    
+    def __call__(self, environ, start_response):
+        """WSGI response callable."""
+        # Convert body to bytes
+        if isinstance(self.body, dict) or isinstance(self.body, list):
+            body_bytes = json.dumps(self.body).encode('utf-8')
+        elif isinstance(self.body, str):
+            body_bytes = self.body.encode('utf-8')
+        elif isinstance(self.body, bytes):
+            body_bytes = self.body
+        else:
+            body_bytes = str(self.body).encode('utf-8')
+        
+        # Set Content-Length
+        self.headers['Content-Length'] = str(len(body_bytes))
+        
+        # Build status line
+        status_line = f"{self.status} {self._get_status_text(self.status)}"
+        
+        # Build headers list
+        headers_list = [(k, v) for k, v in self.headers.items()]
+        
+        # Call start_response
+        start_response(status_line, headers_list)
+        
+        # Return body as iterable
+        return [body_bytes]
+    
+    def _get_status_text(self, status):
+        """Get status text for status code."""
+        status_texts = {
+            200: 'OK',
+            201: 'Created',
+            204: 'No Content',
+            400: 'Bad Request',
+            401: 'Unauthorized',
+            403: 'Forbidden',
+            404: 'Not Found',
+            500: 'Internal Server Error',
+        }
+        return status_texts.get(status, 'Unknown')
+```
+
+#### Middleware System
+
+**File**: `wsgi/middleware.py`
+
+```python
+"""
+Custom Middleware System
+
+Implements middleware for request/response processing.
+"""
+
+class MiddlewareStack:
+    """Middleware stack."""
+    
+    def __init__(self):
+        self.middleware = []
+    
+    def add(self, name, handler):
+        """Add middleware to stack."""
+        self.middleware.append((name, handler))
+    
+    def process_request(self, request):
+        """Process request through middleware."""
+        for name, handler in self.middleware:
+            response = handler(request)
+            if response:
+                return response
+        return None
+    
+    def process_response(self, request, response):
+        """Process response through middleware."""
+        # Apply response middleware in reverse order
+        for name, handler in reversed(self.middleware):
+            # Response middleware can modify response
+            pass
+        return response
+```
+
+### Deployment Instructions
+
+#### 1. Install Apache and mod_wsgi
+
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install apache2 libapache2-mod-wsgi-py3
+
+# Enable required modules
+sudo a2enmod ssl
+sudo a2enmod headers
+sudo a2enmod rewrite
+sudo a2enmod expires
+sudo a2enmod deflate
+```
+
+#### 2. Create Application Directory
+
+```bash
+sudo mkdir -p /var/www/planning
+sudo chown -R www-data:www-data /var/www/planning
+```
+
+#### 3. Deploy Application Files
+
+```bash
+# Copy application files
+sudo cp -r wsgi/ /var/www/planning/
+sudo cp -r api/ /var/www/planning/
+sudo cp -r config/ /var/www/planning/
+sudo cp -r static/ /var/www/planning/
+
+# Create data directories
+sudo mkdir -p /var/www/planning/data
+sudo mkdir -p /var/www/planning/uploads
+sudo mkdir -p /var/www/planning/temp
+sudo mkdir -p /var/www/planning/logs
+
+# Set permissions
+sudo chown -R www-data:www-data /var/www/planning
+sudo chmod -R 755 /var/www/planning
+sudo chmod -R 775 /var/www/planning/data
+sudo chmod -R 775 /var/www/planning/uploads
+sudo chmod -R 775 /var/www/planning/temp
+sudo chmod -R 775 /var/www/planning/logs
+```
+
+#### 4. Configure Application
+
+```bash
+# Edit configuration file
+sudo nano /var/www/planning/config/config.ini
+
+# IMPORTANT: Change these settings:
+# - jwt_secret (use a strong random key)
+# - database settings (if using MySQL)
+# - ollama server URL
+# - web search API keys
+```
+
+#### 5. Install SSL Certificate
+
+```bash
+# Using Let's Encrypt (recommended)
+sudo apt-get install certbot python3-certbot-apache
+sudo certbot --apache -d planning-platform.example.com
+
+# Or manually install certificate
+sudo cp your-cert.crt /etc/ssl/certs/planning-platform.crt
+sudo cp your-key.key /etc/ssl/private/planning-platform.key
+sudo cp your-chain.crt /etc/ssl/certs/planning-platform-chain.crt
+sudo chmod 600 /etc/ssl/private/planning-platform.key
+```
+
+#### 6. Configure Apache
+
+```bash
+# Copy vhost configurations
+sudo cp /var/www/planning/config/apache/http.conf /etc/apache2/sites-available/planning-http.conf
+sudo cp /var/www/planning/config/apache/https.conf /etc/apache2/sites-available/planning-https.conf
+
+# Enable sites
+sudo a2ensite planning-http
+sudo a2ensite planning-https
+
+# Test configuration
+sudo apache2ctl configtest
+
+# Restart Apache
+sudo systemctl restart apache2
+```
+
+#### 7. Initialize Database
+
+```bash
+# Run database initialization script
+sudo -u www-data python3 /var/www/planning/scripts/init_db.py
+```
+
+#### 8. Verify Deployment
+
+```bash
+# Check Apache status
+sudo systemctl status apache2
+
+# Check application logs
+sudo tail -f /var/www/planning/logs/application.log
+
+# Check Apache logs
+sudo tail -f /var/log/apache2/planning-https-error.log
+
+# Test application
+curl https://planning-platform.example.com/api/health
+```
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **Permission Denied**
+   ```bash
+   sudo chown -R www-data:www-data /var/www/planning
+   sudo chmod -R 755 /var/www/planning
+   ```
+
+2. **Module Not Found**
+   ```bash
+   # Check Python path in Apache config
+   # Ensure python-path=/var/www/planning in WSGIDaemonProcess
+   ```
+
+3. **Database Connection Failed**
+   ```bash
+   # Check database file permissions
+   sudo chmod 664 /var/www/planning/data/planning.db
+   sudo chown www-data:www-data /var/www/planning/data/planning.db
+   ```
+
+4. **SSL Certificate Error**
+   ```bash
+   # Verify certificate files exist and have correct permissions
+   sudo ls -la /etc/ssl/certs/planning-platform.crt
+   sudo ls -la /etc/ssl/private/planning-platform.key
+   ```
+
+---
+
+**Document Version**: 4.0.0  
 **Created**: 2024-12-30  
 **Updated**: 2024-12-30  
 **Status**: Ready for Implementation
