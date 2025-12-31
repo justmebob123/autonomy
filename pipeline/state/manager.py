@@ -330,6 +330,16 @@ class PipelineState:
     # Example: objectives["primary"]["primary_001"] = {...}
     
     issues: Dict[str, Any] = field(default_factory=dict)
+    
+    # Project lifecycle fields (NEW - for refactoring strategy)
+    completion_percentage: float = 0.0
+    project_phase: str = 'foundation'  # foundation, integration, consolidation, completion
+    phase_execution_counts: Dict[str, Dict[str, int]] = field(default_factory=lambda: {
+        'foundation': {},
+        'integration': {},
+        'consolidation': {},
+        'completion': {}
+    })
     # Structure: issues[issue_id] = Issue dict
     # Example: issues["issue_001"] = {...}
     
@@ -392,6 +402,89 @@ class PipelineState:
         )
         return completed_count > self.last_doc_update_count
     
+    def calculate_completion_percentage(self) -> float:
+        """
+        Calculate project completion based on objectives.
+        
+        Returns:
+            Completion percentage (0.0 to 100.0)
+        """
+        if not self.objectives:
+            # Fallback: Use task completion if no objectives
+            if not self.tasks:
+                return 0.0
+            
+            completed = sum(1 for t in self.tasks.values() if t.status == TaskStatus.COMPLETED)
+            return (completed / len(self.tasks) * 100.0) if self.tasks else 0.0
+        
+        # Calculate based on objectives
+        total_weight = 0.0
+        completed_weight = 0.0
+        
+        for level_objectives in self.objectives.values():
+            for obj in level_objectives.values():
+                weight = obj.get('weight', 1.0)
+                completion = obj.get('completion_percentage', 0.0)
+                total_weight += weight
+                completed_weight += weight * (completion / 100.0)
+        
+        return (completed_weight / total_weight * 100.0) if total_weight > 0 else 0.0
+    
+    def get_project_phase(self) -> str:
+        """
+        Determine current project phase based on completion percentage.
+        
+        Returns:
+            'foundation' (0-25%), 'integration' (25-50%), 
+            'consolidation' (50-75%), or 'completion' (75-100%)
+        """
+        completion = self.calculate_completion_percentage()
+        
+        if completion < 25:
+            return 'foundation'
+        elif completion < 50:
+            return 'integration'
+        elif completion < 75:
+            return 'consolidation'
+        else:
+            return 'completion'
+    
+    def record_phase_execution(self, phase_name: str):
+        """
+        Record phase execution in current project phase.
+        
+        Args:
+            phase_name: Name of the phase that was executed
+        """
+        project_phase = self.get_project_phase()
+        
+        if project_phase not in self.phase_execution_counts:
+            self.phase_execution_counts[project_phase] = {}
+        
+        if phase_name not in self.phase_execution_counts[project_phase]:
+            self.phase_execution_counts[project_phase][phase_name] = 0
+        
+        self.phase_execution_counts[project_phase][phase_name] += 1
+    
+    def get_phase_dominance(self) -> Dict[str, float]:
+        """
+        Calculate phase dominance percentages for current project phase.
+        
+        Returns:
+            Dictionary mapping phase names to their execution percentages
+        """
+        project_phase = self.get_project_phase()
+        counts = self.phase_execution_counts.get(project_phase, {})
+        
+        total = sum(counts.values())
+        if total == 0:
+            return {}
+        
+        return {
+            phase: (count / total * 100.0)
+            for phase, count in counts.items()
+        }
+    
     def to_dict(self) -> Dict:
         return {
             "version": self.version,
@@ -418,6 +511,10 @@ class PipelineState:
             # Strategic management (NEW)
             "objectives": self.objectives,
             "issues": self.issues,
+            # Project lifecycle (NEW)
+            "completion_percentage": self.completion_percentage,
+            "project_phase": self.project_phase,
+            "phase_execution_counts": self.phase_execution_counts,
         }
     
     @classmethod
@@ -425,6 +522,14 @@ class PipelineState:
         # Backward compatibility: add defaults for new fields
         data.setdefault("objectives", {})
         data.setdefault("issues", {})
+        data.setdefault("completion_percentage", 0.0)
+        data.setdefault("project_phase", "foundation")
+        data.setdefault("phase_execution_counts", {
+            'foundation': {},
+            'integration': {},
+            'consolidation': {},
+            'completion': {}
+        })
         return cls(**data)
     
     def get_task(self, task_id: str) -> Optional[TaskState]:

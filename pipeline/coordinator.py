@@ -1183,6 +1183,11 @@ class PhaseCoordinator:
             self.logger.info(f"  ITERATION {iteration} - {phase_name.upper()}")
             self.logger.info(f"  Reason: {reason}")
             
+            # Log project lifecycle context
+            completion = state.calculate_completion_percentage()
+            project_phase = state.get_project_phase()
+            self.logger.info(f"  📊 Project: {completion:.1f}% complete ({project_phase} phase)")
+            
             # Log objective context if present
             objective = phase_decision.get("objective")
             if objective:
@@ -1221,6 +1226,14 @@ class PhaseCoordinator:
                 state.phase_history = []
             state.phase_history.append(phase_name)
             state.current_phase = phase_name
+            
+            # Record phase execution for lifecycle tracking
+            state.record_phase_execution(phase_name)
+            
+            # Update completion percentage and project phase
+            state.completion_percentage = state.calculate_completion_percentage()
+            state.project_phase = state.get_project_phase()
+            
             self.state_manager.save(state)
             
             # Execute the phase
@@ -1535,12 +1548,13 @@ class PhaseCoordinator:
     
     def _should_trigger_refactoring(self, state: PipelineState, pending_tasks: List) -> bool:
         """
-        Check if refactoring should be triggered.
+        Check if refactoring should be triggered based on project lifecycle phase.
         
-        Triggers refactoring when:
-        1. Every 20 iterations (periodic maintenance)
-        2. 15+ files created in last 10 iterations (code growth)
-        3. Duplicate patterns detected (code quality)
+        Project Phases:
+        - Foundation (0-25%): NO refactoring (building initial codebase)
+        - Integration (25-50%): Moderate refactoring (connecting components)
+        - Consolidation (50-75%): AGGRESSIVE refactoring (streamlining architecture)
+        - Completion (75-100%): Minimal refactoring (stability focus)
         
         Args:
             state: Current pipeline state
@@ -1549,22 +1563,54 @@ class PhaseCoordinator:
         Returns:
             True if refactoring should be triggered, False otherwise
         """
-        # Trigger every 20 iterations
+        # Get project phase and completion
+        project_phase = state.get_project_phase()
+        completion = state.calculate_completion_percentage()
         iteration_count = len(getattr(state, 'phase_history', []))
-        if iteration_count > 0 and iteration_count % 20 == 0:
-            self.logger.info("  🔄 Triggering refactoring (periodic check)")
-            return True
         
-        # Trigger if many files created recently
-        recent_files = self._count_recent_files(state, iterations=10)
-        if recent_files > 15:
-            self.logger.info(f"  🔄 Triggering refactoring ({recent_files} files created recently)")
-            return True
+        # FOUNDATION PHASE (0-25%): NO REFACTORING
+        # Need substantial codebase before refactoring makes sense
+        if project_phase == 'foundation':
+            self.logger.debug(f"  Foundation phase ({completion:.1f}%), skipping refactoring")
+            return False
         
-        # Trigger if duplicate patterns detected
-        if self._detect_duplicate_patterns(state):
-            self.logger.info("  🔄 Triggering refactoring (duplicate patterns detected)")
-            return True
+        # INTEGRATION PHASE (25-50%): MODERATE REFACTORING
+        # Connect disconnected components, establish relationships
+        if project_phase == 'integration':
+            # Trigger every 10 iterations (more frequent than before)
+            if iteration_count > 0 and iteration_count % 10 == 0:
+                self.logger.info(f"  🔄 Integration phase ({completion:.1f}%), triggering refactoring (periodic)")
+                return True
+            
+            # Trigger on duplicate patterns
+            if self._detect_duplicate_patterns(state):
+                self.logger.info(f"  🔄 Integration phase ({completion:.1f}%), triggering refactoring (duplicates)")
+                return True
+        
+        # CONSOLIDATION PHASE (50-75%): AGGRESSIVE REFACTORING
+        # Streamline design, optimize architecture, dominant phase
+        if project_phase == 'consolidation':
+            # Trigger every 5 iterations (very frequent)
+            if iteration_count > 0 and iteration_count % 5 == 0:
+                self.logger.info(f"  🔄 Consolidation phase ({completion:.1f}%), triggering refactoring (periodic)")
+                return True
+            
+            # Trigger on any quality issues
+            if self._detect_duplicate_patterns(state):
+                self.logger.info(f"  🔄 Consolidation phase ({completion:.1f}%), triggering refactoring (duplicates)")
+                return True
+        
+        # COMPLETION PHASE (75-100%): MINIMAL REFACTORING
+        # Only fix critical issues, preserve stability
+        if project_phase == 'completion':
+            # Only trigger on critical duplicate patterns
+            if self._detect_duplicate_patterns(state):
+                self.logger.info(f"  🔄 Completion phase ({completion:.1f}%), fixing critical duplicates")
+                return True
+            
+            # Otherwise, no refactoring in completion phase
+            self.logger.debug(f"  Completion phase ({completion:.1f}%), skipping refactoring (stability focus)")
+            return False
         
         return False
     
