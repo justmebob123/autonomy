@@ -200,12 +200,19 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         # Use existing comprehensive refactoring handler for analysis
         result = self._handle_comprehensive_refactoring(state)
         
-        # The comprehensive handler already creates tasks via tool calls
-        # Check if any tasks were created
+        # CRITICAL FIX: Auto-create tasks from analysis results
+        # The LLM often detects issues but doesn't create tasks
+        # We need to auto-create tasks when issues are found
+        tasks_created = self._auto_create_tasks_from_analysis(state, result)
+        
+        if tasks_created > 0:
+            self.logger.info(f"  ✅ Auto-created {tasks_created} refactoring tasks from analysis")
+        
+        # Check if any tasks were created (either by LLM or auto-created)
         pending = self._get_pending_refactoring_tasks(state)
         
         if pending:
-            self.logger.info(f"  ✅ Analysis complete, created {len(pending)} tasks")
+            self.logger.info(f"  ✅ Analysis complete, {len(pending)} tasks to work on")
             return PhaseResult(
                 success=True,
                 phase=self.phase_name,
@@ -383,6 +390,96 @@ Available approaches:
 IMPORTANT: After fixing, use update_refactoring_task to mark the task as completed.
 
 Use the refactoring tools NOW to fix this issue."""
+    
+    def _auto_create_tasks_from_analysis(self, state: PipelineState, analysis_result: PhaseResult) -> int:
+        """
+        Auto-create refactoring tasks from analysis results.
+        
+        When the LLM detects issues but doesn't create tasks, we auto-create them.
+        This prevents infinite loops where issues are detected but never fixed.
+        
+        Args:
+            state: Pipeline state
+            analysis_result: Result from comprehensive analysis
+            
+        Returns:
+            Number of tasks created
+        """
+        from pipeline.state.refactoring_task import (
+            RefactoringTask, RefactoringIssueType, RefactoringPriority, RefactoringApproach
+        )
+        
+        tasks_created = 0
+        
+        # Get the refactoring manager
+        if not hasattr(state, 'refactoring_manager') or not state.refactoring_manager:
+            return 0
+        
+        manager = state.refactoring_manager
+        
+        # Check if analysis found duplicates
+        # The tool results are stored in the handler's activity log
+        # We need to check the last tool execution results
+        if hasattr(self, '_last_tool_results'):
+            for tool_result in self._last_tool_results:
+                tool_name = tool_result.get('tool', '')
+                
+                # Handle duplicate detection results
+                if tool_name == 'detect_duplicate_implementations':
+                    duplicates = tool_result.get('duplicates', [])
+                    if duplicates:
+                        self.logger.info(f"  🔍 Found {len(duplicates)} duplicate sets, creating tasks...")
+                        
+                        for dup in duplicates:
+                            # Create task for this duplicate
+                            task = RefactoringTask(
+                                issue_type=RefactoringIssueType.DUPLICATE,
+                                priority=RefactoringPriority.MEDIUM,
+                                description=f"Duplicate code: {dup.get('similarity', 0):.0%} similar",
+                                affected_files=dup.get('files', []),
+                                fix_approach=RefactoringApproach.AUTONOMOUS,
+                                estimated_effort_minutes=30
+                            )
+                            manager.add_task(task)
+                            tasks_created += 1
+                
+                # Handle complexity analysis results
+                elif tool_name == 'analyze_complexity':
+                    complex_files = tool_result.get('complex_files', [])
+                    if complex_files:
+                        self.logger.info(f"  🔍 Found {len(complex_files)} complex files, creating tasks...")
+                        
+                        for file_info in complex_files[:5]:  # Limit to top 5
+                            task = RefactoringTask(
+                                issue_type=RefactoringIssueType.COMPLEXITY,
+                                priority=RefactoringPriority.HIGH,
+                                description=f"High complexity: {file_info.get('complexity', 0)}",
+                                affected_files=[file_info.get('file', '')],
+                                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
+                                estimated_effort_minutes=60
+                            )
+                            manager.add_task(task)
+                            tasks_created += 1
+                
+                # Handle dead code detection results
+                elif tool_name == 'detect_dead_code':
+                    dead_code = tool_result.get('dead_code', [])
+                    if dead_code:
+                        self.logger.info(f"  🔍 Found {len(dead_code)} dead code items, creating tasks...")
+                        
+                        for item in dead_code[:10]:  # Limit to top 10
+                            task = RefactoringTask(
+                                issue_type=RefactoringIssueType.DEAD_CODE,
+                                priority=RefactoringPriority.LOW,
+                                description=f"Dead code: {item.get('name', 'unknown')}",
+                                affected_files=[item.get('file', '')],
+                                fix_approach=RefactoringApproach.AUTONOMOUS,
+                                estimated_effort_minutes=15
+                            )
+                            manager.add_task(task)
+                            tasks_created += 1
+        
+        return tasks_created
     
     def _check_completion(self, state: PipelineState) -> PhaseResult:
         """
@@ -824,6 +921,9 @@ Use the refactoring tools NOW to fix this issue."""
         from ..handlers import ToolCallHandler
         handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
         results = handler.process_tool_calls(tool_calls)
+        
+        # Store results for auto-task creation
+        self._last_tool_results = results
         
         # Check if any tools succeeded
         any_success = False
