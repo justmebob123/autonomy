@@ -88,8 +88,8 @@ class ToolCallHandler:
         # Initialize custom tool support
         self.custom_tool_handler = None
         try:
-            from .custom_tools import ToolRegistry, CustomToolHandler
-            custom_registry = ToolRegistry(str(self.project_dir))
+            from .custom_tools import CustomToolRegistry, CustomToolHandler
+            custom_registry = CustomToolRegistry(str(self.project_dir))
             custom_registry.discover_tools()
             self.custom_tool_handler = CustomToolHandler(
                 str(self.project_dir),

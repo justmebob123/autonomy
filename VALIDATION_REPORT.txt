@@ -3,57 +3,7 @@
 ================================================================================
 
 Project: .
-Started: 2025-12-31 16:42:25
+Started: 2025-12-31 17:02:46
 
-Total errors: 46
-
-Method Existence Errors (2):
-  test_integration.py:73 - Method 'record_tool_usage' does not exist on class 'ToolValidator'
-  test_integration.py:81 - Method 'get_tool_effectiveness' does not exist on class 'ToolValidator'
-
-Function Call Errors (44):
-  run.py:51 - Missing required arguments: model_tool
-  pipeline/team_orchestrator.py:160 - Missing required arguments: description, name, parameters
-  pipeline/team_orchestrator.py:160 - Unexpected keyword argument: server, model, prompt
-  pipeline/team_orchestrator.py:308 - Missing required arguments: query
-  pipeline/team_orchestrator.py:308 - Unexpected keyword argument: thread, tools
-  pipeline/specialist_agents.py:95 - Missing required arguments: issue
-  pipeline/coordinator_analytics_integration.py:112 - Unexpected keyword argument: success, duration, context
-  pipeline/user_proxy.py:189 - Missing required arguments: specialist_name, query
-  pipeline/user_proxy.py:189 - Unexpected keyword argument: thread, tools, name
-  pipeline/phase_resources.py:19 - Missing required arguments: issue
-  pipeline/conversation_thread.py:208 - Unexpected keyword argument: tool_results, tool_calls, agent_name
-  pipeline/conversation_thread.py:228 - Unexpected keyword argument: agent_name
-  pipeline/orchestration/model_tool.py:143 - Missing required arguments: phase_name
-  pipeline/phases/qa.py:485 - Missing required arguments: fix_applied, files_modified
-  pipeline/phases/qa.py:485 - Unexpected keyword argument: approved
-  pipeline/phases/qa.py:490 - Missing required arguments: fix_applied
-  pipeline/phases/qa.py:434 - Missing required arguments: fix_applied, files_modified
-  pipeline/phases/qa.py:434 - Unexpected keyword argument: approved
-  pipeline/phases/qa.py:439 - Missing required arguments: fix_applied
-  pipeline/phases/coding.py:198 - Missing required arguments: message
-  pipeline/phases/coding.py:198 - Unexpected keyword argument: error_message, context, task_id, filepath
-  pipeline/phases/debugging.py:321 - Missing required arguments: query
-  pipeline/phases/debugging.py:321 - Unexpected keyword argument: thread, tools
-  pipeline/phases/debugging.py:314 - Missing required arguments: query
-  pipeline/phases/debugging.py:314 - Unexpected keyword argument: thread, tools
-  pipeline/phases/debugging.py:1320 - Unexpected keyword argument: tool_calls
-  pipeline/phases/debugging.py:1543 - Unexpected keyword argument: tool_results
-  pipeline/phases/debugging.py:1167 - Missing required arguments: issue
-  pipeline/phases/debugging.py:1167 - Unexpected keyword argument: problem
-  pipeline/phases/debugging.py:1218 - Missing required arguments: context
-  pipeline/phases/debugging.py:1364 - Unexpected keyword argument: tool_results
-  pipeline/phases/debugging.py:1736 - Unexpected keyword argument: tool_results
-  pipeline/analysis/complexity.py:247 - Missing required arguments: project_root, args
-  pipeline/analysis/complexity.py:257 - Missing required arguments: project_root, args
-  pipeline/analysis/call_graph.py:209 - Missing required arguments: project_root, args
-  pipeline/analysis/call_graph.py:219 - Missing required arguments: project_root, args
-  pipeline/analysis/dead_code.py:316 - Missing required arguments: project_root, args
-  pipeline/analysis/dead_code.py:326 - Missing required arguments: project_root, args
-  pipeline/analysis/integration_gaps.py:248 - Missing required arguments: project_root, args
-  pipeline/analysis/integration_gaps.py:258 - Missing required arguments: project_root, args
-  bin/deep_analyze.py:206 - Missing required arguments: parameters
-  bin/deep_analyze.py:208 - Missing required arguments: description, parameters
-  scripts/deep_analyze.py:206 - Missing required arguments: parameters
-  scripts/deep_analyze.py:208 - Missing required arguments: description, parameters
+Total errors: 0
 

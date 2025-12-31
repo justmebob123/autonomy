@@ -19,9 +19,9 @@ def test_tool_registry():
     print("TEST 1: ToolRegistry Discovery")
     print("="*80)
     
-    from autonomy.pipeline.custom_tools import ToolRegistry
+    from autonomy.pipeline.custom_tools import CustomToolRegistry
     
-    registry = ToolRegistry(str(project_dir))
+    registry = CustomToolRegistry(str(project_dir))
     count = registry.discover_tools(force=True)
     
     print(f"✓ Discovered {count} custom tools")

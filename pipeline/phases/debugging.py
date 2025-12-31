@@ -1215,7 +1215,7 @@ Remember:
                 # CRITICAL FIX #4: ERROR-SPECIFIC STRATEGIES
                 # Enhance prompt with error-specific strategy if available
                 error_type = issue.get('type', 'RuntimeError')
-                strategy = get_error_strategy(error_type)
+                strategy = get_error_strategy(error_type, {'issue': issue, 'filepath': filepath})
                 if strategy:
                     self.logger.info(f"  📋 Using {error_type} strategy")
                     user_prompt = enhance_prompt_with_error_strategy(base_prompt, issue)

@@ -16,7 +16,10 @@ def get_phase_tools(phase_name: str) -> List[Dict[str, Any]]:
 
 def get_debugging_prompt(issue: Dict, context: Dict) -> str:
     """Get debugging prompt for an issue."""
-    return get_debug_prompt(issue, context)
+    # get_debug_prompt expects (filepath, code, issue)
+    filepath = context.get('filepath', 'unknown')
+    code = context.get('code', '')
+    return get_debug_prompt(filepath, code, issue)
 
 def get_modification_decision(context: Dict) -> str:
     """Get modification decision prompt."""
