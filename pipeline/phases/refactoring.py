@@ -499,9 +499,7 @@ Use the refactoring tools NOW to fix this issue."""
                     if violations:
                         self.logger.info(f"  🔍 Found {len(violations)} architecture violations, creating tasks...")
                         
-                        # Create tasks for violations
-                        for violation in violations[:15]:  # Limit to top 15
-                            # Map violation type to issue type
+                        for violation in violations[:15]:
                             issue_type_map = {
                                 'location': RefactoringIssueType.STRUCTURE,
                                 'naming': RefactoringIssueType.NAMING,
@@ -510,11 +508,6 @@ Use the refactoring tools NOW to fix this issue."""
                                 'implementation': RefactoringIssueType.ARCHITECTURE
                             }
                             
-                            issue_type = issue_type_map.get(
-                                violation['type'], 
-                                RefactoringIssueType.ARCHITECTURE
-                            )
-                            
                             priority_map = {
                                 'critical': RefactoringPriority.CRITICAL,
                                 'high': RefactoringPriority.HIGH,
@@ -522,24 +515,133 @@ Use the refactoring tools NOW to fix this issue."""
                                 'low': RefactoringPriority.LOW
                             }
                             
-                            priority = priority_map.get(
-                                violation['severity'],
-                                RefactoringPriority.MEDIUM
-                            )
-                            
-                            approach = (
-                                RefactoringApproach.DEVELOPER_REVIEW 
-                                if violation['severity'] in ['critical', 'high']
-                                else RefactoringApproach.AUTONOMOUS
-                            )
-                            
                             task = RefactoringTask(
-                                issue_type=issue_type,
-                                priority=priority,
+                                issue_type=issue_type_map.get(violation['type'], RefactoringIssueType.ARCHITECTURE),
+                                priority=priority_map.get(violation['severity'], RefactoringPriority.MEDIUM),
                                 description=violation['description'],
                                 affected_files=[violation['file']],
-                                fix_approach=approach,
+                                fix_approach=RefactoringApproach.DEVELOPER_REVIEW if violation['severity'] in ['critical', 'high'] else RefactoringApproach.AUTONOMOUS,
                                 estimated_effort_minutes=30
+                            )
+                            manager.add_task(task)
+                            tasks_created += 1
+                
+                elif tool_name == 'find_integration_gaps':
+                    result_data = tool_result.get('result', {})
+                    gaps = result_data.get('gaps', [])
+                    if gaps:
+                        self.logger.info(f"  🔍 Found {len(gaps)} integration gaps, creating tasks...")
+                        for gap in gaps[:10]:
+                            task = RefactoringTask(
+                                issue_type=RefactoringIssueType.INTEGRATION,
+                                priority=RefactoringPriority.HIGH,
+                                description=f"Integration gap: {gap.get('description', 'Unknown')}",
+                                affected_files=gap.get('files', []),
+                                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
+                                estimated_effort_minutes=45
+                            )
+                            manager.add_task(task)
+                            tasks_created += 1
+                
+                elif tool_name == 'detect_integration_conflicts':
+                    result_data = tool_result.get('result', {})
+                    conflicts = result_data.get('conflicts', [])
+                    if conflicts:
+                        self.logger.info(f"  🔍 Found {len(conflicts)} integration conflicts, creating tasks...")
+                        for conflict in conflicts[:10]:
+                            task = RefactoringTask(
+                                issue_type=RefactoringIssueType.CONFLICT,
+                                priority=RefactoringPriority.CRITICAL,
+                                description=f"Integration conflict: {conflict.get('description', 'Unknown')}",
+                                affected_files=conflict.get('files', []),
+                                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
+                                estimated_effort_minutes=60
+                            )
+                            manager.add_task(task)
+                            tasks_created += 1
+                
+                elif tool_name == 'find_bugs':
+                    result_data = tool_result.get('result', {})
+                    bugs = result_data.get('bugs', [])
+                    if bugs:
+                        self.logger.info(f"  🔍 Found {len(bugs)} potential bugs, creating tasks...")
+                        priority_map = {'critical': RefactoringPriority.CRITICAL, 'high': RefactoringPriority.HIGH, 'medium': RefactoringPriority.MEDIUM, 'low': RefactoringPriority.LOW}
+                        for bug in bugs[:15]:
+                            task = RefactoringTask(
+                                issue_type=RefactoringIssueType.ARCHITECTURE,
+                                priority=priority_map.get(bug.get('severity', 'medium'), RefactoringPriority.HIGH),
+                                description=f"Bug: {bug.get('description', 'Unknown')}",
+                                affected_files=[bug.get('file', '')],
+                                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
+                                estimated_effort_minutes=45
+                            )
+                            manager.add_task(task)
+                            tasks_created += 1
+                
+                elif tool_name == 'detect_antipatterns':
+                    result_data = tool_result.get('result', {})
+                    antipatterns = result_data.get('antipatterns', [])
+                    if antipatterns:
+                        self.logger.info(f"  🔍 Found {len(antipatterns)} anti-patterns, creating tasks...")
+                        for pattern in antipatterns[:10]:
+                            task = RefactoringTask(
+                                issue_type=RefactoringIssueType.ARCHITECTURE,
+                                priority=RefactoringPriority.MEDIUM,
+                                description=f"Anti-pattern: {pattern.get('name', 'Unknown')}",
+                                affected_files=[pattern.get('file', '')],
+                                fix_approach=RefactoringApproach.AUTONOMOUS,
+                                estimated_effort_minutes=30
+                            )
+                            manager.add_task(task)
+                            tasks_created += 1
+                
+                elif tool_name == 'validate_all_imports':
+                    result_data = tool_result.get('result', {})
+                    errors = result_data.get('errors', [])
+                    if errors:
+                        self.logger.info(f"  🔍 Found {len(errors)} import errors, creating tasks...")
+                        for error in errors[:15]:
+                            task = RefactoringTask(
+                                issue_type=RefactoringIssueType.ARCHITECTURE,
+                                priority=RefactoringPriority.HIGH,
+                                description=f"Import error: {error.get('error', 'Unknown')}",
+                                affected_files=[error.get('file', '')],
+                                fix_approach=RefactoringApproach.AUTONOMOUS,
+                                estimated_effort_minutes=20
+                            )
+                            manager.add_task(task)
+                            tasks_created += 1
+                
+                elif tool_name == 'validate_syntax':
+                    result_data = tool_result.get('result', {})
+                    errors = result_data.get('errors', [])
+                    if errors:
+                        self.logger.info(f"  🔍 Found {len(errors)} syntax errors, creating tasks...")
+                        for error in errors[:15]:
+                            task = RefactoringTask(
+                                issue_type=RefactoringIssueType.ARCHITECTURE,
+                                priority=RefactoringPriority.CRITICAL,
+                                description=f"Syntax error: {error.get('message', 'Unknown')}",
+                                affected_files=[error.get('file', '')],
+                                fix_approach=RefactoringApproach.AUTONOMOUS,
+                                estimated_effort_minutes=15
+                            )
+                            manager.add_task(task)
+                            tasks_created += 1
+                
+                elif tool_name == 'detect_circular_imports':
+                    result_data = tool_result.get('result', {})
+                    cycles = result_data.get('cycles', [])
+                    if cycles:
+                        self.logger.info(f"  🔍 Found {len(cycles)} circular import cycles, creating tasks...")
+                        for cycle in cycles[:10]:
+                            task = RefactoringTask(
+                                issue_type=RefactoringIssueType.ARCHITECTURE,
+                                priority=RefactoringPriority.HIGH,
+                                description=f"Circular import: {' → '.join(cycle.get('cycle', []))}",
+                                affected_files=cycle.get('files', []),
+                                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
+                                estimated_effort_minutes=45
                             )
                             manager.add_task(task)
                             tasks_created += 1
@@ -949,51 +1051,171 @@ Use the refactoring tools NOW to fix this issue."""
         )
     
     def _handle_comprehensive_refactoring(self, state: PipelineState) -> PhaseResult:
-        """Perform comprehensive refactoring analysis"""
+        """
+        Perform TRULY COMPREHENSIVE refactoring analysis.
         
-        self.logger.info("  🔬 Performing comprehensive refactoring analysis...")
+        This runs EVERY SINGLE CHECK available, not relying on LLM to decide.
+        """
         
-        # Build comprehensive context
-        context = self._build_comprehensive_context()
+        self.logger.info("  🔬 Performing COMPREHENSIVE refactoring analysis...")
+        self.logger.info("  🎯 Running ALL available checks automatically...")
         
-        # Get tools
-        tools = get_tools_for_phase("refactoring")
-        
-        # Build prompt
-        prompt = get_refactoring_prompt(
-            refactoring_type="comprehensive",
-            context=context
-        )
-        
-        # Call LLM
-        result = self.chat_with_history(
-            user_message=prompt,
-            tools=tools
-        )
-        
-        # Extract tool calls and content
-        tool_calls = result.get("tool_calls", [])
-        content = result.get("content", "")
-        
-        if not tool_calls:
-            return PhaseResult(
-                success=False,
-                phase=self.phase_name,
-                message=f"Comprehensive refactoring failed: No tool calls in response"
-            )
-        
-        # Execute tool calls
         from ..handlers import ToolCallHandler
         handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
-        results = handler.process_tool_calls(tool_calls)
+        
+        all_results = []
+        
+        # ============================================================
+        # PHASE 1: ARCHITECTURE VALIDATION (CRITICAL - ALWAYS FIRST)
+        # ============================================================
+        self.logger.info("  📐 Phase 1: Architecture Validation")
+        
+        arch_result = handler._handle_validate_architecture({
+            'check_locations': True,
+            'check_naming': True,
+            'check_missing': True
+        })
+        all_results.append(arch_result)
+        
+        if arch_result.get('success'):
+            violations = arch_result.get('result', {}).get('total_violations', 0)
+            self.logger.info(f"     ✓ Architecture validation: {violations} violations found")
+        
+        # ============================================================
+        # PHASE 2: CODE QUALITY ANALYSIS
+        # ============================================================
+        self.logger.info("  🔍 Phase 2: Code Quality Analysis")
+        
+        # 2.1: Duplicate Detection
+        dup_result = handler._handle_detect_duplicate_implementations({
+            'similarity_threshold': 0.7,
+            'scope': 'project',
+            'include_tests': False
+        })
+        all_results.append(dup_result)
+        
+        if dup_result.get('success'):
+            dups = dup_result.get('result', {}).get('total_duplicates', 0)
+            self.logger.info(f"     ✓ Duplicate detection: {dups} duplicate sets found")
+        
+        # 2.2: Complexity Analysis
+        complexity_result = handler._handle_analyze_complexity({})
+        all_results.append(complexity_result)
+        
+        if complexity_result.get('success'):
+            critical = complexity_result.get('result', {}).get('critical_count', 0)
+            self.logger.info(f"     ✓ Complexity analysis: {critical} critical functions found")
+        
+        # 2.3: Dead Code Detection
+        dead_result = handler._handle_detect_dead_code({})
+        all_results.append(dead_result)
+        
+        if dead_result.get('success'):
+            unused_funcs = dead_result.get('result', {}).get('total_unused_functions', 0)
+            unused_methods = dead_result.get('result', {}).get('total_unused_methods', 0)
+            self.logger.info(f"     ✓ Dead code detection: {unused_funcs + unused_methods} unused items found")
+        
+        # ============================================================
+        # PHASE 3: INTEGRATION ANALYSIS
+        # ============================================================
+        self.logger.info("  🔗 Phase 3: Integration Analysis")
+        
+        # 3.1: Integration Gaps
+        gaps_result = handler._handle_find_integration_gaps({})
+        all_results.append(gaps_result)
+        
+        if gaps_result.get('success'):
+            gaps = len(gaps_result.get('result', {}).get('gaps', []))
+            self.logger.info(f"     ✓ Integration gaps: {gaps} gaps found")
+        
+        # 3.2: Integration Conflicts (if available)
+        try:
+            from ..analysis.integration_conflicts import IntegrationConflictDetector
+            conflict_detector = IntegrationConflictDetector(str(self.project_dir), self.logger)
+            conflicts = conflict_detector.detect_conflicts()
+            
+            conflict_result = {
+                'tool': 'detect_integration_conflicts',
+                'success': True,
+                'result': {
+                    'conflicts': [c.to_dict() for c in conflicts],
+                    'total_conflicts': len(conflicts)
+                }
+            }
+            all_results.append(conflict_result)
+            self.logger.info(f"     ✓ Integration conflicts: {len(conflicts)} conflicts found")
+        except Exception as e:
+            self.logger.warning(f"     ⚠️  Integration conflict detection failed: {e}")
+        
+        # ============================================================
+        # PHASE 4: CODE STRUCTURE ANALYSIS
+        # ============================================================
+        self.logger.info("  🏗️  Phase 4: Code Structure Analysis")
+        
+        # 4.1: Call Graph Generation
+        callgraph_result = handler._handle_generate_call_graph({})
+        all_results.append(callgraph_result)
+        
+        if callgraph_result.get('success'):
+            self.logger.info(f"     ✓ Call graph generated")
+        
+        # ============================================================
+        # PHASE 5: BUG DETECTION
+        # ============================================================
+        self.logger.info("  🐛 Phase 5: Bug Detection")
+        
+        # 5.1: Bug Detection
+        bug_result = handler._handle_find_bugs({})
+        all_results.append(bug_result)
+        
+        if bug_result.get('success'):
+            bugs = len(bug_result.get('result', {}).get('bugs', []))
+            self.logger.info(f"     ✓ Bug detection: {bugs} potential bugs found")
+        
+        # 5.2: Anti-pattern Detection
+        antipattern_result = handler._handle_detect_antipatterns({})
+        all_results.append(antipattern_result)
+        
+        if antipattern_result.get('success'):
+            patterns = len(antipattern_result.get('result', {}).get('antipatterns', []))
+            self.logger.info(f"     ✓ Anti-pattern detection: {patterns} anti-patterns found")
+        
+        # ============================================================
+        # PHASE 6: VALIDATION CHECKS
+        # ============================================================
+        self.logger.info("  ✅ Phase 6: Validation Checks")
+        
+        # 6.1: Import Validation
+        import_result = handler._handle_validate_all_imports({})
+        all_results.append(import_result)
+        
+        if import_result.get('success'):
+            errors = len(import_result.get('result', {}).get('errors', []))
+            self.logger.info(f"     ✓ Import validation: {errors} import errors found")
+        
+        # 6.2: Syntax Validation
+        syntax_result = handler._handle_validate_syntax({})
+        all_results.append(syntax_result)
+        
+        if syntax_result.get('success'):
+            errors = len(syntax_result.get('result', {}).get('errors', []))
+            self.logger.info(f"     ✓ Syntax validation: {errors} syntax errors found")
+        
+        # 6.3: Circular Import Detection
+        circular_result = handler._handle_detect_circular_imports({})
+        all_results.append(circular_result)
+        
+        if circular_result.get('success'):
+            cycles = len(circular_result.get('result', {}).get('cycles', []))
+            self.logger.info(f"     ✓ Circular import detection: {cycles} cycles found")
         
         # Store results for auto-task creation
-        self._last_tool_results = results
+        self._last_tool_results = all_results
         
-        # Check if any tools succeeded
+        # Count successes
         any_success = False
         all_errors = []
-        for result in results:
+        for result in all_results:
             if result.get("success"):
                 any_success = True
             else:
