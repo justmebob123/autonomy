@@ -186,6 +186,10 @@ class ToolCallHandler:
             # Validation tools (Phase 1 - Critical)
             "validate_function_calls": self._handle_validate_function_calls,
             "validate_method_existence": self._handle_validate_method_existence,
+            # Validation tools (Phase 2 - High Priority)
+            "validate_dict_structure": self._handle_validate_dict_structure,
+            "validate_type_usage": self._handle_validate_type_usage,
+            # Validation tools (Other)
             "validate_attribute_access": self._handle_validate_attribute_access,
             "verify_import_class_match": self._handle_verify_import_class_match,
             "check_abstract_methods": self._handle_check_abstract_methods,
@@ -4010,6 +4014,74 @@ class ToolCallHandler:
             self.logger.error(f"Method existence validation failed: {e}")
             return {
                 "tool": "validate_method_existence",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_validate_dict_structure(self, args: Dict) -> Dict:
+        """Validate dictionary access patterns match actual structures."""
+        try:
+            from pipeline.analysis.dict_structure_validator import DictStructureValidator
+            
+            self.logger.info("🔍 Validating dictionary structures...")
+            
+            validator = DictStructureValidator(str(self.project_dir))
+            result = validator.validate_all()
+            
+            errors = result.get('errors', [])
+            if errors:
+                self.logger.warning(f"⚠️  Found {len(errors)} dictionary structure errors")
+                for err in errors[:5]:  # Show first 5
+                    self.logger.warning(f"  • {err['file']}:{err['line']}: {err['message']}")
+            else:
+                self.logger.info("✅ No dictionary structure errors found")
+            
+            return {
+                "tool": "validate_dict_structure",
+                "success": True,
+                "result": result,
+                "errors": errors,
+                "total_errors": len(errors),
+                "message": f"Found {len(errors)} dictionary structure errors"
+            }
+        except Exception as e:
+            self.logger.error(f"Dictionary structure validation failed: {e}")
+            return {
+                "tool": "validate_dict_structure",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_validate_type_usage(self, args: Dict) -> Dict:
+        """Validate that objects are used according to their types."""
+        try:
+            from pipeline.analysis.type_usage_validator import TypeUsageValidator
+            
+            self.logger.info("🔍 Validating type usage...")
+            
+            validator = TypeUsageValidator(str(self.project_dir))
+            result = validator.validate_all()
+            
+            errors = result.get('errors', [])
+            if errors:
+                self.logger.warning(f"⚠️  Found {len(errors)} type usage errors")
+                for err in errors[:5]:  # Show first 5
+                    self.logger.warning(f"  • {err['file']}:{err['line']}: {err['message']}")
+            else:
+                self.logger.info("✅ No type usage errors found")
+            
+            return {
+                "tool": "validate_type_usage",
+                "success": True,
+                "result": result,
+                "errors": errors,
+                "total_errors": len(errors),
+                "message": f"Found {len(errors)} type usage errors"
+            }
+        except Exception as e:
+            self.logger.error(f"Type usage validation failed: {e}")
+            return {
+                "tool": "validate_type_usage",
                 "success": False,
                 "error": str(e)
             }

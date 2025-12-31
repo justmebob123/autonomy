@@ -44,6 +44,38 @@ TOOLS_VALIDATION = [
     {
         "type": "function",
         "function": {
+            "name": "validate_dict_structure",
+            "description": "Validate that dictionary access patterns match actual data structures. Checks for accessing keys that don't exist or wrong nested paths. Would have caught result_data.get('gaps') when actual key is 'unused_classes'.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to Python file to analyze (optional - analyzes all if not specified)"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "validate_type_usage",
+            "description": "Validate that objects are used according to their types. Checks for using dict methods on dataclasses, accessing attributes on dicts, etc. Would have caught conflict.get('description') on IntegrationConflict dataclass.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to Python file to analyze (optional - analyzes all if not specified)"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "validate_attribute_access",
             "description": "Validate all object attribute access patterns in Python files. Checks that accessed attributes exist in class definitions. Would have caught task.target vs task.target_file error.",
             "parameters": {

@@ -656,6 +656,40 @@ Use the refactoring tools NOW to fix this issue."""
                             )
                             tasks_created += 1
                 
+                elif tool_name == 'validate_dict_structure':
+                    result_data = tool_result.get('result', {})
+                    errors = result_data.get('errors', [])
+                    if errors:
+                        self.logger.info(f"  🔍 Found {len(errors)} dictionary structure errors, creating tasks...")
+                        for error in errors[:15]:
+                            task = manager.create_task(
+                                issue_type=RefactoringIssueType.ARCHITECTURE,
+                                title=f"Dictionary key error: {error.get('key_path', 'unknown')}",
+                                description=error.get('message', 'Unknown'),
+                                target_files=[error.get('file', '')],
+                                priority=RefactoringPriority.HIGH,
+                                fix_approach=RefactoringApproach.AUTONOMOUS,
+                                estimated_effort=20
+                            )
+                            tasks_created += 1
+                
+                elif tool_name == 'validate_type_usage':
+                    result_data = tool_result.get('result', {})
+                    errors = result_data.get('errors', [])
+                    if errors:
+                        self.logger.info(f"  🔍 Found {len(errors)} type usage errors, creating tasks...")
+                        for error in errors[:15]:
+                            task = manager.create_task(
+                                issue_type=RefactoringIssueType.ARCHITECTURE,
+                                title=f"Type usage error: {error.get('attempted_operation', 'unknown')}",
+                                description=error.get('message', 'Unknown'),
+                                target_files=[error.get('file', '')],
+                                priority=RefactoringPriority.CRITICAL,
+                                fix_approach=RefactoringApproach.AUTONOMOUS,
+                                estimated_effort=25
+                            )
+                            tasks_created += 1
+                
                 elif tool_name == 'validate_all_imports':
                     result_data = tool_result.get('result', {})
                     errors = result_data.get('errors', [])
@@ -1270,7 +1304,29 @@ Use the refactoring tools NOW to fix this issue."""
         except Exception as e:
             self.logger.warning(f"     ⚠️  Method existence validation failed: {e}")
         
-        # 6.3: Import Validation
+        # 6.3: Dictionary Structure Validation (NEW - Priority 2)
+        try:
+            dict_result = handler._handle_validate_dict_structure({})
+            all_results.append(dict_result)
+            
+            if dict_result.get('success'):
+                error_count = dict_result.get('total_errors', 0)
+                self.logger.info(f"     ✓ Dictionary structure validation: {error_count} errors found")
+        except Exception as e:
+            self.logger.warning(f"     ⚠️  Dictionary structure validation failed: {e}")
+        
+        # 6.4: Type Usage Validation (NEW - Priority 2)
+        try:
+            type_result = handler._handle_validate_type_usage({})
+            all_results.append(type_result)
+            
+            if type_result.get('success'):
+                error_count = type_result.get('total_errors', 0)
+                self.logger.info(f"     ✓ Type usage validation: {error_count} errors found")
+        except Exception as e:
+            self.logger.warning(f"     ⚠️  Type usage validation failed: {e}")
+        
+        # 6.5: Import Validation
         try:
             import_result = handler._handle_validate_all_imports({})
             all_results.append(import_result)
@@ -1281,11 +1337,11 @@ Use the refactoring tools NOW to fix this issue."""
         except Exception as e:
             self.logger.warning(f"     ⚠️  Import validation failed: {e}")
         
-        # 6.4: Syntax Validation (using complexity analyzer which already checks syntax)
+        # 6.6: Syntax Validation (using complexity analyzer which already checks syntax)
         # Syntax errors already detected in Phase 2 complexity analysis
         self.logger.info(f"     ✓ Syntax validation: Checked in Phase 2 (complexity analysis)")
         
-        # 6.5: Circular Import Detection
+        # 6.7: Circular Import Detection
         try:
             circular_result = handler._handle_detect_circular_imports({})
             all_results.append(circular_result)
