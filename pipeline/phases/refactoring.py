@@ -175,7 +175,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         )
         
         # Call LLM with tools
-        result = self.call_llm_with_tools(
+        result = self.chat_with_history(
             system_prompt=SYSTEM_PROMPTS["refactoring"],
             user_prompt=prompt,
             tools=tools,
@@ -223,7 +223,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         )
         
         # Call LLM
-        result = self.call_llm_with_tools(
+        result = self.chat_with_history(
             system_prompt=SYSTEM_PROMPTS["refactoring"],
             user_prompt=prompt,
             tools=tools,
@@ -269,7 +269,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         )
         
         # Call LLM
-        result = self.call_llm_with_tools(
+        result = self.chat_with_history(
             system_prompt=SYSTEM_PROMPTS["refactoring"],
             user_prompt=prompt,
             tools=tools,
@@ -317,7 +317,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         )
         
         # Call LLM
-        result = self.call_llm_with_tools(
+        result = self.chat_with_history(
             system_prompt=SYSTEM_PROMPTS["refactoring"],
             user_prompt=prompt,
             tools=tools,
@@ -363,7 +363,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         )
         
         # Call LLM
-        result = self.call_llm_with_tools(
+        result = self.chat_with_history(
             system_prompt=SYSTEM_PROMPTS["refactoring"],
             user_prompt=prompt,
             tools=tools,
