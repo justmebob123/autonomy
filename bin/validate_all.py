@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Comprehensive Code Validation V2
+Comprehensive Code Validation
 
-Enhanced validators with proper type inference to eliminate false positives.
+Runs all validators with proper type inference and intelligent filtering.
 
 Usage:
     python bin/validate_all.py [project_dir]
@@ -16,9 +16,9 @@ from datetime import datetime
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pipeline.analysis.type_usage_validator_v2 import TypeUsageValidatorV2
-from pipeline.analysis.method_existence_validator_v2 import MethodExistenceValidatorV2
-from pipeline.analysis.function_call_validator_v2 import FunctionCallValidatorV2
+from pipeline.analysis.type_usage_validator import TypeUsageValidator
+from pipeline.analysis.method_existence_validator import MethodExistenceValidator
+from pipeline.analysis.function_call_validator import FunctionCallValidator
 
 
 def main():
@@ -29,7 +29,7 @@ def main():
         project_dir = "."
     
     print("=" * 80)
-    print("  COMPREHENSIVE CODE VALIDATION V2 (Enhanced)")
+    print("  COMPREHENSIVE CODE VALIDATION")
     print("=" * 80)
     print()
     print(f"📁 Project: {project_dir}")
@@ -41,9 +41,9 @@ def main():
     
     # 1. Type Usage Validation
     print("=" * 80)
-    print("  1. TYPE USAGE VALIDATION (Enhanced)")
+    print("  1. TYPE USAGE VALIDATION")
     print("=" * 80)
-    validator1 = TypeUsageValidatorV2(project_dir)
+    validator1 = TypeUsageValidator(project_dir)
     result1 = validator1.validate_all()
     all_results['type_usage'] = result1
     total_errors += result1['total_errors']
@@ -52,9 +52,9 @@ def main():
     
     # 2. Method Existence Validation
     print("=" * 80)
-    print("  2. METHOD EXISTENCE VALIDATION (Enhanced)")
+    print("  2. METHOD EXISTENCE VALIDATION")
     print("=" * 80)
-    validator2 = MethodExistenceValidatorV2(project_dir)
+    validator2 = MethodExistenceValidator(project_dir)
     result2 = validator2.validate_all()
     all_results['method_existence'] = result2
     total_errors += result2['total_errors']
@@ -63,9 +63,9 @@ def main():
     
     # 3. Function Call Validation
     print("=" * 80)
-    print("  3. FUNCTION CALL VALIDATION (Enhanced)")
+    print("  3. FUNCTION CALL VALIDATION")
     print("=" * 80)
-    validator3 = FunctionCallValidatorV2(project_dir)
+    validator3 = FunctionCallValidator(project_dir)
     result3 = validator3.validate_all()
     all_results['function_calls'] = result3
     total_errors += result3['total_errors']
@@ -175,10 +175,10 @@ def main():
     print("=" * 80)
     
     # Save detailed report
-    report_file = Path(project_dir) / "VALIDATION_REPORT_V2.txt"
+    report_file = Path(project_dir) / "VALIDATION_REPORT.txt"
     with open(report_file, 'w') as f:
         f.write("=" * 80 + "\n")
-        f.write("  COMPREHENSIVE CODE VALIDATION V2 (Enhanced)\n")
+        f.write("  COMPREHENSIVE CODE VALIDATION\n")
         f.write("=" * 80 + "\n\n")
         f.write(f"Project: {project_dir}\n")
         f.write(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")

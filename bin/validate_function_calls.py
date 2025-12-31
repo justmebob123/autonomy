@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Manual Function Call Validator V2
+Function Call Validator
 
-Enhanced validator that understands Python calling conventions.
+Validates function calls have correct arguments.
 
 Usage:
     python bin/validate_function_calls.py [project_dir]
@@ -15,7 +15,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pipeline.analysis.function_call_validator_v2 import FunctionCallValidatorV2
+from pipeline.analysis.function_call_validator import FunctionCallValidator
 
 
 def main():
@@ -29,7 +29,7 @@ def main():
     print("=" * 80)
     print()
     
-    validator = FunctionCallValidatorV2(project_dir)
+    validator = FunctionCallValidator(project_dir)
     result = validator.validate_all()
     
     print("📊 SUMMARY")

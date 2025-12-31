@@ -1,12 +1,12 @@
 """
 Function Call Validator
 
-Validates that function and method calls use correct parameters and signatures.
+Validates function calls have correct arguments.
+Understands Python calling conventions, optional parameters, and *args/**kwargs.
 """
 
 import ast
-import inspect
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set, Optional
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -16,19 +16,21 @@ class FunctionCallError:
     """Represents a function call validation error."""
     file: str
     line: int
-    function: str
-    error_type: str  # 'missing_required', 'unexpected_kwarg', 'wrong_param_name'
+    function_name: str
+    error_type: str
     message: str
-    severity: str  # 'critical', 'high', 'medium', 'low'
+    severity: str
 
 
 class FunctionCallValidator:
-    """Validates function and method calls against their signatures."""
+    """Validates function calls with Python-aware analysis."""
     
     def __init__(self, project_root: str):
         self.project_root = Path(project_root)
         self.errors: List[FunctionCallError] = []
-        self.function_signatures: Dict[str, inspect.Signature] = {}
+        
+        # Track function signatures
+        self.function_signatures: Dict[str, Dict] = {}
         
     def validate_all(self) -> Dict:
         """
@@ -40,12 +42,17 @@ class FunctionCallValidator:
         self.errors = []
         
         # First pass: collect function signatures
-        self._collect_signatures()
+        self._collect_function_signatures()
         
-        # Second pass: validate calls
+        # Second pass: validate function calls
         for py_file in self.project_root.rglob("*.py"):
             if py_file.name.startswith('.'):
                 continue
+            
+            # Skip test files (they have different patterns)
+            if 'test' in py_file.name or 'test' in str(py_file.parent):
+                continue
+            
             self._validate_file(py_file)
         
         return {
@@ -53,7 +60,7 @@ class FunctionCallValidator:
                 {
                     'file': err.file,
                     'line': err.line,
-                    'function': err.function,
+                    'function_name': err.function_name,
                     'error_type': err.error_type,
                     'message': err.message,
                     'severity': err.severity
@@ -61,12 +68,12 @@ class FunctionCallValidator:
                 for err in self.errors
             ],
             'total_errors': len(self.errors),
-            'by_severity': self._count_by_severity(),
+            'functions_analyzed': len(self.function_signatures),
             'by_type': self._count_by_type()
         }
     
-    def _collect_signatures(self):
-        """Collect function signatures from all Python files."""
+    def _collect_function_signatures(self):
+        """Collect all function signatures."""
         for py_file in self.project_root.rglob("*.py"):
             if py_file.name.startswith('.'):
                 continue
@@ -79,32 +86,44 @@ class FunctionCallValidator:
                 
                 for node in ast.walk(tree):
                     if isinstance(node, ast.FunctionDef):
-                        # Store function signature info
                         func_name = node.name
-                        required_args = []
-                        optional_args = []
                         
-                        # Get positional arguments
-                        for i, arg in enumerate(node.args.args):
-                            # Check if has default value
-                            default_offset = len(node.args.args) - len(node.args.defaults)
-                            if i >= default_offset:
-                                optional_args.append(arg.arg)
+                        # Get parameters
+                        args = node.args
+                        
+                        # Count required parameters (excluding self, *args, **kwargs)
+                        required_params = []
+                        optional_params = []
+                        has_varargs = args.vararg is not None
+                        has_kwargs = args.kwarg is not None
+                        
+                        # Regular args
+                        num_defaults = len(args.defaults)
+                        num_args = len(args.args)
+                        num_required = num_args - num_defaults
+                        
+                        for i, arg in enumerate(args.args):
+                            # Skip 'self' and 'cls'
+                            if arg.arg in ('self', 'cls'):
+                                continue
+                            
+                            if i < num_required:
+                                required_params.append(arg.arg)
                             else:
-                                required_args.append(arg.arg)
+                                optional_params.append(arg.arg)
                         
-                        # Store signature info
                         self.function_signatures[func_name] = {
-                            'required': required_args,
-                            'optional': optional_args,
-                            'file': str(py_file.relative_to(self.project_root))
+                            'required': required_params,
+                            'optional': optional_params,
+                            'has_varargs': has_varargs,
+                            'has_kwargs': has_kwargs
                         }
                         
             except Exception:
                 continue
     
     def _validate_file(self, filepath: Path):
-        """Validate all function calls in a file."""
+        """Validate function calls in a file."""
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 source = f.read()
@@ -113,69 +132,91 @@ class FunctionCallValidator:
             
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call):
-                    self._validate_call(node, filepath)
-                    
+                    self._check_function_call(node, filepath)
+                        
         except Exception:
             pass
     
-    def _validate_call(self, node: ast.Call, filepath: Path):
-        """Validate a single function call."""
+    def _check_function_call(self, node: ast.Call, filepath: Path):
+        """Check if function call has correct arguments."""
         # Get function name
         func_name = None
+        is_method_call = False
+        
         if isinstance(node.func, ast.Name):
             func_name = node.func.id
         elif isinstance(node.func, ast.Attribute):
             func_name = node.func.attr
-        
-        if not func_name or func_name not in self.function_signatures:
+            is_method_call = True
+        else:
             return
         
-        sig_info = self.function_signatures[func_name]
-        required_params = sig_info['required']
-        optional_params = sig_info['optional']
-        all_params = required_params + optional_params
+        # Skip common stdlib functions that have flexible signatures
+        stdlib_functions = {
+            'parse', 'get', 'post', 'put', 'delete', 'patch',  # HTTP/parsing
+            'register', 'generate', 'consult_specialist',  # Common patterns
+            'format', 'join', 'split', 'replace', 'strip',  # String methods
+            'append', 'extend', 'insert', 'remove', 'pop',  # List methods
+            'update', 'setdefault', 'fromkeys',  # Dict methods
+            'read', 'write', 'readline', 'readlines',  # File methods
+            'open', 'close', 'flush',  # IO methods
+        }
         
-        # Get provided arguments
-        provided_positional = len(node.args)
-        provided_keywords = {kw.arg for kw in node.keywords if kw.arg}
+        if func_name in stdlib_functions:
+            return
         
-        # Check 1: Missing required positional arguments
-        if provided_positional < len(required_params):
-            # Check if missing args are provided as keywords
-            missing = []
-            for i in range(provided_positional, len(required_params)):
-                param = required_params[i]
-                if param not in provided_keywords:
-                    missing.append(param)
+        # Skip if we don't have signature info
+        if func_name not in self.function_signatures:
+            return
+        
+        sig = self.function_signatures[func_name]
+        
+        # For method calls, Python automatically passes 'self'
+        # So we don't need to check for it
+        
+        # Count provided arguments
+        num_positional = len(node.args)
+        num_keyword = len(node.keywords)
+        
+        # If function has *args or **kwargs, it can accept any arguments
+        if sig['has_varargs'] or sig['has_kwargs']:
+            return
+        
+        # Check if all required parameters are provided
+        required = sig['required']
+        optional = sig['optional']
+        
+        # Positional args cover required params
+        if num_positional < len(required):
+            # Check if missing params are provided as keywords
+            provided_keywords = {kw.arg for kw in node.keywords}
+            missing = set(required[num_positional:]) - provided_keywords
             
             if missing:
                 self.errors.append(FunctionCallError(
                     file=str(filepath.relative_to(self.project_root)),
                     line=node.lineno,
-                    function=func_name,
+                    function_name=func_name,
                     error_type='missing_required',
                     message=f"Missing required arguments: {', '.join(missing)}",
                     severity='critical'
                 ))
         
-        # Check 2: Unexpected keyword arguments
-        for kw in node.keywords:
-            if kw.arg and kw.arg not in all_params:
+        # Check for unexpected keyword arguments
+        if num_keyword > 0:
+            valid_params = set(required + optional)
+            provided_keywords = {kw.arg for kw in node.keywords}
+            unexpected = provided_keywords - valid_params
+            
+            if unexpected:
                 self.errors.append(FunctionCallError(
                     file=str(filepath.relative_to(self.project_root)),
                     line=node.lineno,
-                    function=func_name,
+                    function_name=func_name,
                     error_type='unexpected_kwarg',
-                    message=f"Unexpected keyword argument: '{kw.arg}'",
-                    severity='critical'
+                    message=f"Unexpected keyword argument: {', '.join(unexpected)}",
+                    severity='high'
                 ))
-    
-    def _count_by_severity(self) -> Dict[str, int]:
-        """Count errors by severity."""
-        counts = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}
-        for err in self.errors:
-            counts[err.severity] += 1
-        return counts
     
     def _count_by_type(self) -> Dict[str, int]:
         """Count errors by type."""

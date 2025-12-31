@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Manual Method Existence Validator V2
+Method Existence Validator
 
-Enhanced validator that checks parent and base classes.
+Validates that methods exist on classes, checking parent and base classes.
 
 Usage:
     python bin/validate_method_existence.py [project_dir]
@@ -15,7 +15,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pipeline.analysis.method_existence_validator_v2 import MethodExistenceValidatorV2
+from pipeline.analysis.method_existence_validator import MethodExistenceValidator
 
 
 def main():
@@ -29,7 +29,7 @@ def main():
     print("=" * 80)
     print()
     
-    validator = MethodExistenceValidatorV2(project_dir)
+    validator = MethodExistenceValidator(project_dir)
     result = validator.validate_all()
     
     print("📊 SUMMARY")

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-Manual Type Usage Validator V2
+Type Usage Validator
 
-Enhanced validator with proper type inference to eliminate false positives.
+Validates that objects are used according to their types.
+Run this manually to check for type usage errors.
 
 Usage:
     python bin/validate_type_usage.py [project_dir]
@@ -15,7 +16,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pipeline.analysis.type_usage_validator_v2 import TypeUsageValidatorV2
+from pipeline.analysis.type_usage_validator import TypeUsageValidator
 
 
 def main():
@@ -29,7 +30,7 @@ def main():
     print("=" * 80)
     print()
     
-    validator = TypeUsageValidatorV2(project_dir)
+    validator = TypeUsageValidator(project_dir)
     result = validator.validate_all()
     
     print("📊 SUMMARY")
