@@ -3035,7 +3035,7 @@ class ToolCallHandler:
     def _handle_update_refactoring_task(self, args: Dict) -> Dict:
         """Handle update_refactoring_task tool."""
         try:
-            from pipeline.state.task import TaskStatus
+            from pipeline.state.manager import TaskStatus
             
             if not hasattr(self, '_refactoring_manager'):
                 return {
@@ -3108,7 +3108,7 @@ class ToolCallHandler:
                 if args['status'] == 'pending':
                     tasks = self._refactoring_manager.get_pending_tasks()
                 else:
-                    from pipeline.state.task import TaskStatus
+                    from pipeline.state.manager import TaskStatus
                     status = TaskStatus(args['status'])
                     tasks = self._refactoring_manager.get_tasks_by_status(status)
             elif 'priority' in args:

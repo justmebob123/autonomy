@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from enum import Enum
 
-from .task import TaskStatus
+from .manager import TaskStatus
 
 
 class RefactoringIssueType(Enum):
