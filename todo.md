@@ -19,10 +19,16 @@
 - [ ] Test task creation and tracking
 
 ## Phase 3: Multi-Iteration Refactoring Loop (WEEK 1)
-- [ ] Refactor execute() method to support continuous operation
-- [ ] Add conversation continuity
-- [ ] Add progress tracking
-- [ ] Add completion detection
+- [x] Refactor execute() method to support continuous operation
+- [x] Add task selection logic (by priority)
+- [x] Add _analyze_and_create_tasks() method
+- [x] Add _work_on_task() method
+- [x] Add _check_completion() method
+- [x] Add _build_task_context() method
+- [x] Add _build_task_prompt() method
+- [x] Add conversation continuity (via chat_with_history)
+- [x] Add progress tracking (via get_refactoring_progress)
+- [x] Add completion detection (re-analyze after all tasks done)
 - [ ] Test multi-iteration refactoring
 
 ## Phase 4: Issue Reporting Mode (WEEK 2)

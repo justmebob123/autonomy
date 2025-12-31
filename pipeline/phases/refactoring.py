@@ -76,49 +76,310 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 refactoring_type: str = None,
                 target_files: List[str] = None,
                 **kwargs) -> PhaseResult:
-        """Execute the refactoring phase"""
+        """
+        Execute the refactoring phase with multi-iteration support.
+        
+        NEW DESIGN (Phase 2+3):
+        - Uses task system for tracking work
+        - Runs for multiple iterations until complete
+        - Maintains conversation continuity
+        - Tracks progress
+        """
         
         # IPC INTEGRATION: Initialize documents on first run
         self.initialize_ipc_documents()
         
-        # IPC INTEGRATION: Read refactoring requests from REFACTORING_READ.md
-        refactoring_requests = self.read_own_tasks()
-        if refactoring_requests:
-            self.logger.info(f"  📋 Read refactoring requests from REFACTORING_READ.md")
+        # PHASE 2: Initialize refactoring task manager
+        self._initialize_refactoring_manager(state)
         
-        # IPC INTEGRATION: Read strategic documents for context
-        strategic_docs = self.read_strategic_docs()
-        if strategic_docs:
-            self.logger.debug(f"  📚 Loaded {len(strategic_docs)} strategic documents")
+        # PHASE 3: Check for pending refactoring tasks
+        pending_tasks = self._get_pending_refactoring_tasks(state)
         
-        # IPC INTEGRATION: Read other phases' outputs
-        phase_outputs = self._read_relevant_phase_outputs()
+        if not pending_tasks:
+            # No pending tasks - run analysis to find issues
+            self.logger.info(f"  🔍 No pending tasks, analyzing codebase...")
+            return self._analyze_and_create_tasks(state)
         
-        # Determine refactoring type
-        if refactoring_type is None:
-            refactoring_type = self._determine_refactoring_type(
-                state, refactoring_requests, phase_outputs
+        # PHASE 3: Work on next task
+        self.logger.info(f"  📋 {len(pending_tasks)} pending tasks, working on next task...")
+        task = self._select_next_task(pending_tasks)
+        
+        self.logger.info(f"  🎯 Selected task: {task.task_id} - {task.title}")
+        self.logger.info(f"     Priority: {task.priority.value}, Type: {task.issue_type.value}")
+        
+        result = self._work_on_task(state, task)
+        
+        if result.success:
+            # Task completed successfully
+            remaining = self._get_pending_refactoring_tasks(state)
+            
+            if remaining:
+                # More tasks to do
+                self.logger.info(f"  ✅ Task completed, {len(remaining)} tasks remaining")
+                return PhaseResult(
+                    success=True,
+                    phase=self.phase_name,
+                    message=f"Task {task.task_id} completed, continuing refactoring",
+                    next_phase="refactoring"  # Continue refactoring
+                )
+            else:
+                # All tasks complete - check if refactoring is done
+                self.logger.info(f"  ✅ All tasks completed, checking for new issues...")
+                return self._check_completion(state)
+        else:
+            # Task failed
+            self.logger.warning(f"  ⚠️  Task {task.task_id} failed: {result.message}")
+            
+            # Continue with next task
+            remaining = self._get_pending_refactoring_tasks(state)
+            if remaining:
+                return PhaseResult(
+                    success=True,
+                    phase=self.phase_name,
+                    message=f"Task {task.task_id} failed, continuing with next task",
+                    next_phase="refactoring"
+                )
+            else:
+                # No more tasks, check completion
+                return self._check_completion(state)
+    
+    # =============================================================================
+    # Phase 2+3: Task System Methods
+    # =============================================================================
+    
+    def _initialize_refactoring_manager(self, state: PipelineState) -> None:
+        """Initialize or get refactoring task manager"""
+        if state.refactoring_manager is None:
+            from pipeline.state.refactoring_task import RefactoringTaskManager
+            state.refactoring_manager = RefactoringTaskManager()
+            self.logger.debug(f"  🔧 Initialized refactoring task manager")
+    
+    def _get_pending_refactoring_tasks(self, state: PipelineState) -> List:
+        """Get all pending refactoring tasks"""
+        if state.refactoring_manager is None:
+            return []
+        return state.refactoring_manager.get_pending_tasks()
+    
+    def _select_next_task(self, pending_tasks: List) -> Any:
+        """
+        Select next task to work on.
+        
+        Priority order:
+        1. CRITICAL priority
+        2. HIGH priority
+        3. MEDIUM priority
+        4. LOW priority
+        
+        Within same priority, select by creation time (oldest first)
+        """
+        from pipeline.state.refactoring_task import RefactoringPriority
+        
+        # Sort by priority (critical first) then by creation time
+        priority_order = {
+            RefactoringPriority.CRITICAL: 0,
+            RefactoringPriority.HIGH: 1,
+            RefactoringPriority.MEDIUM: 2,
+            RefactoringPriority.LOW: 3
+        }
+        
+        sorted_tasks = sorted(
+            pending_tasks,
+            key=lambda t: (priority_order[t.priority], t.created_at)
+        )
+        
+        return sorted_tasks[0]
+    
+    def _analyze_and_create_tasks(self, state: PipelineState) -> PhaseResult:
+        """
+        Analyze codebase and create refactoring tasks.
+        
+        This is called when no pending tasks exist.
+        """
+        self.logger.info(f"  🔬 Performing comprehensive analysis...")
+        
+        # Use existing comprehensive refactoring handler for analysis
+        result = self._handle_comprehensive_refactoring(state)
+        
+        # The comprehensive handler already creates tasks via tool calls
+        # Check if any tasks were created
+        pending = self._get_pending_refactoring_tasks(state)
+        
+        if pending:
+            self.logger.info(f"  ✅ Analysis complete, created {len(pending)} tasks")
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message=f"Analysis complete, {len(pending)} issues found",
+                next_phase="refactoring"  # Continue to work on tasks
+            )
+        else:
+            self.logger.info(f"  ✅ Analysis complete, no issues found")
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message="No refactoring issues found, codebase is clean",
+                next_phase="coding"  # Return to coding
+            )
+    
+    def _work_on_task(self, state: PipelineState, task: Any) -> PhaseResult:
+        """
+        Work on a specific refactoring task.
+        
+        Args:
+            state: Pipeline state
+            task: RefactoringTask to work on
+            
+        Returns:
+            PhaseResult indicating success/failure
+        """
+        from pipeline.state.refactoring_task import RefactoringApproach
+        
+        # Mark task as started
+        task.start()
+        
+        # Check fix approach
+        if task.fix_approach == RefactoringApproach.DEVELOPER_REVIEW:
+            # Task needs developer review, skip for now
+            self.logger.info(f"  ⚠️  Task requires developer review, skipping")
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message=f"Task {task.task_id} requires developer review"
             )
         
-        self.logger.info(f"  🔧 Executing refactoring type: {refactoring_type}")
+        if task.fix_approach == RefactoringApproach.NEEDS_NEW_CODE:
+            # Task needs new code, route to coding
+            self.logger.info(f"  ⚠️  Task requires new code implementation")
+            task.needs_review("Requires new code implementation")
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message=f"Task {task.task_id} requires new code",
+                next_phase="coding"
+            )
         
-        # Execute appropriate refactoring workflow
-        if refactoring_type == "duplicate_detection":
-            return self._handle_duplicate_detection(state, target_files)
-        elif refactoring_type == "conflict_resolution":
-            return self._handle_conflict_resolution(state, target_files)
-        elif refactoring_type == "architecture_consistency":
-            return self._handle_architecture_consistency(state)
-        elif refactoring_type == "feature_extraction":
-            return self._handle_feature_extraction(state, target_files)
-        elif refactoring_type == "comprehensive":
-            return self._handle_comprehensive_refactoring(state)
-        else:
+        # Build context for this specific task
+        context = self._build_task_context(task)
+        
+        # Get tools
+        tools = get_tools_for_phase("refactoring")
+        
+        # Build task-specific prompt
+        prompt = self._build_task_prompt(task, context)
+        
+        # Call LLM
+        result = self.chat_with_history(
+            user_message=prompt,
+            tools=tools
+        )
+        
+        # Extract tool calls
+        tool_calls = result.get("tool_calls", [])
+        content = result.get("content", "")
+        
+        if not tool_calls:
+            # No tool calls, mark as failed
+            task.fail("No tool calls in response")
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"Unknown refactoring type: {refactoring_type}"
+                message=f"Task {task.task_id} failed: No tool calls"
             )
+        
+        # Execute tool calls
+        from ..handlers import ToolCallHandler
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+        results = handler.process_tool_calls(tool_calls)
+        
+        # Check if any tools succeeded
+        any_success = any(r.get("success") for r in results)
+        
+        if any_success:
+            # Task succeeded
+            task.complete(content)
+            self.logger.info(f"  ✅ Task {task.task_id} completed successfully")
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message=f"Task {task.task_id} completed"
+            )
+        else:
+            # All tools failed
+            errors = [r.get("error", "Unknown") for r in results if not r.get("success")]
+            task.fail("; ".join(errors))
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message=f"Task {task.task_id} failed: {errors[0]}"
+            )
+    
+    def _build_task_context(self, task: Any) -> str:
+        """Build context for a specific task"""
+        context_parts = []
+        
+        context_parts.append(f"# Task: {task.title}\n")
+        context_parts.append(f"**Type**: {task.issue_type.value}\n")
+        context_parts.append(f"**Priority**: {task.priority.value}\n")
+        context_parts.append(f"**Description**: {task.description}\n\n")
+        
+        context_parts.append(f"## Affected Files\n")
+        for file in task.target_files:
+            context_parts.append(f"- {file}\n")
+        
+        if task.analysis_data:
+            context_parts.append(f"\n## Analysis Data\n")
+            for key, value in task.analysis_data.items():
+                context_parts.append(f"**{key}**: {value}\n")
+        
+        return "".join(context_parts)
+    
+    def _build_task_prompt(self, task: Any, context: str) -> str:
+        """Build prompt for working on a specific task"""
+        return f"""You are working on a specific refactoring task.
+
+{context}
+
+Your goal is to FIX this issue using the available tools.
+
+Steps:
+1. Review the task description and affected files
+2. Use appropriate tools to fix the issue
+3. Verify the fix is correct
+4. Update the task status
+
+Available approaches:
+- For duplicates: Use merge_file_implementations or cleanup_redundant_files
+- For complexity: Refactor code to simplify
+- For dead code: Use cleanup_redundant_files
+- For architecture: Align with MASTER_PLAN
+
+IMPORTANT: After fixing, use update_refactoring_task to mark the task as completed.
+
+Use the refactoring tools NOW to fix this issue."""
+    
+    def _check_completion(self, state: PipelineState) -> PhaseResult:
+        """
+        Check if refactoring is complete.
+        
+        Re-analyzes codebase to see if new issues emerged.
+        """
+        self.logger.info(f"  🔍 Checking if refactoring is complete...")
+        
+        # Get progress
+        if state.refactoring_manager:
+            progress = state.refactoring_manager.get_progress()
+            self.logger.info(f"  📊 Progress: {progress['completion_percentage']:.1f}% complete")
+            self.logger.info(f"     Completed: {progress['completed']}, Failed: {progress['failed']}, Blocked: {progress['blocked']}")
+        
+        # Re-analyze to find new issues
+        self.logger.info(f"  🔍 Re-analyzing codebase for new issues...")
+        
+        # Run analysis again
+        return self._analyze_and_create_tasks(state)
+    
+    # =============================================================================
+    # Legacy Methods (Backward Compatibility)
+    # =============================================================================
     
     def _determine_refactoring_type(self, state: PipelineState,
                                    refactoring_requests: str,
