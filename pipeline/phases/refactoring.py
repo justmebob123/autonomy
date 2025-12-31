@@ -18,6 +18,7 @@ from ..tools import get_tools_for_phase
 from ..prompts import SYSTEM_PROMPTS, get_refactoring_prompt
 from ..handlers import ToolCallHandler
 from .loop_detection_mixin import LoopDetectionMixin
+from .refactoring_context_builder import RefactoringContextBuilder
 
 
 class RefactoringPhase(BasePhase, LoopDetectionMixin):
@@ -70,6 +71,9 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         self.architecture_analyzer = ArchitectureAnalyzer(str(self.project_dir), self.logger)
         self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger, self.architecture_config)
         self.conflict_detector = IntegrationConflictDetector(str(self.project_dir), self.logger)
+        
+        # CONTEXT BUILDER - Provides full context for informed refactoring decisions
+        self.context_builder = RefactoringContextBuilder(self.project_dir, self.logger)
         
         self.logger.info("  🔧 Refactoring phase initialized with analysis capabilities")
     
@@ -340,57 +344,110 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             return result
     
     def _build_task_context(self, task: Any) -> str:
-        """Build context for a specific task"""
-        context_parts = []
+        """
+        Build comprehensive context for a specific task.
         
-        context_parts.append(f"# Task: {task.title}\n")
-        context_parts.append(f"**Task ID**: {task.task_id}\n")
-        context_parts.append(f"**Type**: {task.issue_type.value}\n")
-        context_parts.append(f"**Priority**: {task.priority.value}\n")
-        context_parts.append(f"**Description**: {task.description}\n\n")
+        Uses RefactoringContextBuilder to provide full context including:
+        - Strategic documents (MASTER_PLAN, ARCHITECTURE, ROADMAP)
+        - Analysis reports (dead code, complexity, bugs, etc.)
+        - Code context (target files, related files, tests)
+        - Project state (phase, completion, recent changes)
+        """
+        # Get project state information
+        project_state = {
+            'phase': getattr(self, 'current_phase', 'refactoring'),
+            'completion': getattr(self, 'completion_percentage', 0.0),
+            'recent_changes': [],  # Could be populated from git history
+            'pending_tasks': []     # Could be populated from task manager
+        }
         
-        # Add MASTER_PLAN context
-        master_plan_path = os.path.join(self.project_dir, "MASTER_PLAN.md")
-        if os.path.exists(master_plan_path):
-            try:
-                with open(master_plan_path, 'r') as f:
-                    master_plan = f.read()
-                context_parts.append(f"## MASTER_PLAN.md (Project Objectives)\n```\n{master_plan[:2000]}...\n```\n\n")
-            except Exception as e:
-                self.logger.warning(f"Could not read MASTER_PLAN.md: {e}")
-        
-        # Add ARCHITECTURE context
-        arch_path = os.path.join(self.project_dir, "ARCHITECTURE.md")
-        if os.path.exists(arch_path):
-            try:
-                with open(arch_path, 'r') as f:
-                    architecture = f.read()
-                context_parts.append(f"## ARCHITECTURE.md (Design Guidelines)\n```\n{architecture}\n```\n\n")
-            except Exception as e:
-                self.logger.warning(f"Could not read ARCHITECTURE.md: {e}")
-        
-        context_parts.append(f"## Affected Files\n")
-        for file in task.target_files:
-            context_parts.append(f"- {file}\n")
-            # Try to include file content snippet
-            file_path = os.path.join(self.project_dir, file)
-            if os.path.exists(file_path):
-                try:
-                    with open(file_path, 'r') as f:
-                        content = f.read()
-                    # Include first 50 lines or 2000 chars
-                    lines = content.split('\n')[:50]
-                    snippet = '\n'.join(lines)[:2000]
-                    context_parts.append(f"\n### Content of {file}:\n```python\n{snippet}\n...\n```\n\n")
-                except Exception as e:
-                    self.logger.warning(f"Could not read {file}: {e}")
-        
+        # Extract affected code from task
+        affected_code = ""
         if task.analysis_data:
-            context_parts.append(f"\n## Analysis Data\n")
-            for key, value in task.analysis_data.items():
-                context_parts.append(f"**{key}**: {value}\n")
+            affected_code = str(task.analysis_data)
         
-        return "".join(context_parts)
+        # Get target file (first file in target_files list)
+        target_file = task.target_files[0] if task.target_files else ""
+        
+        try:
+            # Build comprehensive context using context builder
+            refactoring_context = self.context_builder.build_context(
+                issue_type=task.issue_type.value,
+                issue_description=task.description,
+                target_file=target_file,
+                affected_code=affected_code,
+                project_state=project_state
+            )
+            
+            # Format context for prompt
+            formatted_context = self.context_builder.format_context_for_prompt(refactoring_context)
+            
+            # Add task-specific header
+            task_header = f"""# Refactoring Task
+
+**Task ID**: {task.task_id}
+**Title**: {task.title}
+**Type**: {task.issue_type.value}
+**Priority**: {task.priority.value}
+
+"""
+            return task_header + formatted_context
+            
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Failed to build comprehensive context: {e}")
+            self.logger.warning(f"  Falling back to basic context")
+            
+            # Fallback to basic context if context builder fails
+            context_parts = []
+            
+            context_parts.append(f"# Task: {task.title}\n")
+            context_parts.append(f"**Task ID**: {task.task_id}\n")
+            context_parts.append(f"**Type**: {task.issue_type.value}\n")
+            context_parts.append(f"**Priority**: {task.priority.value}\n")
+            context_parts.append(f"**Description**: {task.description}\n\n")
+            
+            # Add MASTER_PLAN context
+            master_plan_path = os.path.join(self.project_dir, "MASTER_PLAN.md")
+            if os.path.exists(master_plan_path):
+                try:
+                    with open(master_plan_path, 'r') as f:
+                        master_plan = f.read()
+                    context_parts.append(f"## MASTER_PLAN.md (Project Objectives)\n```\n{master_plan[:2000]}...\n```\n\n")
+                except Exception as e:
+                    self.logger.warning(f"Could not read MASTER_PLAN.md: {e}")
+            
+            # Add ARCHITECTURE context
+            arch_path = os.path.join(self.project_dir, "ARCHITECTURE.md")
+            if os.path.exists(arch_path):
+                try:
+                    with open(arch_path, 'r') as f:
+                        architecture = f.read()
+                    context_parts.append(f"## ARCHITECTURE.md (Design Guidelines)\n```\n{architecture}\n```\n\n")
+                except Exception as e:
+                    self.logger.warning(f"Could not read ARCHITECTURE.md: {e}")
+            
+            context_parts.append(f"## Affected Files\n")
+            for file in task.target_files:
+                context_parts.append(f"- {file}\n")
+                # Try to include file content snippet
+                file_path = os.path.join(self.project_dir, file)
+                if os.path.exists(file_path):
+                    try:
+                        with open(file_path, 'r') as f:
+                            content = f.read()
+                        # Include first 50 lines or 2000 chars
+                        lines = content.split('\n')[:50]
+                        snippet = '\n'.join(lines)[:2000]
+                        context_parts.append(f"\n### Content of {file}:\n```python\n{snippet}\n...\n```\n\n")
+                    except Exception as e:
+                        self.logger.warning(f"Could not read {file}: {e}")
+            
+            if task.analysis_data:
+                context_parts.append(f"\n## Analysis Data\n")
+                for key, value in task.analysis_data.items():
+                    context_parts.append(f"**{key}**: {value}\n")
+            
+            return "".join(context_parts)
     
     def _build_task_prompt(self, task: Any, context: str) -> str:
         """Build prompt for working on a specific task"""

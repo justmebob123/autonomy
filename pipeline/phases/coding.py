@@ -15,6 +15,7 @@ from ..prompts import SYSTEM_PROMPTS, get_coding_prompt
 from ..handlers import ToolCallHandler
 from ..utils import validate_python_syntax
 from .loop_detection_mixin import LoopDetectionMixin
+from ..validation.filename_validator import FilenameValidator, IssueLevel
 
 
 class CodingPhase(BasePhase, LoopDetectionMixin):
@@ -47,6 +48,9 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         
         self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
         self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger, self.architecture_config)
+        
+        # FILENAME VALIDATION - Prevent problematic filenames
+        self.filename_validator = FilenameValidator(strict_mode=True)
         
         self.logger.info("  💻 Coding phase initialized with analysis capabilities")
     
@@ -181,6 +185,26 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 task_id=task.task_id,
                 message=f"Task marked complete: {reason}",
                 next_phase="qa"  # Still send to QA for verification
+            )
+        
+        # FILENAME VALIDATION - Check for problematic filenames before processing
+        filename_issues = self._validate_tool_call_filenames(tool_calls)
+        if filename_issues:
+            # Add filename validation errors to task
+            for issue in filename_issues:
+                task.add_error(
+                    "filename_validation",
+                    issue['message'],
+                    phase="coding"
+                )
+            
+            # Return error result with suggestions
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                task_id=task.task_id,
+                message=f"Filename validation failed: {len(filename_issues)} issue(s) detected",
+                data={'filename_issues': filename_issues}
             )
         
         handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
@@ -632,6 +656,49 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
             
         except Exception as e:
             self.logger.debug(f"  Error sending phase messages: {e}")
+    
+    def _validate_tool_call_filenames(self, tool_calls: List[Dict]) -> List[Dict]:
+        """
+        Validate filenames in tool calls before execution.
+        
+        Returns list of issues found (empty if all valid).
+        """
+        issues = []
+        
+        # Tools that create or modify files
+        file_tools = ['create_python_file', 'create_file', 'full_file_rewrite', 
+                     'modify_python_file', 'str_replace', 'insert_code']
+        
+        for tool_call in tool_calls:
+            tool_name = tool_call.get('name', '')
+            if tool_name not in file_tools:
+                continue
+            
+            # Extract filepath from arguments
+            args = tool_call.get('arguments', {})
+            filepath = args.get('filepath') or args.get('file_path')
+            
+            if not filepath:
+                continue
+            
+            # Validate the filename
+            is_valid, validation_issues = self.filename_validator.validate(filepath)
+            
+            # Only report CRITICAL issues (blocking)
+            critical_issues = [i for i in validation_issues if i.level == IssueLevel.CRITICAL]
+            
+            if critical_issues:
+                for issue in critical_issues:
+                    issues.append({
+                        'tool': tool_name,
+                        'filepath': filepath,
+                        'level': issue.level.value,
+                        'message': issue.message,
+                        'suggestion': issue.suggestion,
+                        'pattern': issue.pattern
+                    })
+        
+        return issues
     
     def _format_status_for_write(self, task: TaskState, files_created: List[str],
                                  files_modified: List[str], complexity_warnings: List[str]) -> str:

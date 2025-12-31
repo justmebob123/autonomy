@@ -684,12 +684,33 @@ You have access to strategic documents that guide your implementation:
 - Your completion status will be automatically sent to QA phase for review
 """
     
+    filename_guidance = """
+🚨 CRITICAL FILENAME REQUIREMENTS:
+- NEVER use placeholder text in filenames (e.g., <version>, <timestamp>, <name>)
+- For migration files: Use actual version numbers (001_, 002_, etc.)
+- For timestamped files: Use actual timestamps (20240101_120000_)
+- Use underscores (_) not spaces in filenames
+- Avoid version iterators like (1), (2), _v2, etc.
+- If unsure about filename, ask for clarification
+
+EXAMPLES:
+❌ WRONG: storage/migrations/versions/<version>_projects_table.py
+✅ RIGHT: storage/migrations/versions/001_projects_table.py
+
+❌ WRONG: backup_<timestamp>.sql
+✅ RIGHT: backup_20240101_120000.sql
+
+❌ WRONG: my file.py
+✅ RIGHT: my_file.py
+"""
+    
     return f"""Implement this task:
 
 TASK: {task_description}
 TARGET FILE: {target_file}
 {error_section}
 {ipc_guidance}
+{filename_guidance}
 
 EXISTING CODE CONTEXT:
 {context if context else "(no existing code - create from scratch)"}
@@ -701,6 +722,7 @@ Requirements:
 4. Add proper docstrings and type hints
 5. Follow architectural patterns from ARCHITECTURE document
 6. Consider specific guidance from TERTIARY_OBJECTIVES
+7. ENSURE filename has NO placeholder text - use actual values
 
 Use create_python_file NOW to create {target_file}."""
 
