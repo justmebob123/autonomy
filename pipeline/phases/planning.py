@@ -585,8 +585,8 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                     for task in dev_tasks[:5]:
                         message += f"- `{task.target_file}`: {task.description[:60]}\n"
                     
-                    self.send_message_to_phase('developer', message)
-                    self.logger.info(f"  📤 Sent {len(dev_tasks)} tasks to developer phase")
+                    self.send_message_to_phase('coding', message)
+                    self.logger.info(f"  📤 Sent {len(dev_tasks)} tasks to coding phase")
             
             # Message to QA
             if analysis_results.get('complexity_issues'):

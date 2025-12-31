@@ -315,7 +315,7 @@ class DocumentIPC:
 <!-- Messages for planning phase -->
 
 ### To Developer
-<!-- Messages for developer phase -->
+<!-- Messages for coding phase -->
 
 ### To Qa
 <!-- Messages for QA phase -->

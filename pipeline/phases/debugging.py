@@ -1938,11 +1938,11 @@ Apply the fix immediately.""",
                 outputs['planning'] = planning_output
                 self.logger.debug("  📖 Read planning phase output")
             
-            # Read developer output for recent changes
-            developer_output = self.read_phase_output('developer')
-            if developer_output:
-                outputs['developer'] = developer_output
-                self.logger.debug("  📖 Read developer phase output")
+            # Read coding output for recent changes
+            coding_output = self.read_phase_output('coding')
+            if coding_output:
+                outputs['coding'] = coding_output
+                self.logger.debug("  📖 Read coding phase output")
                 
         except Exception as e:
             self.logger.debug(f"  Error reading phase outputs: {e}")
@@ -1974,7 +1974,7 @@ The issue has been addressed. Please verify the fix and ensure no regressions we
                 self.send_message_to_phase('qa', qa_message)
                 self.logger.info("  📤 Sent fix completion to QA phase")
                 
-                # Also notify developer phase if architectural changes were needed
+                # Also notify coding phase if architectural changes were needed
                 if issue.get('type') in ['integration_gap', 'architectural']:
                     dev_message = f"""
 ## Architectural Fix Applied - {self.format_timestamp()}
@@ -1984,8 +1984,8 @@ The issue has been addressed. Please verify the fix and ensure no regressions we
 
 An architectural issue was fixed. Please review to ensure it aligns with the overall design.
 """
-                    self.send_message_to_phase('developer', dev_message)
-                    self.logger.info("  📤 Sent architectural fix notice to developer phase")
+                    self.send_message_to_phase('coding', dev_message)
+                    self.logger.info("  📤 Sent architectural fix notice to coding phase")
             else:
                 # Send failure notice
                 qa_message = f"""

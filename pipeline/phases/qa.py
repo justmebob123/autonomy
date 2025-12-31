@@ -835,7 +835,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 self.send_message_to_phase('debugging', debug_message)
                 self.logger.info(f"  📤 Sent {len(issues_found)} issues to debugging phase")
             else:
-                # Send approval to developer phase
+                # Send approval to coding phase
                 dev_message = f"""
 ## QA Approval - {self.format_timestamp()}
 
@@ -846,8 +846,8 @@ class QAPhase(BasePhase, LoopDetectionMixin):
 The code has passed quality assurance review. No issues detected.
 """
                 
-                self.send_message_to_phase('developer', dev_message)
-                self.logger.info("  📤 Sent approval to developer phase")
+                self.send_message_to_phase('coding', dev_message)
+                self.logger.info("  📤 Sent approval to coding phase")
                 
         except Exception as e:
             self.logger.debug(f"  Error sending phase messages: {e}")

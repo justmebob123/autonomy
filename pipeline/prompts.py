@@ -723,7 +723,7 @@ You have access to strategic documents that define quality standards:
 - Verify code follows ARCHITECTURE patterns
 - Review DEVELOPER_WRITE for context on recent changes
 - Your findings will be automatically sent to debugging phase
-- Approvals will be automatically sent to developer phase
+- Approvals will be automatically sent to coding phase
 """
     
     return f"""Review this Python file for quality issues:
@@ -938,7 +938,7 @@ You have access to strategic documents that may help with debugging:
 - Review QA_WRITE for detailed bug reports
 - Consider DEVELOPER_WRITE for recent changes
 - Your fix status will be automatically sent to QA for verification
-- Architectural changes will be sent to developer phase
+- Architectural changes will be sent to coding phase
 
 """
     
