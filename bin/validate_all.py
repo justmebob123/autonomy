@@ -79,6 +79,11 @@ def main():
     print()
     print("📊 Overall Statistics:")
     print(f"   Total errors across all tools: {total_errors}")
+    
+    # Report duplicate classes
+    if result2.get('duplicate_classes'):
+        print(f"   ⚠️  Duplicate class names: {len(result2['duplicate_classes'])}")
+    
     print()
     print("   Breakdown by tool:")
     if result1['total_errors'] > 0:
@@ -96,6 +101,18 @@ def main():
     else:
         print(f"      ✅ Function Calls: 0 errors")
     print()
+    
+    # Show duplicate classes warning
+    if result2.get('duplicate_classes'):
+        print("⚠️  DUPLICATE CLASS NAMES DETECTED:")
+        print()
+        for class_name, locations in list(result2['duplicate_classes'].items())[:5]:
+            print(f"   {class_name}: {len(locations)} definitions")
+        if len(result2['duplicate_classes']) > 5:
+            print(f"   ... and {len(result2['duplicate_classes']) - 5} more")
+        print()
+        print("   ⚠️  This causes validation errors and production confusion!")
+        print()
     
     if total_errors > 0:
         print("❌ DETAILED BREAKDOWN:")

@@ -3,29 +3,14 @@
 ================================================================================
 
 Project: .
-Started: 2025-12-31 08:41:05
+Started: 2025-12-31 08:51:18
 
-Total errors: 67
+Total errors: 52
 
-Method Existence Errors (29):
-  test_integration.py:73 - Method 'record_tool_usage' does not exist on class 'ToolValidator'
-  test_integration.py:81 - Method 'get_tool_effectiveness' does not exist on class 'ToolValidator'
+Method Existence Errors (14):
   run.py:488 - Method 'get_diagnostic_report' does not exist on class 'RuntimeTester'
   pipeline/runtime_tester.py:615 - Method 'analyze' does not exist on class 'ArchitectureAnalyzer'
   pipeline/runtime_tester.py:665 - Method 'format_report' does not exist on class 'ArchitectureAnalyzer'
-  pipeline/handlers.py:2403 - Method 'generate_report' does not exist on class 'ComplexityAnalyzer'
-  pipeline/handlers.py:2439 - Method 'analyze' does not exist on class 'DeadCodeDetector'
-  pipeline/handlers.py:2442 - Method 'generate_report' does not exist on class 'DeadCodeDetector'
-  pipeline/handlers.py:2478 - Method 'analyze' does not exist on class 'IntegrationGapFinder'
-  pipeline/handlers.py:2481 - Method 'generate_report' does not exist on class 'IntegrationGapFinder'
-  pipeline/handlers.py:2516 - Method 'analyze' does not exist on class 'CallGraphGenerator'
-  pipeline/handlers.py:2519 - Method 'generate_report' does not exist on class 'CallGraphGenerator'
-  pipeline/handlers.py:2526 - Method 'generate_dot' does not exist on class 'CallGraphGenerator'
-  pipeline/handlers.py:2886 - Method 'analyze_all' does not exist on class 'BugDetector'
-  pipeline/handlers.py:2892 - Method 'generate_report' does not exist on class 'BugDetector'
-  pipeline/handlers.py:2931 - Method 'analyze_all' does not exist on class 'AntiPatternDetector'
-  pipeline/handlers.py:2937 - Method 'generate_report' does not exist on class 'AntiPatternDetector'
-  pipeline/handlers.py:2977 - Method 'generate_report' does not exist on class 'DataFlowAnalyzer'
   pipeline/handlers.py:3873 - Method 'validate' does not exist on class 'SyntaxValidator'
   bin/analysis/complexity.py:135 - Method 'analyze_file' does not exist on class 'ComplexityAnalyzer'
   bin/analysis/dead_code.py:149 - Method 'analyze_file' does not exist on class 'DeadCodeDetector'
@@ -54,7 +39,7 @@ Function Call Errors (38):
   pipeline/error_strategies.py:275 - Missing required arguments: content
   pipeline/error_strategies.py:324 - Missing required arguments: content
   pipeline/phase_resources.py:19 - Missing required arguments: issue
-  pipeline/conversation_thread.py:208 - Unexpected keyword argument: tool_results, tool_calls, agent_name
+  pipeline/conversation_thread.py:208 - Unexpected keyword argument: tool_results, agent_name, tool_calls
   pipeline/conversation_thread.py:228 - Unexpected keyword argument: agent_name
   pipeline/orchestration/conversation_pruning.py:341 - Missing required arguments: content
   pipeline/orchestration/model_tool.py:143 - Missing required arguments: phase_name

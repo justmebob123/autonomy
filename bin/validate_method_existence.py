@@ -35,11 +35,31 @@ def main():
     print("📊 SUMMARY")
     print(f"   Classes analyzed: {result['classes_analyzed']}")
     print(f"   Total errors: {result['total_errors']}")
+    
+    # Report duplicate classes
+    if result.get('duplicate_classes'):
+        print(f"   ⚠️  Duplicate class names: {len(result['duplicate_classes'])}")
+    
     print(f"   By severity:")
     for severity, count in result['by_severity'].items():
         if count > 0:
             print(f"      {severity}: {count}")
     print()
+    
+    # Show duplicate classes
+    if result.get('duplicate_classes'):
+        print("⚠️  DUPLICATE CLASS NAMES DETECTED:")
+        print("=" * 80)
+        print()
+        for class_name, locations in result['duplicate_classes'].items():
+            print(f"   Class: {class_name}")
+            print(f"   Defined in {len(locations)} files:")
+            for loc in locations:
+                print(f"      - {loc}")
+            print()
+        print("   ⚠️  This can cause confusion and validation errors!")
+        print("   Recommendation: Rename classes or use namespaces")
+        print()
     
     if result['total_errors'] > 0:
         print("❌ ERRORS FOUND ({})".format(result['total_errors']))
