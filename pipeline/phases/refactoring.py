@@ -294,11 +294,27 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
         results = handler.process_tool_calls(tool_calls)
         
-        # Check if any tools succeeded
-        any_success = any(r.get("success") for r in results)
+        # Check if task was actually resolved (not just analyzed)
+        task_resolved = False
         
-        if any_success:
-            # Task succeeded
+        # Tools that actually resolve issues (not just analyze)
+        resolving_tools = {
+            "merge_file_implementations",
+            "cleanup_redundant_files",
+            "create_issue_report",
+            "request_developer_review",
+            "update_refactoring_task"
+        }
+        
+        for result in results:
+            if result.get("success"):
+                tool_name = result.get("tool", "")
+                if tool_name in resolving_tools:
+                    task_resolved = True
+                    break
+        
+        if task_resolved:
+            # Task actually resolved
             task.complete(content)
             self.logger.info(f"  ✅ Task {task.task_id} completed successfully")
             return PhaseResult(
@@ -307,17 +323,34 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 message=f"Task {task.task_id} completed"
             )
         else:
-            # All tools failed
-            errors = [r.get("error", "Unknown") for r in results if not r.get("success")]
-            error_msg = "; ".join(errors)
+            # Tools succeeded but didn't resolve the issue
+            # This happens when AI only calls analysis tools (compare_file_implementations)
+            # without taking action
             
-            # Check if task is too complex
-            task.fail(error_msg)
+            any_success = any(r.get("success") for r in results)
             
-            result = PhaseResult(
-                success=False,
-                phase=self.phase_name,
-                message=f"Task {task.task_id} failed: {errors[0]}"
+            if any_success:
+                # Tools ran successfully but didn't resolve issue
+                error_msg = "Tools succeeded but issue not resolved - only analysis performed, no action taken"
+                task.fail(error_msg)
+                self.logger.warning(f"  ⚠️  Task {task.task_id}: {error_msg}")
+                
+                return PhaseResult(
+                    success=False,
+                    phase=self.phase_name,
+                    message=f"Task {task.task_id} not resolved: {error_msg}"
+                )
+            else:
+                # All tools failed
+                errors = [r.get("error", "Unknown") for r in results if not r.get("success")]
+                error_msg = "; ".join(errors)
+                
+                task.fail(error_msg)
+                
+                result = PhaseResult(
+                    success=False,
+                    phase=self.phase_name,
+                    message=f"Task {task.task_id} failed: {errors[0]}"
             )
             
             if self._detect_complexity(task, result):
@@ -451,18 +484,20 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
     
     def _build_task_prompt(self, task: Any, context: str) -> str:
         """Build prompt for working on a specific task"""
-        return f"""🎯 REFACTORING TASK ANALYSIS & RESOLUTION
+        return f"""🎯 REFACTORING TASK - YOU MUST RESOLVE THIS ISSUE
 
 {context}
 
 🔍 YOUR MISSION:
-Analyze this issue deeply and determine the best course of action. You have THREE options:
+You must RESOLVE this issue, not just analyze it. Analyzing alone is NOT sufficient.
+
+RESOLVING means taking ONE of these actions:
 
 1️⃣ **FIX AUTOMATICALLY** - If you can resolve this safely:
-   - Use tools to delete, move, or modify files
-   - Examples: cleanup_redundant_files, merge_file_implementations
+   - Use merge_file_implementations to merge duplicate code
+   - Use cleanup_redundant_files to remove dead code
    - Verify changes are safe and correct
-   - Mark task complete with update_refactoring_task
+   - These tools RESOLVE the issue
 
 2️⃣ **CREATE DETAILED DEVELOPER REPORT** - If issue is complex:
    - Use create_issue_report tool with:
@@ -473,35 +508,46 @@ Analyze this issue deeply and determine the best course of action. You have THRE
      * Step-by-step instructions
    - Include code examples showing before/after
    - Explain WHY changes are needed (reference MASTER_PLAN)
+   - This tool RESOLVES the issue by documenting it
 
 3️⃣ **REQUEST DEVELOPER INPUT** - If you need guidance:
    - Use request_developer_review tool
    - Ask specific questions with clear options
    - Provide context to help developer decide
+   - This tool RESOLVES the issue by escalating it
 
-📋 ANALYSIS STEPS:
+📋 WORKFLOW:
 1. **Understand the issue**: What's wrong? Why is it a problem?
 2. **Check MASTER_PLAN & ARCHITECTURE**: What's the intended design?
-3. **Assess complexity**: Can you fix it safely?
-4. **Determine approach**: Auto-fix, detailed report, or ask for input?
-5. **Take action**: Use appropriate tools NOW
+3. **Analyze if needed**: Use compare_file_implementations to understand
+4. **TAKE ACTION**: Based on analysis, use a RESOLVING tool (merge, report, or ask)
+
+❌ WRONG APPROACH:
+- Calling compare_file_implementations and stopping
+- Only analyzing without taking action
+- Marking task complete without using a resolving tool
+
+✅ RIGHT APPROACH:
+- Compare files to understand the issue
+- Then use merge_file_implementations to fix
+- OR use create_issue_report to document
+- OR use request_developer_review to ask
 
 🛠️ TOOL SELECTION GUIDE:
-- **Dead code**: cleanup_redundant_files (safe to auto-fix)
-- **Duplicates**: Compare first, then merge or cleanup
-- **Integration conflicts**: Analyze deeply, likely needs detailed report
-- **Architecture violations**: Check MASTER_PLAN, may need developer input
-- **Complexity issues**: Analyze code, create detailed refactoring plan
-- **Missing methods**: Check if simple addition or needs design decision
+- **Dead code**: cleanup_redundant_files (RESOLVES by removing)
+- **Duplicates**: compare_file_implementations → merge_file_implementations (RESOLVES by merging)
+- **Integration conflicts**: compare_file_implementations → create_issue_report (RESOLVES by documenting)
+- **Architecture violations**: Check MASTER_PLAN → request_developer_review (RESOLVES by escalating)
+- **Complexity issues**: Analyze → create_issue_report (RESOLVES by documenting)
 
 ⚠️ CRITICAL RULES:
-- NEVER skip or ignore this task
-- ALWAYS take action (fix, report, or ask)
+- NEVER stop after just analyzing
+- ALWAYS use a RESOLVING tool (merge, cleanup, report, or review)
+- Analysis tools (compare) are for understanding, not resolving
+- Task is only complete when you use a resolving tool
 - If unsure, create detailed report rather than skip
-- Include specific file paths and line numbers when possible
-- Reference MASTER_PLAN objectives in your analysis
 
-🎯 TAKE ACTION NOW - Choose your approach and use the appropriate tools!
+🎯 TAKE ACTION NOW - Analyze if needed, then RESOLVE with appropriate tool!
 """
     
     def _auto_create_tasks_from_analysis(self, state: PipelineState, analysis_result: PhaseResult) -> int:
