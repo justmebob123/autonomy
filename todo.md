@@ -9,10 +9,13 @@
 - [ ] Test that refactoring can run continuously
 
 ## Phase 2: Add Refactoring Task System (WEEK 1)
-- [ ] Create RefactoringTask class
-- [ ] Add task creation in refactoring phase
-- [ ] Track tasks in state manager
-- [ ] Add task status tracking
+- [x] Create RefactoringTask class (pipeline/state/refactoring_task.py)
+- [x] Create RefactoringTaskManager class
+- [x] Add 4 task management tools (create, update, list, get_progress)
+- [x] Add 4 task handlers in handlers.py
+- [x] Register handlers in handlers dictionary
+- [x] Add refactoring_manager to PipelineState
+- [ ] Integrate task system into refactoring phase
 - [ ] Test task creation and tracking
 
 ## Phase 3: Multi-Iteration Refactoring Loop (WEEK 1)

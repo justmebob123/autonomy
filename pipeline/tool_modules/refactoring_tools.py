@@ -12,6 +12,122 @@ TOOLS_REFACTORING = [
     {
         "type": "function",
         "function": {
+            "name": "create_refactoring_task",
+            "description": "Create a new refactoring task to track work across iterations. Use this when you identify an issue that needs to be fixed.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "issue_type": {
+                        "type": "string",
+                        "enum": ["duplicate", "complexity", "dead_code", "architecture", "conflict", "integration", "naming", "structure"],
+                        "description": "Type of refactoring issue"
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Short title for the task"
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "Detailed description of the issue and what needs to be done"
+                    },
+                    "target_files": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of files affected by this issue"
+                    },
+                    "priority": {
+                        "type": "string",
+                        "enum": ["critical", "high", "medium", "low"],
+                        "description": "Priority level (default: medium)"
+                    },
+                    "fix_approach": {
+                        "type": "string",
+                        "enum": ["autonomous", "developer_review", "needs_new_code"],
+                        "description": "How to handle this task (default: autonomous)"
+                    }
+                },
+                "required": ["issue_type", "title", "description", "target_files"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "update_refactoring_task",
+            "description": "Update the status or details of a refactoring task. Use this to mark progress, add details, or change priority.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_id": {
+                        "type": "string",
+                        "description": "ID of the task to update"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": ["new", "in_progress", "completed", "failed", "blocked"],
+                        "description": "New status"
+                    },
+                    "fix_details": {
+                        "type": "string",
+                        "description": "Details about the fix applied"
+                    },
+                    "error_message": {
+                        "type": "string",
+                        "description": "Error message if task failed"
+                    },
+                    "priority": {
+                        "type": "string",
+                        "enum": ["critical", "high", "medium", "low"],
+                        "description": "New priority"
+                    }
+                },
+                "required": ["task_id"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "list_refactoring_tasks",
+            "description": "List refactoring tasks with optional filtering. Use this to see what work remains.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": ["new", "in_progress", "completed", "failed", "blocked", "pending"],
+                        "description": "Filter by status (pending = can be executed now)"
+                    },
+                    "priority": {
+                        "type": "string",
+                        "enum": ["critical", "high", "medium", "low"],
+                        "description": "Filter by priority"
+                    },
+                    "issue_type": {
+                        "type": "string",
+                        "enum": ["duplicate", "complexity", "dead_code", "architecture", "conflict", "integration", "naming", "structure"],
+                        "description": "Filter by issue type"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_refactoring_progress",
+            "description": "Get overall refactoring progress statistics. Use this to check if refactoring is complete.",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "detect_duplicate_implementations",
             "description": "Find files with duplicate or similar implementations. Returns duplicate sets with similarity scores, common features, and merge recommendations.",
             "parameters": {

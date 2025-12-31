@@ -343,6 +343,9 @@ class PipelineState:
     # Structure: issues[issue_id] = Issue dict
     # Example: issues["issue_001"] = {...}
     
+    # Refactoring task manager (NEW - Phase 2)
+    refactoring_manager: Optional[Any] = None
+    
     def __post_init__(self):
         if not self.updated:
             self.updated = datetime.now().isoformat()

@@ -163,6 +163,10 @@ class ToolCallHandler:
             "replace_between": self._handle_replace_between,
             # Documentation tools
             # Refactoring tools
+            "create_refactoring_task": self._handle_create_refactoring_task,
+            "update_refactoring_task": self._handle_update_refactoring_task,
+            "list_refactoring_tasks": self._handle_list_refactoring_tasks,
+            "get_refactoring_progress": self._handle_get_refactoring_progress,
             "detect_duplicate_implementations": self._handle_detect_duplicate_implementations,
             "compare_file_implementations": self._handle_compare_file_implementations,
             "extract_file_features": self._handle_extract_file_features,
@@ -2975,6 +2979,196 @@ class ToolCallHandler:
     # =============================================================================
     # Refactoring Tool Handlers
     # =============================================================================
+    
+    def _handle_create_refactoring_task(self, args: Dict) -> Dict:
+        """Handle create_refactoring_task tool."""
+        try:
+            from pipeline.state.refactoring_task import (
+                RefactoringIssueType,
+                RefactoringPriority,
+                RefactoringApproach
+            )
+            
+            # Get or create refactoring task manager
+            if not hasattr(self, '_refactoring_manager'):
+                from pipeline.state.refactoring_task import RefactoringTaskManager
+                self._refactoring_manager = RefactoringTaskManager()
+            
+            # Parse enums
+            issue_type = RefactoringIssueType(args['issue_type'])
+            priority = RefactoringPriority(args.get('priority', 'medium'))
+            fix_approach = RefactoringApproach(args.get('fix_approach', 'autonomous'))
+            
+            # Create task
+            task = self._refactoring_manager.create_task(
+                issue_type=issue_type,
+                title=args['title'],
+                description=args['description'],
+                target_files=args['target_files'],
+                priority=priority,
+                fix_approach=fix_approach
+            )
+            
+            self.logger.info(f"  ✅ Created refactoring task: {task.task_id} - {task.title}")
+            
+            return {
+                "tool": "create_refactoring_task",
+                "success": True,
+                "task_id": task.task_id,
+                "task": task.to_dict()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create refactoring task: {e}")
+            return {
+                "tool": "create_refactoring_task",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_update_refactoring_task(self, args: Dict) -> Dict:
+        """Handle update_refactoring_task tool."""
+        try:
+            from pipeline.state.task import TaskStatus
+            
+            if not hasattr(self, '_refactoring_manager'):
+                return {
+                    "tool": "update_refactoring_task",
+                    "success": False,
+                    "error": "No refactoring tasks exist"
+                }
+            
+            task_id = args['task_id']
+            task = self._refactoring_manager.get_task(task_id)
+            
+            if not task:
+                return {
+                    "tool": "update_refactoring_task",
+                    "success": False,
+                    "error": f"Task {task_id} not found"
+                }
+            
+            # Update status if provided
+            if 'status' in args:
+                status = TaskStatus(args['status'])
+                task.status = status
+                
+                if status == TaskStatus.COMPLETED and 'fix_details' in args:
+                    task.complete(args['fix_details'])
+                elif status == TaskStatus.FAILED and 'error_message' in args:
+                    task.fail(args['error_message'])
+            
+            # Update other fields
+            if 'priority' in args:
+                from pipeline.state.refactoring_task import RefactoringPriority
+                task.priority = RefactoringPriority(args['priority'])
+            
+            if 'fix_details' in args:
+                task.fix_details = args['fix_details']
+            
+            if 'error_message' in args:
+                task.error_message = args['error_message']
+            
+            self.logger.info(f"  ✅ Updated task {task_id}: status={task.status.value}")
+            
+            return {
+                "tool": "update_refactoring_task",
+                "success": True,
+                "task_id": task_id,
+                "task": task.to_dict()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to update refactoring task: {e}")
+            return {
+                "tool": "update_refactoring_task",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_list_refactoring_tasks(self, args: Dict) -> Dict:
+        """Handle list_refactoring_tasks tool."""
+        try:
+            if not hasattr(self, '_refactoring_manager'):
+                return {
+                    "tool": "list_refactoring_tasks",
+                    "success": True,
+                    "tasks": [],
+                    "count": 0
+                }
+            
+            # Get tasks based on filters
+            if 'status' in args:
+                if args['status'] == 'pending':
+                    tasks = self._refactoring_manager.get_pending_tasks()
+                else:
+                    from pipeline.state.task import TaskStatus
+                    status = TaskStatus(args['status'])
+                    tasks = self._refactoring_manager.get_tasks_by_status(status)
+            elif 'priority' in args:
+                from pipeline.state.refactoring_task import RefactoringPriority
+                priority = RefactoringPriority(args['priority'])
+                tasks = self._refactoring_manager.get_tasks_by_priority(priority)
+            elif 'issue_type' in args:
+                from pipeline.state.refactoring_task import RefactoringIssueType
+                issue_type = RefactoringIssueType(args['issue_type'])
+                tasks = self._refactoring_manager.get_tasks_by_type(issue_type)
+            else:
+                tasks = list(self._refactoring_manager.tasks.values())
+            
+            self.logger.info(f"  📋 Found {len(tasks)} refactoring tasks")
+            
+            return {
+                "tool": "list_refactoring_tasks",
+                "success": True,
+                "tasks": [task.to_dict() for task in tasks],
+                "count": len(tasks)
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to list refactoring tasks: {e}")
+            return {
+                "tool": "list_refactoring_tasks",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_get_refactoring_progress(self, args: Dict) -> Dict:
+        """Handle get_refactoring_progress tool."""
+        try:
+            if not hasattr(self, '_refactoring_manager'):
+                return {
+                    "tool": "get_refactoring_progress",
+                    "success": True,
+                    "progress": {
+                        "total": 0,
+                        "completed": 0,
+                        "in_progress": 0,
+                        "pending": 0,
+                        "failed": 0,
+                        "blocked": 0,
+                        "completion_percentage": 0.0
+                    }
+                }
+            
+            progress = self._refactoring_manager.get_progress()
+            
+            self.logger.info(f"  📊 Refactoring progress: {progress['completion_percentage']:.1f}% complete")
+            self.logger.info(f"     Total: {progress['total']}, Completed: {progress['completed']}, Pending: {progress['pending']}")
+            
+            return {
+                "tool": "get_refactoring_progress",
+                "success": True,
+                "progress": progress
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get refactoring progress: {e}")
+            return {
+                "tool": "get_refactoring_progress",
+                "success": False,
+                "error": str(e)
+            }
     
     def _handle_detect_duplicate_implementations(self, args: Dict) -> Dict:
         """Handle detect_duplicate_implementations tool."""
