@@ -5,7 +5,7 @@ Method Existence Validator
 Validates that methods exist on classes, checking parent and base classes.
 
 Usage:
-    python bin/validate_method_existence.py [project_dir]
+    python bin/validate_method_existence.py [project_dir] [--config CONFIG_FILE]
 """
 
 import sys
@@ -20,16 +20,26 @@ from pipeline.analysis.method_existence_validator import MethodExistenceValidato
 
 def main():
     """Run method existence validation."""
-    if len(sys.argv) > 1:
-        project_dir = sys.argv[1]
-    else:
-        project_dir = "."
+    project_dir = "."
+    config_file = None
+    
+    # Parse arguments
+    i = 1
+    while i < len(sys.argv):
+        if sys.argv[i] == '--config' and i + 1 < len(sys.argv):
+            config_file = sys.argv[i + 1]
+            i += 2
+        else:
+            project_dir = sys.argv[i]
+            i += 1
     
     print(f"🔍 Validating method existence in: {project_dir}")
+    if config_file:
+        print(f"📋 Using config: {config_file}")
     print("=" * 80)
     print()
     
-    validator = MethodExistenceValidator(project_dir)
+    validator = MethodExistenceValidator(project_dir, config_file)
     result = validator.validate_all()
     
     print("📊 SUMMARY")

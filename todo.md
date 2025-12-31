@@ -1,91 +1,57 @@
-# Validation Error Fixes - Todo List
+# Project-Agnostic Validator Improvements
 
 ## Overview
-After comprehensive analysis: **90%+ of errors are FALSE POSITIVES** due to static analysis limitations.
+Make all validation tools project-agnostic and remove hardcoded references to "autonomy" project.
 
-## Analysis Complete ✅
-- [x] Analyzed all 3,963 validation errors
-- [x] Created FALSE_POSITIVES_ANALYSIS.md with detailed examples
-- [x] Created verify_methods.py to check actual method existence
-- [x] Created VALIDATION_ANALYSIS_COMPLETE.md comprehensive summary
-- [x] Verified actual method calls in code
-- [x] Identified 0 real issues (0% of total)
-- [x] Identified 3,564+ false positives (90%+ of total)
-- [x] Identified 399 errors needing investigation (10% of total)
-- [x] Committed and pushed all analysis to GitHub ✅
+## Tasks
 
-## Priority 1: Type Usage Errors (32 errors) - ALL FALSE POSITIVES ✅
-**Status:** NO ACTION NEEDED - All are false positives
+### 1. Remove Hardcoded Project Names
+- [x] Fix method_existence_validator.py - remove hardcoded "autonomy" prefix handling
+- [x] Make import path resolution dynamic based on actual project structure
+- [x] Remove any other project-specific assumptions
 
-### Analysis Complete:
-- [x] pipeline/phases/qa.py (16 errors) - Variables are dicts, not dataclasses ✅
-- [x] pipeline/phases/project_planning.py (1 error) - Variable is dict, not TaskState ✅
-- [x] pipeline/phases/refactoring.py (15 errors) - result is dict from chat_with_history() ✅
+### 2. Make Base Classes Configurable
+- [x] Move known_base_classes to configuration file
+- [x] Move stdlib_classes to configuration file
+- [x] Move function_patterns to configuration file
+- [x] Allow users to extend these lists via config
 
-## Priority 2: Method Existence Errors (48 errors) - MOSTLY FALSE POSITIVES
+### 3. Improve Import Resolution
+- [x] Detect project root dynamically (look for setup.py, pyproject.toml, etc.)
+- [x] Build import map from actual project structure
+- [x] Handle relative imports correctly without hardcoding
+- [x] Support multiple project layouts (src/, flat, etc.)
 
-### FALSE POSITIVES (32 errors) - NO ACTION NEEDED ✅
-- [x] pipeline/call_chain_tracer.py (1 error) - ast.NodeVisitor.visit() exists via inheritance
-- [x] pipeline/analysis/complexity.py (1 error) - ast.NodeVisitor.visit() exists
-- [x] pipeline/analysis/call_graph.py (1 error) - ast.NodeVisitor.visit() exists
-- [x] pipeline/analysis/file_refactoring.py (2 errors) - ast.NodeVisitor.visit() exists
-- [x] pipeline/analysis/dead_code.py (1 error) - ast.NodeVisitor.visit() exists
-- [x] pipeline/analysis/integration_gaps.py (1 error) - ast.NodeVisitor.visit() exists
-- [x] pipeline/context/code.py (2 errors) - old_code.splitlines() is valid (string method)
-- [x] bin/custom_tools/tools/*.py (4 errors) - run() exists in CustomTool base class
-- [x] scripts/custom_tools/tools/*.py (4 errors) - run() exists in CustomTool base class
-- [x] pipeline/handlers.py - ImportAnalyzer (4 errors) - Uses correct methods ✅
-- [x] pipeline/handlers.py - DuplicateDetector (4 errors) - Uses correct methods ✅
-- [x] pipeline/handlers.py - IntegrationGapFinder (2 errors) - Methods exist ✅
-- [x] pipeline/handlers.py - CallGraphGenerator (3 errors) - Methods exist ✅
-- [x] pipeline/handlers.py - DictAccessValidator (2 errors) - Uses correct methods ✅
+### 4. Configuration System
+- [x] Create validation_config.py module
+- [x] Allow customization of:
+  - Known base classes and their methods
+  - Standard library classes to skip
+  - Function patterns to recognize
+  - Custom validation rules
+- [x] Provide sensible defaults that work for most projects
+- [x] Create example config file (.validation_config.example.json)
 
-### NEED INVESTIGATION (16 errors)
-- [ ] run.py (1 error) - RuntimeTester.get_diagnostic_report()
-- [ ] pipeline/runtime_tester.py (2 errors) - ArchitectureAnalyzer methods
-- [ ] test_specialists.py (2 errors) - AnalysisSpecialist methods
-- [ ] test_integration.py (2 errors) - ToolValidator methods
+### 5. Update All Validators
+- [x] type_tracker.py - ensure project-agnostic
+- [x] type_usage_validator.py - ensure project-agnostic
+- [x] method_existence_validator.py - remove hardcoding
+- [x] function_call_validator.py - ensure project-agnostic
 
-## Priority 3: Function Call Errors (3,598 errors) - 97% FALSE POSITIVES ✅
+### 6. Update bin/ Scripts
+- [x] validate_all.py - add config support
+- [x] validate_type_usage.py - add config support
+- [x] validate_method_existence.py - add config support
+- [x] validate_function_calls.py - add config support
 
-### Analysis Complete:
-- [x] ~3,500 errors are test method calls - validator doesn't understand Python method calling
-- [x] ~98 errors need investigation (optional parameters, etc.)
-- [x] Documented in FALSE_POSITIVES_ANALYSIS.md
+### 7. Documentation
+- [x] Create VALIDATION_CONFIG_GUIDE.md with configuration options
+- [x] Add examples for different project types
+- [x] Document how to customize validators
+- [x] Add troubleshooting guide
 
-### Action:
-- [ ] Investigate remaining ~98 errors (likely false positives)
-
-## Priority 4: Dict Structure Errors (285 errors) - NEED INVESTIGATION
-- [ ] Analyze case-by-case to determine real vs false positives
-- [ ] Document findings
-
-## Next Steps
-
-### Immediate (Investigation):
-1. [ ] Investigate 16 method existence errors in tests/runtime
-2. [ ] Investigate ~98 function call errors
-3. [ ] Investigate 285 dict structure errors
-4. [ ] Document findings
-
-### Short-term (Validator Improvements):
-1. [ ] Improve type tracking through assignments
-2. [ ] Add parent class method checking
-3. [ ] Fix Python method calling convention understanding
-4. [ ] Add string attribute tracking on dataclasses
-5. [ ] Add proper control flow analysis
-
-### Long-term (Validator Rewrite):
-1. [ ] Consider complete rewrite with proper type inference
-2. [ ] Add AST-based type tracking
-3. [ ] Add data flow analysis
-4. [ ] Reduce false positive rate from 90% to <10%
-
-## Summary
-- **Total errors:** 3,963
-- **False positives:** 3,564+ (90%+)
-- **Real issues:** 0 (0%)
-- **Need investigation:** 399 (10%)
-
-## Conclusion
-The validation tools have a **90%+ false positive rate** and are **not production-ready**. All reported "critical" errors are actually false positives. The tools need significant improvements or complete rewrite before they can be useful.
+### 8. Testing
+- [x] Test on autonomy project (45 errors - working correctly)
+- [ ] Create test for simple Python project
+- [ ] Verify configuration loading works
+- [ ] Verify project name detection works

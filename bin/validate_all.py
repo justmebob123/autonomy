@@ -23,16 +23,26 @@ from pipeline.analysis.function_call_validator import FunctionCallValidator
 
 def main():
     """Run all validators."""
-    if len(sys.argv) > 1:
-        project_dir = sys.argv[1]
-    else:
-        project_dir = "."
+    project_dir = "."
+    config_file = None
+    
+    # Parse arguments
+    i = 1
+    while i < len(sys.argv):
+        if sys.argv[i] == '--config' and i + 1 < len(sys.argv):
+            config_file = sys.argv[i + 1]
+            i += 2
+        else:
+            project_dir = sys.argv[i]
+            i += 1
     
     print("=" * 80)
     print("  COMPREHENSIVE CODE VALIDATION")
     print("=" * 80)
     print()
     print(f"📁 Project: {project_dir}")
+    if config_file:
+        print(f"📋 Config: {config_file}")
     print(f"⏰ Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print()
     
@@ -43,7 +53,7 @@ def main():
     print("=" * 80)
     print("  1. TYPE USAGE VALIDATION")
     print("=" * 80)
-    validator1 = TypeUsageValidator(project_dir)
+    validator1 = TypeUsageValidator(project_dir, config_file)
     result1 = validator1.validate_all()
     all_results['type_usage'] = result1
     total_errors += result1['total_errors']
@@ -54,7 +64,7 @@ def main():
     print("=" * 80)
     print("  2. METHOD EXISTENCE VALIDATION")
     print("=" * 80)
-    validator2 = MethodExistenceValidator(project_dir)
+    validator2 = MethodExistenceValidator(project_dir, config_file)
     result2 = validator2.validate_all()
     all_results['method_existence'] = result2
     total_errors += result2['total_errors']
@@ -65,7 +75,7 @@ def main():
     print("=" * 80)
     print("  3. FUNCTION CALL VALIDATION")
     print("=" * 80)
-    validator3 = FunctionCallValidator(project_dir)
+    validator3 = FunctionCallValidator(project_dir, config_file)
     result3 = validator3.validate_all()
     all_results['function_calls'] = result3
     total_errors += result3['total_errors']

@@ -5,7 +5,7 @@ Function Call Validator
 Validates function calls have correct arguments.
 
 Usage:
-    python bin/validate_function_calls.py [project_dir]
+    python bin/validate_function_calls.py [project_dir] [--config CONFIG_FILE]
 """
 
 import sys
@@ -20,16 +20,26 @@ from pipeline.analysis.function_call_validator import FunctionCallValidator
 
 def main():
     """Run function call validation."""
-    if len(sys.argv) > 1:
-        project_dir = sys.argv[1]
-    else:
-        project_dir = "."
+    project_dir = "."
+    config_file = None
+    
+    # Parse arguments
+    i = 1
+    while i < len(sys.argv):
+        if sys.argv[i] == '--config' and i + 1 < len(sys.argv):
+            config_file = sys.argv[i + 1]
+            i += 2
+        else:
+            project_dir = sys.argv[i]
+            i += 1
     
     print(f"🔍 Validating function calls in: {project_dir}")
+    if config_file:
+        print(f"📋 Using config: {config_file}")
     print("=" * 80)
     print()
     
-    validator = FunctionCallValidator(project_dir)
+    validator = FunctionCallValidator(project_dir, config_file)
     result = validator.validate_all()
     
     print("📊 SUMMARY")

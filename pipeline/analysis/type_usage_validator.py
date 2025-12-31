@@ -3,12 +3,15 @@ Type Usage Validator
 
 Validates that objects are used according to their types with proper type inference.
 Detects using dict methods on dataclasses, accessing attributes on dicts, etc.
+Project-agnostic with configurable validation rules.
 """
 
 import ast
 from typing import Dict, List, Set, Optional
 from pathlib import Path
 from dataclasses import dataclass
+
+from .validation_config import ValidationConfig
 
 
 @dataclass
@@ -345,11 +348,15 @@ class TypeUsageChecker(ast.NodeVisitor):
 class TypeUsageValidator:
     """Validates that objects are used according to their types with proper type inference."""
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, config_file: Optional[str] = None):
         self.project_root = Path(project_root)
         self.errors: List[TypeUsageError] = []
         self.dataclasses: Set[str] = set()
         self.regular_classes: Set[str] = set()
+        
+        # Load configuration (project-agnostic)
+        config_path = Path(config_file) if config_file else None
+        self.config = ValidationConfig(self.project_root, config_path)
         
     def validate_all(self) -> Dict:
         """

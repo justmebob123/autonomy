@@ -3,12 +3,15 @@ Method Existence Validator
 
 Validates that methods exist on classes, checking parent and base classes.
 Properly handles inheritance, stdlib classes, and function patterns.
+Project-agnostic with configurable validation rules.
 """
 
 import ast
 from typing import Dict, List, Set, Optional
 from pathlib import Path
 from dataclasses import dataclass
+
+from .validation_config import ValidationConfig, get_project_root, detect_project_name
 
 
 @dataclass
@@ -25,9 +28,16 @@ class MethodExistenceError:
 class MethodExistenceValidator:
     """Validates method existence with inheritance and stdlib awareness."""
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, config_file: Optional[str] = None):
         self.project_root = Path(project_root)
         self.errors: List[MethodExistenceError] = []
+        
+        # Load configuration (project-agnostic)
+        config_path = Path(config_file) if config_file else None
+        self.config = ValidationConfig(self.project_root, config_path)
+        
+        # Detect project name dynamically
+        self.project_name = detect_project_name(self.project_root)
         
         # Track class definitions and their methods with file paths
         # Key format: "filepath:classname" to handle duplicate class names
@@ -36,33 +46,6 @@ class MethodExistenceValidator:
         
         # Track which files define which classes (for duplicate detection)
         self.class_locations: Dict[str, List[str]] = {}  # classname -> [filepaths]
-        
-        # Known base classes and their methods
-        self.known_base_classes = {
-            'ast.NodeVisitor': {'visit', 'generic_visit'},
-            'NodeVisitor': {'visit', 'generic_visit'},
-            'CustomTool': {'run', 'execute', 'validate'},
-            'BasePhase': {'execute', 'chat_with_history', 'write_own_status'},
-        }
-        
-        # Known standard library classes (skip validation for these)
-        self.stdlib_classes = {
-            'Path', 'PosixPath', 'WindowsPath',  # pathlib
-            'dict', 'list', 'set', 'tuple', 'str', 'int', 'float', 'bool',  # builtins
-            'defaultdict', 'OrderedDict', 'Counter', 'deque',  # collections
-            'datetime', 'date', 'time', 'timedelta',  # datetime
-            'Thread', 'Lock', 'Event', 'Queue',  # threading
-            'Logger',  # logging
-            'HTTPResponse', 'HTTPConnection',  # http
-            'socket',  # socket
-        }
-        
-        # Known function patterns that return objects (not classes)
-        self.function_patterns = {
-            'get_logger', 'get_specialist_registry', 'get_strategy',
-            'getattr', 'hasattr', 'isinstance', 'type', 'len', 'range',
-            'open', 'print', 'input', 'enumerate', 'zip', 'map', 'filter',
-        }
         
     def validate_all(self) -> Dict:
         """
@@ -210,8 +193,9 @@ class MethodExistenceValidator:
         if class_name in self.class_parents:
             for parent in self.class_parents[class_name]:
                 # Check known base classes
-                if parent in self.known_base_classes:
-                    if method_name in self.known_base_classes[parent]:
+                known_bases = self.config.get_known_base_classes()
+                if parent in known_bases:
+                    if method_name in known_bases[parent]:
                         return True
                 
                 # Recursively check parent
@@ -265,10 +249,12 @@ class MethodCallVisitor(ast.NodeVisitor):
                     else:
                         module_path = module_path.replace('.', '/')
                 else:
-                    # Absolute import (e.g., from autonomy.pipeline.tool_validator)
-                    # Remove 'autonomy.' prefix if present
-                    if module_path.startswith('autonomy.'):
-                        module_path = module_path[9:]  # Remove 'autonomy.'
+                    # Absolute import (e.g., from myproject.pipeline.tool_validator)
+                    # Remove project name prefix if present
+                    if self.validator.project_name and module_path.startswith(f'{self.validator.project_name}.'):
+                        # Remove project name prefix
+                        prefix_len = len(self.validator.project_name) + 1
+                        module_path = module_path[prefix_len:]
                     module_path = module_path.replace('.', '/')
                 
                 self.imports[class_name] = module_path
@@ -332,11 +318,11 @@ class MethodCallVisitor(ast.NodeVisitor):
         class_name = self.var_types[var_name]
         
         # Skip standard library classes
-        if class_name in self.validator.stdlib_classes:
+        if self.validator.config.is_stdlib_class(class_name):
             return
         
         # Skip function patterns (not actual classes)
-        if class_name in self.validator.function_patterns:
+        if self.validator.config.is_known_function(class_name):
             return
         
         # Check if method exists, preferring the imported source

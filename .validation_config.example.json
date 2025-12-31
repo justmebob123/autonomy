@@ -1,0 +1,36 @@
+{
+  "known_base_classes": {
+    "CustomBaseClass": ["method1", "method2"],
+    "AnotherBase": ["execute", "validate"],
+    "BasePhase": ["execute", "chat_with_history", "write_own_status"],
+    "CustomTool": ["run", "execute", "validate"]
+  },
+  "stdlib_classes": [
+    "CustomClass1",
+    "CustomClass2"
+  ],
+  "function_patterns": [
+    "get_logger",
+    "get_specialist_registry",
+    "get_strategy",
+    "custom_function1",
+    "custom_function2"
+  ],
+  "stdlib_functions": [
+    "register",
+    "generate",
+    "consult_specialist",
+    "custom_stdlib_func1",
+    "custom_stdlib_func2"
+  ],
+  "project_patterns": {
+    "base_classes": {
+      "ProjectBase": ["run", "stop"],
+      "PhaseBase": ["initialize", "cleanup"]
+    },
+    "custom_functions": [
+      "project_specific_func",
+      "another_project_func"
+    ]
+  }
+}

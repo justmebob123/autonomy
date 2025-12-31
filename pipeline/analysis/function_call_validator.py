@@ -3,12 +3,15 @@ Function Call Validator
 
 Validates function calls have correct arguments.
 Understands Python calling conventions, optional parameters, and *args/**kwargs.
+Project-agnostic with configurable validation rules.
 """
 
 import ast
 from typing import Dict, List, Set, Optional
 from pathlib import Path
 from dataclasses import dataclass
+
+from .validation_config import ValidationConfig
 
 
 @dataclass
@@ -25,9 +28,13 @@ class FunctionCallError:
 class FunctionCallValidator:
     """Validates function calls with Python-aware analysis."""
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, config_file: Optional[str] = None):
         self.project_root = Path(project_root)
         self.errors: List[FunctionCallError] = []
+        
+        # Load configuration (project-agnostic)
+        config_path = Path(config_file) if config_file else None
+        self.config = ValidationConfig(self.project_root, config_path)
         
         # Track function signatures
         self.function_signatures: Dict[str, Dict] = {}
@@ -158,16 +165,7 @@ class FunctionCallValidator:
             return
         
         # Skip common stdlib functions that have flexible signatures
-        stdlib_functions = {
-            'parse', 'get', 'post', 'put', 'delete', 'patch',  # HTTP/parsing
-            'register', 'generate', 'consult_specialist',  # Common patterns
-            'format', 'join', 'split', 'replace', 'strip',  # String methods
-            'append', 'extend', 'insert', 'remove', 'pop',  # List methods
-            'update', 'setdefault', 'fromkeys',  # Dict methods
-            'read', 'write', 'readline', 'readlines',  # File methods
-            'open', 'close', 'flush',  # IO methods
-            'error', 'warning', 'info', 'debug', 'critical',  # Logging methods
-        }
+        stdlib_functions = self.config.get_stdlib_functions()
         
         if func_name in stdlib_functions:
             return
