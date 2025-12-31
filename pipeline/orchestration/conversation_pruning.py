@@ -11,7 +11,7 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 
 
 @dataclass

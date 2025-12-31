@@ -10,7 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 
 
 class FileTracker:

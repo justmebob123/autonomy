@@ -9,7 +9,7 @@ from typing import List, Optional, Dict, Any
 from dataclasses import dataclass, field
 import heapq
 
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 
 
 class TaskPriority(IntEnum):

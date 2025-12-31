@@ -16,7 +16,7 @@ from ..context.error import ErrorContext
 from ..context.code import CodeContext
 from ..client import OllamaClient, ResponseParser
 from ..config import PipelineConfig
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 
 
 @dataclass

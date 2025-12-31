@@ -11,7 +11,7 @@ from pathlib import Path
 from datetime import datetime
 
 from ..client import OllamaClient
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 
 
 class ModelTool:

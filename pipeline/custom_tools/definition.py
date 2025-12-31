@@ -7,7 +7,7 @@ Generates tool definitions from custom tools for LLM tool calling.
 from typing import Dict, Any, Optional, List
 import logging
 
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 from .registry import ToolRegistry, ToolMetadata
 
 

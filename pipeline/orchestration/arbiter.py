@@ -10,7 +10,7 @@ from pathlib import Path
 from datetime import datetime
 
 from ..client import OllamaClient
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 from ..state.manager import PipelineState, TaskStatus
 
 from .model_tool import get_specialist_registry, ModelTool

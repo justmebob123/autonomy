@@ -13,7 +13,7 @@ import json
 from .base import BasePhase, PhaseResult
 from .loop_detection_mixin import LoopDetectionMixin
 from ..state.manager import PipelineState
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 
 
 class RoleImprovementPhase(LoopDetectionMixin, BasePhase):

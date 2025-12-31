@@ -20,7 +20,7 @@ from ..state.manager import PipelineState, TaskState, TaskStatus
 from ..prompts import SYSTEM_PROMPTS, get_project_planning_prompt
 from ..tools import TOOLS_PROJECT_PLANNING
 from ..handlers import ToolCallHandler
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 from ..text_tool_parser import TextToolParser
 
 from ..orchestration.specialists.reasoning_specialist import ReasoningType

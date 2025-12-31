@@ -13,7 +13,7 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field, asdict
 from enum import Enum
 
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 
 
 class TaskStatus(str, Enum):

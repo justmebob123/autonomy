@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 import logging
 
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 from .registry import ToolRegistry
 
 
