@@ -174,5 +174,68 @@ TOOLS_VALIDATION = [
                 "required": ["filepath"]
             }
         }
+    },
+    
+    {
+        "type": "function",
+        "function": {
+            "name": "validate_imports_comprehensive",
+            "description": "Comprehensive import validation for entire codebase. Validates syntax, imports, module existence, and typing imports. Prevents import-related failures before runtime.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "target_dir": {
+                        "type": "string",
+                        "description": "Directory to validate (default: 'pipeline')"
+                    },
+                    "check_syntax": {
+                        "type": "boolean",
+                        "description": "Check syntax of all files (default: true)"
+                    },
+                    "check_imports": {
+                        "type": "boolean",
+                        "description": "Check import statements (default: true)"
+                    },
+                    "check_modules": {
+                        "type": "boolean",
+                        "description": "Check module existence (default: true)"
+                    },
+                    "check_typing": {
+                        "type": "boolean",
+                        "description": "Check typing imports (default: true)"
+                    }
+                }
+            }
+        }
+    },
+    
+    {
+        "type": "function",
+        "function": {
+            "name": "fix_html_entities",
+            "description": "Fix HTML entity encoding issues in Python files. Detects and fixes malformed docstring quotes, HTML entities in comments, and syntax errors from entity encoding.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "target": {
+                        "type": "string",
+                        "description": "File or directory to fix (relative to project root)"
+                    },
+                    "dry_run": {
+                        "type": "boolean",
+                        "description": "Only detect issues, don't fix (default: false)"
+                    },
+                    "backup": {
+                        "type": "boolean",
+                        "description": "Create backup before fixing (default: true)"
+                    },
+                    "recursive": {
+                        "type": "boolean",
+                        "description": "Process directories recursively (default: true)"
+                    }
+                },
+                "required": ["target"]
+            }
+        }
     }
 ]

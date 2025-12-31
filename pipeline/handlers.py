@@ -191,6 +191,8 @@ class ToolCallHandler:
             "detect_circular_imports": self._handle_detect_circular_imports,
             "validate_all_imports": self._handle_validate_all_imports,
             "validate_dict_access": self._handle_validate_dict_access,
+            "validate_imports_comprehensive": self._handle_validate_imports_comprehensive,
+            "fix_html_entities": self._handle_fix_html_entities,
         }
         
         # Register custom tools from registry (Integration Fix #1)
@@ -3923,6 +3925,267 @@ class ToolCallHandler:
             self.logger.error(f"Dictionary access validation failed: {e}")
             return {
                 "tool": "validate_dict_access",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_validate_imports_comprehensive(self, args: Dict) -> Dict:
+        """Handle validate_imports_comprehensive tool."""
+        try:
+            import ast
+            import re
+            from pathlib import Path
+            from collections import defaultdict
+            
+            target_dir = args.get('target_dir', 'pipeline')
+            check_syntax = args.get('check_syntax', True)
+            check_imports = args.get('check_imports', True)
+            check_modules = args.get('check_modules', True)
+            check_typing = args.get('check_typing', True)
+            
+            self.logger.info(f"🔍 Comprehensive import validation: {target_dir}")
+            
+            full_path = self.project_dir / target_dir
+            errors = []
+            warnings = []
+            stats = {
+                'total_files': 0,
+                'total_modules': 0,
+                'syntax_errors': 0,
+                'import_errors': 0,
+                'module_errors': 0,
+                'typing_warnings': 0
+            }
+            
+            # Scan for modules
+            actual_modules = set()
+            for root, dirs, files in full_path.walk():
+                for file in files:
+                    if file.endswith('.py') and file != '__init__.py':
+                        rel_path = Path(root).relative_to(self.project_dir)
+                        module_path = str(rel_path / file[:-3]).replace('/', '.')
+                        actual_modules.add(module_path)
+            
+            stats['total_modules'] = len(actual_modules)
+            
+            # Check syntax
+            if check_syntax:
+                for root, dirs, files in full_path.walk():
+                    for file in files:
+                        if file.endswith('.py'):
+                            filepath = Path(root) / file
+                            stats['total_files'] += 1
+                            try:
+                                with open(filepath, 'r') as f:
+                                    ast.parse(f.read())
+                            except SyntaxError as e:
+                                rel_path = filepath.relative_to(self.project_dir)
+                                errors.append(f"{rel_path}:{e.lineno} - Syntax error: {e.msg}")
+                                stats['syntax_errors'] += 1
+            
+            # Check imports
+            imports_found = defaultdict(list)
+            if check_imports:
+                for root, dirs, files in full_path.walk():
+                    for file in files:
+                        if file.endswith('.py'):
+                            filepath = Path(root) / file
+                            rel_path = filepath.relative_to(self.project_dir)
+                            with open(filepath, 'r') as f:
+                                for i, line in enumerate(f, 1):
+                                    if 'from pipeline.state.task import' in line:
+                                        errors.append(f"{rel_path}:{i} - Non-existent module 'pipeline.state.task'")
+                                        stats['import_errors'] += 1
+                                    
+                                    match = re.match(r'^\s*(?:from\s+([\w.]+)\s+import|import\s+([\w.]+))', line)
+                                    if match:
+                                        module = match.group(1) or match.group(2)
+                                        if module.startswith('pipeline.'):
+                                            imports_found[module].append(f"{rel_path}:{i}")
+            
+            # Check module existence
+            if check_modules:
+                for module, locations in imports_found.items():
+                    if module not in actual_modules:
+                        package_path = module.replace('.', '/')
+                        if not (self.project_dir / package_path).exists() and \
+                           not (self.project_dir / f"{package_path}.py").exists():
+                            parent_exists = any(m.startswith(module + '.') for m in actual_modules)
+                            if not parent_exists and module.startswith('pipeline.'):
+                                errors.append(f"Module '{module}' does not exist (imported in {len(locations)} places)")
+                                stats['module_errors'] += 1
+            
+            # Check typing imports
+            if check_typing:
+                typing_types = ['Any', 'Union', 'Optional', 'List', 'Dict', 'Tuple', 'Set', 'Callable']
+                for root, dirs, files in full_path.walk():
+                    for file in files:
+                        if file.endswith('.py'):
+                            filepath = Path(root) / file
+                            rel_path = filepath.relative_to(self.project_dir)
+                            with open(filepath, 'r') as f:
+                                content = f.read()
+                                lines = content.split('\n')
+                                
+                                typing_imports = set()
+                                for line in lines:
+                                    match = re.match(r'from typing import (.+)', line)
+                                    if match:
+                                        imports = match.group(1).split(',')
+                                        typing_imports.update(i.strip() for i in imports)
+                                
+                                for type_name in typing_types:
+                                    pattern = rf'(?:->|:)\s*{type_name}[\[\s,\)]'
+                                    if re.search(pattern, content) and type_name not in typing_imports:
+                                        for i, line in enumerate(lines, 1):
+                                            if re.search(pattern, line):
+                                                warnings.append(f"{rel_path}:{i} - Uses '{type_name}' but doesn't import it")
+                                                stats['typing_warnings'] += 1
+                                                break
+            
+            # Log results
+            if errors:
+                self.logger.warning(f"❌ Found {len(errors)} errors")
+                for error in errors[:5]:
+                    self.logger.warning(f"  • {error}")
+            else:
+                self.logger.info("✅ No errors found")
+            
+            if warnings:
+                self.logger.info(f"⚠️  Found {len(warnings)} warnings")
+            
+            return {
+                "tool": "validate_imports_comprehensive",
+                "success": True,
+                "stats": stats,
+                "errors": errors,
+                "warnings": warnings,
+                "passed": len(errors) == 0,
+                "message": f"Validated {stats['total_files']} files, found {len(errors)} errors, {len(warnings)} warnings"
+            }
+        except Exception as e:
+            self.logger.error(f"Comprehensive import validation failed: {e}")
+            return {
+                "tool": "validate_imports_comprehensive",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_fix_html_entities(self, args: Dict) -> Dict:
+        """Handle fix_html_entities tool."""
+        try:
+            import re
+            from pathlib import Path
+            
+            target = args.get('target')
+            dry_run = args.get('dry_run', False)
+            backup = args.get('backup', True)
+            recursive = args.get('recursive', True)
+            
+            self.logger.info(f"🔧 Fixing HTML entities: {target} (dry_run={dry_run})")
+            
+            full_path = self.project_dir / target
+            
+            # Collect files
+            files_to_process = []
+            if full_path.is_file():
+                if full_path.suffix == '.py':
+                    files_to_process.append(full_path)
+            elif full_path.is_dir():
+                if recursive:
+                    files_to_process = list(full_path.rglob('*.py'))
+                else:
+                    files_to_process = list(full_path.glob('*.py'))
+            
+            results = []
+            total_fixes = 0
+            
+            for filepath in files_to_process:
+                rel_path = filepath.relative_to(self.project_dir)
+                
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    original_content = f.read()
+                
+                # Detect issues
+                issues = []
+                lines = original_content.split('\n')
+                
+                pattern1 = r'\\&amp;quot;\\&amp;quot;\\&amp;quot;'
+                pattern2 = r'&amp;[a-z]+;'
+                
+                for i, line in enumerate(lines, 1):
+                    if re.search(pattern1, line):
+                        issues.append({'line': i, 'type': 'malformed_docstring'})
+                    elif re.search(pattern2, line) and not ('"' in line or "'" in line):
+                        issues.append({'line': i, 'type': 'html_entity'})
+                
+                if len(issues) == 0:
+                    continue
+                
+                # Fix issues
+                fixed_content = original_content
+                fixes_applied = 0
+                
+                if not dry_run:
+                    # Fix malformed docstring quotes
+                    fixed_content = re.sub(r'\\&amp;quot;\\&amp;quot;\\&amp;quot;', '"""', fixed_content)
+                    fixes_applied += len(re.findall(pattern1, original_content))
+                    
+                    # Fix HTML entities
+                    entity_map = {
+                        '&amp;quot;': '"',
+                        '&amp;apos;': "'",
+                        '&amp;lt;': '<',
+                        '&amp;gt;': '>',
+                        '&amp;amp;': '&amp;'
+                    }
+                    
+                    for entity, char in entity_map.items():
+                        if entity in fixed_content:
+                            lines = fixed_content.split('\n')
+                            new_lines = []
+                            for line in lines:
+                                if '"""' in line or "'''" in line or line.strip().startswith('#'):
+                                    line = line.replace(entity, char)
+                                new_lines.append(line)
+                            fixed_content = '\n'.join(new_lines)
+                    
+                    # Create backup
+                    if backup and fixes_applied > 0:
+                        backup_path = filepath.with_suffix('.py.bak')
+                        with open(backup_path, 'w', encoding='utf-8') as f:
+                            f.write(original_content)
+                    
+                    # Write fixed content
+                    if fixes_applied > 0:
+                        with open(filepath, 'w', encoding='utf-8') as f:
+                            f.write(fixed_content)
+                
+                results.append({
+                    'filepath': str(rel_path),
+                    'issues_found': len(issues),
+                    'fixes_applied': fixes_applied
+                })
+                total_fixes += fixes_applied
+            
+            if results:
+                self.logger.info(f"✅ Processed {len(files_to_process)} files, fixed {total_fixes} issues")
+            else:
+                self.logger.info("✅ No HTML entity issues found")
+            
+            return {
+                "tool": "fix_html_entities",
+                "success": True,
+                "files_processed": len(files_to_process),
+                "files_with_issues": len(results),
+                "total_fixes": total_fixes,
+                "files": results,
+                "message": f"Processed {len(files_to_process)} files, fixed {total_fixes} issues"
+            }
+        except Exception as e:
+            self.logger.error(f"HTML entity fix failed: {e}")
+            return {
+                "tool": "fix_html_entities",
                 "success": False,
                 "error": str(e)
             }
