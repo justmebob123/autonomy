@@ -208,8 +208,16 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         if tasks_created > 0:
             self.logger.info(f"  ✅ Auto-created {tasks_created} refactoring tasks from analysis")
         
+        # DEBUG: Check manager state
+        if state.refactoring_manager:
+            total_tasks = len(state.refactoring_manager.tasks)
+            self.logger.info(f"  🔍 DEBUG: Total tasks in manager: {total_tasks}")
+            for task_id, task in list(state.refactoring_manager.tasks.items())[:5]:
+                self.logger.info(f"     - {task_id}: status={task.status.value}, can_execute={task.can_execute([])}")
+        
         # Check if any tasks were created (either by LLM or auto-created)
         pending = self._get_pending_refactoring_tasks(state)
+        self.logger.info(f"  🔍 DEBUG: Pending tasks returned: {len(pending)}")
         
         if pending:
             self.logger.info(f"  ✅ Analysis complete, {len(pending)} tasks to work on")
