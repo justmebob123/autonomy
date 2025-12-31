@@ -1739,10 +1739,38 @@ class PhaseCoordinator:
             # Pass the first task needing fixes
             return {'phase': 'debugging', 'task': needs_fixes[0], 'reason': f'{len(needs_fixes)} tasks need fixes'}
         
-        # 2. If we have QA pending tasks, go to QA
+        # 2. If we have QA pending tasks, check if QA is appropriate for project phase
         if qa_pending:
-            # CRITICAL FIX: Pass the first QA_PENDING task so its status gets updated
-            return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'{len(qa_pending)} tasks awaiting QA'}
+            project_phase = state.get_project_phase()
+            completion = state.calculate_completion_percentage()
+            
+            # Foundation phase (0-25%): Defer QA, continue building codebase
+            if project_phase == 'foundation':
+                self.logger.info(f"  📊 Foundation phase ({completion:.1f}%), deferring QA - continue building codebase")
+                # Don't return - fall through to pending tasks to continue coding
+            
+            # Integration phase (25-50%): Batch QA (wait for 5+ tasks)
+            elif project_phase == 'integration':
+                if len(qa_pending) >= 5:
+                    self.logger.info(f"  📊 Integration phase ({completion:.1f}%), running batch QA ({len(qa_pending)} tasks)")
+                    return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'Batch QA: {len(qa_pending)} tasks ready'}
+                else:
+                    self.logger.info(f"  📊 Integration phase ({completion:.1f}%), deferring QA ({len(qa_pending)}/5 tasks)")
+                    # Don't return - fall through to pending tasks
+            
+            # Consolidation phase (50-75%): Regular QA (wait for 3+ tasks)
+            elif project_phase == 'consolidation':
+                if len(qa_pending) >= 3:
+                    self.logger.info(f"  📊 Consolidation phase ({completion:.1f}%), running QA ({len(qa_pending)} tasks)")
+                    return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'{len(qa_pending)} tasks awaiting QA'}
+                else:
+                    self.logger.info(f"  📊 Consolidation phase ({completion:.1f}%), deferring QA ({len(qa_pending)}/3 tasks)")
+                    # Don't return - fall through to pending tasks
+            
+            # Completion phase (75-100%): Aggressive QA (every task)
+            else:  # completion phase
+                self.logger.info(f"  📊 Completion phase ({completion:.1f}%), running aggressive QA")
+                return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'{len(qa_pending)} tasks awaiting QA'}
         
         # 3. If we have pending tasks, route to appropriate phase
         if pending:

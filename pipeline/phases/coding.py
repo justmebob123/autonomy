@@ -354,8 +354,19 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
                 except Exception as e:
                     self.logger.debug(f"  Complexity validation failed for {filepath}: {e}")
         
-        # Success - update state
-        task.status = TaskStatus.QA_PENDING
+        # Success - update state with lifecycle awareness
+        project_phase = state.get_project_phase()
+        completion = state.calculate_completion_percentage()
+        
+        if project_phase == 'foundation':
+            # Foundation phase (0-25%): Mark as completed, defer QA
+            task.status = TaskStatus.COMPLETED
+            self.logger.info(f"  📊 Foundation phase ({completion:.1f}%): Task completed (QA deferred)")
+        else:
+            # Integration/Consolidation/Completion: Mark for QA
+            task.status = TaskStatus.QA_PENDING
+            self.logger.debug(f"  📊 {project_phase.title()} phase ({completion:.1f}%): Task marked for QA")
+        
         task.failure_count = 0  # Reset failure count on success
         
         # Update file tracking in state
