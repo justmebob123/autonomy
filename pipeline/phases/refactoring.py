@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Dict, List, Tuple, Optional, Any
 from pathlib import Path
 import json
+import os
 
 from .base import BasePhase, PhaseResult
 from ..state.manager import PipelineState, TaskState, TaskStatus
@@ -252,26 +253,9 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         # Mark task as started
         task.start()
         
-        # Check fix approach
-        if task.fix_approach == RefactoringApproach.DEVELOPER_REVIEW:
-            # Task needs developer review, skip for now
-            self.logger.info(f"  ⚠️  Task requires developer review, skipping")
-            return PhaseResult(
-                success=True,
-                phase=self.phase_name,
-                message=f"Task {task.task_id} requires developer review"
-            )
-        
-        if task.fix_approach == RefactoringApproach.NEEDS_NEW_CODE:
-            # Task needs new code, route to coding
-            self.logger.info(f"  ⚠️  Task requires new code implementation")
-            task.needs_review("Requires new code implementation")
-            return PhaseResult(
-                success=True,
-                phase=self.phase_name,
-                message=f"Task {task.task_id} requires new code",
-                next_phase="coding"
-            )
+        # CRITICAL: NEVER skip tasks! Always engage AI to analyze every task.
+        # The AI will determine if it can fix automatically or needs developer input.
+        # Even "complex" tasks should be analyzed - AI might find simple solutions.
         
         # Build context for this specific task
         context = self._build_task_context(task)
@@ -360,13 +344,46 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         context_parts = []
         
         context_parts.append(f"# Task: {task.title}\n")
+        context_parts.append(f"**Task ID**: {task.task_id}\n")
         context_parts.append(f"**Type**: {task.issue_type.value}\n")
         context_parts.append(f"**Priority**: {task.priority.value}\n")
         context_parts.append(f"**Description**: {task.description}\n\n")
         
+        # Add MASTER_PLAN context
+        master_plan_path = os.path.join(self.project_dir, "MASTER_PLAN.md")
+        if os.path.exists(master_plan_path):
+            try:
+                with open(master_plan_path, 'r') as f:
+                    master_plan = f.read()
+                context_parts.append(f"## MASTER_PLAN.md (Project Objectives)\n```\n{master_plan[:2000]}...\n```\n\n")
+            except Exception as e:
+                self.logger.warning(f"Could not read MASTER_PLAN.md: {e}")
+        
+        # Add ARCHITECTURE context
+        arch_path = os.path.join(self.project_dir, "ARCHITECTURE.md")
+        if os.path.exists(arch_path):
+            try:
+                with open(arch_path, 'r') as f:
+                    architecture = f.read()
+                context_parts.append(f"## ARCHITECTURE.md (Design Guidelines)\n```\n{architecture}\n```\n\n")
+            except Exception as e:
+                self.logger.warning(f"Could not read ARCHITECTURE.md: {e}")
+        
         context_parts.append(f"## Affected Files\n")
         for file in task.target_files:
             context_parts.append(f"- {file}\n")
+            # Try to include file content snippet
+            file_path = os.path.join(self.project_dir, file)
+            if os.path.exists(file_path):
+                try:
+                    with open(file_path, 'r') as f:
+                        content = f.read()
+                    # Include first 50 lines or 2000 chars
+                    lines = content.split('\n')[:50]
+                    snippet = '\n'.join(lines)[:2000]
+                    context_parts.append(f"\n### Content of {file}:\n```python\n{snippet}\n...\n```\n\n")
+                except Exception as e:
+                    self.logger.warning(f"Could not read {file}: {e}")
         
         if task.analysis_data:
             context_parts.append(f"\n## Analysis Data\n")
@@ -377,27 +394,57 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
     
     def _build_task_prompt(self, task: Any, context: str) -> str:
         """Build prompt for working on a specific task"""
-        return f"""You are working on a specific refactoring task.
+        return f"""🎯 REFACTORING TASK ANALYSIS & RESOLUTION
 
 {context}
 
-Your goal is to FIX this issue using the available tools.
+🔍 YOUR MISSION:
+Analyze this issue deeply and determine the best course of action. You have THREE options:
 
-Steps:
-1. Review the task description and affected files
-2. Use appropriate tools to fix the issue
-3. Verify the fix is correct
-4. Update the task status
+1️⃣ **FIX AUTOMATICALLY** - If you can resolve this safely:
+   - Use tools to delete, move, or modify files
+   - Examples: cleanup_redundant_files, merge_file_implementations
+   - Verify changes are safe and correct
+   - Mark task complete with update_refactoring_task
 
-Available approaches:
-- For duplicates: Use merge_file_implementations or cleanup_redundant_files
-- For complexity: Refactor code to simplify
-- For dead code: Use cleanup_redundant_files
-- For architecture: Align with MASTER_PLAN
+2️⃣ **CREATE DETAILED DEVELOPER REPORT** - If issue is complex:
+   - Use create_issue_report tool with:
+     * Specific files that need changes
+     * Exact modifications required (line-by-line if possible)
+     * Rationale for each change
+     * Impact analysis
+     * Step-by-step instructions
+   - Include code examples showing before/after
+   - Explain WHY changes are needed (reference MASTER_PLAN)
 
-IMPORTANT: After fixing, use update_refactoring_task to mark the task as completed.
+3️⃣ **REQUEST DEVELOPER INPUT** - If you need guidance:
+   - Use request_developer_review tool
+   - Ask specific questions with clear options
+   - Provide context to help developer decide
 
-Use the refactoring tools NOW to fix this issue."""
+📋 ANALYSIS STEPS:
+1. **Understand the issue**: What's wrong? Why is it a problem?
+2. **Check MASTER_PLAN & ARCHITECTURE**: What's the intended design?
+3. **Assess complexity**: Can you fix it safely?
+4. **Determine approach**: Auto-fix, detailed report, or ask for input?
+5. **Take action**: Use appropriate tools NOW
+
+🛠️ TOOL SELECTION GUIDE:
+- **Dead code**: cleanup_redundant_files (safe to auto-fix)
+- **Duplicates**: Compare first, then merge or cleanup
+- **Integration conflicts**: Analyze deeply, likely needs detailed report
+- **Architecture violations**: Check MASTER_PLAN, may need developer input
+- **Complexity issues**: Analyze code, create detailed refactoring plan
+- **Missing methods**: Check if simple addition or needs design decision
+
+⚠️ CRITICAL RULES:
+- NEVER skip or ignore this task
+- ALWAYS take action (fix, report, or ask)
+- If unsure, create detailed report rather than skip
+- Include specific file paths and line numbers when possible
+- Reference MASTER_PLAN objectives in your analysis
+
+🎯 TAKE ACTION NOW - Choose your approach and use the appropriate tools!
     
     def _auto_create_tasks_from_analysis(self, state: PipelineState, analysis_result: PhaseResult) -> int:
         """
@@ -471,7 +518,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"High complexity: {func_info.get('name', 'unknown')} (complexity: {func_info.get('complexity', 0)})",
                                 target_files=[func_info.get('file', '')],
                                 priority=RefactoringPriority.HIGH,
-                                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
+                                fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI decide if it needs developer
                                 estimated_effort=60
                             )
                             tasks_created += 1
@@ -529,7 +576,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=violation['description'],
                                 target_files=[violation['file']],
                                 priority=priority_map.get(violation['severity'], RefactoringPriority.MEDIUM),
-                                fix_approach=RefactoringApproach.DEVELOPER_REVIEW if violation['severity'] in ['critical', 'high'] else RefactoringApproach.AUTONOMOUS,
+                                fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI decide based on analysis
                                 estimated_effort=30
                             )
                             tasks_created += 1
@@ -550,7 +597,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"Unused class: {unused_class['name']} (never instantiated)",
                                 target_files=[unused_class['file']],
                                 priority=RefactoringPriority.MEDIUM,
-                                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
+                                fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI decide
                                 estimated_effort=30
                             )
                             tasks_created += 1
@@ -585,7 +632,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"Integration conflict: {conflict_dict['description']}",
                                 target_files=conflict_dict['files'],
                                 priority=RefactoringPriority.CRITICAL,
-                                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
+                                fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI analyze and decide
                                 estimated_effort=60
                             )
                             tasks_created += 1
@@ -603,7 +650,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"Bug: {bug.get('description', 'Unknown')}",
                                 target_files=[bug.get('file', '')],
                                 priority=priority_map.get(bug.get('severity', 'medium'), RefactoringPriority.HIGH),
-                                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
+                                fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI analyze and decide
                                 estimated_effort=45
                             )
                             tasks_created += 1
@@ -659,7 +706,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=error.get('message', 'Unknown'),
                                 target_files=[error.get('file', '')],
                                 priority=RefactoringPriority.CRITICAL,
-                                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
+                                fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI analyze and decide
                                 estimated_effort=30
                             )
                             tasks_created += 1
@@ -744,7 +791,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"Circular import: {' → '.join(cycle.get('cycle', []))}",
                                 target_files=cycle.get('files', []),
                                 priority=RefactoringPriority.HIGH,
-                                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
+                                fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI analyze and decide
                                 estimated_effort=45
                             )
                             tasks_created += 1
