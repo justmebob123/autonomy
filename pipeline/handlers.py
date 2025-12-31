@@ -2874,8 +2874,13 @@ class ToolCallHandler:
             detector = BugDetector(str(self.project_dir), self.logger)
             target = args.get('filepath', args.get('target'))
             
-            self.logger.info(f"🔍 Detecting bugs in {target}...")
-            result = detector.detect(target)
+            # If target is None or not specified, analyze all files
+            if target is None:
+                self.logger.info(f"🔍 Detecting bugs in all files...")
+                result = detector.analyze_all()
+            else:
+                self.logger.info(f"🔍 Detecting bugs in {target}...")
+                result = detector.detect(target)
             
             # Generate report
             report = detector.generate_report(result)
@@ -2914,8 +2919,13 @@ class ToolCallHandler:
             detector = AntiPatternDetector(str(self.project_dir), self.logger)
             target = args.get('filepath', args.get('target'))
             
-            self.logger.info(f"🔍 Detecting anti-patterns in {target}...")
-            result = detector.detect(target)
+            # If target is None or not specified, analyze all files
+            if target is None:
+                self.logger.info(f"🔍 Detecting anti-patterns in all files...")
+                result = detector.analyze_all()
+            else:
+                self.logger.info(f"🔍 Detecting anti-patterns in {target}...")
+                result = detector.detect(target)
             
             # Generate report
             report = detector.generate_report(result)

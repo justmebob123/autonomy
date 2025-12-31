@@ -183,6 +183,43 @@ class AntiPatternDetector(ast.NodeVisitor):
         
         return max_depth
     
+    def analyze_all(self) -> AntiPatternReport:
+        """
+        Analyze all Python files in the project.
+        
+        Returns:
+            AntiPatternReport with all detected anti-patterns across all files
+        """
+        all_antipatterns = []
+        files_analyzed = 0
+        
+        # Find all Python files
+        python_files = list(self.project_root.rglob("*.py"))
+        
+        for filepath in python_files:
+            try:
+                rel_path = filepath.relative_to(self.project_root)
+                result = self.detect(str(rel_path))
+                all_antipatterns.extend(result.antipatterns)
+                files_analyzed += 1
+            except Exception as e:
+                if self.logger:
+                    self.logger.warning(f"Error analyzing {filepath}: {e}")
+        
+        # Create combined report
+        from datetime import datetime
+        return AntiPatternReport(
+            filepath="all_files",
+            timestamp=datetime.now(),
+            antipatterns=all_antipatterns,
+            pattern_counts={
+                'god_class': sum(1 for p in all_antipatterns if p.get('pattern') == 'god_class'),
+                'long_method': sum(1 for p in all_antipatterns if p.get('pattern') == 'long_method'),
+                'deep_nesting': sum(1 for p in all_antipatterns if p.get('pattern') == 'deep_nesting'),
+                'too_many_parameters': sum(1 for p in all_antipatterns if p.get('pattern') == 'too_many_parameters')
+            }
+        )
+    
     def generate_report(self, result: AntiPatternReport) -> str:
         """Generate human-readable report"""
         lines = []

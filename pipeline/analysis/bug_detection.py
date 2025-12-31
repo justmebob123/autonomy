@@ -152,6 +152,43 @@ class BugDetector(ast.NodeVisitor):
         
         self.generic_visit(node)
     
+    def analyze_all(self) -> BugReport:
+        """
+        Analyze all Python files in the project.
+        
+        Returns:
+            BugReport with all detected bugs across all files
+        """
+        all_bugs = []
+        files_analyzed = 0
+        
+        # Find all Python files
+        python_files = list(self.project_root.rglob("*.py"))
+        
+        for filepath in python_files:
+            try:
+                rel_path = filepath.relative_to(self.project_root)
+                result = self.detect(str(rel_path))
+                all_bugs.extend(result.bugs)
+                files_analyzed += 1
+            except Exception as e:
+                if self.logger:
+                    self.logger.warning(f"Error analyzing {filepath}: {e}")
+        
+        # Create combined report
+        from datetime import datetime
+        return BugReport(
+            filepath="all_files",
+            timestamp=datetime.now(),
+            bugs=all_bugs,
+            severity_counts={
+                'critical': sum(1 for b in all_bugs if b.get('severity') == 'critical'),
+                'high': sum(1 for b in all_bugs if b.get('severity') == 'high'),
+                'medium': sum(1 for b in all_bugs if b.get('severity') == 'medium'),
+                'low': sum(1 for b in all_bugs if b.get('severity') == 'low')
+            }
+        )
+    
     def generate_report(self, result: BugReport) -> str:
         """Generate human-readable report"""
         lines = []

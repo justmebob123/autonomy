@@ -1188,11 +1188,21 @@ Use the refactoring tools NOW to fix this issue."""
         # ============================================================
         self.logger.info("  🐛 Phase 5: Bug Detection")
         
-        # 5.1: Bug Detection (skip for now - requires specific file targets)
-        self.logger.info(f"     ⚠️  Bug detection: Skipped (requires specific file targets)")
+        # 5.1: Bug Detection
+        bug_result = handler._handle_find_bugs({'target': None})  # None = analyze all files
+        all_results.append(bug_result)
         
-        # 5.2: Anti-pattern Detection (skip for now - requires specific file targets)
-        self.logger.info(f"     ⚠️  Anti-pattern detection: Skipped (requires specific file targets)")
+        if bug_result.get('success'):
+            bugs = len(bug_result.get('result', {}).get('bugs', []))
+            self.logger.info(f"     ✓ Bug detection: {bugs} potential bugs found")
+        
+        # 5.2: Anti-pattern Detection
+        antipattern_result = handler._handle_detect_antipatterns({'target': None})  # None = analyze all files
+        all_results.append(antipattern_result)
+        
+        if antipattern_result.get('success'):
+            patterns = len(antipattern_result.get('result', {}).get('antipatterns', []))
+            self.logger.info(f"     ✓ Anti-pattern detection: {patterns} anti-patterns found")
         
         # ============================================================
         # PHASE 6: VALIDATION CHECKS
