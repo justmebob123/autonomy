@@ -440,7 +440,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 issue_type=RefactoringIssueType.DUPLICATE,
                                 priority=RefactoringPriority.MEDIUM,
                                 description=f"Duplicate code: {dup.get('similarity', 0):.0%} similar",
-                                affected_files=dup.get('files', []),
+                                target_files=dup.get('files', []),
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort_minutes=30
                             )
@@ -461,7 +461,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 issue_type=RefactoringIssueType.COMPLEXITY,
                                 priority=RefactoringPriority.HIGH,
                                 description=f"High complexity: {func_info.get('name', 'unknown')} (complexity: {func_info.get('complexity', 0)})",
-                                affected_files=[func_info.get('file', '')],
+                                target_files=[func_info.get('file', '')],
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
                                 estimated_effort_minutes=60
                             )
@@ -484,7 +484,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 issue_type=RefactoringIssueType.DEAD_CODE,
                                 priority=RefactoringPriority.LOW,
                                 description=f"Dead code: {item.get('name', 'unknown')}",
-                                affected_files=[item.get('file', '')],
+                                target_files=[item.get('file', '')],
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort_minutes=15
                             )
@@ -519,7 +519,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 issue_type=issue_type_map.get(violation['type'], RefactoringIssueType.ARCHITECTURE),
                                 priority=priority_map.get(violation['severity'], RefactoringPriority.MEDIUM),
                                 description=violation['description'],
-                                affected_files=[violation['file']],
+                                target_files=[violation['file']],
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW if violation['severity'] in ['critical', 'high'] else RefactoringApproach.AUTONOMOUS,
                                 estimated_effort_minutes=30
                             )
@@ -536,7 +536,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 issue_type=RefactoringIssueType.INTEGRATION,
                                 priority=RefactoringPriority.HIGH,
                                 description=f"Integration gap: {gap.get('description', 'Unknown')}",
-                                affected_files=gap.get('files', []),
+                                target_files=gap.get('files', []),
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
                                 estimated_effort_minutes=45
                             )
@@ -553,7 +553,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 issue_type=RefactoringIssueType.CONFLICT,
                                 priority=RefactoringPriority.CRITICAL,
                                 description=f"Integration conflict: {conflict.get('description', 'Unknown')}",
-                                affected_files=conflict.get('files', []),
+                                target_files=conflict.get('files', []),
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
                                 estimated_effort_minutes=60
                             )
@@ -571,7 +571,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
                                 priority=priority_map.get(bug.get('severity', 'medium'), RefactoringPriority.HIGH),
                                 description=f"Bug: {bug.get('description', 'Unknown')}",
-                                affected_files=[bug.get('file', '')],
+                                target_files=[bug.get('file', '')],
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
                                 estimated_effort_minutes=45
                             )
@@ -588,7 +588,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
                                 priority=RefactoringPriority.MEDIUM,
                                 description=f"Anti-pattern: {pattern.get('name', 'Unknown')}",
-                                affected_files=[pattern.get('file', '')],
+                                target_files=[pattern.get('file', '')],
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort_minutes=30
                             )
@@ -605,7 +605,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
                                 priority=RefactoringPriority.HIGH,
                                 description=f"Import error: {error.get('error', 'Unknown')}",
-                                affected_files=[error.get('file', '')],
+                                target_files=[error.get('file', '')],
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort_minutes=20
                             )
@@ -622,7 +622,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
                                 priority=RefactoringPriority.CRITICAL,
                                 description=f"Syntax error: {error.get('message', 'Unknown')}",
-                                affected_files=[error.get('file', '')],
+                                target_files=[error.get('file', '')],
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort_minutes=15
                             )
@@ -639,7 +639,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
                                 priority=RefactoringPriority.HIGH,
                                 description=f"Circular import: {' → '.join(cycle.get('cycle', []))}",
-                                affected_files=cycle.get('files', []),
+                                target_files=cycle.get('files', []),
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
                                 estimated_effort_minutes=45
                             )
@@ -1135,11 +1135,12 @@ Use the refactoring tools NOW to fix this issue."""
             conflict_detector = IntegrationConflictDetector(str(self.project_dir), self.logger)
             conflict_analysis = conflict_detector.analyze()
             
+            from dataclasses import asdict
             conflict_result = {
                 'tool': 'detect_integration_conflicts',
                 'success': True,
                 'result': {
-                    'conflicts': [c.to_dict() for c in conflict_analysis.conflicts],
+                    'conflicts': [asdict(c) for c in conflict_analysis.conflicts],
                     'total_conflicts': len(conflict_analysis.conflicts)
                 }
             }
@@ -1165,17 +1166,11 @@ Use the refactoring tools NOW to fix this issue."""
         # ============================================================
         self.logger.info("  🐛 Phase 5: Bug Detection")
         
-        # 5.1: Bug Detection
-        bug_result = handler._handle_find_bugs({'target': None})  # None = analyze all files
-        all_results.append(bug_result)
+        # 5.1: Bug Detection (skip for now - requires specific file targets)
+        self.logger.info(f"     ⚠️  Bug detection: Skipped (requires specific file targets)")
         
-        if bug_result.get('success'):
-            bugs = len(bug_result.get('result', {}).get('bugs', []))
-            self.logger.info(f"     ✓ Bug detection: {bugs} potential bugs found")
-        
-        # 5.2: Anti-pattern Detection
-        antipattern_result = handler._handle_detect_antipatterns({'target': None})  # None = analyze all files
-        all_results.append(antipattern_result)
+        # 5.2: Anti-pattern Detection (skip for now - requires specific file targets)
+        self.logger.info(f"     ⚠️  Anti-pattern detection: Skipped (requires specific file targets)")
         
         if antipattern_result.get('success'):
             patterns = len(antipattern_result.get('result', {}).get('antipatterns', []))
