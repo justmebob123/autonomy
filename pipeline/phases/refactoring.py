@@ -551,7 +551,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             content_parts.append(recommendations)
             content_parts.append("\n")
         
-        self.write_own_output("".join(content_parts))
+        self.write_own_status("".join(content_parts))
     
     def _determine_next_phase(self, recommendations: str) -> str:
         """Determine next phase based on recommendations"""

@@ -13,7 +13,7 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 import logging
 
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 
 
 @dataclass
