@@ -3554,7 +3554,7 @@ class ToolCallHandler:
     def _handle_analyze_architecture_consistency(self, args: Dict) -> Dict:
         """Handle analyze_architecture_consistency tool."""
         try:
-            from pipeline.analysis.file_refactoring import ArchitectureAnalyzer
+            from pipeline.analysis.file_refactoring import RefactoringArchitectureAnalyzer
             
             check_master_plan = args.get('check_master_plan', True)
             check_architecture = args.get('check_architecture', True)
@@ -3562,7 +3562,7 @@ class ToolCallHandler:
             
             self.logger.info("🏗️  Analyzing architecture consistency")
             
-            analyzer = ArchitectureAnalyzer(self.project_dir, self.logger)
+            analyzer = RefactoringArchitectureAnalyzer(self.project_dir, self.logger)
             consistency = analyzer.analyze_consistency(
                 check_master_plan=check_master_plan,
                 check_architecture=check_architecture,

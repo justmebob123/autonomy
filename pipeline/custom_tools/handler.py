@@ -13,7 +13,7 @@ from typing import Dict, Any, Optional
 import logging
 
 from pipeline.logging_setup import get_logger
-from .registry import ToolRegistry
+from .registry import CustomToolRegistry
 
 
 class CustomToolHandler:
@@ -30,7 +30,7 @@ class CustomToolHandler:
             print(result['result'])
     """
     
-    def __init__(self, project_dir: str, registry: ToolRegistry, 
+    def __init__(self, project_dir: str, registry: CustomToolRegistry, 
                  logger: Optional[logging.Logger] = None):
         """
         Initialize custom tool handler.

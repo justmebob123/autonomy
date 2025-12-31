@@ -23,12 +23,12 @@ __author__ = "SuperNinja AI"
 from .core.base import BaseTool, ToolResult
 from .core.executor import ToolExecutor
 from .core.template import TemplateGenerator
-from .core.validator import ToolValidator
+from .core.validator import CustomToolValidator
 
 __all__ = [
     'BaseTool',
     'ToolResult',
     'ToolExecutor',
     'TemplateGenerator',
-    'ToolValidator',
+    'CustomToolValidator',
 ]

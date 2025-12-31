@@ -1,5 +1,5 @@
 """
-ToolRegistry - Custom Tool Discovery and Registration
+CustomToolRegistry - Custom Tool Discovery and Registration
 
 Automatically discovers and registers custom tools from scripts/custom_tools/tools/
 Provides tool metadata, definitions, and management.
@@ -55,15 +55,15 @@ class ToolMetadata:
         }
 
 
-class ToolRegistry:
+class CustomToolRegistry:
     """
     Registry for custom tools.
     
-    Discovers, registers, and manages custom tools from scripts/custom_tools/tools/
+    Discovers, registers, and manages custom tools from bin/custom_tools/tools/
     Provides tool metadata, definitions, and caching.
     
     Example:
-        registry = ToolRegistry('/project')
+        registry = CustomToolRegistry('/project')
         registry.discover_tools()
         
         # Get tool metadata
@@ -98,7 +98,7 @@ class ToolRegistry:
         self._last_scan: float = 0.0
         self._scan_interval: float = 5.0  # Rescan every 5 seconds
         
-        self.logger.info(f"ToolRegistry initialized with tools_dir: {self.tools_dir}")
+        self.logger.info(f"CustomToolRegistry initialized with tools_dir: {self.tools_dir}")
     
     def discover_tools(self, force: bool = False) -> int:
         """

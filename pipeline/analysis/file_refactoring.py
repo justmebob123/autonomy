@@ -689,8 +689,8 @@ class FeatureExtractor:
                         extracted[dep] = self._extract_class(node, content)
 
 
-class ArchitectureAnalyzer:
-    """Analyze architecture consistency."""
+class RefactoringArchitectureAnalyzer:
+    """Analyze architecture consistency for refactoring decisions."""
     
     def __init__(self, project_dir: Path, logger: Optional[logging.Logger] = None):
         self.project_dir = Path(project_dir)

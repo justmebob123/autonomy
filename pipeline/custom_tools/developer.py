@@ -458,11 +458,11 @@ if __name__ == '__main__':
             Result with success, documentation
         """
         try:
-            from .registry import ToolRegistry
+            from .registry import CustomToolRegistry
             from .definition import ToolDefinitionGenerator
             
             # Get tool metadata
-            registry = ToolRegistry(str(self.project_dir))
+            registry = CustomToolRegistry(str(self.project_dir))
             registry.discover_tools(force=True)
             
             generator = ToolDefinitionGenerator(registry)

@@ -13,8 +13,8 @@ import json
 
 
 @dataclass
-class Message:
-    """A single message in the conversation"""
+class ConversationMessage:
+    """A single message in the conversation thread (legacy)"""
     role: str  # system, user, assistant, specialist
     content: str
     timestamp: datetime = field(default_factory=datetime.now)
@@ -87,7 +87,7 @@ class DebuggingConversationThread:
         self.thread_id = f"{sanitized_filepath}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         
         # Conversation history
-        self.messages: List[Message] = []
+        self.messages: List[ConversationMessage] = []
         
         # Attempt tracking
         self.attempts: List[AttemptRecord] = []
@@ -156,10 +156,10 @@ All specialists have access to the full conversation history and can build on pr
                    agent_name: Optional[str] = None,
                    tool_calls: List[Dict] = None,
                    tool_results: List[Dict] = None,
-                   metadata: Dict = None) -> Message:
+                   metadata: Dict = None) -> ConversationMessage:
         """Add a message to the conversation thread"""
         
-        message = Message(
+        message = ConversationMessage(
             role=role,
             content=content,
             agent_name=agent_name,

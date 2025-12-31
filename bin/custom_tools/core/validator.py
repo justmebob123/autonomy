@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 
 
-class ToolValidator:
+class CustomToolValidator:
     """
     Validates custom tools for safety and correctness.
     

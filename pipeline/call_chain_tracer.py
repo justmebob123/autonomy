@@ -84,7 +84,7 @@ class CallChainTracer:
             relative_path = str(file_path.relative_to(self.project_root))
             
             # Extract function definitions and calls
-            visitor = CallGraphVisitor(relative_path)
+            visitor = CallChainVisitor(relative_path)
             visitor.visit(tree)
             
             # Store results
@@ -330,8 +330,8 @@ class CallChainTracer:
         return "\n".join(report)
 
 
-class CallGraphVisitor(ast.NodeVisitor):
-    """AST visitor to extract call graph information."""
+class CallChainVisitor(ast.NodeVisitor):
+    """AST visitor to extract call graph information for call chain tracing."""
     
     def __init__(self, file_path: str):
         self.file_path = file_path

@@ -4,19 +4,19 @@ Custom Tools Integration Package
 Provides integration between scripts/custom_tools/ and the pipeline system.
 
 Components:
-- ToolRegistry: Discovers and registers custom tools
+- CustomToolRegistry: Discovers and registers custom tools
 - CustomToolHandler: Executes custom tools with isolation
 - ToolDefinitionGenerator: Generates OpenAI-compatible definitions
 - ToolDeveloper: Supports tool creation and testing
 """
 
-from .registry import ToolRegistry
+from .registry import CustomToolRegistry
 from .handler import CustomToolHandler
 from .definition import ToolDefinitionGenerator
 from .developer import ToolDeveloper
 
 __all__ = [
-    'ToolRegistry',
+    'CustomToolRegistry',
     'CustomToolHandler',
     'ToolDefinitionGenerator',
     'ToolDeveloper',

@@ -8,7 +8,7 @@ from typing import Dict, Any, Optional, List
 import logging
 
 from pipeline.logging_setup import get_logger
-from .registry import ToolRegistry, ToolMetadata
+from .registry import CustomToolRegistry, ToolMetadata
 
 
 class ToolDefinitionGenerator:
@@ -23,7 +23,7 @@ class ToolDefinitionGenerator:
         definitions = generator.generate_all_definitions()
     """
     
-    def __init__(self, registry: ToolRegistry, logger: Optional[logging.Logger] = None):
+    def __init__(self, registry: CustomToolRegistry, logger: Optional[logging.Logger] = None):
         """
         Initialize definition generator.
         
