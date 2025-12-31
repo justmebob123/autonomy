@@ -442,7 +442,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"Duplicate code: {dup.get('similarity', 0):.0%} similar",
                                 target_files=dup.get('files', []),
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort_minutes=30
+                                estimated_effort=30
                             )
                             manager.add_task(task)
                             tasks_created += 1
@@ -463,7 +463,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"High complexity: {func_info.get('name', 'unknown')} (complexity: {func_info.get('complexity', 0)})",
                                 target_files=[func_info.get('file', '')],
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
-                                estimated_effort_minutes=60
+                                estimated_effort=60
                             )
                             manager.add_task(task)
                             tasks_created += 1
@@ -486,7 +486,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"Dead code: {item.get('name', 'unknown')}",
                                 target_files=[item.get('file', '')],
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort_minutes=15
+                                estimated_effort=15
                             )
                             manager.add_task(task)
                             tasks_created += 1
@@ -521,7 +521,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=violation['description'],
                                 target_files=[violation['file']],
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW if violation['severity'] in ['critical', 'high'] else RefactoringApproach.AUTONOMOUS,
-                                estimated_effort_minutes=30
+                                estimated_effort=30
                             )
                             manager.add_task(task)
                             tasks_created += 1
@@ -542,7 +542,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"Unused class: {unused_class['name']} (never instantiated)",
                                 target_files=[unused_class['file']],
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
-                                estimated_effort_minutes=30
+                                estimated_effort=30
                             )
                             manager.add_task(task)
                             tasks_created += 1
@@ -556,7 +556,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"Class {class_name} has {len(methods)} unused methods: {', '.join(methods[:3])}",
                                 target_files=[],  # File info not available in this structure
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort_minutes=20
+                                estimated_effort=20
                             )
                             manager.add_task(task)
                             tasks_created += 1
@@ -577,7 +577,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"Integration conflict: {conflict_dict['description']}",
                                 target_files=conflict_dict['files'],
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
-                                estimated_effort_minutes=60
+                                estimated_effort=60
                             )
                             manager.add_task(task)
                             tasks_created += 1
@@ -595,7 +595,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"Bug: {bug.get('description', 'Unknown')}",
                                 target_files=[bug.get('file', '')],
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
-                                estimated_effort_minutes=45
+                                estimated_effort=45
                             )
                             manager.add_task(task)
                             tasks_created += 1
@@ -612,7 +612,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"Anti-pattern: {pattern.get('name', 'Unknown')}",
                                 target_files=[pattern.get('file', '')],
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort_minutes=30
+                                estimated_effort=30
                             )
                             manager.add_task(task)
                             tasks_created += 1
@@ -629,7 +629,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"Import error: {error.get('error', 'Unknown')}",
                                 target_files=[error.get('file', '')],
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort_minutes=20
+                                estimated_effort=20
                             )
                             manager.add_task(task)
                             tasks_created += 1
@@ -646,7 +646,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"Syntax error: {error.get('message', 'Unknown')}",
                                 target_files=[error.get('file', '')],
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort_minutes=15
+                                estimated_effort=15
                             )
                             manager.add_task(task)
                             tasks_created += 1
@@ -663,7 +663,7 @@ Use the refactoring tools NOW to fix this issue."""
                                 description=f"Circular import: {' → '.join(cycle.get('cycle', []))}",
                                 target_files=cycle.get('files', []),
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
-                                estimated_effort_minutes=45
+                                estimated_effort=45
                             )
                             manager.add_task(task)
                             tasks_created += 1
