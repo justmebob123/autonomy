@@ -688,20 +688,31 @@ You have access to strategic documents that guide your implementation:
 🚨 CRITICAL FILENAME REQUIREMENTS:
 - NEVER use placeholder text in filenames (e.g., <version>, <timestamp>, <name>)
 - For migration files: Use actual version numbers (001_, 002_, etc.)
+  * Check existing files in the directory to determine the next version number
+  * If directory is empty, start with 001_
 - For timestamped files: Use actual timestamps (20240101_120000_)
+  * Format: YYYYMMDD_HHMMSS
+  * Use current date/time
 - Use underscores (_) not spaces in filenames
 - Avoid version iterators like (1), (2), _v2, etc.
-- If unsure about filename, ask for clarification
 
 EXAMPLES:
 ❌ WRONG: storage/migrations/versions/<version>_projects_table.py
 ✅ RIGHT: storage/migrations/versions/001_projects_table.py
+         (or 002_, 003_, etc. based on existing files)
 
 ❌ WRONG: backup_<timestamp>.sql
 ✅ RIGHT: backup_20240101_120000.sql
 
 ❌ WRONG: my file.py
 ✅ RIGHT: my_file.py
+
+IF VALIDATION FAILS:
+- You will receive detailed error context
+- Check existing files in the directory
+- Determine the correct filename based on context
+- Retry with the corrected filename
+- DO NOT ask for clarification - determine the correct name yourself
 """
     
     return f"""Implement this task:

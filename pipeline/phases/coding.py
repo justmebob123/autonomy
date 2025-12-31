@@ -190,21 +190,31 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         # FILENAME VALIDATION - Check for problematic filenames before processing
         filename_issues = self._validate_tool_call_filenames(tool_calls)
         if filename_issues:
-            # Add filename validation errors to task
+            # Build context about the filename issues
+            issue_context = self._build_filename_issue_context(filename_issues, task)
+            
+            # Add to error context so AI can see it in next iteration
             for issue in filename_issues:
-                task.add_error(
-                    "filename_validation",
-                    issue['message'],
-                    phase="coding"
+                self.error_context.add_error(
+                    error_type="filename_validation",
+                    error_message=f"{issue['message']}: {issue['filepath']}",
+                    filepath=issue['filepath'],
+                    task_id=task.task_id,
+                    phase="coding",
+                    context=issue_context
                 )
             
-            # Return error result with suggestions
+            # Return error result with detailed context for AI to resolve
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
                 task_id=task.task_id,
-                message=f"Filename validation failed: {len(filename_issues)} issue(s) detected",
-                data={'filename_issues': filename_issues}
+                message=f"Filename validation failed - AI needs to provide correct filenames",
+                data={
+                    'filename_issues': filename_issues,
+                    'requires_ai_resolution': True,
+                    'context': issue_context
+                }
             )
         
         handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
@@ -681,8 +691,11 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
             if not filepath:
                 continue
             
+            # Build context for validation (existing files in directory)
+            context = self._build_validation_context(filepath)
+            
             # Validate the filename
-            is_valid, validation_issues = self.filename_validator.validate(filepath)
+            is_valid, validation_issues = self.filename_validator.validate(filepath, context)
             
             # Only report CRITICAL issues (blocking)
             critical_issues = [i for i in validation_issues if i.level == IssueLevel.CRITICAL]
@@ -695,10 +708,91 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
                         'level': issue.level.value,
                         'message': issue.message,
                         'suggestion': issue.suggestion,
-                        'pattern': issue.pattern
+                        'pattern': issue.pattern,
+                        'existing_files': context.get('existing_files', [])
                     })
         
         return issues
+    
+    def _build_validation_context(self, filepath: str) -> Dict:
+        """
+        Build context for filename validation.
+        
+        Includes existing files in the target directory to help with
+        version number suggestions and pattern detection.
+        """
+        from pathlib import Path
+        
+        target_path = Path(filepath)
+        directory = target_path.parent
+        full_dir = self.project_dir / directory
+        
+        context = {
+            'directory': str(directory),
+            'existing_files': []
+        }
+        
+        if full_dir.exists() and full_dir.is_dir():
+            try:
+                context['existing_files'] = [
+                    f.name for f in full_dir.iterdir() 
+                    if f.is_file() and not f.name.startswith('.')
+                ]
+            except Exception as e:
+                self.logger.debug(f"  Could not list directory {directory}: {e}")
+        
+        return context
+    
+    def _build_filename_issue_context(self, issues: List[Dict], task: TaskState) -> str:
+        """
+        Build detailed context about filename issues for AI to resolve.
+        
+        This provides the AI with:
+        - What's wrong with the filename
+        - Existing files in the directory
+        - Suggestions for corrections
+        - Examples of correct filenames
+        """
+        context_parts = []
+        
+        context_parts.append("🚨 FILENAME VALIDATION FAILED\n\n")
+        context_parts.append("You attempted to create files with problematic filenames. ")
+        context_parts.append("Please provide corrected filenames and try again.\n\n")
+        
+        for i, issue in enumerate(issues, 1):
+            context_parts.append(f"## Issue {i}: {issue['filepath']}\n\n")
+            context_parts.append(f"**Problem**: {issue['message']}\n")
+            context_parts.append(f"**Tool**: {issue['tool']}\n")
+            context_parts.append(f"**Pattern Detected**: `{issue['pattern']}`\n\n")
+            
+            if issue.get('existing_files'):
+                context_parts.append(f"**Existing files in directory**:\n")
+                for f in issue['existing_files'][:10]:  # Limit to 10
+                    context_parts.append(f"  - {f}\n")
+                context_parts.append("\n")
+            
+            if issue['suggestion'] and not issue['suggestion'].startswith('NEEDS_AI_CONSULTATION'):
+                context_parts.append(f"**Suggested correction**: `{issue['suggestion']}`\n\n")
+            else:
+                context_parts.append("**Action required**: You must determine the correct filename.\n\n")
+        
+        context_parts.append("## How to Fix\n\n")
+        context_parts.append("For migration files:\n")
+        context_parts.append("- Use actual version numbers: `001_projects_table.py`, `002_users_table.py`\n")
+        context_parts.append("- Check existing files to determine next version number\n\n")
+        
+        context_parts.append("For timestamped files:\n")
+        context_parts.append("- Use actual timestamps: `backup_20240101_120000.sql`\n")
+        context_parts.append("- Format: YYYYMMDD_HHMMSS\n\n")
+        
+        context_parts.append("For general files:\n")
+        context_parts.append("- Use descriptive names: `user_authentication.py`\n")
+        context_parts.append("- Use underscores, not spaces: `my_file.py` not `my file.py`\n")
+        context_parts.append("- Avoid version suffixes: `config.py` not `config_v2.py`\n\n")
+        
+        context_parts.append("**IMPORTANT**: Replace ALL placeholder text with actual values before retrying.\n")
+        
+        return "".join(context_parts)
     
     def _format_status_for_write(self, task: TaskState, files_created: List[str],
                                  files_modified: List[str], complexity_warnings: List[str]) -> str:

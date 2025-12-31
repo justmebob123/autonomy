@@ -145,7 +145,13 @@ class FilenameValidator:
             # Suggest version number based on existing files
             existing_versions = self._get_existing_versions(context)
             next_version = max(existing_versions, default=0) + 1
-            return re.sub(r'<version>', f'{next_version:03d}', filename)
+            suggestion = re.sub(r'<version>', f'{next_version:03d}', filename)
+            
+            # Add helpful context
+            if existing_versions:
+                return f"{suggestion} (existing versions: {', '.join(f'{v:03d}' for v in sorted(existing_versions)[-3:])})"
+            else:
+                return f"{suggestion} (no existing versions, starting with 001)"
         
         # Check if it needs timestamp
         if '<timestamp>' in filename:
@@ -153,8 +159,12 @@ class FilenameValidator:
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             return filename.replace('<timestamp>', timestamp)
         
-        # Generic placeholder - needs AI consultation
-        return f"NEEDS_AI_CONSULTATION: {filename}"
+        # Check for other common placeholders
+        if '<name>' in filename or '<id>' in filename or '<type>' in filename:
+            return f"Replace placeholder with descriptive name (e.g., {filename.replace('<name>', 'user').replace('<id>', '001').replace('<type>', 'config')})"
+        
+        # Generic placeholder - provide guidance
+        return f"Replace all <...> placeholders with actual values. Example: {filename} → {filename.replace('<', '').replace('>', '')}"
     
     def _suggest_version_consolidation(self, filename: str, context: Optional[Dict]) -> str:
         """
