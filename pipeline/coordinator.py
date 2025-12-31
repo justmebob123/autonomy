@@ -1636,10 +1636,10 @@ class PhaseCoordinator:
         for phase_name in recent_phases:
             if phase_name == 'coding' and phase_name in state.phases:
                 phase_state = state.phases[phase_name]
-                # Count successful runs with files created
-                for run in phase_state.runs:
-                    if run.success and run.files_created:
-                        files_created += len(run.files_created)
+                # Count successful runs with files created from run_history
+                for run in phase_state.run_history:
+                    if run.get('success', False) and run.get('files_created'):
+                        files_created += len(run['files_created'])
         
         return files_created
     
