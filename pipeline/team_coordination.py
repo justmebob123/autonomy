@@ -58,11 +58,11 @@ class TeamCoordinationFacade:
             Specialist response or None
         """
         try:
-            return self.specialist_team.consult(
-                specialist_type=specialist_type,
-                issue=issue,
-                context=context
-            )
+            # Note: This needs to be updated to match SpecialistTeam API
+            # which requires thread and tools parameters
+            # For now, return None as this interface mismatch needs design review
+            self.logger.warning(f"consult_specialist interface mismatch - needs design review")
+            return None
         except Exception as e:
             self.logger.error(f"Specialist consultation failed: {e}")
             return None

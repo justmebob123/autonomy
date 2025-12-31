@@ -678,7 +678,7 @@ This document will be updated as the project evolves to reflect:
                     high_complexity_count += 1
                 
                 # Dead code detection
-                dead_code_result = self.dead_code_detector.detect(rel_path)
+                dead_code_result = self.dead_code_detector.analyze(rel_path)
                 if dead_code_result.unused_functions or dead_code_result.unused_classes:
                     dead_code_count += 1
                     
@@ -689,7 +689,7 @@ This document will be updated as the project evolves to reflect:
         # Check for integration gaps (project-wide)
         integration_issues = 0
         try:
-            gap_result = self.gap_finder.find_gaps()
+            gap_result = self.gap_finder.analyze()
             integration_issues = len(gap_result.unused_classes) + len(gap_result.missing_integrations)
         except Exception as e:
             self.logger.debug(f"  Integration gap analysis failed: {e}")

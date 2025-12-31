@@ -414,7 +414,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             
             # Call graph analysis (for understanding code flow)
             try:
-                call_graph_result = self.call_graph.generate(filepath)
+                call_graph_result = self.call_graph.analyze(filepath)
                 if call_graph_result.total_functions > 0:
                     analysis_parts.append(f"**Code Structure:**")
                     analysis_parts.append(f"- Total functions: {call_graph_result.total_functions}")
@@ -427,7 +427,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             
             # Integration gap analysis (for understanding missing connections)
             try:
-                gap_result = self.gap_finder.find_gaps()
+                gap_result = self.gap_finder.analyze()
                 if gap_result.unused_classes or gap_result.missing_integrations:
                     analysis_parts.append(f"**Integration Issues:**")
                     if gap_result.unused_classes:

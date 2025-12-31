@@ -270,6 +270,7 @@ class MethodCallVisitor(ast.NodeVisitor):
                 # AND exists in our class registry
                 if func_name and func_name[0].isupper() and func_name in self.validator.class_methods:
                     for target in node.targets:
+                        # Track simple variable assignments (e.g., x = MyClass())
                         if isinstance(target, ast.Name):
                             self.var_types[target.id] = func_name
                             # Track source file
@@ -280,6 +281,19 @@ class MethodCallVisitor(ast.NodeVisitor):
                                 # No import found - assume local definition (same file)
                                 rel_path = str(self.filepath.relative_to(self.project_root))
                                 self.var_type_sources[target.id] = rel_path.replace('.py', '')
+                        
+                        # Track instance variable assignments (e.g., self.x = MyClass())
+                        elif isinstance(target, ast.Attribute):
+                            if isinstance(target.value, ast.Name) and target.value.id == 'self':
+                                # Track self.attribute = MyClass()
+                                var_key = f"self.{target.attr}"
+                                self.var_types[var_key] = func_name
+                                # Track source file
+                                if func_name in self.imports:
+                                    self.var_type_sources[var_key] = self.imports[func_name]
+                                else:
+                                    rel_path = str(self.filepath.relative_to(self.project_root))
+                                    self.var_type_sources[var_key] = rel_path.replace('.py', '')
         
         self.generic_visit(node)
     
@@ -292,11 +306,22 @@ class MethodCallVisitor(ast.NodeVisitor):
     
     def _check_method_call(self, node: ast.Call):
         """Check if a method exists on a class (including parent classes)."""
-        if not isinstance(node.func.value, ast.Name):
-            return
-        
-        var_name = node.func.value.id
+        # Handle both simple variables (x.method()) and self attributes (self.x.method())
+        var_name = None
         method_name = node.func.attr
+        
+        if isinstance(node.func.value, ast.Name):
+            # Simple variable: x.method()
+            var_name = node.func.value.id
+        elif isinstance(node.func.value, ast.Attribute):
+            # Attribute access: self.x.method()
+            if isinstance(node.func.value.value, ast.Name) and node.func.value.value.id == 'self':
+                var_name = f"self.{node.func.value.attr}"
+            else:
+                # Other attribute access (e.g., obj.attr.method()) - skip for now
+                return
+        else:
+            return
         
         # Skip common safe patterns (dict/list/string methods)
         safe_methods = {

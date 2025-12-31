@@ -449,7 +449,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                     })
                 
                 # Dead code detection
-                dead_code_result = self.dead_code_detector.detect(filepath)
+                dead_code_result = self.dead_code_detector.analyze(filepath)
                 if dead_code_result.unused_functions or dead_code_result.unused_classes:
                     dead_code_files.append({
                         'file': filepath,
@@ -463,7 +463,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         
         # Check for integration gaps (project-wide)
         try:
-            gap_result = self.gap_finder.find_gaps()
+            gap_result = self.gap_finder.analyze()
             if gap_result.unused_classes or gap_result.missing_integrations:
                 integration_issues.append({
                     'unused_classes': len(gap_result.unused_classes),
@@ -708,7 +708,7 @@ Please address these architectural integration issues.
                             'recommendation': f"Refactor - estimated {func.effort_days} days"
                         })
                 # Dead code detection
-                dead_code_result = self.dead_code_detector.detect(filepath)
+                dead_code_result = self.dead_code_detector.analyze(filepath)
                 if dead_code_result.unused_functions:
                     for func_name, file, line in dead_code_result.unused_functions:
                         if file == filepath or filepath in file:
@@ -720,7 +720,7 @@ Please address these architectural integration issues.
                                 'recommendation': 'Remove or add usage'
                             })
                 # Integration gaps
-                gap_result = self.gap_finder.find_gaps(filepath)
+                gap_result = self.gap_finder.analyze(filepath)
                 if gap_result.unused_classes:
                     for class_name, file, line in gap_result.unused_classes:
                         if file == filepath or filepath in file:
