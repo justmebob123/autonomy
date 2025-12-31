@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Dict, List, Set, Tuple, Optional
 from collections import defaultdict
 
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 
 
 class AttributeAccessValidator(ast.NodeVisitor):

@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 import difflib
 import logging
 
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 
 
 @dataclass

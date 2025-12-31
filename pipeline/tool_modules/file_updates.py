@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional, List
 import logging
 
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 
 
 class FileUpdateTools:

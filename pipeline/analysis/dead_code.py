@@ -13,7 +13,7 @@ from typing import Dict, List, Set, Optional, Tuple
 from dataclasses import dataclass, field
 import logging
 
-from ..logging_setup import get_logger
+from pipeline.logging_setup import get_logger
 
 
 @dataclass
