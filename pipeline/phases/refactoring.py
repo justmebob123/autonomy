@@ -176,24 +176,31 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         # Call LLM with tools
         result = self.chat_with_history(
-            system_prompt=SYSTEM_PROMPTS["refactoring"],
-            user_prompt=prompt,
-            tools=tools,
-            state=state
+            user_message=prompt,
+            tools=tools
         )
         
-        if not result["success"]:
+        # Extract tool calls and content
+        tool_calls = result.get("tool_calls", [])
+        content = result.get("content", "")
+        
+        if not tool_calls:
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"Duplicate detection failed: {result.get('error', 'Unknown error')}"
+                message=f"Duplicate detection failed: No tool calls in response"
             )
+        
+        # Execute tool calls
+        from ..handlers import ToolCallHandler
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+        results = handler.process_tool_calls(tool_calls)
         
         # Update REFACTORING_WRITE.md with results
         self._write_refactoring_results(
             refactoring_type="duplicate_detection",
-            results=result.get("tool_results", []),
-            recommendations=result.get("response", "")
+            results=results,
+            recommendations=content
         )
         
         return PhaseResult(
@@ -224,24 +231,31 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         # Call LLM
         result = self.chat_with_history(
-            system_prompt=SYSTEM_PROMPTS["refactoring"],
-            user_prompt=prompt,
-            tools=tools,
-            state=state
+            user_message=prompt,
+            tools=tools
         )
         
-        if not result["success"]:
+        # Extract tool calls and content
+        tool_calls = result.get("tool_calls", [])
+        content = result.get("content", "")
+        
+        if not tool_calls:
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"Conflict resolution failed: {result.get('error', 'Unknown error')}"
+                message=f"Conflict resolution failed: No tool calls in response"
             )
         
-        # Update REFACTORING_WRITE.md
+        # Execute tool calls
+        from ..handlers import ToolCallHandler
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+        results = handler.process_tool_calls(tool_calls)
+        
+        # Update REFACTORING_WRITE.md with results
         self._write_refactoring_results(
             refactoring_type="conflict_resolution",
-            results=result.get("tool_results", []),
-            recommendations=result.get("response", "")
+            results=results,
+            recommendations=content
         )
         
         return PhaseResult(
@@ -270,24 +284,31 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         # Call LLM
         result = self.chat_with_history(
-            system_prompt=SYSTEM_PROMPTS["refactoring"],
-            user_prompt=prompt,
-            tools=tools,
-            state=state
+            user_message=prompt,
+            tools=tools
         )
         
-        if not result["success"]:
+        # Extract tool calls and content
+        tool_calls = result.get("tool_calls", [])
+        content = result.get("content", "")
+        
+        if not tool_calls:
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"Architecture consistency check failed: {result.get('error', 'Unknown error')}"
+                message=f"Architecture consistency check failed: No tool calls in response"
             )
         
-        # Update REFACTORING_WRITE.md
+        # Execute tool calls
+        from ..handlers import ToolCallHandler
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+        results = handler.process_tool_calls(tool_calls)
+        
+        # Update REFACTORING_WRITE.md with results
         self._write_refactoring_results(
             refactoring_type="architecture_consistency",
-            results=result.get("tool_results", []),
-            recommendations=result.get("response", "")
+            results=results,
+            recommendations=content
         )
         
         return PhaseResult(
@@ -318,24 +339,31 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         # Call LLM
         result = self.chat_with_history(
-            system_prompt=SYSTEM_PROMPTS["refactoring"],
-            user_prompt=prompt,
-            tools=tools,
-            state=state
+            user_message=prompt,
+            tools=tools
         )
         
-        if not result["success"]:
+        # Extract tool calls and content
+        tool_calls = result.get("tool_calls", [])
+        content = result.get("content", "")
+        
+        if not tool_calls:
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"Feature extraction failed: {result.get('error', 'Unknown error')}"
+                message=f"Feature extraction failed: No tool calls in response"
             )
         
-        # Update REFACTORING_WRITE.md
+        # Execute tool calls
+        from ..handlers import ToolCallHandler
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+        results = handler.process_tool_calls(tool_calls)
+        
+        # Update REFACTORING_WRITE.md with results
         self._write_refactoring_results(
             refactoring_type="feature_extraction",
-            results=result.get("tool_results", []),
-            recommendations=result.get("response", "")
+            results=results,
+            recommendations=content
         )
         
         return PhaseResult(
@@ -364,28 +392,35 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         # Call LLM
         result = self.chat_with_history(
-            system_prompt=SYSTEM_PROMPTS["refactoring"],
-            user_prompt=prompt,
-            tools=tools,
-            state=state
+            user_message=prompt,
+            tools=tools
         )
         
-        if not result["success"]:
+        # Extract tool calls and content
+        tool_calls = result.get("tool_calls", [])
+        content = result.get("content", "")
+        
+        if not tool_calls:
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
-                message=f"Comprehensive refactoring failed: {result.get('error', 'Unknown error')}"
+                message=f"Comprehensive refactoring failed: No tool calls in response"
             )
         
-        # Update REFACTORING_WRITE.md
+        # Execute tool calls
+        from ..handlers import ToolCallHandler
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+        results = handler.process_tool_calls(tool_calls)
+        
+        # Update REFACTORING_WRITE.md with results
         self._write_refactoring_results(
             refactoring_type="comprehensive",
-            results=result.get("tool_results", []),
-            recommendations=result.get("response", "")
+            results=results,
+            recommendations=content
         )
         
         # Determine next phase based on recommendations
-        next_phase = self._determine_next_phase(result.get("response", ""))
+        next_phase = self._determine_next_phase(content)
         
         return PhaseResult(
             success=True,
