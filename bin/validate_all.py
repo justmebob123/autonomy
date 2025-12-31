@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Comprehensive Validation Tool
+Comprehensive Code Validation V2
 
-Runs all validation tools on the project and generates a comprehensive report.
+Enhanced validators with proper type inference to eliminate false positives.
 
 Usage:
     python bin/validate_all.py [project_dir]
@@ -16,189 +16,195 @@ from datetime import datetime
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pipeline.analysis.function_call_validator import FunctionCallValidator
-from pipeline.analysis.method_existence_validator import MethodExistenceValidator
-from pipeline.analysis.dict_structure_validator import DictStructureValidator
-from pipeline.analysis.type_usage_validator import TypeUsageValidator
-
-
-def print_section(title):
-    """Print a section header."""
-    print("\n" + "=" * 80)
-    print(f"  {title}")
-    print("=" * 80)
-
-
-def run_validation(project_dir):
-    """Run all validation tools and collect results."""
-    results = {}
-    
-    # 1. Function Call Validation
-    print_section("1. FUNCTION CALL VALIDATION")
-    validator1 = FunctionCallValidator(project_dir)
-    results['function_calls'] = validator1.validate_all()
-    print(f"   ✓ Completed: {results['function_calls']['total_errors']} errors found")
-    
-    # 2. Method Existence Validation
-    print_section("2. METHOD EXISTENCE VALIDATION")
-    validator2 = MethodExistenceValidator(project_dir)
-    results['method_existence'] = validator2.validate_all()
-    print(f"   ✓ Completed: {results['method_existence']['total_errors']} errors found")
-    
-    # 3. Dictionary Structure Validation
-    print_section("3. DICTIONARY STRUCTURE VALIDATION")
-    validator3 = DictStructureValidator(project_dir)
-    results['dict_structure'] = validator3.validate_all()
-    print(f"   ✓ Completed: {results['dict_structure']['total_errors']} errors found")
-    
-    # 4. Type Usage Validation
-    print_section("4. TYPE USAGE VALIDATION")
-    validator4 = TypeUsageValidator(project_dir)
-    results['type_usage'] = validator4.validate_all()
-    print(f"   ✓ Completed: {results['type_usage']['total_errors']} errors found")
-    
-    return results
-
-
-def print_summary(results):
-    """Print comprehensive summary."""
-    print_section("COMPREHENSIVE SUMMARY")
-    
-    total_errors = sum(r['total_errors'] for r in results.values())
-    
-    print(f"\n📊 Overall Statistics:")
-    print(f"   Total errors across all tools: {total_errors}")
-    print(f"\n   Breakdown by tool:")
-    
-    for tool_name, result in results.items():
-        errors = result['total_errors']
-        status = "✅" if errors == 0 else "❌"
-        print(f"      {status} {tool_name.replace('_', ' ').title()}: {errors} errors")
-    
-    # Detailed breakdown
-    if total_errors > 0:
-        print(f"\n❌ DETAILED BREAKDOWN:")
-        
-        # Function calls
-        if results['function_calls']['total_errors'] > 0:
-            print(f"\n   Function Call Errors:")
-            by_type = results['function_calls'].get('by_type', {})
-            for error_type, count in by_type.items():
-                print(f"      • {error_type}: {count}")
-        
-        # Method existence
-        if results['method_existence']['total_errors'] > 0:
-            print(f"\n   Method Existence Errors:")
-            print(f"      • Missing methods: {results['method_existence']['total_errors']}")
-        
-        # Dict structure
-        if results['dict_structure']['total_errors'] > 0:
-            print(f"\n   Dictionary Structure Errors:")
-            by_type = results['dict_structure'].get('by_type', {})
-            for error_type, count in by_type.items():
-                print(f"      • {error_type}: {count}")
-        
-        # Type usage
-        if results['type_usage']['total_errors'] > 0:
-            print(f"\n   Type Usage Errors:")
-            print(f"      • Type mismatches: {results['type_usage']['total_errors']}")
-    else:
-        print(f"\n✅ No errors found! Code quality is excellent!")
-    
-    return total_errors
-
-
-def print_detailed_errors(results):
-    """Print detailed error listings."""
-    total_errors = sum(r['total_errors'] for r in results.values())
-    
-    if total_errors == 0:
-        return
-    
-    print_section("DETAILED ERROR LISTINGS")
-    
-    # Function call errors
-    if results['function_calls']['total_errors'] > 0:
-        print(f"\n🔴 Function Call Errors ({results['function_calls']['total_errors']}):")
-        for i, err in enumerate(results['function_calls']['errors'][:20], 1):
-            print(f"\n   {i}. {err['file']}:{err['line']}")
-            print(f"      Function: {err['function']}")
-            print(f"      Type: {err['error_type']}")
-            print(f"      Message: {err['message']}")
-        
-        if len(results['function_calls']['errors']) > 20:
-            print(f"\n   ... and {len(results['function_calls']['errors']) - 20} more")
-    
-    # Method existence errors
-    if results['method_existence']['total_errors'] > 0:
-        print(f"\n🔴 Method Existence Errors ({results['method_existence']['total_errors']}):")
-        for i, err in enumerate(results['method_existence']['errors'][:20], 1):
-            print(f"\n   {i}. {err['file']}:{err['line']}")
-            print(f"      Class: {err['class_name']}")
-            print(f"      Method: {err['method_name']}")
-            print(f"      Message: {err['message']}")
-        
-        if len(results['method_existence']['errors']) > 20:
-            print(f"\n   ... and {len(results['method_existence']['errors']) - 20} more")
-    
-    # Dictionary structure errors
-    if results['dict_structure']['total_errors'] > 0:
-        print(f"\n🔴 Dictionary Structure Errors ({results['dict_structure']['total_errors']}):")
-        for i, err in enumerate(results['dict_structure']['errors'][:20], 1):
-            print(f"\n   {i}. {err['file']}:{err['line']}")
-            print(f"      Variable: {err['variable']}")
-            print(f"      Key: {err['key_path']}")
-            print(f"      Message: {err['message']}")
-        
-        if len(results['dict_structure']['errors']) > 20:
-            print(f"\n   ... and {len(results['dict_structure']['errors']) - 20} more")
-    
-    # Type usage errors
-    if results['type_usage']['total_errors'] > 0:
-        print(f"\n🔴 Type Usage Errors ({results['type_usage']['total_errors']}):")
-        for i, err in enumerate(results['type_usage']['errors'][:20], 1):
-            print(f"\n   {i}. {err['file']}:{err['line']}")
-            print(f"      Variable: {err['variable']}")
-            print(f"      Type: {err['actual_type']}")
-            print(f"      Operation: {err['attempted_operation']}")
-            print(f"      Message: {err['message']}")
-        
-        if len(results['type_usage']['errors']) > 20:
-            print(f"\n   ... and {len(results['type_usage']['errors']) - 20} more")
+from pipeline.analysis.type_usage_validator_v2 import TypeUsageValidatorV2
+from pipeline.analysis.method_existence_validator_v2 import MethodExistenceValidatorV2
+from pipeline.analysis.function_call_validator_v2 import FunctionCallValidatorV2
 
 
 def main():
-    # Get project directory from args or use current directory
+    """Run all validators."""
     if len(sys.argv) > 1:
         project_dir = sys.argv[1]
     else:
-        project_dir = os.getcwd()
+        project_dir = "."
     
     print("=" * 80)
-    print("  COMPREHENSIVE CODE VALIDATION")
+    print("  COMPREHENSIVE CODE VALIDATION V2 (Enhanced)")
     print("=" * 80)
-    print(f"\n📁 Project: {project_dir}")
+    print()
+    print(f"📁 Project: {project_dir}")
     print(f"⏰ Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print()
     
-    # Run all validations
-    results = run_validation(project_dir)
+    all_results = {}
+    total_errors = 0
     
-    # Print summary
-    total_errors = print_summary(results)
+    # 1. Type Usage Validation
+    print("=" * 80)
+    print("  1. TYPE USAGE VALIDATION (Enhanced)")
+    print("=" * 80)
+    validator1 = TypeUsageValidatorV2(project_dir)
+    result1 = validator1.validate_all()
+    all_results['type_usage'] = result1
+    total_errors += result1['total_errors']
+    print(f"   ✓ Completed: {result1['total_errors']} errors found")
+    print()
     
-    # Print detailed errors
-    print_detailed_errors(results)
+    # 2. Method Existence Validation
+    print("=" * 80)
+    print("  2. METHOD EXISTENCE VALIDATION (Enhanced)")
+    print("=" * 80)
+    validator2 = MethodExistenceValidatorV2(project_dir)
+    result2 = validator2.validate_all()
+    all_results['method_existence'] = result2
+    total_errors += result2['total_errors']
+    print(f"   ✓ Completed: {result2['total_errors']} errors found")
+    print()
     
-    # Final message
-    print("\n" + "=" * 80)
-    print(f"⏰ Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    # 3. Function Call Validation
+    print("=" * 80)
+    print("  3. FUNCTION CALL VALIDATION (Enhanced)")
+    print("=" * 80)
+    validator3 = FunctionCallValidatorV2(project_dir)
+    result3 = validator3.validate_all()
+    all_results['function_calls'] = result3
+    total_errors += result3['total_errors']
+    print(f"   ✓ Completed: {result3['total_errors']} errors found")
+    print()
     
-    if total_errors == 0:
-        print("✅ VALIDATION PASSED - No errors found!")
+    # Summary
+    print("=" * 80)
+    print("  COMPREHENSIVE SUMMARY")
+    print("=" * 80)
+    print()
+    print("📊 Overall Statistics:")
+    print(f"   Total errors across all tools: {total_errors}")
+    print()
+    print("   Breakdown by tool:")
+    if result1['total_errors'] > 0:
+        print(f"      ❌ Type Usage: {result1['total_errors']} errors")
     else:
-        print(f"❌ VALIDATION FAILED - {total_errors} errors found")
+        print(f"      ✅ Type Usage: 0 errors")
     
-    print("=" * 80 + "\n")
+    if result2['total_errors'] > 0:
+        print(f"      ❌ Method Existence: {result2['total_errors']} errors")
+    else:
+        print(f"      ✅ Method Existence: 0 errors")
+    
+    if result3['total_errors'] > 0:
+        print(f"      ❌ Function Calls: {result3['total_errors']} errors")
+    else:
+        print(f"      ✅ Function Calls: 0 errors")
+    print()
+    
+    if total_errors > 0:
+        print("❌ DETAILED BREAKDOWN:")
+        print()
+        
+        # Type Usage Errors
+        if result1['total_errors'] > 0:
+            print(f"   Type Usage Errors:")
+            for severity, count in result1['by_severity'].items():
+                if count > 0:
+                    print(f"      • {severity}: {count}")
+            print()
+        
+        # Method Existence Errors
+        if result2['total_errors'] > 0:
+            print(f"   Method Existence Errors:")
+            for severity, count in result2['by_severity'].items():
+                if count > 0:
+                    print(f"      • {severity}: {count}")
+            print()
+        
+        # Function Call Errors
+        if result3['total_errors'] > 0:
+            print(f"   Function Call Errors:")
+            for error_type, count in result3['by_type'].items():
+                print(f"      • {error_type}: {count}")
+            print()
+    
+    # Detailed error listings
+    if total_errors > 0:
+        print("=" * 80)
+        print("  DETAILED ERROR LISTINGS")
+        print("=" * 80)
+        print()
+        
+        # Type Usage Errors
+        if result1['total_errors'] > 0:
+            print(f"🔴 Type Usage Errors ({result1['total_errors']}):")
+            print()
+            for i, err in enumerate(result1['errors'][:20], 1):  # Limit to 20
+                print(f"   {i}. {err['file']}:{err['line']}")
+                print(f"      Variable: {err['variable']}")
+                print(f"      Type: {err['actual_type']}")
+                print(f"      Operation: {err['attempted_operation']}")
+                print()
+            if result1['total_errors'] > 20:
+                print(f"   ... and {result1['total_errors'] - 20} more")
+                print()
+        
+        # Method Existence Errors
+        if result2['total_errors'] > 0:
+            print(f"🔴 Method Existence Errors ({result2['total_errors']}):")
+            print()
+            for i, err in enumerate(result2['errors'][:20], 1):  # Limit to 20
+                print(f"   {i}. {err['file']}:{err['line']}")
+                print(f"      Class: {err['class_name']}")
+                print(f"      Method: {err['method_name']}")
+                print()
+            if result2['total_errors'] > 20:
+                print(f"   ... and {result2['total_errors'] - 20} more")
+                print()
+        
+        # Function Call Errors
+        if result3['total_errors'] > 0:
+            print(f"🔴 Function Call Errors ({result3['total_errors']}):")
+            print()
+            for i, err in enumerate(result3['errors'][:20], 1):  # Limit to 20
+                print(f"   {i}. {err['file']}:{err['line']}")
+                print(f"      Function: {err['function_name']}")
+                print(f"      Type: {err['error_type']}")
+                print(f"      Message: {err['message']}")
+                print()
+            if result3['total_errors'] > 20:
+                print(f"   ... and {result3['total_errors'] - 20} more")
+                print()
+    
+    print("=" * 80)
+    
+    # Save detailed report
+    report_file = Path(project_dir) / "VALIDATION_REPORT_V2.txt"
+    with open(report_file, 'w') as f:
+        f.write("=" * 80 + "\n")
+        f.write("  COMPREHENSIVE CODE VALIDATION V2 (Enhanced)\n")
+        f.write("=" * 80 + "\n\n")
+        f.write(f"Project: {project_dir}\n")
+        f.write(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        f.write(f"Total errors: {total_errors}\n\n")
+        
+        # Write all errors
+        if result1['total_errors'] > 0:
+            f.write(f"Type Usage Errors ({result1['total_errors']}):\n")
+            for err in result1['errors']:
+                f.write(f"  {err['file']}:{err['line']} - {err['message']}\n")
+            f.write("\n")
+        
+        if result2['total_errors'] > 0:
+            f.write(f"Method Existence Errors ({result2['total_errors']}):\n")
+            for err in result2['errors']:
+                f.write(f"  {err['file']}:{err['line']} - {err['message']}\n")
+            f.write("\n")
+        
+        if result3['total_errors'] > 0:
+            f.write(f"Function Call Errors ({result3['total_errors']}):\n")
+            for err in result3['errors']:
+                f.write(f"  {err['file']}:{err['line']} - {err['message']}\n")
+            f.write("\n")
+    
+    print(f"📄 Detailed report saved to: {report_file}")
+    print()
     
     return 0 if total_errors == 0 else 1
 

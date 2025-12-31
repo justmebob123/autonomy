@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Manual Type Usage Validator
+Manual Type Usage Validator V2
 
-Validates that objects are used according to their types.
-Run this manually to check for type usage errors.
+Enhanced validator with proper type inference to eliminate false positives.
 
 Usage:
     python bin/validate_type_usage.py [project_dir]
@@ -16,55 +15,53 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pipeline.analysis.type_usage_validator import TypeUsageValidator
+from pipeline.analysis.type_usage_validator_v2 import TypeUsageValidatorV2
 
 
 def main():
-    # Get project directory from args or use current directory
+    """Run type usage validation."""
     if len(sys.argv) > 1:
         project_dir = sys.argv[1]
     else:
-        project_dir = os.getcwd()
+        project_dir = "."
     
     print(f"🔍 Validating type usage in: {project_dir}")
     print("=" * 80)
+    print()
     
-    # Run validation
-    validator = TypeUsageValidator(project_dir)
+    validator = TypeUsageValidatorV2(project_dir)
     result = validator.validate_all()
     
-    # Display results
-    errors = result.get('errors', [])
-    total = result.get('total_errors', 0)
-    dataclasses = result.get('dataclasses_found', 0)
-    classes = result.get('classes_found', 0)
-    by_severity = result.get('by_severity', {})
-    
-    print(f"\n📊 SUMMARY")
-    print(f"   Dataclasses found: {dataclasses}")
-    print(f"   Classes found: {classes}")
-    print(f"   Total errors: {total}")
+    print("📊 SUMMARY")
+    print(f"   Dataclasses found: {result['dataclasses_found']}")
+    print(f"   Classes found: {result['classes_found']}")
+    print(f"   Total errors: {result['total_errors']}")
     print(f"   By severity:")
-    for severity, count in by_severity.items():
+    for severity, count in result['by_severity'].items():
         if count > 0:
             print(f"      {severity}: {count}")
+    print()
     
-    if errors:
-        print(f"\n❌ ERRORS FOUND ({len(errors)}):")
+    if result['total_errors'] > 0:
+        print("❌ ERRORS FOUND ({})".format(result['total_errors']))
         print("=" * 80)
+        print()
         
-        for i, err in enumerate(errors, 1):
-            print(f"\n{i}. {err['file']}:{err['line']}")
-            print(f"   Variable: {err['variable']}")
-            print(f"   Actual type: {err['actual_type']}")
-            print(f"   Attempted operation: {err['attempted_operation']}")
-            print(f"   Severity: {err['severity']}")
-            print(f"   Message: {err['message']}")
+        for i, error in enumerate(result['errors'], 1):
+            print(f"{i}. {error['file']}:{error['line']}")
+            print(f"   Variable: {error['variable']}")
+            print(f"   Actual type: {error['actual_type']}")
+            print(f"   Attempted operation: {error['attempted_operation']}")
+            print(f"   Severity: {error['severity']}")
+            print(f"   Message: {error['message']}")
+            print()
     else:
-        print(f"\n✅ No type usage errors found!")
+        print("✅ NO ERRORS FOUND")
+        print()
     
-    print("\n" + "=" * 80)
-    return 0 if total == 0 else 1
+    print("=" * 80)
+    
+    return 0 if result['total_errors'] == 0 else 1
 
 
 if __name__ == "__main__":

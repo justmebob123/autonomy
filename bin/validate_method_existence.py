@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Manual Method Existence Validator
+Manual Method Existence Validator V2
 
-Validates that methods called on objects actually exist on their classes.
-Run this manually to check for missing method errors.
+Enhanced validator that checks parent and base classes.
 
 Usage:
     python bin/validate_method_existence.py [project_dir]
@@ -16,52 +15,51 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from pipeline.analysis.method_existence_validator import MethodExistenceValidator
+from pipeline.analysis.method_existence_validator_v2 import MethodExistenceValidatorV2
 
 
 def main():
-    # Get project directory from args or use current directory
+    """Run method existence validation."""
     if len(sys.argv) > 1:
         project_dir = sys.argv[1]
     else:
-        project_dir = os.getcwd()
+        project_dir = "."
     
     print(f"🔍 Validating method existence in: {project_dir}")
     print("=" * 80)
+    print()
     
-    # Run validation
-    validator = MethodExistenceValidator(project_dir)
+    validator = MethodExistenceValidatorV2(project_dir)
     result = validator.validate_all()
     
-    # Display results
-    errors = result.get('errors', [])
-    total = result.get('total_errors', 0)
-    classes_analyzed = result.get('classes_analyzed', 0)
-    by_severity = result.get('by_severity', {})
-    
-    print(f"\n📊 SUMMARY")
-    print(f"   Classes analyzed: {classes_analyzed}")
-    print(f"   Total errors: {total}")
+    print("📊 SUMMARY")
+    print(f"   Classes analyzed: {result['classes_analyzed']}")
+    print(f"   Total errors: {result['total_errors']}")
     print(f"   By severity:")
-    for severity, count in by_severity.items():
+    for severity, count in result['by_severity'].items():
         if count > 0:
             print(f"      {severity}: {count}")
+    print()
     
-    if errors:
-        print(f"\n❌ ERRORS FOUND ({len(errors)}):")
+    if result['total_errors'] > 0:
+        print("❌ ERRORS FOUND ({})".format(result['total_errors']))
         print("=" * 80)
+        print()
         
-        for i, err in enumerate(errors, 1):
-            print(f"\n{i}. {err['file']}:{err['line']}")
-            print(f"   Class: {err['class_name']}")
-            print(f"   Method: {err['method_name']}")
-            print(f"   Severity: {err['severity']}")
-            print(f"   Message: {err['message']}")
+        for i, error in enumerate(result['errors'], 1):
+            print(f"{i}. {error['file']}:{error['line']}")
+            print(f"   Class: {error['class_name']}")
+            print(f"   Method: {error['method_name']}")
+            print(f"   Severity: {error['severity']}")
+            print(f"   Message: {error['message']}")
+            print()
     else:
-        print(f"\n✅ No method existence errors found!")
+        print("✅ NO ERRORS FOUND")
+        print()
     
-    print("\n" + "=" * 80)
-    return 0 if total == 0 else 1
+    print("=" * 80)
+    
+    return 0 if result['total_errors'] == 0 else 1
 
 
 if __name__ == "__main__":
