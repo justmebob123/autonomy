@@ -1194,10 +1194,6 @@ Use the refactoring tools NOW to fix this issue."""
         # 5.2: Anti-pattern Detection (skip for now - requires specific file targets)
         self.logger.info(f"     ⚠️  Anti-pattern detection: Skipped (requires specific file targets)")
         
-        if antipattern_result.get('success'):
-            patterns = len(antipattern_result.get('result', {}).get('antipatterns', []))
-            self.logger.info(f"     ✓ Anti-pattern detection: {patterns} anti-patterns found")
-        
         # ============================================================
         # PHASE 6: VALIDATION CHECKS
         # ============================================================
