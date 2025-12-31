@@ -4,7 +4,7 @@ When the system needs "user" input, this creates an AI specialist to provide it.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 
 class UserProxyAgent:

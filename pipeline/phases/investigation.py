@@ -6,7 +6,7 @@ Gathers comprehensive context and generates diagnostic reports.
 """
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from pathlib import Path
 
 from .base import BasePhase, PhaseResult

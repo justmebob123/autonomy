@@ -9,7 +9,7 @@ Contains all tool definitions used by pipeline phases:
 - Documentation tools: analyze_documentation_needs, update_readme_section, add_readme_section
 """
 
-from typing import List, Dict
+from typing import List, Dict, Optional
 from .system_analyzer_tools import SYSTEM_ANALYZER_TOOLS
 from .tool_modules.tool_definitions import TOOLS_ANALYSIS, TOOLS_FILE_UPDATES
 from .tool_modules.refactoring_tools import TOOLS_REFACTORING

@@ -8,7 +8,7 @@ broken attributes, methods, or variables across the entire codebase.
 import subprocess
 import re
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 from collections import defaultdict
 
 

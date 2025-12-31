@@ -1,14 +1,10 @@
 """
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import Dict, List, Optional
-
 Debugging Phase
 
 Fixes code issues identified by QA.
 """
 from __future__ import annotations
+from typing import Dict, List, Optional
 
 
 
