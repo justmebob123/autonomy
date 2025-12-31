@@ -445,12 +445,13 @@ Analyze this issue deeply and determine the best course of action. You have THRE
 - Reference MASTER_PLAN objectives in your analysis
 
 🎯 TAKE ACTION NOW - Choose your approach and use the appropriate tools!
+"""
     
     def _auto_create_tasks_from_analysis(self, state: PipelineState, analysis_result: PhaseResult) -> int:
         """
         Auto-create refactoring tasks from analysis results.
         
-        When the LLM detects issues but doesn't create tasks, we auto-create them.
+        When the LLM detects issues but does not create tasks, we auto-create them.
         This prevents infinite loops where issues are detected but never fixed.
         
         Args:
@@ -1433,7 +1434,7 @@ Analyze this issue deeply and determine the best course of action. You have THRE
 Please try a different approach:
 1. If detect_duplicate_implementations failed with import errors, try analyze_complexity or detect_dead_code instead
 2. If you need to analyze files, try extract_file_features on specific files
-3. Focus on tools that don't require complex imports
+3. Focus on tools that do not require complex imports
 4. Consider using simpler analysis tools first
 
 Available tools that are more reliable:
