@@ -128,6 +128,83 @@ TOOLS_REFACTORING = [
     {
         "type": "function",
         "function": {
+            "name": "create_issue_report",
+            "description": "Create a comprehensive issue report for a complex refactoring task that needs developer review. Use this when a task is too complex for autonomous fixing.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_id": {
+                        "type": "string",
+                        "description": "ID of the refactoring task"
+                    },
+                    "severity": {
+                        "type": "string",
+                        "enum": ["critical", "high", "medium", "low"],
+                        "description": "Severity level of the issue"
+                    },
+                    "impact_analysis": {
+                        "type": "string",
+                        "description": "Analysis of what breaks or degrades if not fixed"
+                    },
+                    "recommended_approach": {
+                        "type": "string",
+                        "description": "Recommended approach to fix the issue"
+                    },
+                    "code_examples": {
+                        "type": "string",
+                        "description": "Relevant code snippets showing the issue"
+                    },
+                    "estimated_effort": {
+                        "type": "string",
+                        "description": "Estimated effort (e.g., '2 hours', '1 day')"
+                    },
+                    "alternatives": {
+                        "type": "string",
+                        "description": "Alternative approaches to consider"
+                    }
+                },
+                "required": ["task_id", "severity", "impact_analysis", "recommended_approach"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "request_developer_review",
+            "description": "Request developer input on a blocked refactoring task. Use this when you need human guidance to proceed.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "task_id": {
+                        "type": "string",
+                        "description": "ID of the refactoring task"
+                    },
+                    "question": {
+                        "type": "string",
+                        "description": "Specific question for the developer"
+                    },
+                    "options": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of possible approaches or options"
+                    },
+                    "context": {
+                        "type": "string",
+                        "description": "Additional context to help developer understand the issue"
+                    },
+                    "urgency": {
+                        "type": "string",
+                        "enum": ["critical", "high", "medium", "low"],
+                        "description": "How urgent is the review needed"
+                    }
+                },
+                "required": ["task_id", "question", "options"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "detect_duplicate_implementations",
             "description": "Find files with duplicate or similar implementations. Returns duplicate sets with similarity scores, common features, and merge recommendations.",
             "parameters": {

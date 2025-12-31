@@ -306,12 +306,39 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         else:
             # All tools failed
             errors = [r.get("error", "Unknown") for r in results if not r.get("success")]
-            task.fail("; ".join(errors))
-            return PhaseResult(
+            error_msg = "; ".join(errors)
+            
+            # Check if task is too complex
+            task.fail(error_msg)
+            
+            result = PhaseResult(
                 success=False,
                 phase=self.phase_name,
                 message=f"Task {task.task_id} failed: {errors[0]}"
             )
+            
+            if self._detect_complexity(task, result):
+                self.logger.warning(f"  ⚠️  Task {task.task_id} is too complex, creating issue report...")
+                
+                # Create issue report via tool call
+                # This will be picked up by the handler
+                from ..handlers import ToolCallHandler
+                handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+                
+                report_call = [{
+                    "name": "create_issue_report",
+                    "arguments": {
+                        "task_id": task.task_id,
+                        "severity": task.priority.value,
+                        "impact_analysis": f"Task failed {task.attempts} times. Errors: {error_msg}",
+                        "recommended_approach": "Manual review and fixing required",
+                        "estimated_effort": "Unknown - requires developer assessment"
+                    }
+                }]
+                
+                handler.process_tool_calls(report_call)
+            
+            return result
     
     def _build_task_context(self, task: Any) -> str:
         """Build context for a specific task"""
@@ -370,12 +397,137 @@ Use the refactoring tools NOW to fix this issue."""
             progress = state.refactoring_manager.get_progress()
             self.logger.info(f"  📊 Progress: {progress['completion_percentage']:.1f}% complete")
             self.logger.info(f"     Completed: {progress['completed']}, Failed: {progress['failed']}, Blocked: {progress['blocked']}")
+            
+            # Check for blocked tasks
+            blocked = progress.get('blocked', 0)
+            if blocked > 0:
+                self.logger.warning(f"  ⚠️  {blocked} tasks blocked, generating report...")
+                self._generate_refactoring_report(state)
+                return PhaseResult(
+                    success=True,
+                    phase=self.phase_name,
+                    message=f"Refactoring paused: {blocked} tasks need developer review",
+                    next_phase="coding"  # Pause refactoring, return to coding
+                )
         
         # Re-analyze to find new issues
         self.logger.info(f"  🔍 Re-analyzing codebase for new issues...")
         
         # Run analysis again
         return self._analyze_and_create_tasks(state)
+    
+    def _generate_refactoring_report(self, state: PipelineState) -> None:
+        """
+        Generate comprehensive REFACTORING_REPORT.md.
+        
+        Includes all tasks, issues, and recommendations.
+        """
+        if not state.refactoring_manager:
+            return
+        
+        from pipeline.state.refactoring_task import RefactoringPriority, TaskStatus
+        
+        report_lines = []
+        
+        # Header
+        report_lines.append("# Refactoring Report\n")
+        report_lines.append(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        
+        # Executive Summary
+        progress = state.refactoring_manager.get_progress()
+        report_lines.append("## Executive Summary\n\n")
+        report_lines.append(f"- **Total Tasks**: {progress['total']}\n")
+        report_lines.append(f"- **Completed**: {progress['completed']} ({progress['completion_percentage']:.1f}%)\n")
+        report_lines.append(f"- **In Progress**: {progress['in_progress']}\n")
+        report_lines.append(f"- **Pending**: {progress['pending']}\n")
+        report_lines.append(f"- **Failed**: {progress['failed']}\n")
+        report_lines.append(f"- **Blocked**: {progress['blocked']}\n\n")
+        
+        # Critical Issues
+        critical_tasks = state.refactoring_manager.get_tasks_by_priority(RefactoringPriority.CRITICAL)
+        if critical_tasks:
+            report_lines.append("## 🔴 Critical Issues\n\n")
+            for task in critical_tasks:
+                if task.status != TaskStatus.COMPLETED:
+                    report_lines.append(f"### {task.task_id}: {task.title}\n\n")
+                    report_lines.append(f"- **Type**: {task.issue_type.value}\n")
+                    report_lines.append(f"- **Status**: {task.status.value}\n")
+                    report_lines.append(f"- **Files**: {', '.join(task.target_files)}\n")
+                    report_lines.append(f"- **Description**: {task.description}\n\n")
+                    if task.error_message:
+                        report_lines.append(f"- **Error**: {task.error_message}\n\n")
+        
+        # High Priority Issues
+        high_tasks = state.refactoring_manager.get_tasks_by_priority(RefactoringPriority.HIGH)
+        if high_tasks:
+            report_lines.append("## 🟠 High Priority Issues\n\n")
+            for task in high_tasks:
+                if task.status != TaskStatus.COMPLETED:
+                    report_lines.append(f"### {task.task_id}: {task.title}\n\n")
+                    report_lines.append(f"- **Type**: {task.issue_type.value}\n")
+                    report_lines.append(f"- **Status**: {task.status.value}\n")
+                    report_lines.append(f"- **Files**: {', '.join(task.target_files)}\n\n")
+        
+        # Blocked Tasks (Need Developer Review)
+        blocked_tasks = state.refactoring_manager.get_blocked_tasks()
+        if blocked_tasks:
+            report_lines.append("## 🚫 Blocked Tasks (Developer Review Needed)\n\n")
+            for task in blocked_tasks:
+                report_lines.append(f"### {task.task_id}: {task.title}\n\n")
+                report_lines.append(f"- **Type**: {task.issue_type.value}\n")
+                report_lines.append(f"- **Priority**: {task.priority.value}\n")
+                report_lines.append(f"- **Files**: {', '.join(task.target_files)}\n")
+                report_lines.append(f"- **Reason**: {task.error_message}\n")
+                report_lines.append(f"- **Description**: {task.description}\n\n")
+        
+        # Completed Tasks
+        completed_tasks = state.refactoring_manager.get_tasks_by_status(TaskStatus.COMPLETED)
+        if completed_tasks:
+            report_lines.append("## ✅ Completed Tasks\n\n")
+            for task in completed_tasks[:10]:  # Show first 10
+                report_lines.append(f"- **{task.task_id}**: {task.title} ({task.issue_type.value})\n")
+            if len(completed_tasks) > 10:
+                report_lines.append(f"\n... and {len(completed_tasks) - 10} more\n")
+            report_lines.append("\n")
+        
+        # Write report
+        report_path = self.project_dir / "REFACTORING_REPORT.md"
+        with open(report_path, 'w') as f:
+            f.write("".join(report_lines))
+        
+        self.logger.info(f"  📝 Generated REFACTORING_REPORT.md ({len(report_lines)} lines)")
+    
+    def _detect_complexity(self, task: Any, result: PhaseResult) -> bool:
+        """
+        Detect if a task is too complex for autonomous fixing.
+        
+        Indicators:
+        - Task failed 2+ times
+        - Tools returned errors repeatedly
+        - LLM response contains "too complex" or "needs review"
+        
+        Returns:
+            True if task is too complex
+        """
+        # Check attempts
+        if task.attempts >= 2:
+            return True
+        
+        # Check for complexity indicators in result
+        if result.message:
+            complexity_keywords = [
+                "too complex",
+                "needs review",
+                "requires manual",
+                "cannot fix",
+                "unable to",
+                "developer input"
+            ]
+            message_lower = result.message.lower()
+            if any(keyword in message_lower for keyword in complexity_keywords):
+                return True
+        
+        return False
     
     # =============================================================================
     # Legacy Methods (Backward Compatibility)

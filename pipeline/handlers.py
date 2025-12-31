@@ -7,6 +7,7 @@ Executes tool calls and manages side effects (file creation, etc.)
 import json
 from typing import Dict, List, Callable
 from pathlib import Path
+from datetime import datetime
 
 from .logging_setup import get_logger
 from .utils import validate_python_syntax
@@ -167,6 +168,8 @@ class ToolCallHandler:
             "update_refactoring_task": self._handle_update_refactoring_task,
             "list_refactoring_tasks": self._handle_list_refactoring_tasks,
             "get_refactoring_progress": self._handle_get_refactoring_progress,
+            "create_issue_report": self._handle_create_issue_report,
+            "request_developer_review": self._handle_request_developer_review,
             "detect_duplicate_implementations": self._handle_detect_duplicate_implementations,
             "compare_file_implementations": self._handle_compare_file_implementations,
             "extract_file_features": self._handle_extract_file_features,
@@ -3166,6 +3169,127 @@ class ToolCallHandler:
             self.logger.error(f"Failed to get refactoring progress: {e}")
             return {
                 "tool": "get_refactoring_progress",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_create_issue_report(self, args: Dict) -> Dict:
+        """Handle create_issue_report tool."""
+        try:
+            if not hasattr(self, '_refactoring_manager'):
+                return {
+                    "tool": "create_issue_report",
+                    "success": False,
+                    "error": "No refactoring manager exists"
+                }
+            
+            task_id = args['task_id']
+            task = self._refactoring_manager.get_task(task_id)
+            
+            if not task:
+                return {
+                    "tool": "create_issue_report",
+                    "success": False,
+                    "error": f"Task {task_id} not found"
+                }
+            
+            # Create issue report
+            report = {
+                "task_id": task_id,
+                "task_title": task.title,
+                "issue_type": task.issue_type.value,
+                "severity": args['severity'],
+                "impact_analysis": args['impact_analysis'],
+                "recommended_approach": args['recommended_approach'],
+                "code_examples": args.get('code_examples', ''),
+                "estimated_effort": args.get('estimated_effort', 'Unknown'),
+                "alternatives": args.get('alternatives', ''),
+                "target_files": task.target_files,
+                "created_at": datetime.now().isoformat()
+            }
+            
+            # Store report in task
+            if not hasattr(self, '_issue_reports'):
+                self._issue_reports = []
+            self._issue_reports.append(report)
+            
+            # Mark task as needing developer review
+            from pipeline.state.refactoring_task import RefactoringApproach
+            task.fix_approach = RefactoringApproach.DEVELOPER_REVIEW
+            task.needs_review(f"Issue report created: {args['severity']} severity")
+            
+            self.logger.info(f"  📝 Created issue report for task {task_id}")
+            self.logger.info(f"     Severity: {args['severity']}, Effort: {args.get('estimated_effort', 'Unknown')}")
+            
+            return {
+                "tool": "create_issue_report",
+                "success": True,
+                "report": report
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to create issue report: {e}")
+            return {
+                "tool": "create_issue_report",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_request_developer_review(self, args: Dict) -> Dict:
+        """Handle request_developer_review tool."""
+        try:
+            if not hasattr(self, '_refactoring_manager'):
+                return {
+                    "tool": "request_developer_review",
+                    "success": False,
+                    "error": "No refactoring manager exists"
+                }
+            
+            task_id = args['task_id']
+            task = self._refactoring_manager.get_task(task_id)
+            
+            if not task:
+                return {
+                    "tool": "request_developer_review",
+                    "success": False,
+                    "error": f"Task {task_id} not found"
+                }
+            
+            # Create review request
+            review_request = {
+                "task_id": task_id,
+                "task_title": task.title,
+                "question": args['question'],
+                "options": args['options'],
+                "context": args.get('context', ''),
+                "urgency": args.get('urgency', 'medium'),
+                "created_at": datetime.now().isoformat()
+            }
+            
+            # Store review request
+            if not hasattr(self, '_review_requests'):
+                self._review_requests = []
+            self._review_requests.append(review_request)
+            
+            # Mark task as blocked
+            from pipeline.state.refactoring_task import RefactoringApproach
+            task.fix_approach = RefactoringApproach.DEVELOPER_REVIEW
+            task.needs_review(f"Developer review requested: {args['question']}")
+            
+            self.logger.info(f"  🙋 Requested developer review for task {task_id}")
+            self.logger.info(f"     Question: {args['question'][:80]}...")
+            self.logger.info(f"     Options: {len(args['options'])} provided")
+            
+            return {
+                "tool": "request_developer_review",
+                "success": True,
+                "review_request": review_request
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to request developer review: {e}")
+            return {
+                "tool": "request_developer_review",
                 "success": False,
                 "error": str(e)
             }
