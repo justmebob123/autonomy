@@ -528,17 +528,35 @@ Use the refactoring tools NOW to fix this issue."""
                 
                 elif tool_name == 'find_integration_gaps':
                     result_data = tool_result.get('result', {})
-                    gaps = result_data.get('gaps', [])
-                    if gaps:
-                        self.logger.info(f"  🔍 Found {len(gaps)} integration gaps, creating tasks...")
-                        for gap in gaps[:10]:
+                    
+                    # CRITICAL FIX: Handler returns 'unused_classes' and 'classes_with_unused_methods', not 'gaps'
+                    unused_classes = result_data.get('unused_classes', [])
+                    classes_with_gaps = result_data.get('classes_with_unused_methods', {})
+                    
+                    if unused_classes:
+                        self.logger.info(f"  🔍 Found {len(unused_classes)} unused classes, creating tasks...")
+                        for unused_class in unused_classes[:10]:
                             task = RefactoringTask(
                                 issue_type=RefactoringIssueType.INTEGRATION,
-                                priority=RefactoringPriority.HIGH,
-                                description=f"Integration gap: {gap.get('description', 'Unknown')}",
-                                target_files=gap.get('files', []),
+                                priority=RefactoringPriority.MEDIUM,
+                                description=f"Unused class: {unused_class['name']} (never instantiated)",
+                                target_files=[unused_class['file']],
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
-                                estimated_effort_minutes=45
+                                estimated_effort_minutes=30
+                            )
+                            manager.add_task(task)
+                            tasks_created += 1
+                    
+                    if classes_with_gaps:
+                        self.logger.info(f"  🔍 Found {len(classes_with_gaps)} classes with unused methods, creating tasks...")
+                        for class_name, methods in list(classes_with_gaps.items())[:10]:
+                            task = RefactoringTask(
+                                issue_type=RefactoringIssueType.INTEGRATION,
+                                priority=RefactoringPriority.LOW,
+                                description=f"Class {class_name} has {len(methods)} unused methods: {', '.join(methods[:3])}",
+                                target_files=[],  # File info not available in this structure
+                                fix_approach=RefactoringApproach.AUTONOMOUS,
+                                estimated_effort_minutes=20
                             )
                             manager.add_task(task)
                             tasks_created += 1
@@ -548,12 +566,16 @@ Use the refactoring tools NOW to fix this issue."""
                     conflicts = result_data.get('conflicts', [])
                     if conflicts:
                         self.logger.info(f"  🔍 Found {len(conflicts)} integration conflicts, creating tasks...")
+                        from dataclasses import asdict
                         for conflict in conflicts[:10]:
+                            # CRITICAL FIX: IntegrationConflict is a dataclass, need to convert to dict
+                            conflict_dict = asdict(conflict) if hasattr(conflict, '__dataclass_fields__') else conflict
+                            
                             task = RefactoringTask(
                                 issue_type=RefactoringIssueType.CONFLICT,
                                 priority=RefactoringPriority.CRITICAL,
-                                description=f"Integration conflict: {conflict.get('description', 'Unknown')}",
-                                target_files=conflict.get('files', []),
+                                description=f"Integration conflict: {conflict_dict['description']}",
+                                target_files=conflict_dict['files'],
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
                                 estimated_effort_minutes=60
                             )
