@@ -6,8 +6,10 @@ Continue improving code validation tools and ensure proper integration of analys
 ## Current Status
 - ✅ Validators are project-agnostic
 - ✅ Configuration system in place
-- ⚠️ 45 validation errors remaining (mostly false positives or edge cases)
-- ⚠️ Need to ensure all phases have access to analysis tools
+- ✅ Enhanced validator to catch self.* method calls
+- ✅ Fixed 7 critical bugs found by enhanced validator
+- ⚠️ 44 validation errors remaining (mostly false positives or edge cases)
+- ✅ All phases have access to analysis tools
 
 ## Completed Tasks
 
@@ -19,13 +21,25 @@ Continue improving code validation tools and ensure proper integration of analys
 - [x] Document which analysis tools are available to each phase
 - [x] Create comprehensive integration documentation (TOOL_PHASE_INTEGRATION.md)
 
-### 2. Remaining Validation Errors (45 total)
+### 2. Critical Bug Fixes ✅
+- [x] Enhanced validator to track self.* attributes (was missing real bugs!)
+- [x] Fixed debugging.py: CallGraphGenerator.generate() -> analyze()
+- [x] Fixed debugging.py: IntegrationGapFinder.find_gaps() -> analyze()
+- [x] Fixed planning.py: DeadCodeDetector.detect() -> analyze() (2 instances)
+- [x] Fixed planning.py: IntegrationGapFinder.find_gaps() -> analyze() (2 instances)
+- [x] Fixed project_planning.py: DeadCodeDetector.detect() -> analyze()
+- [x] Fixed project_planning.py: IntegrationGapFinder.find_gaps() -> analyze()
+- [x] Fixed team_coordination.py: SpecialistTeam.consult() interface mismatch
+
+### 3. Remaining Validation Errors (44 total)
 
 **Status**: Low priority - mostly false positives or edge cases
 
 **Breakdown**:
 - Method Existence: 2 errors (test files, edge cases)
-- Function Calls: 43 errors (parameter mismatches, mostly false positives)
+- Function Calls: 42 errors (parameter mismatches, mostly false positives)
+
+**Progress**: Fixed 7 real bugs, reduced from 45 to 44 errors
 
 **Action Items** (Optional):
 - [ ] Manual review of remaining 45 errors
@@ -33,7 +47,7 @@ Continue improving code validation tools and ensure proper integration of analys
 - [ ] Fix legitimate issues if any
 - [ ] Update validator to reduce false positives further
 
-### 3. Duplicate Class Name Issues (16 duplicates)
+### 4. Duplicate Class Name Issues (16 duplicates)
 
 **Status**: Documented, low priority
 
