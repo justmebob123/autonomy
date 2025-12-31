@@ -455,7 +455,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             
             # Integration conflict detection (for identifying conflicts)
             try:
-                conflict_result = self.conflict_detector.detect_conflicts()
+                conflict_result = self.conflict_detector.analyze()
                 if conflict_result.total_conflicts > 0:
                     analysis_parts.append(f"**Integration Conflicts:**")
                     analysis_parts.append(f"- Total conflicts: {conflict_result.total_conflicts}")

@@ -148,6 +148,7 @@ class ToolCallHandler:
             "analyze_complexity": self._handle_analyze_complexity,
             "detect_dead_code": self._handle_detect_dead_code,
             "find_integration_gaps": self._handle_find_integration_gaps,
+            "detect_integration_conflicts": self._handle_detect_integration_conflicts,
             "generate_call_graph": self._handle_generate_call_graph,
             "find_bugs": self._handle_find_bugs,
             "detect_antipatterns": self._handle_detect_antipatterns,
@@ -2500,6 +2501,47 @@ class ToolCallHandler:
             self.logger.error(f"Integration gap analysis failed: {e}")
             return {
                 "tool": "find_integration_gaps",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_detect_integration_conflicts(self, args: Dict) -> Dict:
+        """Handle detect_integration_conflicts tool."""
+        try:
+            from .analysis.integration_conflicts import IntegrationConflictDetector
+            
+            detector = IntegrationConflictDetector(str(self.project_dir), self.logger)
+            target = args.get('target')
+            
+            self.logger.info(f"🔍 Detecting integration conflicts...")
+            result = detector.analyze(target)
+            
+            # Generate report
+            report = detector.generate_report(result)
+            
+            # Save report to file
+            report_file = self.project_dir / "INTEGRATION_CONFLICT_REPORT.txt"
+            report_file.write_text(report)
+            
+            self.logger.info(f"✅ Integration conflict detection complete")
+            self.logger.info(f"   Total conflicts: {result.total_conflicts}")
+            if result.duplicate_definitions:
+                self.logger.info(f"   Duplicate definitions: {len(result.duplicate_definitions)}")
+            if result.circular_dependencies:
+                self.logger.info(f"   Circular dependencies: {len(result.circular_dependencies)}")
+            self.logger.info(f"   Report: INTEGRATION_CONFLICT_REPORT.txt")
+            
+            return {
+                "tool": "detect_integration_conflicts",
+                "success": True,
+                "result": result.to_dict(),
+                "report": report,
+                "report_file": "INTEGRATION_CONFLICT_REPORT.txt"
+            }
+        except Exception as e:
+            self.logger.error(f"Integration conflict detection failed: {e}")
+            return {
+                "tool": "detect_integration_conflicts",
                 "success": False,
                 "error": str(e)
             }
