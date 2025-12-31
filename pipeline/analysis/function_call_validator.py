@@ -108,7 +108,7 @@ class FunctionCallValidator:
             'by_type': self._count_by_type()
         }
     
-    def _collect_imports(self):
+    def _collect_imports(self) -> None:
         """Collect import statements from all files."""
         for py_file in self.project_root.rglob("*.py"):
             if py_file.name.startswith('.'):
@@ -138,7 +138,7 @@ class FunctionCallValidator:
             except Exception:
                 continue
     
-    def _collect_function_signatures(self):
+    def _collect_function_signatures(self) -> None:
         """Collect all function signatures with qualified names."""
         for py_file in self.project_root.rglob("*.py"):
             if py_file.name.startswith('.'):
@@ -211,7 +211,7 @@ class FunctionCallValidator:
             except Exception:
                 continue
     
-    def _validate_file(self, filepath: Path):
+    def _validate_file(self, filepath: Path) -> None:
         """Validate function calls in a file."""
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
@@ -248,7 +248,7 @@ class FunctionCallValidator:
         
         return False
     
-    def _check_function_call(self, node: ast.Call, filepath: Path):
+    def _check_function_call(self, node: ast.Call, filepath: Path) -> None:
         """Check if function call has correct arguments."""
         # Get function name
         func_name = None
