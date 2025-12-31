@@ -187,6 +187,9 @@ class ToolCallHandler:
             "verify_import_class_match": self._handle_verify_import_class_match,
             "check_abstract_methods": self._handle_check_abstract_methods,
             "verify_tool_handlers": self._handle_verify_tool_handlers,
+            "validate_syntax": self._handle_validate_syntax,
+            "detect_circular_imports": self._handle_detect_circular_imports,
+            "validate_all_imports": self._handle_validate_all_imports,
             "validate_dict_access": self._handle_validate_dict_access,
         }
         
@@ -3763,6 +3766,96 @@ class ToolCallHandler:
             self.logger.error(f"Abstract method check failed: {e}")
             return {
                 "tool": "check_abstract_methods",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_validate_syntax(self, args: Dict) -> Dict:
+        """Handle validate_syntax tool."""
+        try:
+            code = args.get('code', '')
+            filename = args.get('filename', '<string>')
+            
+            # Use existing syntax validator
+            from pipeline.syntax_validator import SyntaxValidator
+            validator = SyntaxValidator()
+            
+            is_valid, errors = validator.validate(code, filename)
+            
+            self.logger.info(f"  🔍 Syntax validation: {'✅ Valid' if is_valid else '❌ Invalid'}")
+            if errors:
+                self.logger.info(f"     Errors: {len(errors)}")
+            
+            return {
+                "tool": "validate_syntax",
+                "success": is_valid,
+                "errors": errors if not is_valid else [],
+                "message": "Syntax is valid" if is_valid else f"Found {len(errors)} syntax errors"
+            }
+        except Exception as e:
+            self.logger.error(f"Syntax validation failed: {e}")
+            return {
+                "tool": "validate_syntax",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_detect_circular_imports(self, args: Dict) -> Dict:
+        """Handle detect_circular_imports tool."""
+        try:
+            project_dir = args.get('project_dir', str(self.project_dir))
+            
+            # Use existing import analyzer
+            from pipeline.import_analyzer import ImportAnalyzer
+            analyzer = ImportAnalyzer(project_dir)
+            
+            circular = analyzer.detect_circular_imports()
+            
+            self.logger.info(f"  🔄 Circular imports: {len(circular)} found")
+            for cycle in circular[:3]:  # Show first 3
+                self.logger.info(f"     {' → '.join(cycle)}")
+            
+            return {
+                "tool": "detect_circular_imports",
+                "success": True,
+                "circular_imports": circular,
+                "count": len(circular),
+                "message": f"Found {len(circular)} circular import cycles"
+            }
+        except Exception as e:
+            self.logger.error(f"Circular import detection failed: {e}")
+            return {
+                "tool": "detect_circular_imports",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_validate_all_imports(self, args: Dict) -> Dict:
+        """Handle validate_all_imports tool."""
+        try:
+            project_dir = args.get('project_dir', str(self.project_dir))
+            
+            # Use existing import analyzer
+            from pipeline.import_analyzer import ImportAnalyzer
+            analyzer = ImportAnalyzer(project_dir)
+            
+            invalid = analyzer.validate_all_imports()
+            
+            self.logger.info(f"  📦 Import validation: {len(invalid)} invalid imports")
+            for imp in invalid[:3]:  # Show first 3
+                self.logger.info(f"     {imp}")
+            
+            return {
+                "tool": "validate_all_imports",
+                "success": True,
+                "invalid_imports": invalid,
+                "count": len(invalid),
+                "message": f"Found {len(invalid)} invalid imports"
+            }
+        except Exception as e:
+            self.logger.error(f"Import validation failed: {e}")
+            return {
+                "tool": "validate_all_imports",
                 "success": False,
                 "error": str(e)
             }
