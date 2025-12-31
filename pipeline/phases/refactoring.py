@@ -614,18 +614,38 @@ Please select ONE reliable tool and try again."""
         self.write_own_status("".join(content_parts))
     
     def _determine_next_phase(self, recommendations: str) -> str:
-        """Determine next phase based on recommendations"""
+        """
+        Determine next phase based on recommendations.
+        
+        NEW DESIGN: Refactoring should continue until all issues are fixed.
+        Only return to other phases when:
+        1. New code implementation needed (coding)
+        2. Verification needed (qa)
+        3. New tasks needed (planning)
+        4. All refactoring complete (coding)
+        """
         
         recommendations_lower = recommendations.lower()
         
-        if "implement" in recommendations_lower or "create" in recommendations_lower:
+        # Check if more refactoring work remains
+        if "continue refactoring" in recommendations_lower or "more issues" in recommendations_lower:
+            return "refactoring"  # Continue refactoring
+        
+        # Check if new implementation needed
+        if "implement" in recommendations_lower or "create new" in recommendations_lower:
             return "coding"
+        
+        # Check if verification needed
         elif "verify" in recommendations_lower or "test" in recommendations_lower:
             return "qa"
-        elif "plan" in recommendations_lower or "task" in recommendations_lower:
+        
+        # Check if planning needed
+        elif "plan" in recommendations_lower or "new task" in recommendations_lower:
             return "planning"
+        
+        # Default: return to coding (refactoring complete)
         else:
-            return "investigation"
+            return "coding"
     
     def _read_relevant_phase_outputs(self) -> Dict[str, str]:
         """Read outputs from other phases that might trigger refactoring"""

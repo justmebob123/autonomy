@@ -1336,19 +1336,31 @@ REFACTORING TYPE: Comprehensive Analysis
 CONTEXT:
 {context}
 
+🔄 IMPORTANT: REFACTORING IS A CONTINUOUS PROCESS
+This is NOT a one-time analysis. Refactoring should continue for MANY iterations
+until all quality issues are fixed or documented. After each iteration:
+- If issues remain: Say "Continue refactoring - more issues to fix"
+- If all fixed: Say "Refactoring complete - ready for coding"
+- If too complex: Say "Create issue report for developer review"
+
 Your Task:
 1. Use detect_duplicate_implementations to find duplicates
-2. Use analyze_architecture_consistency to check MASTER_PLAN alignment
-3. Use compare_file_implementations for any conflicts
-4. Use suggest_refactoring_plan to create comprehensive plan
-5. Prioritize refactoring actions
+2. Use analyze_complexity to check code complexity
+3. Use detect_dead_code to find unused code
+4. Use analyze_architecture_consistency to check MASTER_PLAN alignment
+5. Analyze results and determine next action
 
 Requirements:
-- Analyze all aspects: duplicates, conflicts, architecture
-- Create a comprehensive refactoring plan
-- Prioritize actions by impact and risk
-- Consider dependencies and order of operations
-- Provide clear recommendations
+- Analyze all aspects: duplicates, complexity, dead code, architecture
+- If issues found: Create tasks to fix them OR fix them directly
+- If issues fixed: Re-analyze to find more issues
+- Continue until NO issues remain
+- Provide clear recommendations for next steps
+
+CRITICAL: After analysis, you MUST indicate if more refactoring is needed:
+- "Continue refactoring" = More work remains, run another iteration
+- "Refactoring complete" = All issues fixed, return to coding
+- "Developer review needed" = Issues too complex for autonomous fixing
 
 Use the refactoring tools NOW for comprehensive analysis."""
 

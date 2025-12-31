@@ -1548,32 +1548,35 @@ class PhaseCoordinator:
     
     def _should_trigger_refactoring(self, state: PipelineState, pending_tasks: List) -> bool:
         """
-        Check if refactoring should be triggered based on project lifecycle phase.
+        Check if refactoring should be triggered or continued.
         
-        Project Phases:
-        - Foundation (0-25%): NO refactoring (building initial codebase)
-        - Integration (25-50%): Moderate refactoring (connecting components)
-        - Consolidation (50-75%): AGGRESSIVE refactoring (streamlining architecture)
-        - Completion (75-100%): Minimal refactoring (stability focus)
+        NEW DESIGN: Refactoring is a MAJOR DEVELOPMENT PHASE that runs continuously
+        until all issues are fixed or documented. No cooldown, no periodic triggers.
+        
+        Trigger conditions:
+        1. Refactoring is already running with pending tasks (CONTINUE)
+        2. Quality issues detected (architectural, duplicates, complexity, dead code)
+        3. Integration or consolidation phase with quality degradation
         
         Args:
             state: Current pipeline state
             pending_tasks: List of pending tasks
             
         Returns:
-            True if refactoring should be triggered, False otherwise
+            True if refactoring should be triggered/continued, False otherwise
         """
         # Get project phase and completion
         project_phase = state.get_project_phase()
         completion = state.calculate_completion_percentage()
-        iteration_count = len(getattr(state, 'phase_history', []))
         
-        # COOLDOWN: Don't trigger refactoring if it was just run
-        # Check last 3 iterations for refactoring phase
-        recent_phases = getattr(state, 'phase_history', [])[-3:]
-        if any(phase == 'refactoring' for phase in recent_phases):
-            self.logger.debug(f"  Refactoring cooldown active (ran in last 3 iterations)")
-            return False
+        # CRITICAL: If refactoring is currently running, check if it should continue
+        current_phase = getattr(state, 'current_phase', None)
+        if current_phase == 'refactoring':
+            # Check if refactoring has pending work
+            # For now, let refactoring phase decide when to stop
+            # This allows multi-iteration refactoring
+            self.logger.debug(f"  Refactoring is running, allowing it to continue")
+            return True
         
         # FOUNDATION PHASE (0-25%): NO REFACTORING
         # Need substantial codebase before refactoring makes sense
@@ -1581,44 +1584,40 @@ class PhaseCoordinator:
             self.logger.debug(f"  Foundation phase ({completion:.1f}%), skipping refactoring")
             return False
         
-        # INTEGRATION PHASE (25-50%): MODERATE REFACTORING
-        # Connect disconnected components, establish relationships
+        # QUALITY-BASED TRIGGERS (Integration, Consolidation, Completion phases)
+        # Trigger refactoring when quality issues detected, not periodically
+        
+        # Check for duplicate code patterns
+        if self._detect_duplicate_patterns(state):
+            self.logger.info(f"  🔄 {project_phase.title()} phase ({completion:.1f}%), triggering refactoring (duplicate code detected)")
+            return True
+        
+        # Check for high complexity (if we have complexity data)
+        if self._has_high_complexity(state):
+            self.logger.info(f"  🔄 {project_phase.title()} phase ({completion:.1f}%), triggering refactoring (high complexity detected)")
+            return True
+        
+        # Check for architectural inconsistencies
+        if self._has_architectural_issues(state):
+            self.logger.info(f"  🔄 {project_phase.title()} phase ({completion:.1f}%), triggering refactoring (architectural issues detected)")
+            return True
+        
+        # INTEGRATION PHASE: Trigger when many files created (need to connect components)
         if project_phase == 'integration':
-            # Trigger every 10 iterations (more frequent than before)
-            if iteration_count > 0 and iteration_count % 10 == 0:
-                self.logger.info(f"  🔄 Integration phase ({completion:.1f}%), triggering refactoring (periodic)")
-                return True
-            
-            # Trigger on duplicate patterns
-            if self._detect_duplicate_patterns(state):
-                self.logger.info(f"  🔄 Integration phase ({completion:.1f}%), triggering refactoring (duplicates)")
+            recent_files = self._count_recent_files(state, iterations=10)
+            if recent_files >= 5:
+                self.logger.info(f"  🔄 Integration phase ({completion:.1f}%), triggering refactoring ({recent_files} files need integration)")
                 return True
         
-        # CONSOLIDATION PHASE (50-75%): AGGRESSIVE REFACTORING
-        # Streamline design, optimize architecture, dominant phase
+        # CONSOLIDATION PHASE: More aggressive triggers
         if project_phase == 'consolidation':
-            # Trigger every 5 iterations (very frequent)
-            if iteration_count > 0 and iteration_count % 5 == 0:
-                self.logger.info(f"  🔄 Consolidation phase ({completion:.1f}%), triggering refactoring (periodic)")
-                return True
-            
-            # Trigger on any quality issues
-            if self._detect_duplicate_patterns(state):
-                self.logger.info(f"  🔄 Consolidation phase ({completion:.1f}%), triggering refactoring (duplicates)")
+            recent_files = self._count_recent_files(state, iterations=5)
+            if recent_files >= 3:
+                self.logger.info(f"  🔄 Consolidation phase ({completion:.1f}%), triggering refactoring ({recent_files} files need consolidation)")
                 return True
         
-        # COMPLETION PHASE (75-100%): MINIMAL REFACTORING
-        # Only fix critical issues, preserve stability
-        if project_phase == 'completion':
-            # Only trigger on critical duplicate patterns
-            if self._detect_duplicate_patterns(state):
-                self.logger.info(f"  🔄 Completion phase ({completion:.1f}%), fixing critical duplicates")
-                return True
-            
-            # Otherwise, no refactoring in completion phase
-            self.logger.debug(f"  Completion phase ({completion:.1f}%), skipping refactoring (stability focus)")
-            return False
-        
+        # No quality issues detected, no refactoring needed
+        self.logger.debug(f"  {project_phase.title()} phase ({completion:.1f}%), no quality issues detected")
         return False
     
     def _count_recent_files(self, state: PipelineState, iterations: int = 10) -> int:
@@ -1689,6 +1688,40 @@ class PhaseCoordinator:
                 self.logger.debug(f"  Potential duplicates: {file_list}")
                 return True
         
+        return False
+    
+    def _has_high_complexity(self, state: PipelineState) -> bool:
+        """
+        Check if codebase has high complexity issues.
+        
+        This is a placeholder for now - will be implemented with actual
+        complexity analysis in Phase 2.
+        
+        Args:
+            state: Current pipeline state
+            
+        Returns:
+            True if high complexity detected, False otherwise
+        """
+        # TODO: Implement actual complexity analysis
+        # For now, return False (no complexity data available)
+        return False
+    
+    def _has_architectural_issues(self, state: PipelineState) -> bool:
+        """
+        Check if codebase has architectural inconsistencies.
+        
+        This is a placeholder for now - will be implemented with actual
+        architecture analysis in Phase 2.
+        
+        Args:
+            state: Current pipeline state
+            
+        Returns:
+            True if architectural issues detected, False otherwise
+        """
+        # TODO: Implement actual architecture analysis
+        # For now, return False (no architecture data available)
         return False
     
     def _determine_next_action_tactical(self, state: PipelineState) -> Dict:

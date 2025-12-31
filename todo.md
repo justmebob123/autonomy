@@ -1,96 +1,44 @@
-# Refactoring Phase Activation - Implementation TODO
+# Refactoring Phase Complete Redesign
 
-## Phase 1: Quick Fixes (PRIORITY: CRITICAL)
+## Phase 1: Remove Cooldown and Fix Trigger Logic (IMMEDIATE) 🔥
+- [x] Remove cooldown check from _should_trigger_refactoring()
+- [x] Add quality-based trigger detection (_has_high_complexity, _has_architectural_issues)
+- [x] Allow refactoring to continue until complete (check current_phase == 'refactoring')
+- [x] Update _determine_next_phase() to support continuous refactoring
+- [x] Update comprehensive refactoring prompt to guide LLM
+- [ ] Test that refactoring can run continuously
 
-### Fix 1.1: Add Refactoring Trigger to Tactical Decision Tree
-- [x] Add `_should_trigger_refactoring()` method to coordinator.py
-- [x] Add `_count_recent_files()` method to coordinator.py
-- [x] Add `_detect_duplicate_patterns()` method to coordinator.py
-- [x] Update `_determine_next_action_tactical()` to call trigger check
-- [ ] Test periodic trigger (every 20 iterations)
-- [ ] Test file count trigger (15+ files)
-- [ ] Test duplicate pattern trigger
+## Phase 2: Add Refactoring Task System (WEEK 1)
+- [ ] Create RefactoringTask class
+- [ ] Add task creation in refactoring phase
+- [ ] Track tasks in state manager
+- [ ] Add task status tracking
+- [ ] Test task creation and tracking
 
-### Fix 1.2: Improve Dimensional Profile
-- [x] Update refactoring dimensions in `_calculate_initial_dimensions()`
-- [x] Change temporal: 0.6 → 0.7
-- [x] Change functional: 0.7 → 0.8
-- [x] Change error: 0.4 → 0.6
-- [x] Change integration: 0.8 → 0.9
-- [ ] Test polytopic selection with new dimensions
+## Phase 3: Multi-Iteration Refactoring Loop (WEEK 1)
+- [ ] Refactor execute() method to support continuous operation
+- [ ] Add conversation continuity
+- [ ] Add progress tracking
+- [ ] Add completion detection
+- [ ] Test multi-iteration refactoring
 
-## Phase 2: IPC Integration
+## Phase 4: Issue Reporting Mode (WEEK 2)
+- [ ] Detect when issues are too complex
+- [ ] Create detailed issue reports
+- [ ] Add developer review workflow
+- [ ] Generate REFACTORING_REPORT.md
+- [ ] Test issue reporting
 
-### Fix 2.1: QA Phase Integration
-- [ ] Add duplicate detection to qa.py
-- [ ] Add write to REFACTORING_READ.md
-- [ ] Add next_phase hint setting
-- [ ] Test QA → Refactoring flow
+## Phase 5: Coordinator Integration (WEEK 2)
+- [ ] Remove periodic triggers
+- [ ] Add quality-based triggers
+- [ ] Support refactoring continuation
+- [ ] Handle developer review workflow
+- [ ] Test coordinator integration
 
-### Fix 2.2: Coding Phase Integration
-- [ ] Add file creation tracking to coding.py
-- [ ] Add write to REFACTORING_READ.md after 10+ files
-- [ ] Add next_phase hint setting
-- [ ] Test Coding → Refactoring flow
-
-### Fix 2.3: Investigation Phase Integration
-- [ ] Add conflict detection to investigation.py
-- [ ] Add write to REFACTORING_READ.md
-- [ ] Add next_phase hint setting
-- [ ] Test Investigation → Refactoring flow
-
-## Phase 3: Advanced Features
-
-### Fix 3.1: Enhanced Duplicate Detection
-- [ ] Improve `_detect_duplicate_patterns()` with AST analysis
-- [ ] Add similarity scoring
-- [ ] Add configurable threshold
-
-### Fix 3.2: Enhanced File Tracking
-- [ ] Add persistent file creation tracking to state
-- [ ] Add file creation rate calculation
-- [ ] Add trend analysis
-
-### Fix 3.3: Data Dimension Scoring
-- [ ] Add data-intensive situation detection to `_analyze_situation()`
-- [ ] Add many-files situation detection
-- [ ] Update `_calculate_phase_priority()` to use data dimension
-- [ ] Test scoring with data dimension
-
-## Testing & Validation
-
-### Integration Tests
-- [ ] Test periodic refactoring trigger
-- [ ] Test file count trigger
-- [ ] Test duplicate pattern trigger
-- [ ] Test IPC flow (QA → Refactoring)
-- [ ] Test IPC flow (Coding → Refactoring)
-- [ ] Test phase hint system
-- [ ] Test polytopic selection with new dimensions
-
-### End-to-End Tests
-- [ ] Run full pipeline with refactoring enabled
-- [ ] Verify refactoring activates appropriately
-- [ ] Verify refactoring performs analysis
-- [ ] Verify refactoring generates recommendations
-- [ ] Verify refactoring integrates with other phases
-
-## Documentation
-
-- [ ] Update DEEP_REFACTORING_ANALYSIS.md with implementation results
-- [ ] Create REFACTORING_ACTIVATION_COMPLETE.md
-- [ ] Update pipeline documentation
-- [ ] Add refactoring examples
-
-## Git Commits
-
-- [x] Commit Phase 1 changes (90ae116)
-- [ ] Commit Phase 2 changes
-- [ ] Commit Phase 3 changes
-- [x] Commit documentation (7b9204c, f223656, 01df847)
-- [x] Push all changes to GitHub
-
----
-
-**Current Status**: Phase 1 COMPLETE ✅
-**Next Action**: Test implementation, then proceed to Phase 2 (IPC Integration)
+## Phase 6: Testing and Documentation
+- [ ] Test continuous refactoring (20+ iterations)
+- [ ] Test issue reporting
+- [ ] Test task tracking
+- [ ] Test conversation continuity
+- [ ] Update all documentation
