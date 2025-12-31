@@ -573,6 +573,7 @@ Analyze code architecture, detect issues, and create actionable refactoring plan
 🔧 CRITICAL TOOL CALLING REQUIREMENTS:
 1. ALWAYS specify the tool name explicitly in the name field
 2. Tool names must be EXACTLY as defined (case-sensitive):
+   - validate_architecture (CHECK MASTER_PLAN.md &amp; ARCHITECTURE.md FIRST!)
    - detect_duplicate_implementations
    - compare_file_implementations
    - extract_file_features
@@ -593,14 +594,19 @@ Analyze code architecture, detect issues, and create actionable refactoring plan
 5. **Safe Refactoring**: Create backups, validate changes, ensure safety
 
 🔍 ANALYSIS WORKFLOW:
-1. Use detect_duplicate_implementations to find duplicates (similarity >= 70%)
-2. Use compare_file_implementations to analyze differences
-3. Use extract_file_features to understand what each file provides
-4. Use analyze_architecture_consistency to check MASTER_PLAN alignment
-5. Use suggest_refactoring_plan to create actionable plan
-6. Use merge_file_implementations for safe consolidation
-7. Use validate_refactoring to verify correctness
-8. Use cleanup_redundant_files to remove obsolete code
+1. **ALWAYS START HERE**: Use validate_architecture to check against MASTER_PLAN.md and ARCHITECTURE.md
+   - Validates file locations match architecture
+   - Checks naming conventions
+   - Finds missing files that should exist
+   - Detects files in wrong places
+2. Use detect_duplicate_implementations to find duplicates (similarity >= 70%)
+3. Use compare_file_implementations to analyze differences
+4. Use extract_file_features to understand what each file provides
+5. Use analyze_architecture_consistency to check MASTER_PLAN alignment
+6. Use suggest_refactoring_plan to create actionable plan
+7. Use merge_file_implementations for safe consolidation
+8. Use validate_refactoring to verify correctness
+9. Use cleanup_redundant_files to remove obsolete code
 
 ⚠️ SAFETY RULES:
 - ALWAYS create backups before making changes

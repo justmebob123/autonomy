@@ -12,6 +12,31 @@ TOOLS_REFACTORING = [
     {
         "type": "function",
         "function": {
+            "name": "validate_architecture",
+            "description": "Validate codebase against MASTER_PLAN.md and ARCHITECTURE.md. Checks file locations, naming conventions, missing files, and implementation alignment.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "check_locations": {
+                        "type": "boolean",
+                        "description": "Check if files are in correct directories"
+                    },
+                    "check_naming": {
+                        "type": "boolean",
+                        "description": "Check if files follow naming conventions"
+                    },
+                    "check_missing": {
+                        "type": "boolean",
+                        "description": "Check for missing files that should exist"
+                    }
+                },
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "create_refactoring_task",
             "description": "Create a new refactoring task to track work across iterations. Use this when you identify an issue that needs to be fixed.",
             "parameters": {

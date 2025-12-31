@@ -164,6 +164,7 @@ class ToolCallHandler:
             "replace_between": self._handle_replace_between,
             # Documentation tools
             # Refactoring tools
+            "validate_architecture": self._handle_validate_architecture,
             "create_refactoring_task": self._handle_create_refactoring_task,
             "update_refactoring_task": self._handle_update_refactoring_task,
             "list_refactoring_tasks": self._handle_list_refactoring_tasks,
@@ -3295,6 +3296,77 @@ class ToolCallHandler:
             self.logger.error(f"Failed to request developer review: {e}")
             return {
                 "tool": "request_developer_review",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_validate_architecture(self, args: Dict) -> Dict:
+        """Handle validate_architecture tool."""
+        try:
+            from pipeline.analysis.architecture_validator import ArchitectureValidator
+            
+            check_locations = args.get('check_locations', True)
+            check_naming = args.get('check_naming', True)
+            check_missing = args.get('check_missing', True)
+            
+            self.logger.info(f"🔍 Validating architecture against MASTER_PLAN.md and ARCHITECTURE.md")
+            
+            validator = ArchitectureValidator(self.project_dir, self.logger)
+            results = validator.validate_all()
+            
+            # Generate report
+            report = validator.generate_report(results)
+            
+            # Save report to file
+            report_file = self.project_dir / "ARCHITECTURE_VALIDATION_REPORT.md"
+            report_file.write_text(report)
+            
+            # Count violations by severity
+            all_violations = []
+            for violations in results.values():
+                all_violations.extend(violations)
+            
+            by_severity = {}
+            for v in all_violations:
+                by_severity[v.severity] = by_severity.get(v.severity, 0) + 1
+            
+            self.logger.info(f"✅ Architecture validation complete")
+            self.logger.info(f"   Total violations: {len(all_violations)}")
+            if by_severity:
+                for severity in ['critical', 'high', 'medium', 'low']:
+                    if severity in by_severity:
+                        self.logger.info(f"   {severity.upper()}: {by_severity[severity]}")
+            self.logger.info(f"   Report: ARCHITECTURE_VALIDATION_REPORT.md")
+            
+            return {
+                "tool": "validate_architecture",
+                "success": True,
+                "result": {
+                    "violations": [
+                        {
+                            'type': v.violation_type,
+                            'severity': v.severity,
+                            'file': v.file_path,
+                            'description': v.description,
+                            'expected': v.expected,
+                            'actual': v.actual,
+                            'recommendation': v.recommendation
+                        }
+                        for violations in results.values()
+                        for v in violations
+                    ],
+                    "total_violations": len(all_violations),
+                    "by_severity": by_severity
+                },
+                "report": report,
+                "report_file": "ARCHITECTURE_VALIDATION_REPORT.md"
+            }
+        except Exception as e:
+            self.logger.error(f"Architecture validation failed: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            return {
+                "tool": "validate_architecture",
                 "success": False,
                 "error": str(e)
             }

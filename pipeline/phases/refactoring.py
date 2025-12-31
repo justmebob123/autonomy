@@ -490,6 +490,59 @@ Use the refactoring tools NOW to fix this issue."""
                             )
                             manager.add_task(task)
                             tasks_created += 1
+                
+                # Handle architecture validation results
+                elif tool_name == 'validate_architecture':
+                    result_data = tool_result.get('result', {})
+                    violations = result_data.get('violations', [])
+                    
+                    if violations:
+                        self.logger.info(f"  🔍 Found {len(violations)} architecture violations, creating tasks...")
+                        
+                        # Create tasks for violations
+                        for violation in violations[:15]:  # Limit to top 15
+                            # Map violation type to issue type
+                            issue_type_map = {
+                                'location': RefactoringIssueType.STRUCTURE,
+                                'naming': RefactoringIssueType.NAMING,
+                                'missing': RefactoringIssueType.ARCHITECTURE,
+                                'extra': RefactoringIssueType.ARCHITECTURE,
+                                'implementation': RefactoringIssueType.ARCHITECTURE
+                            }
+                            
+                            issue_type = issue_type_map.get(
+                                violation['type'], 
+                                RefactoringIssueType.ARCHITECTURE
+                            )
+                            
+                            priority_map = {
+                                'critical': RefactoringPriority.CRITICAL,
+                                'high': RefactoringPriority.HIGH,
+                                'medium': RefactoringPriority.MEDIUM,
+                                'low': RefactoringPriority.LOW
+                            }
+                            
+                            priority = priority_map.get(
+                                violation['severity'],
+                                RefactoringPriority.MEDIUM
+                            )
+                            
+                            approach = (
+                                RefactoringApproach.DEVELOPER_REVIEW 
+                                if violation['severity'] in ['critical', 'high']
+                                else RefactoringApproach.AUTONOMOUS
+                            )
+                            
+                            task = RefactoringTask(
+                                issue_type=issue_type,
+                                priority=priority,
+                                description=violation['description'],
+                                affected_files=[violation['file']],
+                                fix_approach=approach,
+                                estimated_effort_minutes=30
+                            )
+                            manager.add_task(task)
+                            tasks_created += 1
         
         return tasks_created
     
