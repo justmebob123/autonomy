@@ -64,12 +64,16 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         from ..analysis.complexity import ComplexityAnalyzer
         from ..analysis.call_graph import CallGraphGenerator
         from ..analysis.integration_gaps import IntegrationGapFinder
+        from ..analysis.dead_code import DeadCodeDetector
+        from ..analysis.integration_conflicts import IntegrationConflictDetector
         
         self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
         self.call_graph = CallGraphGenerator(str(self.project_dir), self.logger)
         self.gap_finder = IntegrationGapFinder(str(self.project_dir), self.logger)
+        self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger, self.architecture_config)
+        self.conflict_detector = IntegrationConflictDetector(str(self.project_dir), self.logger)
         
-        self.logger.info("  🔧 Debugging phase initialized with analysis capabilities")
+        self.logger.info("  🔧 Debugging phase initialized with ALL analysis capabilities")
         
         # MESSAGE BUS: Subscribe to relevant events
         if self.message_bus:
@@ -433,6 +437,35 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                     analysis_parts.append("")
             except Exception as e:
                 self.logger.debug(f"  Integration gap analysis failed: {e}")
+            
+            # Dead code detection (for identifying unused code)
+            try:
+                dead_code_result = self.dead_code_detector.analyze()
+                if dead_code_result.total_unused_functions > 0 or dead_code_result.total_unused_methods > 0:
+                    analysis_parts.append(f"**Dead Code Detected:**")
+                    if dead_code_result.total_unused_functions > 0:
+                        analysis_parts.append(f"- Unused functions: {dead_code_result.total_unused_functions}")
+                    if dead_code_result.total_unused_methods > 0:
+                        analysis_parts.append(f"- Unused methods: {dead_code_result.total_unused_methods}")
+                    if dead_code_result.total_unused_imports > 0:
+                        analysis_parts.append(f"- Unused imports: {dead_code_result.total_unused_imports}")
+                    analysis_parts.append("")
+            except Exception as e:
+                self.logger.debug(f"  Dead code detection failed: {e}")
+            
+            # Integration conflict detection (for identifying conflicts)
+            try:
+                conflict_result = self.conflict_detector.detect_conflicts()
+                if conflict_result.total_conflicts > 0:
+                    analysis_parts.append(f"**Integration Conflicts:**")
+                    analysis_parts.append(f"- Total conflicts: {conflict_result.total_conflicts}")
+                    if conflict_result.duplicate_definitions:
+                        analysis_parts.append(f"- Duplicate definitions: {len(conflict_result.duplicate_definitions)}")
+                    if conflict_result.circular_dependencies:
+                        analysis_parts.append(f"- Circular dependencies: {len(conflict_result.circular_dependencies)}")
+                    analysis_parts.append("")
+            except Exception as e:
+                self.logger.debug(f"  Conflict detection failed: {e}")
                 
         except Exception as e:
             self.logger.warning(f"  Code analysis failed: {e}")
