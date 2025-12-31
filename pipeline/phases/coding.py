@@ -195,14 +195,16 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
             
             # Add to error context so AI can see it in next iteration
             for issue in filename_issues:
-                self.error_context.add_error(
+                from ..context.error import ErrorRecord
+                error_record = ErrorRecord(
                     error_type="filename_validation",
-                    error_message=f"{issue['message']}: {issue['filepath']}",
+                    message=f"{issue['message']}: {issue['filepath']}",
                     filepath=issue['filepath'],
                     task_id=task.task_id,
                     phase="coding",
-                    context=issue_context
+                    context={'issue_context': issue_context, 'suggestion': issue.get('suggestion')}
                 )
+                self.error_context.add(error_record)
             
             # Return error result with detailed context for AI to resolve
             return PhaseResult(
