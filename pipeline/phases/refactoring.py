@@ -436,15 +436,15 @@ Use the refactoring tools NOW to fix this issue."""
                         
                         for dup in duplicates:
                             # Create task for this duplicate
-                            task = RefactoringTask(
+                            task = manager.create_task(
                                 issue_type=RefactoringIssueType.DUPLICATE,
-                                priority=RefactoringPriority.MEDIUM,
+                                title=f"Duplicate code detected",
                                 description=f"Duplicate code: {dup.get('similarity', 0):.0%} similar",
                                 target_files=dup.get('files', []),
+                                priority=RefactoringPriority.MEDIUM,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=30
                             )
-                            manager.add_task(task)
                             tasks_created += 1
                 
                 # Handle complexity analysis results
@@ -457,15 +457,15 @@ Use the refactoring tools NOW to fix this issue."""
                         self.logger.info(f"  🔍 Found {len(critical_functions)} critical complexity issues, creating tasks...")
                         
                         for func_info in critical_functions[:5]:  # Limit to top 5
-                            task = RefactoringTask(
+                            task = manager.create_task(
                                 issue_type=RefactoringIssueType.COMPLEXITY,
-                                priority=RefactoringPriority.HIGH,
+                                title=f"High complexity in {func_info.get('name', 'unknown')}",
                                 description=f"High complexity: {func_info.get('name', 'unknown')} (complexity: {func_info.get('complexity', 0)})",
                                 target_files=[func_info.get('file', '')],
+                                priority=RefactoringPriority.HIGH,
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
                                 estimated_effort=60
                             )
-                            manager.add_task(task)
                             tasks_created += 1
                 
                 # Handle dead code detection results
@@ -480,15 +480,15 @@ Use the refactoring tools NOW to fix this issue."""
                         self.logger.info(f"  🔍 Found {len(dead_code)} dead code items, creating tasks...")
                         
                         for item in dead_code[:10]:  # Limit to top 10
-                            task = RefactoringTask(
+                            task = manager.create_task(
                                 issue_type=RefactoringIssueType.DEAD_CODE,
-                                priority=RefactoringPriority.LOW,
+                                title=f"Remove dead code: {item.get('name', 'unknown')}",
                                 description=f"Dead code: {item.get('name', 'unknown')}",
                                 target_files=[item.get('file', '')],
+                                priority=RefactoringPriority.LOW,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=15
                             )
-                            manager.add_task(task)
                             tasks_created += 1
                 
                 # Handle architecture validation results
@@ -515,15 +515,15 @@ Use the refactoring tools NOW to fix this issue."""
                                 'low': RefactoringPriority.LOW
                             }
                             
-                            task = RefactoringTask(
+                            task = manager.create_task(
                                 issue_type=issue_type_map.get(violation['type'], RefactoringIssueType.ARCHITECTURE),
-                                priority=priority_map.get(violation['severity'], RefactoringPriority.MEDIUM),
+                                title=f"Architecture violation: {violation['type']}",
                                 description=violation['description'],
                                 target_files=[violation['file']],
+                                priority=priority_map.get(violation['severity'], RefactoringPriority.MEDIUM),
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW if violation['severity'] in ['critical', 'high'] else RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=30
                             )
-                            manager.add_task(task)
                             tasks_created += 1
                 
                 elif tool_name == 'find_integration_gaps':
@@ -536,29 +536,29 @@ Use the refactoring tools NOW to fix this issue."""
                     if unused_classes:
                         self.logger.info(f"  🔍 Found {len(unused_classes)} unused classes, creating tasks...")
                         for unused_class in unused_classes[:10]:
-                            task = RefactoringTask(
+                            task = manager.create_task(
                                 issue_type=RefactoringIssueType.INTEGRATION,
-                                priority=RefactoringPriority.MEDIUM,
+                                title=f"Unused class: {unused_class['name']}",
                                 description=f"Unused class: {unused_class['name']} (never instantiated)",
                                 target_files=[unused_class['file']],
+                                priority=RefactoringPriority.MEDIUM,
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
                                 estimated_effort=30
                             )
-                            manager.add_task(task)
                             tasks_created += 1
                     
                     if classes_with_gaps:
                         self.logger.info(f"  🔍 Found {len(classes_with_gaps)} classes with unused methods, creating tasks...")
                         for class_name, methods in list(classes_with_gaps.items())[:10]:
-                            task = RefactoringTask(
+                            task = manager.create_task(
                                 issue_type=RefactoringIssueType.INTEGRATION,
-                                priority=RefactoringPriority.LOW,
+                                title=f"Unused methods in {class_name}",
                                 description=f"Class {class_name} has {len(methods)} unused methods: {', '.join(methods[:3])}",
                                 target_files=[],  # File info not available in this structure
+                                priority=RefactoringPriority.LOW,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=20
                             )
-                            manager.add_task(task)
                             tasks_created += 1
                 
                 elif tool_name == 'detect_integration_conflicts':
@@ -571,15 +571,15 @@ Use the refactoring tools NOW to fix this issue."""
                             # CRITICAL FIX: IntegrationConflict is a dataclass, need to convert to dict
                             conflict_dict = asdict(conflict) if hasattr(conflict, '__dataclass_fields__') else conflict
                             
-                            task = RefactoringTask(
+                            task = manager.create_task(
                                 issue_type=RefactoringIssueType.CONFLICT,
-                                priority=RefactoringPriority.CRITICAL,
+                                title=f"Integration conflict",
                                 description=f"Integration conflict: {conflict_dict['description']}",
                                 target_files=conflict_dict['files'],
+                                priority=RefactoringPriority.CRITICAL,
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
                                 estimated_effort=60
                             )
-                            manager.add_task(task)
                             tasks_created += 1
                 
                 elif tool_name == 'find_bugs':
@@ -589,15 +589,15 @@ Use the refactoring tools NOW to fix this issue."""
                         self.logger.info(f"  🔍 Found {len(bugs)} potential bugs, creating tasks...")
                         priority_map = {'critical': RefactoringPriority.CRITICAL, 'high': RefactoringPriority.HIGH, 'medium': RefactoringPriority.MEDIUM, 'low': RefactoringPriority.LOW}
                         for bug in bugs[:15]:
-                            task = RefactoringTask(
+                            task = manager.create_task(
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
-                                priority=priority_map.get(bug.get('severity', 'medium'), RefactoringPriority.HIGH),
+                                title=f"Bug: {bug.get('type', 'Unknown')}",
                                 description=f"Bug: {bug.get('description', 'Unknown')}",
                                 target_files=[bug.get('file', '')],
+                                priority=priority_map.get(bug.get('severity', 'medium'), RefactoringPriority.HIGH),
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
                                 estimated_effort=45
                             )
-                            manager.add_task(task)
                             tasks_created += 1
                 
                 elif tool_name == 'detect_antipatterns':
@@ -606,15 +606,15 @@ Use the refactoring tools NOW to fix this issue."""
                     if antipatterns:
                         self.logger.info(f"  🔍 Found {len(antipatterns)} anti-patterns, creating tasks...")
                         for pattern in antipatterns[:10]:
-                            task = RefactoringTask(
+                            task = manager.create_task(
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
-                                priority=RefactoringPriority.MEDIUM,
+                                title=f"Anti-pattern: {pattern.get('name', 'Unknown')}",
                                 description=f"Anti-pattern: {pattern.get('name', 'Unknown')}",
                                 target_files=[pattern.get('file', '')],
+                                priority=RefactoringPriority.MEDIUM,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=30
                             )
-                            manager.add_task(task)
                             tasks_created += 1
                 
                 elif tool_name == 'validate_all_imports':
@@ -623,15 +623,15 @@ Use the refactoring tools NOW to fix this issue."""
                     if errors:
                         self.logger.info(f"  🔍 Found {len(errors)} import errors, creating tasks...")
                         for error in errors[:15]:
-                            task = RefactoringTask(
+                            task = manager.create_task(
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
-                                priority=RefactoringPriority.HIGH,
+                                title=f"Import error in {error.get('file', 'unknown')}",
                                 description=f"Import error: {error.get('error', 'Unknown')}",
                                 target_files=[error.get('file', '')],
+                                priority=RefactoringPriority.HIGH,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=20
                             )
-                            manager.add_task(task)
                             tasks_created += 1
                 
                 elif tool_name == 'validate_syntax':
@@ -640,15 +640,15 @@ Use the refactoring tools NOW to fix this issue."""
                     if errors:
                         self.logger.info(f"  🔍 Found {len(errors)} syntax errors, creating tasks...")
                         for error in errors[:15]:
-                            task = RefactoringTask(
+                            task = manager.create_task(
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
-                                priority=RefactoringPriority.CRITICAL,
+                                title=f"Syntax error in {error.get('file', 'unknown')}",
                                 description=f"Syntax error: {error.get('message', 'Unknown')}",
                                 target_files=[error.get('file', '')],
+                                priority=RefactoringPriority.CRITICAL,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=15
                             )
-                            manager.add_task(task)
                             tasks_created += 1
                 
                 elif tool_name == 'detect_circular_imports':
@@ -657,15 +657,15 @@ Use the refactoring tools NOW to fix this issue."""
                     if cycles:
                         self.logger.info(f"  🔍 Found {len(cycles)} circular import cycles, creating tasks...")
                         for cycle in cycles[:10]:
-                            task = RefactoringTask(
+                            task = manager.create_task(
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
-                                priority=RefactoringPriority.HIGH,
+                                title=f"Circular import detected",
                                 description=f"Circular import: {' → '.join(cycle.get('cycle', []))}",
                                 target_files=cycle.get('files', []),
+                                priority=RefactoringPriority.HIGH,
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
                                 estimated_effort=45
                             )
-                            manager.add_task(task)
                             tasks_created += 1
         
         return tasks_created
