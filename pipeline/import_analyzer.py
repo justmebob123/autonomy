@@ -224,3 +224,114 @@ class ImportAnalyzer:
             return result
         
         return result
+    
+    def detect_circular_imports(self) -> List[List[str]]:
+        """
+        Detect circular import dependencies in the project.
+        
+        Returns:
+            List of circular import chains (each chain is a list of module names)
+        """
+        import_graph = {}
+        
+        # Build import graph
+        for py_file in self.project_root.rglob("*.py"):
+            if py_file.name.startswith('.'):
+                continue
+                
+            try:
+                with open(py_file, 'r', encoding='utf-8') as f:
+                    source = f.read()
+                
+                tree = ast.parse(source)
+                module_name = str(py_file.relative_to(self.project_root)).replace('/', '.').replace('.py', '')
+                
+                imports = []
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Import):
+                        for alias in node.names:
+                            imports.append(alias.name)
+                    elif isinstance(node, ast.ImportFrom):
+                        if node.module:
+                            imports.append(node.module)
+                
+                import_graph[module_name] = imports
+                
+            except Exception:
+                continue
+        
+        # Find cycles using DFS
+        def find_cycles(node, path, visited, cycles):
+            if node in path:
+                # Found a cycle
+                cycle_start = path.index(node)
+                cycle = path[cycle_start:] + [node]
+                cycles.append(cycle)
+                return
+            
+            if node in visited:
+                return
+            
+            visited.add(node)
+            path.append(node)
+            
+            for neighbor in import_graph.get(node, []):
+                find_cycles(neighbor, path[:], visited, cycles)
+        
+        cycles = []
+        visited = set()
+        
+        for module in import_graph:
+            if module not in visited:
+                find_cycles(module, [], visited, cycles)
+        
+        return cycles
+    
+    def validate_all_imports(self) -> List[Dict]:
+        """
+        Validate all imports in the project.
+        
+        Returns:
+            List of invalid imports with details
+        """
+        invalid_imports = []
+        
+        for py_file in self.project_root.rglob("*.py"):
+            if py_file.name.startswith('.'):
+                continue
+                
+            try:
+                with open(py_file, 'r', encoding='utf-8') as f:
+                    source = f.read()
+                
+                tree = ast.parse(source)
+                
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Import):
+                        for alias in node.names:
+                            # Try to import the module
+                            try:
+                                __import__(alias.name)
+                            except ImportError as e:
+                                invalid_imports.append({
+                                    'file': str(py_file.relative_to(self.project_root)),
+                                    'line': node.lineno,
+                                    'module': alias.name,
+                                    'error': str(e)
+                                })
+                    elif isinstance(node, ast.ImportFrom):
+                        if node.module:
+                            try:
+                                __import__(node.module)
+                            except ImportError as e:
+                                invalid_imports.append({
+                                    'file': str(py_file.relative_to(self.project_root)),
+                                    'line': node.lineno,
+                                    'module': node.module,
+                                    'error': str(e)
+                                })
+                
+            except Exception:
+                continue
+        
+        return invalid_imports
