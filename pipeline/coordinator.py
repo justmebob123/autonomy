@@ -1733,16 +1733,12 @@ class PhaseCoordinator:
                     self.logger.info(f"🎯 High-confidence pattern suggests: {pattern_override}")
         
         # SIMPLE DECISION TREE (with pattern influence):
-        # CRITICAL: Refactoring and integration are CODING-RELATED structures that PREEMPT QA!
-        # Order: Debugging → Pending/Refactoring/Coding → QA
+        # CRITICAL: Normal development flow is Coding → Refactoring → QA → Debugging
+        # Refactoring and integration are CODING-RELATED structures that PREEMPT QA!
+        # Order: Pending (Coding/Refactoring) → QA → Debugging
         
-        # 1. If we have tasks needing fixes, go to debugging
-        if needs_fixes:
-            # Pass the first task needing fixes
-            return {'phase': 'debugging', 'task': needs_fixes[0], 'reason': f'{len(needs_fixes)} tasks need fixes'}
-        
-        # 2. If we have pending tasks, route to appropriate phase
-        # CRITICAL: This comes BEFORE QA because refactoring/integration are coding-related
+        # 1. If we have pending tasks, route to appropriate phase
+        # CRITICAL: Coding comes FIRST - can't debug code that doesn't exist yet!
         if pending:
             # Simple priority-based selection: just pick the highest priority pending task
             # Sort by priority (lower number = higher priority)
@@ -1788,7 +1784,7 @@ class PhaseCoordinator:
             # Regular code tasks go to coding phase
             return {'phase': 'coding', 'task': task, 'reason': f'{len(pending)} tasks in progress'}
         
-        # 3. NOW check QA - only after coding-related work is done
+        # 2. NOW check QA - only after coding-related work is done
         # QA validates completed work, not work-in-progress
         if qa_pending:
             project_phase = state.get_project_phase()
@@ -1821,6 +1817,11 @@ class PhaseCoordinator:
             else:  # completion phase
                 self.logger.info(f"  📊 Completion phase ({completion:.1f}%), running aggressive QA")
                 return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'{len(qa_pending)} tasks awaiting QA'}
+        
+        # 3. If we have tasks needing fixes (from QA failures), go to debugging
+        if needs_fixes:
+            # Pass the first task needing fixes
+            return {'phase': 'debugging', 'task': needs_fixes[0], 'reason': f'{len(needs_fixes)} tasks need fixes'}
         
         # 4. If no tasks at all, start with planning (unless pattern suggests otherwise)
         if not state.tasks:
