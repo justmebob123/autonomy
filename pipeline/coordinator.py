@@ -296,10 +296,10 @@ class PhaseCoordinator:
         elif phase_type == 'refactoring':
             dims['context'] = 0.9      # Needs full codebase context
             dims['data'] = 0.8         # Analyzes code data
-            dims['integration'] = 0.8  # High integration with codebase
-            dims['functional'] = 0.7   # Improves functionality
-            dims['temporal'] = 0.6     # Takes time to analyze
-            dims['error'] = 0.4        # Medium error focus
+            dims['integration'] = 0.9  # INCREASED: High integration with codebase
+            dims['functional'] = 0.8   # INCREASED: Improves functionality
+            dims['temporal'] = 0.7     # INCREASED: Takes time to analyze
+            dims['error'] = 0.6        # INCREASED: Fixes errors through refactoring
             dims['state'] = 0.7        # Manages code state
         
         # Phase-specific adjustments
@@ -1533,6 +1533,111 @@ class PhaseCoordinator:
             'dimensional_health': health
         }
     
+    def _should_trigger_refactoring(self, state: PipelineState, pending_tasks: List) -> bool:
+        """
+        Check if refactoring should be triggered.
+        
+        Triggers refactoring when:
+        1. Every 20 iterations (periodic maintenance)
+        2. 15+ files created in last 10 iterations (code growth)
+        3. Duplicate patterns detected (code quality)
+        
+        Args:
+            state: Current pipeline state
+            pending_tasks: List of pending tasks
+            
+        Returns:
+            True if refactoring should be triggered, False otherwise
+        """
+        # Trigger every 20 iterations
+        iteration_count = len(getattr(state, 'phase_history', []))
+        if iteration_count > 0 and iteration_count % 20 == 0:
+            self.logger.info("  🔄 Triggering refactoring (periodic check)")
+            return True
+        
+        # Trigger if many files created recently
+        recent_files = self._count_recent_files(state, iterations=10)
+        if recent_files > 15:
+            self.logger.info(f"  🔄 Triggering refactoring ({recent_files} files created recently)")
+            return True
+        
+        # Trigger if duplicate patterns detected
+        if self._detect_duplicate_patterns(state):
+            self.logger.info("  🔄 Triggering refactoring (duplicate patterns detected)")
+            return True
+        
+        return False
+    
+    def _count_recent_files(self, state: PipelineState, iterations: int = 10) -> int:
+        """
+        Count files created in last N iterations.
+        
+        Args:
+            state: Current pipeline state
+            iterations: Number of iterations to look back
+            
+        Returns:
+            Number of files created in last N iterations
+        """
+        if not hasattr(state, 'phase_history'):
+            return 0
+        
+        # Get last N phases
+        recent_phases = state.phase_history[-iterations:] if len(state.phase_history) > iterations else state.phase_history
+        
+        # Count files created in coding phase runs
+        files_created = 0
+        for phase_name in recent_phases:
+            if phase_name == 'coding' and phase_name in state.phases:
+                phase_state = state.phases[phase_name]
+                # Count successful runs with files created
+                for run in phase_state.runs:
+                    if run.success and run.files_created:
+                        files_created += len(run.files_created)
+        
+        return files_created
+    
+    def _detect_duplicate_patterns(self, state: PipelineState) -> bool:
+        """
+        Detect potential duplicate implementations using simple heuristics.
+        
+        Checks for:
+        1. Files with similar names (e.g., utils.py, utils_v2.py)
+        2. Multiple files in same directory with similar purposes
+        
+        Args:
+            state: Current pipeline state
+            
+        Returns:
+            True if duplicate patterns detected, False otherwise
+        """
+        from pathlib import Path
+        
+        # Group files by base name
+        files_by_basename = {}
+        for task in state.tasks.values():
+            if task.target_file and task.status == TaskStatus.COMPLETED:
+                # Extract base name without extension
+                base_name = Path(task.target_file).stem
+                
+                # Remove version suffixes (_v2, _v3, _new, _old, etc.)
+                import re
+                clean_name = re.sub(r'(_v\d+|_new|_old|_backup|_copy|\d+)$', '', base_name)
+                
+                # Group by clean name
+                if clean_name not in files_by_basename:
+                    files_by_basename[clean_name] = []
+                files_by_basename[clean_name].append(task.target_file)
+        
+        # Check for duplicates
+        for clean_name, file_list in files_by_basename.items():
+            if len(file_list) > 1:
+                # Multiple files with same base name (potential duplicates)
+                self.logger.debug(f"  Potential duplicates: {file_list}")
+                return True
+        
+        return False
+    
     def _determine_next_action_tactical(self, state: PipelineState) -> Dict:
         """
         Tactical decision-making based on task status (LEGACY).
@@ -1631,6 +1736,10 @@ class PhaseCoordinator:
             if is_doc_task:
                 self.logger.info(f"📝 Routing documentation task to documentation phase: {task.description[:60]}...")
                 return {'phase': 'documentation', 'task': task, 'reason': f'Documentation task detected'}
+            
+            # Check if refactoring is needed BEFORE routing to coding
+            if self._should_trigger_refactoring(state, pending):
+                return {'phase': 'refactoring', 'reason': 'Refactoring needed before continuing development'}
             
             # Regular code tasks go to coding phase
             return {'phase': 'coding', 'task': task, 'reason': f'{len(pending)} tasks in progress'}
