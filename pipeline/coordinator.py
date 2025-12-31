@@ -1568,6 +1568,13 @@ class PhaseCoordinator:
         completion = state.calculate_completion_percentage()
         iteration_count = len(getattr(state, 'phase_history', []))
         
+        # COOLDOWN: Don't trigger refactoring if it was just run
+        # Check last 3 iterations for refactoring phase
+        recent_phases = getattr(state, 'phase_history', [])[-3:]
+        if any(phase == 'refactoring' for phase in recent_phases):
+            self.logger.debug(f"  Refactoring cooldown active (ran in last 3 iterations)")
+            return False
+        
         # FOUNDATION PHASE (0-25%): NO REFACTORING
         # Need substantial codebase before refactoring makes sense
         if project_phase == 'foundation':

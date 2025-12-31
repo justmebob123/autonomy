@@ -412,6 +412,66 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
         results = handler.process_tool_calls(tool_calls)
         
+        # Check if any tools succeeded
+        any_success = False
+        all_errors = []
+        for result in results:
+            if result.get("success"):
+                any_success = True
+            else:
+                error = result.get("error", "Unknown error")
+                all_errors.append(f"{result.get('tool', 'unknown')}: {error}")
+        
+        # If ALL tools failed, try ONE MORE TIME with error feedback
+        if not any_success:
+            self.logger.warning(f"  ⚠️  All tools failed on first attempt, retrying with error feedback...")
+            
+            # Build error feedback message
+            error_summary = "\n".join(all_errors)
+            retry_prompt = f"""The previous tool calls failed with these errors:
+
+{error_summary}
+
+Please try a different approach:
+1. If detect_duplicate_implementations failed with import errors, try analyze_complexity or detect_dead_code instead
+2. If you need to analyze files, try extract_file_features on specific files
+3. Focus on tools that don't require complex imports
+4. Consider using simpler analysis tools first
+
+Available tools that are more reliable:
+- analyze_complexity: Analyze code complexity metrics
+- detect_dead_code: Find unused code
+- extract_file_features: Extract features from specific files
+- analyze_architecture_consistency: Check MASTER_PLAN consistency
+
+Please select ONE reliable tool and try again."""
+
+            # Retry with error feedback
+            retry_result = self.chat_with_history(
+                user_message=retry_prompt,
+                tools=tools
+            )
+            
+            retry_tool_calls = retry_result.get("tool_calls", [])
+            if retry_tool_calls:
+                retry_results = handler.process_tool_calls(retry_tool_calls)
+                
+                # Check retry results
+                for result in retry_results:
+                    if result.get("success"):
+                        any_success = True
+                        results.extend(retry_results)
+                        break
+        
+        # If STILL all tools failed after retry, return failure
+        if not any_success:
+            error_summary = "\n".join(all_errors)
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message=f"Comprehensive refactoring failed: All tools failed even after retry\n{error_summary}"
+            )
+        
         # Update REFACTORING_WRITE.md with results
         self._write_refactoring_results(
             refactoring_type="comprehensive",

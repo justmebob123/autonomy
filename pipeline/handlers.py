@@ -2979,7 +2979,7 @@ class ToolCallHandler:
     def _handle_detect_duplicate_implementations(self, args: Dict) -> Dict:
         """Handle detect_duplicate_implementations tool."""
         try:
-            from ..analysis.file_refactoring import DuplicateDetector
+            from pipeline.analysis.file_refactoring import DuplicateDetector
             
             similarity_threshold = args.get('similarity_threshold', 0.75)
             scope = args.get('scope', 'project')
@@ -3021,7 +3021,7 @@ class ToolCallHandler:
     def _handle_compare_file_implementations(self, args: Dict) -> Dict:
         """Handle compare_file_implementations tool."""
         try:
-            from ..analysis.file_refactoring import FileComparator
+            from pipeline.analysis.file_refactoring import FileComparator
             
             file1 = args['file1']
             file2 = args['file2']
@@ -3054,7 +3054,7 @@ class ToolCallHandler:
     def _handle_extract_file_features(self, args: Dict) -> Dict:
         """Handle extract_file_features tool."""
         try:
-            from ..analysis.file_refactoring import FeatureExtractor
+            from pipeline.analysis.file_refactoring import FeatureExtractor
             
             source_file = args['source_file']
             features = args['features']
@@ -3101,7 +3101,7 @@ class ToolCallHandler:
     def _handle_analyze_architecture_consistency(self, args: Dict) -> Dict:
         """Handle analyze_architecture_consistency tool."""
         try:
-            from ..analysis.file_refactoring import ArchitectureAnalyzer
+            from pipeline.analysis.file_refactoring import ArchitectureAnalyzer
             
             check_master_plan = args.get('check_master_plan', True)
             check_architecture = args.get('check_architecture', True)
