@@ -426,7 +426,11 @@ Use the refactoring tools NOW to fix this issue."""
                 
                 # Handle duplicate detection results
                 if tool_name == 'detect_duplicate_implementations':
-                    duplicates = tool_result.get('duplicates', [])
+                    # CRITICAL FIX: Handler returns nested structure
+                    # {"success": True, "result": {"duplicate_sets": [...], "total_duplicates": N}}
+                    result_data = tool_result.get('result', {})
+                    duplicates = result_data.get('duplicate_sets', [])
+                    
                     if duplicates:
                         self.logger.info(f"  🔍 Found {len(duplicates)} duplicate sets, creating tasks...")
                         
@@ -445,16 +449,19 @@ Use the refactoring tools NOW to fix this issue."""
                 
                 # Handle complexity analysis results
                 elif tool_name == 'analyze_complexity':
-                    complex_files = tool_result.get('complex_files', [])
-                    if complex_files:
-                        self.logger.info(f"  🔍 Found {len(complex_files)} complex files, creating tasks...")
+                    # CRITICAL FIX: Handler returns nested structure
+                    result_data = tool_result.get('result', {})
+                    critical_functions = result_data.get('critical_functions', [])
+                    
+                    if critical_functions:
+                        self.logger.info(f"  🔍 Found {len(critical_functions)} critical complexity issues, creating tasks...")
                         
-                        for file_info in complex_files[:5]:  # Limit to top 5
+                        for func_info in critical_functions[:5]:  # Limit to top 5
                             task = RefactoringTask(
                                 issue_type=RefactoringIssueType.COMPLEXITY,
                                 priority=RefactoringPriority.HIGH,
-                                description=f"High complexity: {file_info.get('complexity', 0)}",
-                                affected_files=[file_info.get('file', '')],
+                                description=f"High complexity: {func_info.get('name', 'unknown')} (complexity: {func_info.get('complexity', 0)})",
+                                affected_files=[func_info.get('file', '')],
                                 fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
                                 estimated_effort_minutes=60
                             )
@@ -463,7 +470,12 @@ Use the refactoring tools NOW to fix this issue."""
                 
                 # Handle dead code detection results
                 elif tool_name == 'detect_dead_code':
-                    dead_code = tool_result.get('dead_code', [])
+                    # CRITICAL FIX: Handler returns nested structure
+                    result_data = tool_result.get('result', {})
+                    unused_functions = result_data.get('unused_functions', [])
+                    unused_methods = result_data.get('unused_methods', [])
+                    dead_code = unused_functions + unused_methods
+                    
                     if dead_code:
                         self.logger.info(f"  🔍 Found {len(dead_code)} dead code items, creating tasks...")
                         
