@@ -489,7 +489,7 @@ class PipelineState:
         }
     
     def to_dict(self) -> Dict:
-        return {
+        result = {
             "version": self.version,
             "updated": self.updated,
             "pipeline_run_id": self.pipeline_run_id,
@@ -519,6 +519,12 @@ class PipelineState:
             "project_phase": self.project_phase,
             "phase_execution_counts": self.phase_execution_counts,
         }
+        
+        # Serialize refactoring_manager if present
+        if self.refactoring_manager is not None:
+            result["refactoring_manager"] = self.refactoring_manager.to_dict()
+        
+        return result
     
     @classmethod
     def from_dict(cls, data: Dict) -> "PipelineState":
@@ -533,7 +539,19 @@ class PipelineState:
             'consolidation': {},
             'completion': {}
         })
-        return cls(**data)
+        
+        # Deserialize refactoring_manager if present
+        refactoring_manager_data = data.pop("refactoring_manager", None)
+        
+        # Create state instance
+        state = cls(**data)
+        
+        # Restore refactoring_manager
+        if refactoring_manager_data is not None:
+            from pipeline.state.refactoring_task import RefactoringTaskManager
+            state.refactoring_manager = RefactoringTaskManager.from_dict(refactoring_manager_data)
+        
+        return state
     
     def get_task(self, task_id: str) -> Optional[TaskState]:
         """Get a task by ID"""
