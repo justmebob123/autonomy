@@ -151,6 +151,12 @@ class FunctionCallValidator:
         else:
             return
         
+        # Skip if call uses *args or **kwargs (can't validate these)
+        has_starargs = any(isinstance(arg, ast.Starred) for arg in node.args)
+        has_kwargs = any(kw.arg is None for kw in node.keywords)
+        if has_starargs or has_kwargs:
+            return
+        
         # Skip common stdlib functions that have flexible signatures
         stdlib_functions = {
             'parse', 'get', 'post', 'put', 'delete', 'patch',  # HTTP/parsing
@@ -160,6 +166,7 @@ class FunctionCallValidator:
             'update', 'setdefault', 'fromkeys',  # Dict methods
             'read', 'write', 'readline', 'readlines',  # File methods
             'open', 'close', 'flush',  # IO methods
+            'error', 'warning', 'info', 'debug', 'critical',  # Logging methods
         }
         
         if func_name in stdlib_functions:

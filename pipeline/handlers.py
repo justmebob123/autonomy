@@ -3870,7 +3870,7 @@ class ToolCallHandler:
             from pipeline.syntax_validator import SyntaxValidator
             validator = SyntaxValidator()
             
-            is_valid, errors = validator.validate(code, filename)
+            is_valid, errors = validator.validate_python_code(code, filename)
             
             self.logger.info(f"  🔍 Syntax validation: {'✅ Valid' if is_valid else '❌ Invalid'}")
             if errors:

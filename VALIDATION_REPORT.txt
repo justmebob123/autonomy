@@ -3,63 +3,36 @@
 ================================================================================
 
 Project: .
-Started: 2025-12-31 08:51:18
+Started: 2025-12-31 09:00:38
 
-Total errors: 52
+Total errors: 27
 
-Method Existence Errors (14):
-  run.py:488 - Method 'get_diagnostic_report' does not exist on class 'RuntimeTester'
-  pipeline/runtime_tester.py:615 - Method 'analyze' does not exist on class 'ArchitectureAnalyzer'
-  pipeline/runtime_tester.py:665 - Method 'format_report' does not exist on class 'ArchitectureAnalyzer'
-  pipeline/handlers.py:3873 - Method 'validate' does not exist on class 'SyntaxValidator'
-  bin/analysis/complexity.py:135 - Method 'analyze_file' does not exist on class 'ComplexityAnalyzer'
-  bin/analysis/dead_code.py:149 - Method 'analyze_file' does not exist on class 'DeadCodeDetector'
-  bin/analysis/dead_code.py:162 - Method 'get_unused_functions' does not exist on class 'DeadCodeDetector'
-  bin/analysis/dead_code.py:170 - Method 'get_unused_methods' does not exist on class 'DeadCodeDetector'
-  bin/analysis/dead_code.py:178 - Method 'get_unused_imports' does not exist on class 'DeadCodeDetector'
-  scripts/analysis/complexity.py:135 - Method 'analyze_file' does not exist on class 'ComplexityAnalyzer'
-  scripts/analysis/dead_code.py:149 - Method 'analyze_file' does not exist on class 'DeadCodeDetector'
-  scripts/analysis/dead_code.py:162 - Method 'get_unused_functions' does not exist on class 'DeadCodeDetector'
-  scripts/analysis/dead_code.py:170 - Method 'get_unused_methods' does not exist on class 'DeadCodeDetector'
-  scripts/analysis/dead_code.py:178 - Method 'get_unused_imports' does not exist on class 'DeadCodeDetector'
-
-Function Call Errors (38):
-  DEPTH_59_POLYTOPIC_ANALYSIS.py:68 - Missing required arguments: finder
-  DEPTH_61_DEFAULTDICT_ANALYSIS.py:319 - Missing required arguments: finder
-  ENHANCED_DEPTH_61_ANALYZER.py:344 - Missing required arguments: finder
-  DEPTH_31_ANALYSIS.py:82 - Missing required arguments: finder
-  IMPROVED_DEPTH_61_ANALYZER.py:212 - Missing required arguments: finder
-  INTEGRATION_VERIFICATION.py:62 - Missing required arguments: finder
+Function Call Errors (27):
   pipeline/specialist_agents.py:95 - Missing required arguments: issue
-  pipeline/coordinator_analytics_integration.py:112 - Unexpected keyword argument: context, duration, success
-  pipeline/config_investigator.py:43 - Missing required arguments: result
-  pipeline/error_strategies.py:55 - Missing required arguments: content
-  pipeline/error_strategies.py:162 - Missing required arguments: content
-  pipeline/error_strategies.py:226 - Missing required arguments: content
-  pipeline/error_strategies.py:275 - Missing required arguments: content
-  pipeline/error_strategies.py:324 - Missing required arguments: content
+  pipeline/coordinator_analytics_integration.py:112 - Unexpected keyword argument: success, context, duration
   pipeline/phase_resources.py:19 - Missing required arguments: issue
-  pipeline/conversation_thread.py:208 - Unexpected keyword argument: tool_results, agent_name, tool_calls
+  pipeline/conversation_thread.py:208 - Unexpected keyword argument: agent_name, tool_calls, tool_results
   pipeline/conversation_thread.py:228 - Unexpected keyword argument: agent_name
-  pipeline/orchestration/conversation_pruning.py:341 - Missing required arguments: content
   pipeline/orchestration/model_tool.py:143 - Missing required arguments: phase_name
-  pipeline/phases/qa.py:33 - Missing required arguments: content
-  pipeline/phases/coding.py:36 - Missing required arguments: content
-  pipeline/phases/planning.py:33 - Missing required arguments: content
-  pipeline/phases/investigation.py:33 - Missing required arguments: content
-  pipeline/phases/refactoring.py:48 - Missing required arguments: content
-  pipeline/phases/debugging.py:51 - Missing required arguments: content
-  pipeline/messaging/message_bus.py:469 - Unexpected keyword argument: exc_info
-  bin/analysis/complexity.py:230 - Missing required arguments: directory
-  bin/analysis/call_graph.py:220 - Missing required arguments: directory
-  bin/analysis/advanced_analysis.py:212 - Missing required arguments: finder
-  bin/analysis/deep_analysis.py:344 - Missing required arguments: finder
-  bin/analysis/dead_code.py:203 - Missing required arguments: directory
-  bin/analysis/integration_gaps.py:192 - Missing required arguments: directory
-  scripts/analysis/complexity.py:230 - Missing required arguments: directory
-  scripts/analysis/call_graph.py:220 - Missing required arguments: directory
-  scripts/analysis/advanced_analysis.py:212 - Missing required arguments: finder
-  scripts/analysis/deep_analysis.py:344 - Missing required arguments: finder
-  scripts/analysis/dead_code.py:203 - Missing required arguments: directory
-  scripts/analysis/integration_gaps.py:192 - Missing required arguments: directory
+  pipeline/phases/qa.py:485 - Missing required arguments: files_modified, fix_applied
+  pipeline/phases/qa.py:485 - Unexpected keyword argument: approved
+  pipeline/phases/qa.py:490 - Missing required arguments: fix_applied
+  pipeline/phases/qa.py:434 - Missing required arguments: files_modified, fix_applied
+  pipeline/phases/qa.py:434 - Unexpected keyword argument: approved
+  pipeline/phases/qa.py:439 - Missing required arguments: fix_applied
+  pipeline/phases/debugging.py:1287 - Unexpected keyword argument: tool_calls
+  pipeline/phases/debugging.py:1510 - Unexpected keyword argument: tool_results
+  pipeline/phases/debugging.py:1134 - Missing required arguments: issue
+  pipeline/phases/debugging.py:1134 - Unexpected keyword argument: problem
+  pipeline/phases/debugging.py:1185 - Missing required arguments: context
+  pipeline/phases/debugging.py:1331 - Unexpected keyword argument: tool_results
+  pipeline/phases/debugging.py:1703 - Unexpected keyword argument: tool_results
+  pipeline/analysis/complexity.py:247 - Missing required arguments: project_root, args
+  pipeline/analysis/complexity.py:257 - Missing required arguments: project_root, args
+  pipeline/analysis/call_graph.py:209 - Missing required arguments: project_root, args
+  pipeline/analysis/call_graph.py:219 - Missing required arguments: project_root, args
+  pipeline/analysis/dead_code.py:316 - Missing required arguments: project_root, args
+  pipeline/analysis/dead_code.py:326 - Missing required arguments: project_root, args
+  pipeline/analysis/integration_gaps.py:248 - Missing required arguments: project_root, args
+  pipeline/analysis/integration_gaps.py:258 - Missing required arguments: project_root, args
 

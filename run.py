@@ -485,7 +485,7 @@ def run_debug_qa_mode(args) -> int:
                                 print("="*70)
                                 print("\nRunning comprehensive diagnostics...\n")
                                 
-                                diagnostic_report = tester.get_diagnostic_report()
+                                diagnostic_report = tester.program_runner.get_diagnostic_report()
                                 print(diagnostic_report)
 
                                 # Run application troubleshooting phase

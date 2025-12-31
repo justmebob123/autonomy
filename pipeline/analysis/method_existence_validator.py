@@ -286,9 +286,14 @@ class MethodCallVisitor(ast.NodeVisitor):
                     for target in node.targets:
                         if isinstance(target, ast.Name):
                             self.var_types[target.id] = func_name
-                            # Track source file if we know where it was imported from
+                            # Track source file
                             if func_name in self.imports:
+                                # Use imported source
                                 self.var_type_sources[target.id] = self.imports[func_name]
+                            else:
+                                # No import found - assume local definition (same file)
+                                rel_path = str(self.filepath.relative_to(self.project_root))
+                                self.var_type_sources[target.id] = rel_path.replace('.py', '')
         
         self.generic_visit(node)
     

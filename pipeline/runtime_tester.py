@@ -612,7 +612,12 @@ class RuntimeTester:
          
          # Analyze architecture
          self.logger.info("Analyzing architecture...")
-         results['architecture_analysis'] = arch_analyzer.analyze()
+         # ArchitectureAnalyzer doesn't have analyze() - use compare_architecture()
+         master_plan = working_dir / "MASTER_PLAN.md"
+         if master_plan.exists():
+             results['architecture_analysis'] = arch_analyzer.compare_architecture(str(master_plan))
+         else:
+             results['architecture_analysis'] = {"error": "No MASTER_PLAN.md found"}
          
      except Exception as e:
          self.logger.error(f"Error during application troubleshooting: {e}")
@@ -661,8 +666,15 @@ class RuntimeTester:
      
      # Architecture Analysis Section
      if results.get('architecture_analysis'):
-         arch_analyzer = ArchitectureAnalyzer(".")
-         report.append(arch_analyzer.format_report(results['architecture_analysis']))
+         # ArchitectureAnalyzer doesn't have format_report() - format manually
+         arch_data = results['architecture_analysis']
+         report.append("## Architecture Analysis")
+         report.append("")
+         if isinstance(arch_data, dict):
+             for key, value in arch_data.items():
+                 report.append(f"**{key}:** {value}")
+         else:
+             report.append(str(arch_data))
          report.append("")
      
      report.append("=" * 80)
