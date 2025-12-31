@@ -175,6 +175,12 @@ class ToolCallHandler:
             "update_readme_section": self._handle_update_readme_section,
             "add_readme_section": self._handle_add_readme_section,
             "confirm_documentation_current": self._handle_confirm_documentation_current,
+            # Validation tools (Phase 1 - Critical)
+            "validate_attribute_access": self._handle_validate_attribute_access,
+            "verify_import_class_match": self._handle_verify_import_class_match,
+            "check_abstract_methods": self._handle_check_abstract_methods,
+            "verify_tool_handlers": self._handle_verify_tool_handlers,
+            "validate_dict_access": self._handle_validate_dict_access,
         }
         
         # Register custom tools from registry (Integration Fix #1)
@@ -3317,6 +3323,195 @@ class ToolCallHandler:
             self.logger.error(f"Cleanup failed: {e}")
             return {
                 "tool": "cleanup_redundant_files",
+                "success": False,
+                "error": str(e)
+            }
+    
+    # =========================================================================
+    # Validation Tools (Phase 1 - Critical)
+    # =========================================================================
+    
+    def _handle_validate_attribute_access(self, args: Dict) -> Dict:
+        """Validate attribute access patterns."""
+        try:
+            from ..analysis.code_validation import AttributeAccessValidator
+            
+            filepath = args.get('filepath')
+            check_all = args.get('check_all_files', False)
+            
+            self.logger.info(f"🔍 Validating attribute access in {filepath if not check_all else 'all files'}")
+            
+            if check_all:
+                # Check all Python files
+                from pathlib import Path
+                files = [f for f in Path(self.project_dir).rglob("*.py") 
+                        if '.venv' not in str(f) and '__pycache__' not in str(f)]
+            else:
+                files = [self.project_dir / filepath]
+            
+            all_issues = []
+            for file in files:
+                validator = AttributeAccessValidator(str(file), self.logger)
+                issues = validator.validate()
+                if issues:
+                    all_issues.extend(issues)
+            
+            if all_issues:
+                self.logger.warning(f"⚠️  Found {len(all_issues)} attribute access issues")
+                for issue in all_issues[:5]:  # Show first 5
+                    self.logger.warning(f"  • {issue['file']}:{issue.get('line', '?')}: {issue['message']}")
+            else:
+                self.logger.info("✅ No attribute access issues found")
+            
+            return {
+                "tool": "validate_attribute_access",
+                "success": True,
+                "issues_found": len(all_issues),
+                "issues": all_issues,
+                "message": f"Found {len(all_issues)} attribute access issues"
+            }
+        except Exception as e:
+            self.logger.error(f"Attribute validation failed: {e}")
+            return {
+                "tool": "validate_attribute_access",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_verify_import_class_match(self, args: Dict) -> Dict:
+        """Verify import names match class names."""
+        try:
+            from ..analysis.code_validation import ImportClassMatcher
+            
+            filepath = args.get('filepath')
+            
+            self.logger.info(f"🔍 Verifying import-class matches in {filepath}")
+            
+            full_path = self.project_dir / filepath
+            matcher = ImportClassMatcher(str(full_path), self.logger)
+            issues = matcher.validate()
+            
+            if issues:
+                self.logger.warning(f"⚠️  Found {len(issues)} import-class mismatch issues")
+                for issue in issues[:5]:  # Show first 5
+                    self.logger.warning(f"  • Line {issue.get('line', '?')}: {issue['message']}")
+            else:
+                self.logger.info("✅ All imports match class names")
+            
+            return {
+                "tool": "verify_import_class_match",
+                "success": True,
+                "issues_found": len(issues),
+                "issues": issues,
+                "message": f"Found {len(issues)} import-class mismatch issues"
+            }
+        except Exception as e:
+            self.logger.error(f"Import verification failed: {e}")
+            return {
+                "tool": "verify_import_class_match",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_check_abstract_methods(self, args: Dict) -> Dict:
+        """Check abstract methods are implemented."""
+        try:
+            from ..analysis.code_validation import AbstractMethodChecker
+            
+            filepath = args.get('filepath')
+            class_name = args.get('class_name')
+            
+            self.logger.info(f"🔍 Checking abstract methods in {class_name}")
+            
+            full_path = self.project_dir / filepath
+            checker = AbstractMethodChecker(str(full_path), class_name, self.logger)
+            issues = checker.validate()
+            
+            if issues:
+                self.logger.warning(f"⚠️  Found {len(issues)} abstract method issues")
+                for issue in issues:
+                    self.logger.warning(f"  • {issue['message']}")
+            else:
+                self.logger.info(f"✅ All abstract methods implemented in {class_name}")
+            
+            return {
+                "tool": "check_abstract_methods",
+                "success": True,
+                "issues_found": len(issues),
+                "issues": issues,
+                "message": f"Found {len(issues)} abstract method issues"
+            }
+        except Exception as e:
+            self.logger.error(f"Abstract method check failed: {e}")
+            return {
+                "tool": "check_abstract_methods",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_verify_tool_handlers(self, args: Dict) -> Dict:
+        """Verify tool-handler-registration chain."""
+        try:
+            from ..analysis.code_validation import ToolHandlerVerifier
+            
+            self.logger.info("🔍 Verifying tool-handler-registration chain")
+            
+            verifier = ToolHandlerVerifier(str(self.project_dir), self.logger)
+            issues = verifier.validate()
+            
+            if issues:
+                self.logger.warning(f"⚠️  Found {len(issues)} tool-handler issues")
+                for issue in issues[:10]:  # Show first 10
+                    self.logger.warning(f"  • {issue['type']}: {issue['message']}")
+            else:
+                self.logger.info("✅ All tools have handlers and are registered")
+            
+            return {
+                "tool": "verify_tool_handlers",
+                "success": True,
+                "issues_found": len(issues),
+                "issues": issues,
+                "message": f"Found {len(issues)} tool-handler issues"
+            }
+        except Exception as e:
+            self.logger.error(f"Tool-handler verification failed: {e}")
+            return {
+                "tool": "verify_tool_handlers",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_validate_dict_access(self, args: Dict) -> Dict:
+        """Validate dictionary access patterns."""
+        try:
+            from ..analysis.code_validation import DictAccessValidator
+            
+            filepath = args.get('filepath')
+            
+            self.logger.info(f"🔍 Validating dictionary access in {filepath}")
+            
+            full_path = self.project_dir / filepath
+            validator = DictAccessValidator(str(full_path), self.logger)
+            issues = validator.validate()
+            
+            if issues:
+                self.logger.warning(f"⚠️  Found {len(issues)} unsafe dictionary access patterns")
+                for issue in issues[:5]:  # Show first 5
+                    self.logger.warning(f"  • Line {issue.get('line', '?')}: {issue['message']}")
+            else:
+                self.logger.info("✅ All dictionary accesses are safe")
+            
+            return {
+                "tool": "validate_dict_access",
+                "success": True,
+                "issues_found": len(issues),
+                "issues": issues,
+                "message": f"Found {len(issues)} unsafe dictionary access patterns"
+            }
+        except Exception as e:
+            self.logger.error(f"Dictionary access validation failed: {e}")
+            return {
+                "tool": "validate_dict_access",
                 "success": False,
                 "error": str(e)
             }

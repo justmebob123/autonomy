@@ -13,6 +13,7 @@ from typing import List, Dict
 from .system_analyzer_tools import SYSTEM_ANALYZER_TOOLS
 from .tool_modules.tool_definitions import TOOLS_ANALYSIS, TOOLS_FILE_UPDATES
 from .tool_modules.refactoring_tools import TOOLS_REFACTORING
+from .tool_modules.validation_tools import TOOLS_VALIDATION
 
 
 # =============================================================================
@@ -945,12 +946,13 @@ def get_tools_for_phase(phase: str, tool_registry=None) -> List[Dict]:
     phase_tools = {
         "planning": TOOLS_PLANNING + TOOLS_ANALYSIS,  # Removed TOOLS_FILE_UPDATES - planning should only create tasks
         "coding": TOOLS_CODING + TOOLS_ANALYSIS,
-        "qa": TOOLS_QA + TOOLS_ANALYSIS,
-        "debugging": TOOLS_DEBUGGING + TOOLS_ANALYSIS,
-        "debug": TOOLS_DEBUGGING + TOOLS_ANALYSIS,  # Alias
+        "qa": TOOLS_QA + TOOLS_ANALYSIS + TOOLS_VALIDATION,
+        "debugging": TOOLS_DEBUGGING + TOOLS_ANALYSIS + TOOLS_VALIDATION,
+        "debug": TOOLS_DEBUGGING + TOOLS_ANALYSIS + TOOLS_VALIDATION,  # Alias
         "project_planning": TOOLS_PROJECT_PLANNING + TOOLS_ANALYSIS + TOOLS_FILE_UPDATES,
         "documentation": TOOLS_DOCUMENTATION + TOOLS_FILE_UPDATES,
         "refactoring": TOOLS_REFACTORING + TOOLS_ANALYSIS + TOOLS_FILE_UPDATES,
+        "investigation": TOOLS_ANALYSIS + TOOLS_VALIDATION,
     }
     
     # Get base tools for this phase
