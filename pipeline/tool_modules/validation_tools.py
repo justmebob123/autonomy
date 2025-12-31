@@ -12,6 +12,38 @@ TOOLS_VALIDATION = [
     {
         "type": "function",
         "function": {
+            "name": "validate_function_calls",
+            "description": "Validate that all function and method calls use correct parameters. Checks for missing required arguments, unexpected keyword arguments, and wrong parameter names. Would have caught estimated_effort_minutes and missing task_id/title errors.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to Python file to analyze (optional - analyzes all if not specified)"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "validate_method_existence",
+            "description": "Validate that methods called on objects actually exist on their classes. Checks that all method calls reference real methods. Would have caught ImportAnalyzer.validate_all_imports() missing method error.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "Path to Python file to analyze (optional - analyzes all if not specified)"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "validate_attribute_access",
             "description": "Validate all object attribute access patterns in Python files. Checks that accessed attributes exist in class definitions. Would have caught task.target vs task.target_file error.",
             "parameters": {

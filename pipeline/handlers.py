@@ -184,6 +184,8 @@ class ToolCallHandler:
             "add_readme_section": self._handle_add_readme_section,
             "confirm_documentation_current": self._handle_confirm_documentation_current,
             # Validation tools (Phase 1 - Critical)
+            "validate_function_calls": self._handle_validate_function_calls,
+            "validate_method_existence": self._handle_validate_method_existence,
             "validate_attribute_access": self._handle_validate_attribute_access,
             "verify_import_class_match": self._handle_verify_import_class_match,
             "check_abstract_methods": self._handle_check_abstract_methods,
@@ -3940,6 +3942,74 @@ class ToolCallHandler:
             self.logger.error(f"Import validation failed: {e}")
             return {
                 "tool": "validate_all_imports",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_validate_function_calls(self, args: Dict) -> Dict:
+        """Validate function and method calls use correct parameters."""
+        try:
+            from pipeline.analysis.function_call_validator import FunctionCallValidator
+            
+            self.logger.info("🔍 Validating function calls...")
+            
+            validator = FunctionCallValidator(str(self.project_dir))
+            result = validator.validate_all()
+            
+            errors = result.get('errors', [])
+            if errors:
+                self.logger.warning(f"⚠️  Found {len(errors)} function call errors")
+                for err in errors[:5]:  # Show first 5
+                    self.logger.warning(f"  • {err['file']}:{err['line']}: {err['message']}")
+            else:
+                self.logger.info("✅ No function call errors found")
+            
+            return {
+                "tool": "validate_function_calls",
+                "success": True,
+                "result": result,
+                "errors": errors,
+                "total_errors": len(errors),
+                "message": f"Found {len(errors)} function call errors"
+            }
+        except Exception as e:
+            self.logger.error(f"Function call validation failed: {e}")
+            return {
+                "tool": "validate_function_calls",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_validate_method_existence(self, args: Dict) -> Dict:
+        """Validate that methods called on objects exist."""
+        try:
+            from pipeline.analysis.method_existence_validator import MethodExistenceValidator
+            
+            self.logger.info("🔍 Validating method existence...")
+            
+            validator = MethodExistenceValidator(str(self.project_dir))
+            result = validator.validate_all()
+            
+            errors = result.get('errors', [])
+            if errors:
+                self.logger.warning(f"⚠️  Found {len(errors)} method existence errors")
+                for err in errors[:5]:  # Show first 5
+                    self.logger.warning(f"  • {err['file']}:{err['line']}: {err['class_name']}.{err['method_name']} does not exist")
+            else:
+                self.logger.info("✅ No method existence errors found")
+            
+            return {
+                "tool": "validate_method_existence",
+                "success": True,
+                "result": result,
+                "errors": errors,
+                "total_errors": len(errors),
+                "message": f"Found {len(errors)} method existence errors"
+            }
+        except Exception as e:
+            self.logger.error(f"Method existence validation failed: {e}")
+            return {
+                "tool": "validate_method_existence",
                 "success": False,
                 "error": str(e)
             }

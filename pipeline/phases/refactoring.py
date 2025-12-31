@@ -617,6 +617,45 @@ Use the refactoring tools NOW to fix this issue."""
                             )
                             tasks_created += 1
                 
+                elif tool_name == 'validate_function_calls':
+                    result_data = tool_result.get('result', {})
+                    errors = result_data.get('errors', [])
+                    if errors:
+                        self.logger.info(f"  🔍 Found {len(errors)} function call errors, creating tasks...")
+                        priority_map = {
+                            'missing_required': RefactoringPriority.CRITICAL,
+                            'unexpected_kwarg': RefactoringPriority.CRITICAL,
+                            'wrong_param_name': RefactoringPriority.HIGH
+                        }
+                        for error in errors[:15]:
+                            task = manager.create_task(
+                                issue_type=RefactoringIssueType.ARCHITECTURE,
+                                title=f"Function call error: {error.get('error_type', 'unknown')}",
+                                description=f"{error.get('function', 'unknown')}: {error.get('message', 'Unknown')}",
+                                target_files=[error.get('file', '')],
+                                priority=priority_map.get(error.get('error_type'), RefactoringPriority.HIGH),
+                                fix_approach=RefactoringApproach.AUTONOMOUS,
+                                estimated_effort=25
+                            )
+                            tasks_created += 1
+                
+                elif tool_name == 'validate_method_existence':
+                    result_data = tool_result.get('result', {})
+                    errors = result_data.get('errors', [])
+                    if errors:
+                        self.logger.info(f"  🔍 Found {len(errors)} method existence errors, creating tasks...")
+                        for error in errors[:15]:
+                            task = manager.create_task(
+                                issue_type=RefactoringIssueType.ARCHITECTURE,
+                                title=f"Missing method: {error.get('class_name', 'unknown')}.{error.get('method_name', 'unknown')}",
+                                description=error.get('message', 'Unknown'),
+                                target_files=[error.get('file', '')],
+                                priority=RefactoringPriority.CRITICAL,
+                                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,
+                                estimated_effort=30
+                            )
+                            tasks_created += 1
+                
                 elif tool_name == 'validate_all_imports':
                     result_data = tool_result.get('result', {})
                     errors = result_data.get('errors', [])
@@ -1209,7 +1248,29 @@ Use the refactoring tools NOW to fix this issue."""
         # ============================================================
         self.logger.info("  ✅ Phase 6: Validation Checks")
         
-        # 6.1: Import Validation
+        # 6.1: Function Call Validation (NEW - Priority 1)
+        try:
+            func_call_result = handler._handle_validate_function_calls({})
+            all_results.append(func_call_result)
+            
+            if func_call_result.get('success'):
+                error_count = func_call_result.get('total_errors', 0)
+                self.logger.info(f"     ✓ Function call validation: {error_count} errors found")
+        except Exception as e:
+            self.logger.warning(f"     ⚠️  Function call validation failed: {e}")
+        
+        # 6.2: Method Existence Validation (NEW - Priority 1)
+        try:
+            method_result = handler._handle_validate_method_existence({})
+            all_results.append(method_result)
+            
+            if method_result.get('success'):
+                error_count = method_result.get('total_errors', 0)
+                self.logger.info(f"     ✓ Method existence validation: {error_count} errors found")
+        except Exception as e:
+            self.logger.warning(f"     ⚠️  Method existence validation failed: {e}")
+        
+        # 6.3: Import Validation
         try:
             import_result = handler._handle_validate_all_imports({})
             all_results.append(import_result)
@@ -1220,11 +1281,11 @@ Use the refactoring tools NOW to fix this issue."""
         except Exception as e:
             self.logger.warning(f"     ⚠️  Import validation failed: {e}")
         
-        # 6.2: Syntax Validation (using complexity analyzer which already checks syntax)
+        # 6.4: Syntax Validation (using complexity analyzer which already checks syntax)
         # Syntax errors already detected in Phase 2 complexity analysis
         self.logger.info(f"     ✓ Syntax validation: Checked in Phase 2 (complexity analysis)")
         
-        # 6.3: Circular Import Detection
+        # 6.5: Circular Import Detection
         try:
             circular_result = handler._handle_detect_circular_imports({})
             all_results.append(circular_result)
