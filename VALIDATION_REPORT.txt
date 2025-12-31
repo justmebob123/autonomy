@@ -1,0 +1,500 @@
+================================================================================
+  COMPREHENSIVE CODE VALIDATION
+================================================================================
+
+📁 Project: .
+⏰ Started: 2025-12-31 08:11:26
+
+================================================================================
+  1. FUNCTION CALL VALIDATION
+================================================================================
+   ✓ Completed: 3598 errors found
+
+================================================================================
+  2. METHOD EXISTENCE VALIDATION
+================================================================================
+   ✓ Completed: 48 errors found
+
+================================================================================
+  3. DICTIONARY STRUCTURE VALIDATION
+================================================================================
+   ✓ Completed: 285 errors found
+
+================================================================================
+  4. TYPE USAGE VALIDATION
+================================================================================
+   ✓ Completed: 32 errors found
+
+================================================================================
+  COMPREHENSIVE SUMMARY
+================================================================================
+
+📊 Overall Statistics:
+   Total errors across all tools: 3963
+
+   Breakdown by tool:
+      ❌ Function Calls: 3598 errors
+      ❌ Method Existence: 48 errors
+      ❌ Dict Structure: 285 errors
+      ❌ Type Usage: 32 errors
+
+❌ DETAILED BREAKDOWN:
+
+   Function Call Errors:
+      • missing_required: 3277
+      • unexpected_kwarg: 321
+
+   Method Existence Errors:
+      • Missing methods: 48
+
+   Dictionary Structure Errors:
+      • missing_key: 285
+
+   Type Usage Errors:
+      • Type mismatches: 32
+
+================================================================================
+  DETAILED ERROR LISTINGS
+================================================================================
+
+🔴 Function Call Errors (3598):
+
+   1. test_custom_tools_integration.py:25
+      Function: discover_tools
+      Type: missing_required
+      Message: Missing required arguments: self
+
+   2. test_custom_tools_integration.py:30
+      Function: list_tools
+      Type: missing_required
+      Message: Missing required arguments: self
+
+   3. test_custom_tools_integration.py:36
+      Function: get_stats
+      Type: missing_required
+      Message: Missing required arguments: self
+
+   4. test_custom_tools_integration.py:54
+      Function: generate_all_definitions
+      Type: missing_required
+      Message: Missing required arguments: self
+
+   5. test_custom_tools_integration.py:82
+      Function: list_custom_tools
+      Type: missing_required
+      Message: Missing required arguments: self
+
+   6. test_custom_tools_integration.py:86
+      Function: is_custom_tool
+      Type: missing_required
+      Message: Missing required arguments: tool_name
+
+   7. test_custom_tools_integration.py:126
+      Function: get_tools_for_phase
+      Type: missing_required
+      Message: Missing required arguments: phase
+
+   8. test_custom_tools_integration.py:126
+      Function: get_tools_for_phase
+      Type: unexpected_kwarg
+      Message: Unexpected keyword argument: 'tool_registry'
+
+   9. test_custom_tools_integration.py:63
+      Function: validate_definition
+      Type: missing_required
+      Message: Missing required arguments: definition
+
+   10. test_custom_tools_integration.py:99
+      Function: execute_tool
+      Type: missing_required
+      Message: Missing required arguments: args
+
+   11. test_custom_tools_integration.py:152
+      Function: list_custom_tools
+      Type: missing_required
+      Message: Missing required arguments: self
+
+   12. test_custom_tools_integration.py:107
+      Function: get
+      Type: missing_required
+      Message: Missing required arguments: name
+
+   13. test_run_history.py:62
+      Function: get_consecutive_failures
+      Type: missing_required
+      Message: Missing required arguments: self
+
+   14. test_run_history.py:75
+      Function: get_consecutive_failures
+      Type: missing_required
+      Message: Missing required arguments: self
+
+   15. test_run_history.py:88
+      Function: get_consecutive_failures
+      Type: missing_required
+      Message: Missing required arguments: self
+
+   16. test_run_history.py:117
+      Function: is_improving
+      Type: missing_required
+      Message: Missing required arguments: self
+
+   17. test_run_history.py:132
+      Function: is_improving
+      Type: missing_required
+      Message: Missing required arguments: self
+
+   18. test_run_history.py:158
+      Function: is_degrading
+      Type: missing_required
+      Message: Missing required arguments: self
+
+   19. test_run_history.py:173
+      Function: is_degrading
+      Type: missing_required
+      Message: Missing required arguments: self
+
+   20. test_run_history.py:192
+      Function: is_oscillating
+      Type: missing_required
+      Message: Missing required arguments: self
+
+   ... and 3578 more
+
+🔴 Method Existence Errors (48):
+
+   1. test_specialists.py:213
+      Class: AnalysisSpecialist
+      Method: diagnose_failure
+      Message: Method 'diagnose_failure' does not exist on class 'AnalysisSpecialist'
+
+   2. test_specialists.py:223
+      Class: AnalysisSpecialist
+      Method: make_decision
+      Message: Method 'make_decision' does not exist on class 'AnalysisSpecialist'
+
+   3. test_integration.py:73
+      Class: ToolValidator
+      Method: record_tool_usage
+      Message: Method 'record_tool_usage' does not exist on class 'ToolValidator'
+
+   4. test_integration.py:81
+      Class: ToolValidator
+      Method: get_tool_effectiveness
+      Message: Method 'get_tool_effectiveness' does not exist on class 'ToolValidator'
+
+   5. run.py:488
+      Class: RuntimeTester
+      Method: get_diagnostic_report
+      Message: Method 'get_diagnostic_report' does not exist on class 'RuntimeTester'
+
+   6. pipeline/call_chain_tracer.py:88
+      Class: CallGraphVisitor
+      Method: visit
+      Message: Method 'visit' does not exist on class 'CallGraphVisitor'
+
+   7. pipeline/runtime_tester.py:615
+      Class: ArchitectureAnalyzer
+      Method: analyze
+      Message: Method 'analyze' does not exist on class 'ArchitectureAnalyzer'
+
+   8. pipeline/runtime_tester.py:665
+      Class: ArchitectureAnalyzer
+      Method: format_report
+      Message: Method 'format_report' does not exist on class 'ArchitectureAnalyzer'
+
+   9. pipeline/handlers.py:2400
+      Class: ImportAnalyzer
+      Method: analyze
+      Message: Method 'analyze' does not exist on class 'ImportAnalyzer'
+
+   10. pipeline/handlers.py:2403
+      Class: ImportAnalyzer
+      Method: generate_report
+      Message: Method 'generate_report' does not exist on class 'ImportAnalyzer'
+
+   11. pipeline/handlers.py:2439
+      Class: DuplicateDetector
+      Method: analyze
+      Message: Method 'analyze' does not exist on class 'DuplicateDetector'
+
+   12. pipeline/handlers.py:2442
+      Class: DuplicateDetector
+      Method: generate_report
+      Message: Method 'generate_report' does not exist on class 'DuplicateDetector'
+
+   13. pipeline/handlers.py:2478
+      Class: IntegrationGapFinder
+      Method: analyze
+      Message: Method 'analyze' does not exist on class 'IntegrationGapFinder'
+
+   14. pipeline/handlers.py:2481
+      Class: IntegrationGapFinder
+      Method: generate_report
+      Message: Method 'generate_report' does not exist on class 'IntegrationGapFinder'
+
+   15. pipeline/handlers.py:2516
+      Class: CallGraphGenerator
+      Method: analyze
+      Message: Method 'analyze' does not exist on class 'CallGraphGenerator'
+
+   16. pipeline/handlers.py:2519
+      Class: CallGraphGenerator
+      Method: generate_report
+      Message: Method 'generate_report' does not exist on class 'CallGraphGenerator'
+
+   17. pipeline/handlers.py:2526
+      Class: CallGraphGenerator
+      Method: generate_dot
+      Message: Method 'generate_dot' does not exist on class 'CallGraphGenerator'
+
+   18. pipeline/handlers.py:2892
+      Class: DuplicateDetector
+      Method: generate_report
+      Message: Method 'generate_report' does not exist on class 'DuplicateDetector'
+
+   19. pipeline/handlers.py:2937
+      Class: DuplicateDetector
+      Method: generate_report
+      Message: Method 'generate_report' does not exist on class 'DuplicateDetector'
+
+   20. pipeline/handlers.py:2974
+      Class: ImportAnalyzer
+      Method: analyze
+      Message: Method 'analyze' does not exist on class 'ImportAnalyzer'
+
+   ... and 28 more
+
+🔴 Dictionary Structure Errors (285):
+
+   1. test_custom_tools_integration.py:38
+      Variable: stats
+      Key: total_tools
+      Message: Key 'total_tools' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   2. test_custom_tools_integration.py:39
+      Variable: stats
+      Key: categories
+      Message: Key 'categories' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   3. test_custom_tools_integration.py:105
+      Variable: result
+      Key: result
+      Message: Key 'result' not found in result structure. Available keys: ['success', 'error', 'error_type', 'stdout', 'stderr']
+
+   4. test_unified_model_tool.py:81
+      Variable: stats
+      Key: total_calls
+      Message: Key 'total_calls' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   5. test_unified_model_tool.py:82
+      Variable: stats
+      Key: successful_calls
+      Message: Key 'successful_calls' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   6. test_unified_model_tool.py:83
+      Variable: stats
+      Key: failed_calls
+      Message: Key 'failed_calls' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   7. test_unified_model_tool.py:84
+      Variable: stats
+      Key: total_tokens
+      Message: Key 'total_tokens' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   8. test_unified_model_tool.py:144
+      Variable: stats
+      Key: total_calls
+      Message: Key 'total_calls' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   9. test_unified_model_tool.py:145
+      Variable: stats
+      Key: successful_calls
+      Message: Key 'successful_calls' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   10. test_unified_model_tool.py:146
+      Variable: stats
+      Key: failed_calls
+      Message: Key 'failed_calls' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   11. test_unified_model_tool.py:147
+      Variable: stats
+      Key: total_tokens
+      Message: Key 'total_tokens' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   12. test_unified_model_tool.py:255
+      Variable: stats
+      Key: total_calls
+      Message: Key 'total_calls' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   13. test_unified_model_tool.py:256
+      Variable: stats
+      Key: successful_calls
+      Message: Key 'successful_calls' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   14. test_unified_model_tool.py:257
+      Variable: stats
+      Key: failed_calls
+      Message: Key 'failed_calls' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   15. test_unified_model_tool.py:289
+      Variable: stats
+      Key: total_calls
+      Message: Key 'total_calls' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   16. test_unified_model_tool.py:290
+      Variable: stats
+      Key: successful_calls
+      Message: Key 'successful_calls' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   17. test_unified_model_tool.py:296
+      Variable: stats
+      Key: total_calls
+      Message: Key 'total_calls' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   18. test_unified_model_tool.py:148
+      Variable: stats
+      Key: total_calls
+      Message: Key 'total_calls' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   19. test_unified_model_tool.py:148
+      Variable: stats
+      Key: total_tokens
+      Message: Key 'total_tokens' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   20. test_unified_model_tool.py:258
+      Variable: stats
+      Key: failed_calls
+      Message: Key 'failed_calls' not found in stats structure. Available keys: ['model', 'role', 'call_count', 'success_count', 'failure_count', 'success_rate']
+
+   ... and 265 more
+
+🔴 Type Usage Errors (32):
+
+   1. pipeline/phases/qa.py:874
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   2. pipeline/phases/qa.py:420
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   3. pipeline/phases/qa.py:421
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   4. pipeline/phases/qa.py:590
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   5. pipeline/phases/qa.py:592
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   6. pipeline/phases/qa.py:886
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   7. pipeline/phases/qa.py:245
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   8. pipeline/phases/qa.py:422
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   9. pipeline/phases/qa.py:820
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   10. pipeline/phases/qa.py:820
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   11. pipeline/phases/qa.py:825
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   12. pipeline/phases/qa.py:825
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   13. pipeline/phases/qa.py:885
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   14. pipeline/phases/qa.py:885
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   15. pipeline/phases/qa.py:589
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   16. pipeline/phases/qa.py:589
+      Variable: issue
+      Type: dataclass Issue
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass Issue. Use attribute access or asdict() instead.
+
+   17. pipeline/phases/project_planning.py:324
+      Variable: task
+      Type: dataclass TaskState
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass TaskState. Use attribute access or asdict() instead.
+
+   18. pipeline/phases/refactoring.py:956
+      Variable: result
+      Type: dataclass PhaseResult
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass PhaseResult. Use attribute access or asdict() instead.
+
+   19. pipeline/phases/refactoring.py:957
+      Variable: result
+      Type: dataclass PhaseResult
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass PhaseResult. Use attribute access or asdict() instead.
+
+   20. pipeline/phases/refactoring.py:1011
+      Variable: result
+      Type: dataclass PhaseResult
+      Operation: .get()
+      Message: Cannot use dict method '.get()' on dataclass PhaseResult. Use attribute access or asdict() instead.
+
+   ... and 12 more
+
+================================================================================
+⏰ Completed: 2025-12-31 08:11:33
+❌ VALIDATION FAILED - 3963 errors found
+================================================================================
+
