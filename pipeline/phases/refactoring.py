@@ -384,7 +384,11 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             "cleanup_redundant_files",
             "create_issue_report",
             "request_developer_review",
-            "update_refactoring_task"
+            "update_refactoring_task",
+            "move_file",
+            "rename_file",
+            "restructure_directory",
+            "analyze_file_placement"  # Provides actionable recommendations
         }
         
         for result in results:
@@ -695,6 +699,7 @@ RESOLVING means taking ONE of these actions:
                                 priority=RefactoringPriority.MEDIUM,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=30
+                                analysis_data=dup,
                             )
                             tasks_created += 1
                 
@@ -716,6 +721,7 @@ RESOLVING means taking ONE of these actions:
                                 priority=RefactoringPriority.HIGH,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI decide if it needs developer
                                 estimated_effort=60
+                                analysis_data=func_info,
                             )
                             tasks_created += 1
                 
@@ -830,6 +836,7 @@ RESOLVING means taking ONE of these actions:
                                 priority=RefactoringPriority.CRITICAL,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI analyze and decide
                                 estimated_effort=60
+                                analysis_data=conflict_dict,
                             )
                             tasks_created += 1
                 
@@ -848,6 +855,7 @@ RESOLVING means taking ONE of these actions:
                                 priority=priority_map.get(bug.get('severity', 'medium'), RefactoringPriority.HIGH),
                                 fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI analyze and decide
                                 estimated_effort=45
+                                analysis_data=bug,
                             )
                             tasks_created += 1
                 
@@ -887,6 +895,7 @@ RESOLVING means taking ONE of these actions:
                                 priority=priority_map.get(error.get('error_type'), RefactoringPriority.HIGH),
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=25
+                                analysis_data=error,
                             )
                             tasks_created += 1
                 
@@ -904,6 +913,7 @@ RESOLVING means taking ONE of these actions:
                                 priority=RefactoringPriority.CRITICAL,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI analyze and decide
                                 estimated_effort=30
+                                analysis_data=error,
                             )
                             tasks_created += 1
                 
@@ -921,6 +931,7 @@ RESOLVING means taking ONE of these actions:
                                 priority=RefactoringPriority.HIGH,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=20
+                                analysis_data=error,
                             )
                             tasks_created += 1
                 
@@ -938,6 +949,7 @@ RESOLVING means taking ONE of these actions:
                                 priority=RefactoringPriority.CRITICAL,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=25
+                                analysis_data=error,
                             )
                             tasks_created += 1
                 
@@ -955,6 +967,7 @@ RESOLVING means taking ONE of these actions:
                                 priority=RefactoringPriority.HIGH,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=20
+                                analysis_data=error,
                             )
                             tasks_created += 1
                 
@@ -972,6 +985,7 @@ RESOLVING means taking ONE of these actions:
                                 priority=RefactoringPriority.CRITICAL,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=15
+                                analysis_data=error,
                             )
                             tasks_created += 1
                 
