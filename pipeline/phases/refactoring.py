@@ -1734,7 +1734,10 @@ RESOLVING means taking ONE of these actions:
 🛠️ TOOL SELECTION GUIDE:
 - **Dead code / Unused code**: create_issue_report (EARLY-STAGE PROJECT - do NOT auto-remove!)
 - **Duplicates**: merge_file_implementations (RESOLVES by merging) - compare first if needed, but MUST merge
-- **Integration conflicts**: merge_file_implementations OR move_file to correct location (RESOLVES by fixing)
+- **Integration conflicts**: 
+  * If clear what to do: merge_file_implementations OR move_file to correct location (RESOLVES by fixing)
+  * If unclear after 3-4 analysis steps: create_issue_report with detailed findings (RESOLVES by documenting)
+  * DO NOT analyze indefinitely - after reading files and checking architecture, TAKE ACTION
 - **Architecture violations**: move_file/rename_file to align with ARCHITECTURE.md (RESOLVES by restructuring)
 - **Complexity issues**: Refactor code to reduce complexity OR create_issue_report if too complex (TRY TO FIX FIRST)
 
@@ -1763,6 +1766,33 @@ Result: ✅ Task RESOLVED
 WRONG APPROACH:
 compare_file_implementations(...) and then STOP
 Result: ❌ Task FAILED - only analysis, no action taken
+
+📋 CONCRETE EXAMPLE - INTEGRATION CONFLICT:
+Task: Integration conflict
+Files: Multiple files with conflicting implementations
+
+CORRECT APPROACH (if clear what to do):
+Step 1: read_file to understand the files
+Step 2: read ARCHITECTURE.md to understand intended design
+Step 3: merge_file_implementations OR move_file to resolve conflict
+Result: ✅ Task RESOLVED
+
+CORRECT APPROACH (if unclear after analysis):
+Step 1: read_file to understand the files (1-2 files)
+Step 2: read ARCHITECTURE.md and MASTER_PLAN.md
+Step 3: create_issue_report with detailed findings:
+  - What files are involved
+  - What the conflict is
+  - What you analyzed
+  - Why you need developer input
+  - Specific questions or options
+Result: ✅ Task RESOLVED by documenting
+
+WRONG APPROACH:
+Keep calling analysis tools (list_all_source_files, find_all_related_files, map_file_relationships) without taking action
+Result: ❌ Task FAILED - infinite analysis loop
+
+⚠️ INTEGRATION CONFLICT RULE: After 3-4 analysis steps, you MUST take action (merge, move, or report). DO NOT analyze indefinitely!
 
 ⚠️ CRITICAL RULES:
 - NEVER stop after just analyzing (like calling detect_duplicate_implementations or compare_file_implementations alone)
