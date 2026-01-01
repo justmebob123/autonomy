@@ -816,7 +816,9 @@ class ResponseParser:
             'compare_file_implementations', 'detect_duplicate_implementations',
             'modify_python_file', 'create_python_file', 'create_file',
             'read_file', 'search_code', 'list_directory', 'report_issue',
-            'move_file', 'rename_file', 'restructure_directory'
+            'move_file', 'rename_file', 'restructure_directory',
+            'insert_after', 'insert_before', 'replace_between', 'full_file_rewrite',
+            'str_replace', 'update_refactoring_task', 'validate_architecture'
         ]
         
         # Check known tools first, then any other potential tools
