@@ -620,8 +620,37 @@ ACTION REQUIRED:
 """
         
         elif issue_type == RefactoringIssueType.INTEGRATION:
-            return f"""
-INTEGRATION ISSUE DETECTED:
+            # Check if this is an unused class/function issue
+            issue_desc = str(data).lower()
+            if 'unused' in issue_desc or 'never instantiated' in issue_desc or 'dead code' in issue_desc:
+                # Extract file path if available
+                file_path = data.get('file', 'unknown') if isinstance(data, dict) else 'unknown'
+                class_name = data.get('class', 'unknown') if isinstance(data, dict) else 'unknown'
+                
+                return f"""
+UNUSED CODE DETECTED:
+- Type: Unused class/function (dead code)
+- File: {file_path}
+- Class/Function: {class_name}
+- Issue: This code is defined but never used anywhere in the project
+
+ACTION REQUIRED:
+Use cleanup_redundant_files to remove the unused code:
+
+EXAMPLE:
+cleanup_redundant_files(
+    files_to_remove=["{file_path}"],
+    reason="Unused class {class_name} that is never instantiated",
+    create_backup=true
+)
+
+⚠️ DO NOT use analyze_import_impact for unused code - that tool is for MOVING files, not removing them.
+✅ USE cleanup_redundant_files to remove unused/dead code.
+"""
+            else:
+                # Regular integration conflict
+                return f"""
+INTEGRATION CONFLICT DETECTED:
 {data}
 
 ACTION REQUIRED:
@@ -885,28 +914,50 @@ Result: ✅ Files merged, duplicate removed, imports updated, task RESOLVED
                     if unused_classes:
                         self.logger.info(f"  🔍 Found {len(unused_classes)} unused classes, creating tasks...")
                         for unused_class in unused_classes[:10]:
+                            # ENHANCED: Add analysis_data and better description
+                            class_name = unused_class['name']
+                            file_path = unused_class['file']
+                            
                             task = manager.create_task(
                                 issue_type=RefactoringIssueType.INTEGRATION,
-                                title=f"Unused class: {unused_class['name']}",
-                                description=f"Unused class: {unused_class['name']} (never instantiated)",
-                                target_files=[unused_class['file']],
+                                title=f"Remove unused class: {class_name}",
+                                description=f"Remove unused class {class_name} from {file_path} (never instantiated anywhere in project)",
+                                target_files=[file_path],
                                 priority=RefactoringPriority.MEDIUM,
-                                fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI decide
-                                estimated_effort=30
+                                fix_approach=RefactoringApproach.AUTONOMOUS,
+                                estimated_effort=30,
+                                analysis_data={
+                                    'type': 'unused_class',
+                                    'class': class_name,
+                                    'file': file_path,
+                                    'reason': 'never instantiated',
+                                    'action': 'cleanup_redundant_files'
+                                }
                             )
                             tasks_created += 1
                     
                     if classes_with_gaps:
                         self.logger.info(f"  🔍 Found {len(classes_with_gaps)} classes with unused methods, creating tasks...")
                         for class_name, methods in list(classes_with_gaps.items())[:10]:
+                            # ENHANCED: Add analysis_data and better description
+                            methods_list = methods[:3]
+                            methods_str = ', '.join(methods_list)
+                            
                             task = manager.create_task(
                                 issue_type=RefactoringIssueType.INTEGRATION,
-                                title=f"Unused methods in {class_name}",
-                                description=f"Class {class_name} has {len(methods)} unused methods: {', '.join(methods[:3])}",
+                                title=f"Remove unused methods in {class_name}",
+                                description=f"Class {class_name} has {len(methods)} unused methods: {methods_str}",
                                 target_files=[],  # File info not available in this structure
                                 priority=RefactoringPriority.LOW,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort=20
+                                estimated_effort=20,
+                                analysis_data={
+                                    'type': 'unused_methods',
+                                    'class': class_name,
+                                    'methods': methods,
+                                    'count': len(methods),
+                                    'action': 'create_issue_report'  # Methods require careful review
+                                }
                             )
                             tasks_created += 1
                 
