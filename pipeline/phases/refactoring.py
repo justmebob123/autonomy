@@ -660,6 +660,132 @@ ACTION REQUIRED:
 4. Use create_issue_report if issue requires developer decision
 """
         
+        elif issue_type == RefactoringIssueType.DEAD_CODE:
+            # Dead code removal
+            item_name = data.get('name', 'unknown') if isinstance(data, dict) else 'unknown'
+            item_file = data.get('file', 'unknown') if isinstance(data, dict) else 'unknown'
+            
+            return f"""
+DEAD CODE DETECTED:
+- Type: Dead code (unused function/class/variable)
+- Name: {item_name}
+- File: {item_file}
+- Reason: This code is defined but never used anywhere in the project
+
+ACTION REQUIRED:
+Use cleanup_redundant_files to remove the dead code:
+
+EXAMPLE:
+cleanup_redundant_files(
+    files_to_remove=["{item_file}"],
+    reason="Dead code {item_name} that is never used",
+    create_backup=true
+)
+
+✅ USE cleanup_redundant_files to remove dead code.
+"""
+        
+        elif issue_type == RefactoringIssueType.ARCHITECTURE:
+            # Check what type of architecture issue this is
+            data_type = data.get('type', '') if isinstance(data, dict) else ''
+            
+            if data_type == 'antipattern':
+                pattern_name = data.get('pattern_name', 'Unknown')
+                pattern_file = data.get('file', 'unknown')
+                pattern_desc = data.get('description', '')
+                pattern_suggestion = data.get('suggestion', '')
+                
+                return f"""
+ANTI-PATTERN DETECTED:
+- Pattern: {pattern_name}
+- File: {pattern_file}
+- Description: {pattern_desc}
+- Suggestion: {pattern_suggestion}
+
+ACTION REQUIRED:
+Create a detailed issue report for developer review:
+
+EXAMPLE:
+create_issue_report(
+    title="Anti-pattern: {pattern_name}",
+    description="Detected {pattern_name} in {pattern_file}. {pattern_desc}",
+    severity="medium",
+    suggested_fix="{pattern_suggestion}",
+    files_affected=["{pattern_file}"]
+)
+
+⚠️ Anti-patterns usually require careful refactoring - create a detailed report.
+"""
+            
+            elif data_type == 'architecture_violation':
+                violation_type = data.get('violation_type', 'unknown')
+                violation_file = data.get('file', 'unknown')
+                violation_desc = data.get('description', '')
+                violation_suggestion = data.get('suggestion', '')
+                
+                return f"""
+ARCHITECTURE VIOLATION DETECTED:
+- Type: {violation_type}
+- File: {violation_file}
+- Description: {violation_desc}
+- Suggestion: {violation_suggestion}
+
+ACTION REQUIRED:
+1. If file is in wrong location → use move_file
+2. If violation is complex → use create_issue_report
+
+EXAMPLE (if file misplaced):
+move_file(
+    file_path="{violation_file}",
+    new_path="correct/location/file.py",
+    reason="Fix architecture violation: {violation_type}"
+)
+
+EXAMPLE (if complex):
+create_issue_report(
+    title="Architecture violation: {violation_type}",
+    description="{violation_desc}",
+    suggested_fix="{violation_suggestion}"
+)
+"""
+            
+            elif data_type == 'circular_import':
+                cycle_path = data.get('cycle', [])
+                cycle_files = data.get('files', [])
+                cycle_desc = data.get('description', '')
+                
+                return f"""
+CIRCULAR IMPORT DETECTED:
+- Cycle: {' → '.join(cycle_path)}
+- Files involved: {', '.join(cycle_files)}
+
+ACTION REQUIRED:
+Create a detailed issue report - circular imports require careful analysis:
+
+EXAMPLE:
+create_issue_report(
+    title="Circular import: {len(cycle_files)} files",
+    description="{cycle_desc}",
+    severity="high",
+    suggested_fix="Restructure imports or move shared code to separate module",
+    files_affected={cycle_files}
+)
+
+⚠️ Circular imports are complex - create a detailed report for developer review.
+"""
+            
+            else:
+                # Generic architecture issue
+                return f"""
+ARCHITECTURE ISSUE DETECTED:
+{data}
+
+ACTION REQUIRED:
+Analyze the issue and use appropriate tools:
+- move_file: If files are in wrong locations
+- create_issue_report: If issue requires developer decision
+"""
+        
         else:
             return f"""
 ISSUE DETECTED:
@@ -858,14 +984,25 @@ Result: ✅ Files merged, duplicate removed, imports updated, task RESOLVED
                         self.logger.info(f"  🔍 Found {len(dead_code)} dead code items, creating tasks...")
                         
                         for item in dead_code[:10]:  # Limit to top 10
+                            # ENHANCED: Add analysis_data for dead code
+                            item_name = item.get('name', 'unknown')
+                            item_file = item.get('file', '')
+                            
                             task = manager.create_task(
                                 issue_type=RefactoringIssueType.DEAD_CODE,
-                                title=f"Remove dead code: {item.get('name', 'unknown')}",
-                                description=f"Dead code: {item.get('name', 'unknown')}",
-                                target_files=[item.get('file', '')],
+                                title=f"Remove dead code: {item_name}",
+                                description=f"Remove dead code {item_name} from {item_file} (unused in project)",
+                                target_files=[item_file],
                                 priority=RefactoringPriority.LOW,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort=15
+                                estimated_effort=15,
+                                analysis_data={
+                                    'type': 'dead_code',
+                                    'name': item_name,
+                                    'file': item_file,
+                                    'reason': item.get('reason', 'unused'),
+                                    'action': 'cleanup_redundant_files'
+                                }
                             )
                             tasks_created += 1
                 
@@ -893,14 +1030,29 @@ Result: ✅ Files merged, duplicate removed, imports updated, task RESOLVED
                                 'low': RefactoringPriority.LOW
                             }
                             
+                            # ENHANCED: Add analysis_data for architecture violations
+                            violation_type = violation['type']
+                            violation_file = violation['file']
+                            violation_desc = violation['description']
+                            violation_severity = violation.get('severity', 'medium')
+                            
                             task = manager.create_task(
-                                issue_type=issue_type_map.get(violation['type'], RefactoringIssueType.ARCHITECTURE),
-                                title=f"Architecture violation: {violation['type']}",
-                                description=violation['description'],
-                                target_files=[violation['file']],
-                                priority=priority_map.get(violation['severity'], RefactoringPriority.MEDIUM),
-                                fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI decide based on analysis
-                                estimated_effort=30
+                                issue_type=issue_type_map.get(violation_type, RefactoringIssueType.ARCHITECTURE),
+                                title=f"Fix architecture violation: {violation_type}",
+                                description=f"Architecture violation in {violation_file}: {violation_desc}",
+                                target_files=[violation_file],
+                                priority=priority_map.get(violation_severity, RefactoringPriority.MEDIUM),
+                                fix_approach=RefactoringApproach.AUTONOMOUS,
+                                estimated_effort=30,
+                                analysis_data={
+                                    'type': 'architecture_violation',
+                                    'violation_type': violation_type,
+                                    'file': violation_file,
+                                    'description': violation_desc,
+                                    'severity': violation_severity,
+                                    'suggestion': violation.get('suggestion', ''),
+                                    'action': 'move_file or create_issue_report'
+                                }
                             )
                             tasks_created += 1
                 
@@ -1008,14 +1160,30 @@ Result: ✅ Files merged, duplicate removed, imports updated, task RESOLVED
                     if antipatterns:
                         self.logger.info(f"  🔍 Found {len(antipatterns)} anti-patterns, creating tasks...")
                         for pattern in antipatterns[:10]:
+                            # ENHANCED: Add analysis_data for anti-patterns
+                            pattern_name = pattern.get('name', 'Unknown')
+                            pattern_file = pattern.get('file', '')
+                            pattern_desc = pattern.get('description', '')
+                            pattern_severity = pattern.get('severity', 'medium')
+                            pattern_suggestion = pattern.get('suggestion', '')
+                            
                             task = manager.create_task(
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
-                                title=f"Anti-pattern: {pattern.get('name', 'Unknown')}",
-                                description=f"Anti-pattern: {pattern.get('name', 'Unknown')}",
-                                target_files=[pattern.get('file', '')],
+                                title=f"Fix anti-pattern: {pattern_name}",
+                                description=f"Anti-pattern '{pattern_name}' detected in {pattern_file}: {pattern_desc}",
+                                target_files=[pattern_file],
                                 priority=RefactoringPriority.MEDIUM,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort=30
+                                estimated_effort=30,
+                                analysis_data={
+                                    'type': 'antipattern',
+                                    'pattern_name': pattern_name,
+                                    'file': pattern_file,
+                                    'description': pattern_desc,
+                                    'severity': pattern_severity,
+                                    'suggestion': pattern_suggestion,
+                                    'action': 'create_issue_report'
+                                }
                             )
                             tasks_created += 1
                 
@@ -1138,14 +1306,26 @@ Result: ✅ Files merged, duplicate removed, imports updated, task RESOLVED
                     if cycles:
                         self.logger.info(f"  🔍 Found {len(cycles)} circular import cycles, creating tasks...")
                         for cycle in cycles[:10]:
+                            # ENHANCED: Add analysis_data for circular imports
+                            cycle_path = cycle.get('cycle', [])
+                            cycle_files = cycle.get('files', [])
+                            cycle_desc = f"Circular import: {' → '.join(cycle_path)}"
+                            
                             task = manager.create_task(
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
-                                title=f"Circular import detected",
-                                description=f"Circular import: {' → '.join(cycle.get('cycle', []))}",
-                                target_files=cycle.get('files', []),
+                                title=f"Fix circular import: {len(cycle_path)} files",
+                                description=cycle_desc,
+                                target_files=cycle_files,
                                 priority=RefactoringPriority.HIGH,
-                                fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI analyze and decide
-                                estimated_effort=45
+                                fix_approach=RefactoringApproach.AUTONOMOUS,
+                                estimated_effort=45,
+                                analysis_data={
+                                    'type': 'circular_import',
+                                    'cycle': cycle_path,
+                                    'files': cycle_files,
+                                    'description': cycle_desc,
+                                    'action': 'move_file or restructure_directory'
+                                }
                             )
                             tasks_created += 1
         
