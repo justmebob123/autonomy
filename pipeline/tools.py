@@ -14,6 +14,7 @@ from .system_analyzer_tools import SYSTEM_ANALYZER_TOOLS
 from .tool_modules.tool_definitions import TOOLS_ANALYSIS, TOOLS_FILE_UPDATES
 from .tool_modules.refactoring_tools import TOOLS_REFACTORING
 from .tool_modules.validation_tools import TOOLS_VALIDATION
+from .tool_modules.file_operations import TOOLS_FILE_OPERATIONS, TOOLS_IMPORT_OPERATIONS
 
 
 # =============================================================================
@@ -945,13 +946,13 @@ def get_tools_for_phase(phase: str, tool_registry=None) -> List[Dict]:
     # Base tools for each phase
     phase_tools = {
         "planning": TOOLS_PLANNING + TOOLS_ANALYSIS,  # Removed TOOLS_FILE_UPDATES - planning should only create tasks
-        "coding": TOOLS_CODING + TOOLS_ANALYSIS,
+        "coding": TOOLS_CODING + TOOLS_ANALYSIS + TOOLS_FILE_OPERATIONS + TOOLS_IMPORT_OPERATIONS,
         "qa": TOOLS_QA + TOOLS_ANALYSIS + TOOLS_VALIDATION,
         "debugging": TOOLS_DEBUGGING + TOOLS_ANALYSIS + TOOLS_VALIDATION,
         "debug": TOOLS_DEBUGGING + TOOLS_ANALYSIS + TOOLS_VALIDATION,  # Alias
         "project_planning": TOOLS_PROJECT_PLANNING + TOOLS_ANALYSIS + TOOLS_FILE_UPDATES,
         "documentation": TOOLS_DOCUMENTATION + TOOLS_FILE_UPDATES,
-        "refactoring": TOOLS_REFACTORING + TOOLS_ANALYSIS + TOOLS_FILE_UPDATES,
+        "refactoring": TOOLS_REFACTORING + TOOLS_ANALYSIS + TOOLS_FILE_UPDATES + TOOLS_FILE_OPERATIONS + TOOLS_IMPORT_OPERATIONS,
         "investigation": TOOLS_ANALYSIS + TOOLS_VALIDATION,
     }
     

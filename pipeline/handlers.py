@@ -206,6 +206,14 @@ class ToolCallHandler:
             "validate_dict_access": self._handle_validate_dict_access,
             "validate_imports_comprehensive": self._handle_validate_imports_comprehensive,
             "fix_html_entities": self._handle_fix_html_entities,
+            # File operation tools (CRITICAL - Phase 2)
+            "move_file": self._handle_move_file,
+            "rename_file": self._handle_rename_file,
+            "restructure_directory": self._handle_restructure_directory,
+            "analyze_file_placement": self._handle_analyze_file_placement,
+            # Import operation tools (CRITICAL - Phase 2)
+            "build_import_graph": self._handle_build_import_graph,
+            "analyze_import_impact": self._handle_analyze_import_impact,
         }
         
         # Register custom tools from registry (Integration Fix #1)
@@ -4453,6 +4461,305 @@ class ToolCallHandler:
             self.logger.error(f"HTML entity fix failed: {e}")
             return {
                 "tool": "fix_html_entities",
+                "success": False,
+                "error": str(e)
+            }
+# =============================================================================
+    # File Operation Handlers (CRITICAL - Phase 2)
+    # =============================================================================
+    
+    def _handle_move_file(self, args: Dict) -> Dict:
+        """Handle move_file tool - move file with automatic import updates."""
+        try:
+            source_path = args['source_path']
+            destination_path = args['destination_path']
+            update_imports = args.get('update_imports', True)
+            create_directories = args.get('create_directories', True)
+            reason = args['reason']
+            
+            self.logger.info(f"📦 Moving file: {source_path} → {destination_path}")
+            self.logger.info(f"   Reason: {reason}")
+            
+            # Import analysis components
+            from .analysis.import_impact import ImportImpactAnalyzer
+            from .analysis.import_updater import ImportUpdater
+            
+            # Analyze impact first
+            impact_analyzer = ImportImpactAnalyzer(str(self.project_dir), self.logger)
+            impact = impact_analyzer.analyze_move_impact(source_path, destination_path)
+            
+            self.logger.info(f"   Impact: {len(impact.affected_files)} files affected, "
+                           f"risk level: {impact.risk_level.value}")
+            
+            # Check if source exists
+            source_full = self.project_dir / source_path
+            if not source_full.exists():
+                return {
+                    "tool": "move_file",
+                    "success": False,
+                    "error": f"Source file does not exist: {source_path}"
+                }
+            
+            # Create destination directory if needed
+            dest_full = self.project_dir / destination_path
+            if create_directories:
+                dest_full.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Use git mv to preserve history
+            import subprocess
+            try:
+                result = subprocess.run(
+                    ['git', 'mv', source_path, destination_path],
+                    cwd=self.project_dir,
+                    capture_output=True,
+                    text=True,
+                    check=True
+                )
+                self.logger.info(f"   ✅ File moved (git history preserved)")
+            except subprocess.CalledProcessError as e:
+                # Fallback to regular move if git mv fails
+                self.logger.warning(f"   git mv failed, using regular move: {e.stderr}")
+                import shutil
+                shutil.move(str(source_full), str(dest_full))
+                self.logger.info(f"   ✅ File moved (git history NOT preserved)")
+            
+            # Update imports if requested
+            updated_files = []
+            if update_imports and impact.affected_files:
+                self.logger.info(f"   🔄 Updating imports in {len(impact.affected_files)} files...")
+                
+                updater = ImportUpdater(str(self.project_dir), self.logger)
+                update_results = updater.update_imports_for_move(
+                    source_path,
+                    destination_path,
+                    dry_run=False
+                )
+                
+                for result in update_results:
+                    if result.success and result.changes_made > 0:
+                        updated_files.append(result.file)
+                        self.logger.info(f"      ✅ {result.file}: {result.changes_made} changes")
+                    elif not result.success:
+                        self.logger.warning(f"      ⚠️  {result.file}: {result.error}")
+            
+            # Track in handler
+            self.files_modified.append(destination_path)
+            self.files_modified.extend(updated_files)
+            
+            return {
+                "tool": "move_file",
+                "success": True,
+                "source": source_path,
+                "destination": destination_path,
+                "files_updated": updated_files,
+                "import_changes": len(updated_files),
+                "risk_level": impact.risk_level.value,
+                "message": f"Moved {source_path} to {destination_path}, updated {len(updated_files)} files"
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Move file failed: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            return {
+                "tool": "move_file",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_rename_file(self, args: Dict) -> Dict:
+        """Handle rename_file tool - rename file with automatic import updates."""
+        try:
+            file_path = args['file_path']
+            new_name = args['new_name']
+            update_imports = args.get('update_imports', True)
+            reason = args['reason']
+            
+            # Renaming is just moving within same directory
+            from pathlib import Path
+            old_path = Path(file_path)
+            new_path = old_path.parent / new_name
+            
+            return self._handle_move_file({
+                'source_path': file_path,
+                'destination_path': str(new_path),
+                'update_imports': update_imports,
+                'create_directories': False,
+                'reason': reason
+            })
+            
+        except Exception as e:
+            self.logger.error(f"Rename file failed: {e}")
+            return {
+                "tool": "rename_file",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_restructure_directory(self, args: Dict) -> Dict:
+        """Handle restructure_directory tool - move multiple files with import updates."""
+        try:
+            restructuring_plan = args['restructuring_plan']
+            update_imports = args.get('update_imports', True)
+            reason = args['reason']
+            
+            self.logger.info(f"🏗️  Restructuring directory: {len(restructuring_plan)} files")
+            self.logger.info(f"   Reason: {reason}")
+            
+            results = []
+            total_updated = 0
+            
+            # Process each move
+            for old_path, new_path in restructuring_plan.items():
+                result = self._handle_move_file({
+                    'source_path': old_path,
+                    'destination_path': new_path,
+                    'update_imports': update_imports,
+                    'create_directories': True,
+                    'reason': f"Part of restructuring: {reason}"
+                })
+                
+                results.append({
+                    'old_path': old_path,
+                    'new_path': new_path,
+                    'success': result['success'],
+                    'files_updated': result.get('files_updated', [])
+                })
+                
+                if result['success']:
+                    total_updated += len(result.get('files_updated', []))
+            
+            success_count = sum(1 for r in results if r['success'])
+            
+            return {
+                "tool": "restructure_directory",
+                "success": success_count == len(restructuring_plan),
+                "files_moved": success_count,
+                "total_files": len(restructuring_plan),
+                "total_imports_updated": total_updated,
+                "results": results,
+                "message": f"Restructured {success_count}/{len(restructuring_plan)} files, "
+                          f"updated {total_updated} import statements"
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Restructure directory failed: {e}")
+            return {
+                "tool": "restructure_directory",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_analyze_file_placement(self, args: Dict) -> Dict:
+        """Handle analyze_file_placement tool - analyze if file is in correct location."""
+        try:
+            file_path = args['file_path']
+            
+            self.logger.info(f"📍 Analyzing file placement: {file_path}")
+            
+            from .context.architectural import ArchitecturalContextProvider
+            
+            arch_context = ArchitecturalContextProvider(str(self.project_dir), self.logger)
+            validation = arch_context.validate_file_location(file_path)
+            
+            return {
+                "tool": "analyze_file_placement",
+                "success": True,
+                "file": file_path,
+                "valid": validation.valid,
+                "violations": validation.violations,
+                "suggested_location": validation.suggested_location,
+                "reason": validation.reason,
+                "confidence": validation.confidence,
+                "message": validation.reason
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Analyze file placement failed: {e}")
+            return {
+                "tool": "analyze_file_placement",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_build_import_graph(self, args: Dict) -> Dict:
+        """Handle build_import_graph tool - build complete import graph."""
+        try:
+            scope = args.get('scope', 'project')
+            
+            self.logger.info(f"🕸️  Building import graph (scope: {scope})")
+            
+            from .analysis.import_graph import ImportGraphBuilder
+            
+            graph_builder = ImportGraphBuilder(str(self.project_dir), self.logger)
+            graph_builder.build_graph()
+            
+            graph_dict = graph_builder.to_dict()
+            
+            return {
+                "tool": "build_import_graph",
+                "success": True,
+                "graph": graph_dict,
+                "stats": graph_dict['stats'],
+                "message": f"Built import graph: {graph_dict['stats']['total_files']} files, "
+                          f"{graph_dict['stats']['circular_dependencies']} circular dependencies"
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Build import graph failed: {e}")
+            return {
+                "tool": "build_import_graph",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_analyze_import_impact(self, args: Dict) -> Dict:
+        """Handle analyze_import_impact tool - analyze impact of file operation."""
+        try:
+            file_path = args['file_path']
+            new_path = args.get('new_path')
+            operation = args.get('operation', 'move')
+            
+            self.logger.info(f"🔍 Analyzing import impact: {operation} {file_path}")
+            
+            from .analysis.import_impact import ImportImpactAnalyzer
+            
+            impact_analyzer = ImportImpactAnalyzer(str(self.project_dir), self.logger)
+            
+            if operation == 'delete':
+                impact = impact_analyzer.analyze_delete_impact(file_path)
+            elif operation == 'rename' and new_path:
+                impact = impact_analyzer.analyze_rename_impact(file_path, new_path)
+            else:  # move
+                if not new_path:
+                    return {
+                        "tool": "analyze_import_impact",
+                        "success": False,
+                        "error": "new_path required for move operation"
+                    }
+                impact = impact_analyzer.analyze_move_impact(file_path, new_path)
+            
+            return {
+                "tool": "analyze_import_impact",
+                "success": True,
+                "operation": impact.operation,
+                "source_file": impact.source_file,
+                "target_file": impact.target_file,
+                "risk_level": impact.risk_level.value,
+                "affected_files": impact.affected_files,
+                "estimated_changes": impact.estimated_changes,
+                "test_files_affected": impact.test_files_affected,
+                "circular_dependency_risk": impact.circular_dependency_risk,
+                "warnings": impact.warnings,
+                "recommendations": impact.recommendations,
+                "message": f"Impact: {len(impact.affected_files)} files affected, "
+                          f"risk level: {impact.risk_level.value}"
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Analyze import impact failed: {e}")
+            return {
+                "tool": "analyze_import_impact",
                 "success": False,
                 "error": str(e)
             }

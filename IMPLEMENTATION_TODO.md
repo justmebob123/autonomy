@@ -41,67 +41,67 @@
   - [ ] Suggest relocations
   - [ ] Analyze architectural violations
 
-## PHASE 2: File Operation Tools ⏳
+## PHASE 2: File Operation Tools ✅
 
 ### 2.1 Move File Tool
-- [ ] Add to `pipeline/tool_modules/file_operations.py`
-  - [ ] move_file tool definition
-  - [ ] Uses git mv for history
-  - [ ] Auto-updates imports
-  - [ ] Creates directories
-  - [ ] Validates result
+- [x] Add to `pipeline/tool_modules/file_operations.py`
+  - [x] move_file tool definition
+  - [x] Uses git mv for history
+  - [x] Auto-updates imports
+  - [x] Creates directories
+  - [x] Validates result
 
 ### 2.2 Rename File Tool
-- [ ] Add to `pipeline/tool_modules/file_operations.py`
-  - [ ] rename_file tool definition
-  - [ ] Renames in same directory
-  - [ ] Auto-updates imports
-  - [ ] Preserves git history
+- [x] Add to `pipeline/tool_modules/file_operations.py`
+  - [x] rename_file tool definition
+  - [x] Renames in same directory
+  - [x] Auto-updates imports
+  - [x] Preserves git history
 
 ### 2.3 Restructure Directory Tool
-- [ ] Add to `pipeline/tool_modules/file_operations.py`
-  - [ ] restructure_directory tool definition
-  - [ ] Moves multiple files
-  - [ ] Updates all imports
-  - [ ] Handles dependencies
+- [x] Add to `pipeline/tool_modules/file_operations.py`
+  - [x] restructure_directory tool definition
+  - [x] Moves multiple files
+  - [x] Updates all imports
+  - [x] Handles dependencies
 
 ### 2.4 Analyze File Placement Tool
-- [ ] Add to `pipeline/tool_modules/file_operations.py`
-  - [ ] analyze_file_placement tool definition
-  - [ ] Suggests optimal location
-  - [ ] Analyzes impact
-  - [ ] Provides confidence score
+- [x] Add to `pipeline/tool_modules/file_operations.py`
+  - [x] analyze_file_placement tool definition
+  - [x] Suggests optimal location
+  - [x] Analyzes impact
+  - [x] Provides confidence score
 
 ### 2.5 Build Import Graph Tool
-- [ ] Add to `pipeline/tool_modules/import_operations.py`
-  - [ ] build_import_graph tool definition
-  - [ ] Returns complete graph
-  - [ ] Identifies issues
+- [x] Add to `pipeline/tool_modules/import_operations.py`
+  - [x] build_import_graph tool definition
+  - [x] Returns complete graph
+  - [x] Identifies issues
 
 ### 2.6 Analyze Import Impact Tool
-- [ ] Add to `pipeline/tool_modules/import_operations.py`
-  - [ ] analyze_import_impact tool definition
-  - [ ] Predicts impact
-  - [ ] Lists affected files
+- [x] Add to `pipeline/tool_modules/import_operations.py`
+  - [x] analyze_import_impact tool definition
+  - [x] Predicts impact
+  - [x] Lists affected files
 
-## PHASE 3: Handler Integration ⏳
+## PHASE 3: Handler Integration ✅
 
 ### 3.1 Add Handlers to ToolCallHandler
-- [ ] Update `pipeline/handlers.py`
-  - [ ] _handle_move_file
-  - [ ] _handle_rename_file
-  - [ ] _handle_restructure_directory
-  - [ ] _handle_analyze_file_placement
-  - [ ] _handle_build_import_graph
-  - [ ] _handle_analyze_import_impact
+- [x] Update `pipeline/handlers.py`
+  - [x] _handle_move_file
+  - [x] _handle_rename_file
+  - [x] _handle_restructure_directory
+  - [x] _handle_analyze_file_placement
+  - [x] _handle_build_import_graph
+  - [x] _handle_analyze_import_impact
 
 ### 3.2 Initialize Analysis Components
-- [ ] Update `ToolCallHandler.__init__`
-  - [ ] Add ImportGraphBuilder
-  - [ ] Add ImportImpactAnalyzer
-  - [ ] Add ImportUpdater
-  - [ ] Add ArchitecturalContextProvider
-  - [ ] Add FilePlacementAnalyzer
+- [x] Update `ToolCallHandler.__init__`
+  - [x] Add ImportGraphBuilder (created on demand)
+  - [x] Add ImportImpactAnalyzer (created on demand)
+  - [x] Add ImportUpdater (created on demand)
+  - [x] Add ArchitecturalContextProvider (created on demand)
+  - [x] Add FilePlacementAnalyzer (created on demand)
 
 ## PHASE 4: Phase Integration ⏳
 
