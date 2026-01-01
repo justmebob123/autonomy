@@ -2017,6 +2017,19 @@ DO NOT create reports for integration conflicts - you can resolve them yourself!
                             file1_short = f"{Path(file1_path).parent.name}/{Path(file1_path).name}" if file1_path != 'unknown' else 'unknown'
                             file2_short = f"{Path(file2_path).parent.name}/{Path(file2_path).name}" if file2_path != 'unknown' else 'unknown'
                             
+                            # DEDUPLICATION: Check if task already exists for these files
+                            from pipeline.state.refactoring_task import TaskStatus
+                            existing_tasks = [
+                                t for t in manager.tasks.values()
+                                if t.issue_type == RefactoringIssueType.DUPLICATE
+                                and set(t.target_files) == set(files)
+                                and t.status != TaskStatus.COMPLETED
+                            ]
+                            
+                            if existing_tasks:
+                                # Task already exists, skip creation
+                                continue
+                            
                             # Create task with specific, actionable information
                             task = manager.create_task(
                                 issue_type=RefactoringIssueType.DUPLICATE,
@@ -2203,6 +2216,19 @@ DO NOT create reports for integration conflicts - you can resolve them yourself!
                             # CRITICAL FIX: IntegrationConflict is a dataclass, need to convert to dict
                             conflict_dict = asdict(conflict) if hasattr(conflict, '__dataclass_fields__') else conflict
                             
+                            # DEDUPLICATION: Check if task already exists for these files
+                            conflict_files = conflict_dict['files']
+                            existing_tasks = [
+                                t for t in manager.tasks.values()
+                                if t.issue_type == RefactoringIssueType.CONFLICT
+                                and set(t.target_files) == set(conflict_files)
+                                and t.status != TaskStatus.COMPLETED
+                            ]
+                            
+                            if existing_tasks:
+                                # Task already exists, skip creation
+                                continue
+                            
                             task = manager.create_task(
                                 issue_type=RefactoringIssueType.CONFLICT,
                                 title=f"Integration conflict",
@@ -2222,6 +2248,21 @@ DO NOT create reports for integration conflicts - you can resolve them yourself!
                         self.logger.info(f"  🔍 Found {len(bugs)} potential bugs, creating tasks...")
                         priority_map = {'critical': RefactoringPriority.CRITICAL, 'high': RefactoringPriority.HIGH, 'medium': RefactoringPriority.MEDIUM, 'low': RefactoringPriority.LOW}
                         for bug in bugs[:15]:
+                            # DEDUPLICATION: Check if bug task already exists
+                            bug_file = bug.get('file', '')
+                            bug_line = bug.get('line', 0)
+                            bug_type = bug.get('type', 'Unknown')
+                            
+                            existing_tasks = [
+                                t for t in manager.tasks.values()
+                                if bug_file in t.target_files
+                                and bug_type in t.title
+                                and t.status != TaskStatus.COMPLETED
+                            ]
+                            
+                            if existing_tasks:
+                                continue
+                            
                             task = manager.create_task(
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
                                 title=f"Bug: {bug.get('type', 'Unknown')}",
