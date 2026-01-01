@@ -801,13 +801,28 @@ class ResponseParser:
         Extract tool calls from Python function call syntax.
         Handles formats like: modify_python_file(filepath="...", original_code="...", new_code="...")
         """
-        # Known tool names to look for
+        # Common tool name patterns (snake_case function names)
+        # Match any valid Python function name followed by opening parenthesis
+        tool_pattern = r'([a-z_][a-z0-9_]*)\s*\('
+        matches = re.finditer(tool_pattern, text)
+        
+        # Try each potential tool name found
+        potential_tools = [m.group(1) for m in matches]
+        
+        # Prioritize known refactoring and file operation tools
         known_tools = [
+            'create_issue_report', 'request_developer_review', 
+            'merge_file_implementations', 'cleanup_redundant_files',
+            'compare_file_implementations', 'detect_duplicate_implementations',
             'modify_python_file', 'create_python_file', 'create_file',
-            'read_file', 'search_code', 'list_directory', 'report_issue'
+            'read_file', 'search_code', 'list_directory', 'report_issue',
+            'move_file', 'rename_file', 'restructure_directory'
         ]
         
-        for tool_name in known_tools:
+        # Check known tools first, then any other potential tools
+        tools_to_check = known_tools + [t for t in potential_tools if t not in known_tools]
+        
+        for tool_name in tools_to_check:
             # Look for tool_name( ... ) with proper bracket matching
             pattern = rf'{tool_name}\s*\('
             match = re.search(pattern, text)
