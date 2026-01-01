@@ -1426,34 +1426,54 @@ Review the issue and use appropriate refactoring tools to resolve it.
 
 {context}
 
-📋 COMPREHENSIVE WORKFLOW (requires thorough analysis):
+📋 COMPREHENSIVE WORKFLOW (analyze then decide):
 
-1️⃣ **Read both files** to understand their purpose:
+1️⃣ **Read the conflicting files** to understand what they do:
    read_file(filepath="<file1>")
    read_file(filepath="<file2>")
 
-2️⃣ **Check architecture** to understand intended design:
+2️⃣ **Check architecture** to understand where they should be:
    read_file(filepath="ARCHITECTURE.md")
 
-3️⃣ **Analyze the conflict**:
+3️⃣ **Compare implementations** to see if they're duplicates:
    compare_file_implementations(file1="<file1>", file2="<file2>")
 
-4️⃣ **Make intelligent decision**:
+4️⃣ **MAKE A DECISION** based on your analysis:
    
-   **If files serve DIFFERENT purposes:**
-   - Keep both files
-   - Update ARCHITECTURE.md to clarify
+   **Scenario A: Files are duplicates (>80% similar)**
+   → Decision: Merge them into the correct location per ARCHITECTURE.md
+   → Action: merge_file_implementations(source_files=[...], target_file="<correct_location>")
    
-   **If one is MISPLACED:**
-   - Use move_file to relocate
+   **Scenario B: Files are different but one is misplaced**
+   → Decision: Move the misplaced file to correct location
+   → Action: move_file(source="<misplaced>", destination="<correct_location>")
    
-   **If they're TRUE DUPLICATES:**
-   - Use merge_file_implementations
+   **Scenario C: Both files are in wrong locations**
+   → Decision: Move both to their correct locations
+   → Action: move_file for each file
    
-   **If architecture is UNCLEAR:**
-   - Create issue report for developer review
+   **Scenario D: Files serve different purposes but names conflict**
+   → Decision: Rename one to clarify purpose
+   → Action: rename_file(source="<file>", destination="<clearer_name>")
 
-🎯 TAKE ACTION NOW - Analyze thoroughly, then resolve!
+⚠️ CRITICAL RULES:
+- DO NOT create issue reports - you have all the information to decide
+- DO NOT ask for developer review - make the technical decision yourself
+- ARCHITECTURE.md tells you where files should be
+- Comparison tells you if they're duplicates
+- YOU decide and take action
+
+🎯 EXAMPLE DECISION PROCESS:
+After reading files and architecture, you find:
+- File A and File B both implement ResourceEstimator
+- They're 95% similar (duplicates)
+- ARCHITECTURE.md says: "Resource estimation in core/resource/"
+- File A is in core/resource/ (correct)
+- File B is in resources/ (wrong)
+→ DECISION: Merge B into A, delete B
+→ ACTION: merge_file_implementations(source_files=["resources/resource_estimator.py", "core/resource/resource_estimator.py"], target_file="core/resource/resource_estimator.py")
+
+🎯 TAKE ACTION NOW - You have the tools and information to resolve this!
 """
     
     def _get_dead_code_prompt(self, task: Any, context: str) -> str:
@@ -1735,9 +1755,13 @@ RESOLVING means taking ONE of these actions:
 - **Dead code / Unused code**: create_issue_report (EARLY-STAGE PROJECT - do NOT auto-remove!)
 - **Duplicates**: merge_file_implementations (RESOLVES by merging) - compare first if needed, but MUST merge
 - **Integration conflicts**: 
-  * If clear what to do: merge_file_implementations OR move_file to correct location (RESOLVES by fixing)
-  * If unclear after 3-4 analysis steps: create_issue_report with detailed findings (RESOLVES by documenting)
-  * DO NOT analyze indefinitely - after reading files and checking architecture, TAKE ACTION
+  * Read files to understand what they do
+  * Read ARCHITECTURE.md to understand intended design
+  * Compare implementations to see which is better
+  * MAKE A DECISION: merge the better one, or move files to correct locations
+  * DO NOT create reports - you have all the information you need to decide
+  * If files are duplicates → merge them
+  * If files conflict → keep the one that matches ARCHITECTURE.md, update the other
 - **Architecture violations**: move_file/rename_file to align with ARCHITECTURE.md (RESOLVES by restructuring)
 - **Complexity issues**: Refactor code to reduce complexity OR create_issue_report if too complex (TRY TO FIX FIRST)
 
@@ -1769,30 +1793,44 @@ Result: ❌ Task FAILED - only analysis, no action taken
 
 📋 CONCRETE EXAMPLE - INTEGRATION CONFLICT:
 Task: Integration conflict
-Files: Multiple files with conflicting implementations
+Files: resources/resource_estimator.py and core/resource/resource_estimator.py
 
-CORRECT APPROACH (if clear what to do):
-Step 1: read_file to understand the files
-Step 2: read ARCHITECTURE.md to understand intended design
-Step 3: merge_file_implementations OR move_file to resolve conflict
-Result: ✅ Task RESOLVED
+CORRECT APPROACH:
+Step 1: read_file("resources/resource_estimator.py") - understand what it does
+Step 2: read_file("core/resource/resource_estimator.py") - understand what it does
+Step 3: read_file("ARCHITECTURE.md") - understand where ResourceEstimator should live
+Step 4: compare_file_implementations - see if they're duplicates or different
+Step 5: MAKE DECISION based on findings:
+  - If duplicates (>80% similar) → merge_file_implementations
+  - If different but one matches architecture → move the misplaced one
+  - If both wrong location → move both to correct location per ARCHITECTURE.md
+Step 6: Execute the decision (merge or move)
+Result: ✅ Task RESOLVED by fixing the conflict
 
-CORRECT APPROACH (if unclear after analysis):
-Step 1: read_file to understand the files (1-2 files)
-Step 2: read ARCHITECTURE.md and MASTER_PLAN.md
-Step 3: create_issue_report with detailed findings:
-  - What files are involved
-  - What the conflict is
-  - What you analyzed
-  - Why you need developer input
-  - Specific questions or options
-Result: ✅ Task RESOLVED by documenting
+EXAMPLE DECISION PROCESS:
+After analysis, you find:
+- Both files implement ResourceEstimator class
+- They're 95% similar (duplicates)
+- ARCHITECTURE.md says: "Resource estimation in core/resource/"
+- Decision: Merge both into core/resource/resource_estimator.py, delete resources/resource_estimator.py
+- Action: merge_file_implementations(source_files=[...], target_file="core/resource/resource_estimator.py")
+Result: ✅ Conflict resolved, duplicates merged, correct location
 
 WRONG APPROACH:
-Keep calling analysis tools (list_all_source_files, find_all_related_files, map_file_relationships) without taking action
-Result: ❌ Task FAILED - infinite analysis loop
+Step 1: list_all_source_files
+Step 2: find_all_related_files
+Step 3: map_file_relationships
+Step 4: create_issue_report "I found a conflict, please review"
+Result: ❌ Task FAILED - you had all the info to decide, but didn't take action
 
-⚠️ INTEGRATION CONFLICT RULE: After 3-4 analysis steps, you MUST take action (merge, move, or report). DO NOT analyze indefinitely!
+⚠️ CRITICAL: You have ALL the tools to resolve integration conflicts:
+- read_file: understand what files do
+- ARCHITECTURE.md: understand where they should be
+- compare_file_implementations: see if they're duplicates
+- merge_file_implementations: merge duplicates
+- move_file: move to correct location
+
+DO NOT create reports for integration conflicts - you can resolve them yourself!
 
 ⚠️ CRITICAL RULES:
 - NEVER stop after just analyzing (like calling detect_duplicate_implementations or compare_file_implementations alone)
