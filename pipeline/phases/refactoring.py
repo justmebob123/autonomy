@@ -565,20 +565,31 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
     
     def _build_task_prompt(self, task: Any, context: str) -> str:
         """Build prompt for working on a specific task"""
-        return f"""🎯 REFACTORING TASK - YOU MUST RESOLVE THIS ISSUE
+        return f"""🎯 REFACTORING TASK - YOU MUST FIX THIS ISSUE
+
+⚠️ CRITICAL: YOUR JOB IS TO FIX ISSUES, NOT JUST DOCUMENT THEM!
+
+This is NOT a documentation task. This is a FIXING task.
+- If you can fix it safely → FIX IT NOW using the tools
+- Only create reports if the fix is genuinely too complex or risky
+- "Too complex" means requires major architectural changes, not just merging files
 
 {context}
 
-🔍 YOUR MISSION:
-You must RESOLVE this issue, not just analyze it. Analyzing alone is NOT sufficient.
+🔧 YOUR MISSION: ACTUALLY FIX THE ISSUE
+
+You must RESOLVE this issue by TAKING ACTION, not just analyzing it.
 
 RESOLVING means taking ONE of these actions:
 
-1️⃣ **FIX AUTOMATICALLY** - If you can resolve this safely:
+1️⃣ **FIX AUTOMATICALLY** (PREFERRED) - If you can resolve this safely:
    - Use merge_file_implementations to merge duplicate code
+   - Use move_file to relocate misplaced files
+   - Use rename_file to fix naming issues
    - Use cleanup_redundant_files to remove dead code
+   - Use restructure_directory for large reorganizations
    - Verify changes are safe and correct
-   - These tools RESOLVE the issue
+   - These tools RESOLVE the issue by FIXING it
 
 2️⃣ **CREATE DETAILED DEVELOPER REPORT** - If issue is complex:
    - Use create_issue_report tool with:
@@ -617,9 +628,9 @@ RESOLVING means taking ONE of these actions:
 🛠️ TOOL SELECTION GUIDE:
 - **Dead code**: cleanup_redundant_files (RESOLVES by removing)
 - **Duplicates**: compare_file_implementations → merge_file_implementations (RESOLVES by merging)
-- **Integration conflicts**: compare_file_implementations → create_issue_report (RESOLVES by documenting)
-- **Architecture violations**: Check MASTER_PLAN → request_developer_review (RESOLVES by escalating)
-- **Complexity issues**: Analyze → create_issue_report (RESOLVES by documenting)
+- **Integration conflicts**: compare_file_implementations → merge_file_implementations OR move_file to correct location (RESOLVES by fixing)
+- **Architecture violations**: move_file/rename_file to align with ARCHITECTURE.md (RESOLVES by restructuring)
+- **Complexity issues**: Refactor code to reduce complexity OR create_issue_report if too complex (TRY TO FIX FIRST)
 
 ⚠️ CRITICAL RULES:
 - NEVER stop after just analyzing
