@@ -558,24 +558,47 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 
                 if not tried_to_understand:
                     # AI was lazy - just compared without understanding
-                    # RETRY with stronger guidance (don't mark as failed yet)
+                    # TASK-TYPE-AWARE RETRY: Different tasks need different analysis
+                    from pipeline.state.refactoring_task import RefactoringIssueType
                     
-                    # CONTINUOUS MODE: No max attempts - keep retrying with progressively stronger guidance
-                    # RETRY with stronger guidance
-                    self.logger.warning(f"  ⚠️  Task {task.task_id}: Only compared files without reading them - RETRYING (attempt {task.attempts + 1})")
-                        
+                    # Simple tasks don't need comprehensive analysis
+                    if task.issue_type in [RefactoringIssueType.ARCHITECTURE]:
+                        # Check if this is a missing method or bug fix (simple tasks)
+                        if "Missing method:" in task.title or "Dictionary key error" in task.title:
+                            # Simple task - just needs to read the file and fix
+                            error_msg = (
+                                f"ATTEMPT {task.attempts + 1}: "
+                                "This is a SIMPLE task. Just read the file and fix the issue. "
+                                "Use read_file to see the code, then implement the fix or create a report. "
+                                "DO NOT over-analyze - this should take 1-2 tool calls."
+                            )
+                        else:
+                            # Complex architecture issue - needs analysis
+                            error_msg = (
+                                f"ATTEMPT {task.attempts + 1}: "
+                                "You need to understand the files first. "
+                                "Use read_file on the target files, then take action."
+                            )
+                    elif task.issue_type == RefactoringIssueType.DUPLICATE:
+                        # Duplicate - just needs to merge
+                        error_msg = (
+                            f"ATTEMPT {task.attempts + 1}: "
+                            "This is a DUPLICATE CODE task. "
+                            "You can optionally compare the files, but you MUST merge them. "
+                            "Use merge_file_implementations to complete this task."
+                        )
+                    else:
+                        # Other tasks - standard retry
+                        error_msg = (
+                            f"ATTEMPT {task.attempts + 1}: "
+                            "You only compared files without reading them. "
+                            "Use read_file to understand the files, then take action."
+                        )
+                    
+                    self.logger.warning(f"  ⚠️  Task {task.task_id}: Needs to read files - RETRYING (attempt {task.attempts + 1})")
+                    
                     # DON'T mark as failed - reset to NEW so it can be retried
                     task.status = TaskStatus.NEW
-                    
-                    # Add error context to force AI to read files
-                    error_msg = (
-                        f"ATTEMPT {task.attempts + 1} (CONTINUOUS MODE - no limit): "
-                        "You only compared files without reading them. "
-                        "You MUST read both files to understand their purpose. "
-                        "Use read_file on both files, then check ARCHITECTURE.md, "
-                        "then make an intelligent decision based on understanding. "
-                        "DO NOT just compare and stop - that is LAZY and will fail again."
-                    )
                     
                     # Store error context in task for next attempt
                     if not task.analysis_data:
@@ -590,44 +613,68 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                     )
                 
                 # AI tried to understand but still hasn't resolved
-                # CONTINUOUS MODE: Don't auto-create report, force retry with stronger guidance
-                self.logger.warning(f"  ⚠️  Task {task.task_id}: AI read files but didn't resolve - RETRYING with comprehensive analysis requirements (attempt {task.attempts + 1})")
+                # TASK-TYPE-AWARE RETRY: Different tasks need different next steps
+                from pipeline.state.refactoring_task import RefactoringIssueType
                 
-                # DON'T create report - force retry with comprehensive analysis requirements
+                tools_used = {r.get("tool") for r in results if r.get("success")}
+                
+                # Simple tasks don't need comprehensive analysis
+                if task.issue_type in [RefactoringIssueType.ARCHITECTURE]:
+                    # Check if this is a missing method or bug fix (simple tasks)
+                    if "Missing method:" in task.title or "Dictionary key error" in task.title:
+                        error_msg = (
+                            f"ATTEMPT {task.attempts + 1}: "
+                            "You read the file but didn't fix the issue. "
+                            "This is a SIMPLE task - just implement the fix or create a report. "
+                            "Use modify_file, insert_after, or create_issue_report to complete this task."
+                        )
+                    else:
+                        error_msg = (
+                            f"ATTEMPT {task.attempts + 1}: "
+                            "You read files but didn't resolve the issue. "
+                            "Use move_file, rename_file, or create_issue_report to complete this task."
+                        )
+                elif task.issue_type == RefactoringIssueType.DUPLICATE:
+                    error_msg = (
+                        f"ATTEMPT {task.attempts + 1}: "
+                        "You read/compared files but didn't merge them. "
+                        "Use merge_file_implementations to complete this DUPLICATE CODE task."
+                    )
+                elif task.issue_type == RefactoringIssueType.DEAD_CODE:
+                    error_msg = (
+                        f"ATTEMPT {task.attempts + 1}: "
+                        "You analyzed the code but didn't create a report. "
+                        "This is an EARLY-STAGE project - create_issue_report for developer review."
+                    )
+                elif task.issue_type == RefactoringIssueType.INTEGRATION:
+                    # Integration conflicts need comprehensive analysis
+                    error_msg = (
+                        f"ATTEMPT {task.attempts + 1}: "
+                        "You read files but didn't resolve the conflict. "
+                        "Check ARCHITECTURE.md, then use merge_file_implementations, move_file, or create_issue_report."
+                    )
+                else:
+                    error_msg = (
+                        f"ATTEMPT {task.attempts + 1}: "
+                        "You analyzed but didn't take action. "
+                        "Use a resolving tool (merge, move, report) to complete this task."
+                    )
+                
+                self.logger.warning(f"  ⚠️  Task {task.task_id}: Read files but didn't resolve - RETRYING (attempt {task.attempts + 1})")
+                
                 # Reset task to NEW status for retry
                 task.status = TaskStatus.NEW
-                
-                # Build comprehensive analysis requirements
-                tools_used = {r.get("tool") for r in results if r.get("success")}
-                missing_analysis = []
-                
-                if "list_all_source_files" not in tools_used:
-                    missing_analysis.append("list_all_source_files - examine entire codebase")
-                if "find_all_related_files" not in tools_used:
-                    missing_analysis.append("find_all_related_files - find all related code")
-                if "map_file_relationships" not in tools_used:
-                    missing_analysis.append("map_file_relationships - understand dependencies")
-                if "compare_file_implementations" not in tools_used:
-                    missing_analysis.append("compare_file_implementations - compare implementations")
-                
-                error_msg = (
-                    f"ATTEMPT {task.attempts + 1} (CONTINUOUS - no limit): "
-                    f"You read files but did NOT complete comprehensive analysis. "
-                    f"REQUIRED NEXT STEPS: {', '.join(missing_analysis)}. "
-                    f"You MUST use these tools to understand the full context before making a decision."
-                )
                 
                 if not task.analysis_data:
                     task.analysis_data = {}
                 task.analysis_data['retry_reason'] = error_msg
                 task.analysis_data['tools_used'] = list(tools_used)
-                task.analysis_data['missing_analysis'] = missing_analysis
                 
                 return PhaseResult(
                     success=False,
                     phase=self.phase_name,
-                        message=f"Task {task.task_id} not resolved: {error_msg}"
-                    )
+                    message=f"Task {task.task_id} not resolved: {error_msg}"
+                )
             else:
                 # All tools failed
                 errors = [r.get("error", "Unknown") for r in results if not r.get("success")]
@@ -1262,7 +1309,246 @@ Review the issue and use appropriate refactoring tools to resolve it.
     
     def _build_task_prompt(self, task: Any, context: str) -> str:
         """Build prompt for working on a specific task"""
+        from pipeline.state.refactoring_task import RefactoringIssueType
         
+        # CRITICAL FIX: Use task-type-specific prompts instead of generic one-size-fits-all
+        # Different task types need different workflows
+        
+        if task.issue_type == RefactoringIssueType.ARCHITECTURE:
+            # Check if this is a missing method task
+            if "Missing method:" in task.title or ("method_name" in task.analysis_data and "class_name" in task.analysis_data):
+                return self._get_missing_method_prompt(task, context)
+            # Check if this is a dictionary key error
+            elif "Dictionary key error" in task.title or "key_path" in task.analysis_data:
+                return self._get_bug_fix_prompt(task, context)
+            # Generic architecture issue
+            else:
+                return self._get_architecture_violation_prompt(task, context)
+        
+        elif task.issue_type == RefactoringIssueType.DUPLICATE:
+            return self._get_duplicate_code_prompt(task, context)
+        
+        elif task.issue_type == RefactoringIssueType.INTEGRATION:
+            return self._get_integration_conflict_prompt(task, context)
+        
+        elif task.issue_type == RefactoringIssueType.DEAD_CODE:
+            return self._get_dead_code_prompt(task, context)
+        
+        elif task.issue_type == RefactoringIssueType.COMPLEXITY:
+            return self._get_complexity_prompt(task, context)
+        
+        # Fallback to generic prompt
+        return self._get_generic_task_prompt(task, context)
+    
+    def _get_missing_method_prompt(self, task: Any, context: str) -> str:
+        """Prompt for missing method tasks - simple and direct"""
+        return f"""🎯 MISSING METHOD TASK - IMPLEMENT THE METHOD
+
+⚠️ CRITICAL: This is a SIMPLE task - just implement the missing method!
+
+{context}
+
+📋 SIMPLE WORKFLOW (2-3 steps):
+
+1️⃣ **Read the file** to see the class definition:
+   read_file(filepath="<file_path>")
+
+2️⃣ **Implement the method** OR create issue report:
+   
+   **Option A - Implement directly** (PREFERRED if straightforward):
+   - If it's a simple method (getter, setter, utility), implement it
+   - Use modify_file or insert_after to add the method
+   - Example: Adding a generate_risk_chart method that creates a chart
+   
+   **Option B - Create issue report** (if requires domain knowledge):
+   - Use create_issue_report if you need to understand business logic
+   - Provide clear description of what the method should do
+   - Include code examples and suggestions
+
+⚠️ DO NOT:
+- List all source files (you already know which file)
+- Find related files (not needed for adding a method)
+- Map relationships (not needed for this task)
+- Compare implementations (nothing to compare)
+
+✅ JUST:
+- Read the file
+- Implement the method OR create report
+- Done!
+
+🎯 TAKE ACTION NOW - This should take 1-2 tool calls, not 10+!
+"""
+    
+    def _get_duplicate_code_prompt(self, task: Any, context: str) -> str:
+        """Prompt for duplicate code tasks - compare then merge"""
+        return f"""🎯 DUPLICATE CODE TASK - MERGE THE FILES
+
+{context}
+
+📋 SIMPLE WORKFLOW (2-3 steps):
+
+1️⃣ **OPTIONAL: Compare files** to understand differences:
+   compare_file_implementations(file1="<file1>", file2="<file2>")
+   
+2️⃣ **Merge the files** (REQUIRED - this resolves the task):
+   merge_file_implementations(
+       source_files=["<file1>", "<file2>"],
+       target_file="<file1>",
+       strategy="ai_merge"
+   )
+
+⚠️ DO NOT:
+- List all source files (you already know which files to merge)
+- Find related files (task specifies the files)
+- Map relationships (not needed for merging)
+- Just compare and stop (that's analysis, not resolution)
+
+✅ WORKFLOW:
+- Compare (optional, for understanding)
+- Merge (required, resolves the task)
+- Done!
+
+🎯 TAKE ACTION NOW - Merge the files to complete this task!
+"""
+    
+    def _get_integration_conflict_prompt(self, task: Any, context: str) -> str:
+        """Prompt for integration conflicts - comprehensive analysis needed"""
+        return f"""🎯 INTEGRATION CONFLICT TASK - RESOLVE THE CONFLICT
+
+{context}
+
+📋 COMPREHENSIVE WORKFLOW (requires thorough analysis):
+
+1️⃣ **Read both files** to understand their purpose:
+   read_file(filepath="<file1>")
+   read_file(filepath="<file2>")
+
+2️⃣ **Check architecture** to understand intended design:
+   read_file(filepath="ARCHITECTURE.md")
+
+3️⃣ **Analyze the conflict**:
+   compare_file_implementations(file1="<file1>", file2="<file2>")
+
+4️⃣ **Make intelligent decision**:
+   
+   **If files serve DIFFERENT purposes:**
+   - Keep both files
+   - Update ARCHITECTURE.md to clarify
+   
+   **If one is MISPLACED:**
+   - Use move_file to relocate
+   
+   **If they're TRUE DUPLICATES:**
+   - Use merge_file_implementations
+   
+   **If architecture is UNCLEAR:**
+   - Create issue report for developer review
+
+🎯 TAKE ACTION NOW - Analyze thoroughly, then resolve!
+"""
+    
+    def _get_dead_code_prompt(self, task: Any, context: str) -> str:
+        """Prompt for dead code tasks - check usage then decide"""
+        return f"""🎯 DEAD CODE TASK - ANALYZE AND REPORT
+
+⚠️ CRITICAL: This is an EARLY-STAGE project - DO NOT auto-remove code!
+
+{context}
+
+📋 SIMPLE WORKFLOW (2-3 steps):
+
+1️⃣ **Search for usages** of the code:
+   search_code(pattern="<class_name>", file_types=["py"])
+
+2️⃣ **Create issue report** (REQUIRED for early-stage projects):
+   create_issue_report(
+       task_id="{task.task_id}",
+       severity="low",
+       impact_analysis="Unused code may be part of planned architecture",
+       recommended_approach="Review MASTER_PLAN to determine if needed",
+       estimated_effort="30 minutes"
+   )
+
+⚠️ DO NOT:
+- Remove the code automatically (early-stage project!)
+- List all source files (not needed)
+- Do comprehensive analysis (just check if used)
+
+✅ WORKFLOW:
+- Search for usages
+- Create report for developer review
+- Done!
+
+🎯 TAKE ACTION NOW - Create the report to complete this task!
+"""
+    
+    def _get_complexity_prompt(self, task: Any, context: str) -> str:
+        """Prompt for complexity tasks - try to refactor or report"""
+        return f"""🎯 COMPLEXITY TASK - REFACTOR OR REPORT
+
+{context}
+
+📋 WORKFLOW (try to fix first):
+
+1️⃣ **Read the file** to understand the complex function:
+   read_file(filepath="<file_path>")
+
+2️⃣ **Try to refactor** if straightforward:
+   - Break into smaller functions
+   - Extract common logic
+   - Simplify conditionals
+   
+   OR **Create issue report** if too complex:
+   create_issue_report(
+       task_id="{task.task_id}",
+       severity="medium",
+       impact_analysis="High complexity makes code hard to maintain",
+       recommended_approach="Break function into smaller pieces",
+       estimated_effort="2 hours"
+   )
+
+🎯 TAKE ACTION NOW - Try to refactor, or create report!
+"""
+    
+    def _get_architecture_violation_prompt(self, task: Any, context: str) -> str:
+        """Prompt for architecture violations - move or rename"""
+        return f"""🎯 ARCHITECTURE VIOLATION TASK - FIX THE STRUCTURE
+
+{context}
+
+📋 WORKFLOW:
+
+1️⃣ **Check architecture** to understand correct location:
+   read_file(filepath="ARCHITECTURE.md")
+
+2️⃣ **Fix the violation**:
+   - Use move_file to relocate misplaced files
+   - Use rename_file to fix naming issues
+   - Use restructure_directory for large changes
+
+🎯 TAKE ACTION NOW - Align code with architecture!
+"""
+    
+    def _get_bug_fix_prompt(self, task: Any, context: str) -> str:
+        """Prompt for bug fix tasks - read, understand, fix"""
+        return f"""🎯 BUG FIX TASK - FIX THE BUG
+
+{context}
+
+📋 SIMPLE WORKFLOW:
+
+1️⃣ **Read the file** to see the bug:
+   read_file(filepath="<file_path>")
+
+2️⃣ **Fix the bug** OR create report:
+   - If simple (missing check, wrong key), fix it directly
+   - If complex (requires domain knowledge), create report
+
+🎯 TAKE ACTION NOW - Fix it or report it!
+"""
+    
+    def _get_generic_task_prompt(self, task: Any, context: str) -> str:
+        """Generic prompt for unknown task types"""
         # Get checklist status from analysis tracker
         checklist_status = self._analysis_tracker.get_checklist_status(
             task_id=task.task_id,
