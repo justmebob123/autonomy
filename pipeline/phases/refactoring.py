@@ -291,7 +291,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         # Execute tool calls
         from ..handlers import ToolCallHandler
-        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry, refactoring_manager=state.refactoring_manager)
         results = handler.process_tool_calls(tool_calls)
         
         # Check if task was actually resolved (not just analyzed)
@@ -359,7 +359,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 # Create issue report via tool call
                 # This will be picked up by the handler
                 from ..handlers import ToolCallHandler
-                handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+                handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry, refactoring_manager=state.refactoring_manager)
                 
                 report_call = [{
                     "name": "create_issue_report",
@@ -1124,7 +1124,7 @@ RESOLVING means taking ONE of these actions:
         
         # Execute tool calls
         from ..handlers import ToolCallHandler
-        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry, refactoring_manager=state.refactoring_manager)
         results = handler.process_tool_calls(tool_calls)
         
         # Update REFACTORING_WRITE.md with results
@@ -1179,7 +1179,7 @@ RESOLVING means taking ONE of these actions:
         
         # Execute tool calls
         from ..handlers import ToolCallHandler
-        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry, refactoring_manager=state.refactoring_manager)
         results = handler.process_tool_calls(tool_calls)
         
         # Update REFACTORING_WRITE.md with results
@@ -1232,7 +1232,7 @@ RESOLVING means taking ONE of these actions:
         
         # Execute tool calls
         from ..handlers import ToolCallHandler
-        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry, refactoring_manager=state.refactoring_manager)
         results = handler.process_tool_calls(tool_calls)
         
         # Update REFACTORING_WRITE.md with results
@@ -1287,7 +1287,7 @@ RESOLVING means taking ONE of these actions:
         
         # Execute tool calls
         from ..handlers import ToolCallHandler
-        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry, refactoring_manager=state.refactoring_manager)
         results = handler.process_tool_calls(tool_calls)
         
         # Update REFACTORING_WRITE.md with results
@@ -1315,7 +1315,7 @@ RESOLVING means taking ONE of these actions:
         self.logger.info("  🎯 Running ALL available checks automatically...")
         
         from ..handlers import ToolCallHandler
-        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry, refactoring_manager=state.refactoring_manager)
         
         all_results = []
         

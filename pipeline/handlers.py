@@ -24,10 +24,13 @@ class ToolCallHandler:
     """Handles execution of tool calls from LLM responses"""
     
     def __init__(self, project_dir: Path, verbose: int = 0, activity_log_file: str = None, 
-                 tool_registry=None, tool_creator=None, tool_validator=None):
+                 tool_registry=None, tool_creator=None, tool_validator=None, refactoring_manager=None):
         self.project_dir = Path(project_dir)
         self.logger = get_logger()
         self.verbose = verbose  # 0=normal, 1=verbose, 2=very verbose
+        
+        # Refactoring manager (shared with refactoring phase)
+        self._refactoring_manager = refactoring_manager
         
         # Track results
         self.files_created: List[str] = []
@@ -3059,7 +3062,7 @@ class ToolCallHandler:
             )
             
             # Get or create refactoring task manager
-            if not hasattr(self, '_refactoring_manager'):
+            if not hasattr(self, '_refactoring_manager') or self._refactoring_manager is None:
                 from pipeline.state.refactoring_task import RefactoringTaskManager
                 self._refactoring_manager = RefactoringTaskManager()
             
@@ -3100,7 +3103,7 @@ class ToolCallHandler:
         try:
             from pipeline.state.manager import TaskStatus
             
-            if not hasattr(self, '_refactoring_manager'):
+            if not hasattr(self, '_refactoring_manager') or self._refactoring_manager is None:
                 return {
                     "tool": "update_refactoring_task",
                     "success": False,
@@ -3158,7 +3161,7 @@ class ToolCallHandler:
     def _handle_list_refactoring_tasks(self, args: Dict) -> Dict:
         """Handle list_refactoring_tasks tool."""
         try:
-            if not hasattr(self, '_refactoring_manager'):
+            if not hasattr(self, '_refactoring_manager') or self._refactoring_manager is None:
                 return {
                     "tool": "list_refactoring_tasks",
                     "success": True,
@@ -3205,7 +3208,7 @@ class ToolCallHandler:
     def _handle_get_refactoring_progress(self, args: Dict) -> Dict:
         """Handle get_refactoring_progress tool."""
         try:
-            if not hasattr(self, '_refactoring_manager'):
+            if not hasattr(self, '_refactoring_manager') or self._refactoring_manager is None:
                 return {
                     "tool": "get_refactoring_progress",
                     "success": True,
@@ -3243,7 +3246,7 @@ class ToolCallHandler:
         """Handle create_issue_report tool."""
         try:
             # Get or create refactoring task manager
-            if not hasattr(self, '_refactoring_manager'):
+            if not hasattr(self, '_refactoring_manager') or self._refactoring_manager is None:
                 from pipeline.state.refactoring_task import RefactoringTaskManager
                 self._refactoring_manager = RefactoringTaskManager()
             
@@ -3303,7 +3306,7 @@ class ToolCallHandler:
         """Handle request_developer_review tool."""
         try:
             # Get or create refactoring task manager
-            if not hasattr(self, '_refactoring_manager'):
+            if not hasattr(self, '_refactoring_manager') or self._refactoring_manager is None:
                 from pipeline.state.refactoring_task import RefactoringTaskManager
                 self._refactoring_manager = RefactoringTaskManager()
             
