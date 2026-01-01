@@ -214,6 +214,13 @@ class ToolCallHandler:
             # Import operation tools (CRITICAL - Phase 2)
             "build_import_graph": self._handle_build_import_graph,
             "analyze_import_impact": self._handle_analyze_import_impact,
+            # Codebase analysis tools (CRITICAL - Deep Analysis)
+            "list_all_source_files": self._handle_list_all_source_files,
+            "cross_reference_file": self._handle_cross_reference_file,
+            "map_file_relationships": self._handle_map_file_relationships,
+            "find_all_related_files": self._handle_find_all_related_files,
+            "analyze_file_purpose": self._handle_analyze_file_purpose,
+            "compare_multiple_files": self._handle_compare_multiple_files,
         }
         
         # Register custom tools from registry (Integration Fix #1)
@@ -4860,6 +4867,730 @@ class ToolCallHandler:
             self.logger.error(f"Analyze import impact failed: {e}")
             return {
                 "tool": "analyze_import_impact",
+                "success": False,
+                "error": str(e)
+            }
+    
+    # =============================================================================
+    # Codebase Analysis Tools
+    # =============================================================================
+    
+    def _handle_list_all_source_files(self, args: Dict) -> Dict:
+        """Handle list_all_source_files tool - get complete codebase inventory."""
+        try:
+            file_types = args.get('file_types', ['py'])
+            include_tests = args.get('include_tests', False)
+            include_metadata = args.get('include_metadata', True)
+            directory_filter = args.get('directory_filter')
+            
+            self.logger.info(f"📋 Listing all source files (types: {file_types})")
+            
+            import ast
+            from pathlib import Path
+            
+            files = []
+            total_files = 0
+            
+            # Walk through project directory
+            for file_type in file_types:
+                pattern = f"**/*.{file_type}"
+                for file_path in self.project_dir.glob(pattern):
+                    # Skip hidden directories and common excludes
+                    if any(part.startswith('.') for part in file_path.parts):
+                        continue
+                    if '__pycache__' in str(file_path):
+                        continue
+                    if 'node_modules' in str(file_path):
+                        continue
+                    
+                    # Apply directory filter
+                    rel_path = file_path.relative_to(self.project_dir)
+                    if directory_filter and not str(rel_path).startswith(directory_filter):
+                        continue
+                    
+                    # Skip tests if requested
+                    if not include_tests and ('test' in str(rel_path).lower() or 'tests' in str(rel_path).lower()):
+                        continue
+                    
+                    total_files += 1
+                    
+                    file_info = {
+                        "path": str(rel_path),
+                        "size": file_path.stat().st_size,
+                        "type": file_type
+                    }
+                    
+                    # Add metadata if requested
+                    if include_metadata and file_type == 'py':
+                        try:
+                            content = file_path.read_text()
+                            file_info["lines"] = len(content.split('\n'))
+                            
+                            # Parse Python file
+                            try:
+                                tree = ast.parse(content)
+                                
+                                # Extract imports
+                                imports = []
+                                for node in ast.walk(tree):
+                                    if isinstance(node, ast.Import):
+                                        imports.extend(n.name for n in node.names)
+                                    elif isinstance(node, ast.ImportFrom):
+                                        if node.module:
+                                            imports.append(node.module)
+                                
+                                # Extract classes
+                                classes = [node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)]
+                                
+                                # Extract functions
+                                functions = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
+                                
+                                file_info["imports"] = list(set(imports))[:10]  # Limit to 10
+                                file_info["classes"] = classes
+                                file_info["functions"] = functions[:10]  # Limit to 10
+                                
+                            except SyntaxError:
+                                file_info["parse_error"] = "Syntax error in file"
+                        except Exception as e:
+                            file_info["read_error"] = str(e)
+                    
+                    files.append(file_info)
+            
+            self.logger.info(f"  ✅ Found {total_files} source files")
+            
+            return {
+                "tool": "list_all_source_files",
+                "success": True,
+                "total_files": total_files,
+                "files": files,
+                "file_types": file_types,
+                "directory_filter": directory_filter
+            }
+            
+        except Exception as e:
+            self.logger.error(f"List all source files failed: {e}")
+            return {
+                "tool": "list_all_source_files",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_cross_reference_file(self, args: Dict) -> Dict:
+        """Handle cross_reference_file tool - validate file against architecture."""
+        try:
+            file_path = args['file_path']
+            check_placement = args.get('check_placement', True)
+            check_purpose = args.get('check_purpose', True)
+            check_naming = args.get('check_naming', True)
+            check_dependencies = args.get('check_dependencies', True)
+            
+            self.logger.info(f"🔍 Cross-referencing {file_path}")
+            
+            result = {
+                "tool": "cross_reference_file",
+                "success": True,
+                "file_path": file_path
+            }
+            
+            # Read ARCHITECTURE.md
+            arch_path = self.project_dir / "ARCHITECTURE.md"
+            architecture_content = ""
+            if arch_path.exists():
+                architecture_content = arch_path.read_text()
+            
+            # Read MASTER_PLAN.md
+            plan_path = self.project_dir / "MASTER_PLAN.md"
+            master_plan_content = ""
+            if plan_path.exists():
+                master_plan_content = plan_path.read_text()
+            
+            # Check placement
+            if check_placement:
+                # Extract directory from file path
+                from pathlib import Path
+                file_dir = str(Path(file_path).parent)
+                file_name = Path(file_path).name
+                
+                # Check if directory is mentioned in ARCHITECTURE.md
+                placement_valid = file_dir in architecture_content.lower()
+                
+                # Try to find recommended location
+                placement_recommendation = None
+                if not placement_valid:
+                    # Look for patterns in architecture
+                    if 'service' in file_name.lower() and 'services/' in architecture_content.lower():
+                        placement_recommendation = f"Should be in services/ directory per ARCHITECTURE.md"
+                    elif 'model' in file_name.lower() and 'models/' in architecture_content.lower():
+                        placement_recommendation = f"Should be in models/ directory per ARCHITECTURE.md"
+                    elif 'api' in file_name.lower() and 'api/' in architecture_content.lower():
+                        placement_recommendation = f"Should be in api/ directory per ARCHITECTURE.md"
+                    elif 'core' in file_dir and 'core/' not in architecture_content.lower():
+                        placement_recommendation = f"core/ directory not defined in ARCHITECTURE.md"
+                
+                result["placement_valid"] = placement_valid
+                result["placement_recommendation"] = placement_recommendation
+            
+            # Check purpose
+            if check_purpose:
+                # Check if file or its functionality is mentioned in MASTER_PLAN
+                file_base = Path(file_path).stem
+                purpose_match = file_base.lower() in master_plan_content.lower()
+                
+                # Extract relevant section from MASTER_PLAN
+                purpose_description = None
+                if purpose_match:
+                    # Find context around the mention
+                    lines = master_plan_content.split('\n')
+                    for i, line in enumerate(lines):
+                        if file_base.lower() in line.lower():
+                            # Get surrounding lines
+                            start = max(0, i - 2)
+                            end = min(len(lines), i + 3)
+                            purpose_description = '\n'.join(lines[start:end])
+                            break
+                
+                result["purpose_match"] = purpose_match
+                result["purpose_description"] = purpose_description
+            
+            # Check naming
+            if check_naming:
+                # Check if follows Python naming conventions
+                file_name = Path(file_path).name
+                naming_valid = file_name.islower() or '_' in file_name
+                naming_issues = []
+                
+                if not naming_valid:
+                    naming_issues.append("File name should be lowercase with underscores")
+                if ' ' in file_name:
+                    naming_issues.append("File name should not contain spaces")
+                if file_name.startswith('_') and not file_name.startswith('__'):
+                    naming_issues.append("Single underscore prefix indicates private module")
+                
+                result["naming_valid"] = naming_valid
+                result["naming_issues"] = naming_issues
+            
+            # Check dependencies
+            if check_dependencies:
+                # Read file and check imports
+                full_path = self.project_dir / file_path
+                if full_path.exists():
+                    try:
+                        import ast
+                        content = full_path.read_text()
+                        tree = ast.parse(content)
+                        
+                        imports = []
+                        for node in ast.walk(tree):
+                            if isinstance(node, ast.Import):
+                                imports.extend(n.name for n in node.names)
+                            elif isinstance(node, ast.ImportFrom):
+                                if node.module:
+                                    imports.append(node.module)
+                        
+                        # Check for problematic imports
+                        dependency_issues = []
+                        for imp in imports:
+                            # Check for circular dependencies (importing from parent)
+                            if '..' in imp:
+                                dependency_issues.append(f"Relative import may cause circular dependency: {imp}")
+                            # Check for cross-layer imports
+                            if 'core' in file_path and 'services' in imp:
+                                dependency_issues.append(f"Core layer importing from services layer: {imp}")
+                            if 'models' in file_path and ('services' in imp or 'api' in imp):
+                                dependency_issues.append(f"Models importing from higher layers: {imp}")
+                        
+                        result["imports"] = imports[:20]  # Limit to 20
+                        result["dependency_issues"] = dependency_issues
+                        
+                    except Exception as e:
+                        result["dependency_check_error"] = str(e)
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Cross reference file failed: {e}")
+            return {
+                "tool": "cross_reference_file",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_map_file_relationships(self, args: Dict) -> Dict:
+        """Handle map_file_relationships tool - map all file relationships."""
+        try:
+            file_path = args['file_path']
+            depth = args.get('depth', 2)
+            find_similar = args.get('find_similar', True)
+            analyze_usage = args.get('analyze_usage', True)
+            
+            self.logger.info(f"🗺️  Mapping relationships for {file_path}")
+            
+            import ast
+            from pathlib import Path
+            
+            result = {
+                "tool": "map_file_relationships",
+                "success": True,
+                "file_path": file_path
+            }
+            
+            # Read the file
+            full_path = self.project_dir / file_path
+            if not full_path.exists():
+                return {
+                    "tool": "map_file_relationships",
+                    "success": False,
+                    "error": f"File not found: {file_path}"
+                }
+            
+            content = full_path.read_text()
+            
+            # Parse and extract imports
+            try:
+                tree = ast.parse(content)
+                
+                imports = []
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Import):
+                        imports.extend(n.name for n in node.names)
+                    elif isinstance(node, ast.ImportFrom):
+                        if node.module:
+                            imports.append(node.module)
+                
+                result["imports"] = list(set(imports))
+                
+                # Extract classes and functions
+                classes = [node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)]
+                functions = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
+                
+                result["classes"] = classes
+                result["functions"] = functions
+                
+            except SyntaxError as e:
+                result["parse_error"] = str(e)
+            
+            # Find files that import this file
+            if analyze_usage:
+                imported_by = []
+                file_stem = Path(file_path).stem
+                
+                # Search all Python files
+                for py_file in self.project_dir.glob("**/*.py"):
+                    if py_file == full_path:
+                        continue
+                    if '__pycache__' in str(py_file):
+                        continue
+                    
+                    try:
+                        other_content = py_file.read_text()
+                        # Check if this file is imported
+                        if file_stem in other_content or file_path.replace('/', '.').replace('.py', '') in other_content:
+                            rel_path = py_file.relative_to(self.project_dir)
+                            imported_by.append(str(rel_path))
+                    except:
+                        pass
+                
+                result["imported_by"] = imported_by[:20]  # Limit to 20
+            
+            # Find similar files
+            if find_similar:
+                similar_files = []
+                file_name = Path(file_path).name
+                file_stem = Path(file_path).stem
+                
+                # Search for files with similar names
+                for py_file in self.project_dir.glob("**/*.py"):
+                    if py_file == full_path:
+                        continue
+                    if '__pycache__' in str(py_file):
+                        continue
+                    
+                    other_name = py_file.name
+                    other_stem = py_file.stem
+                    
+                    # Check for similar names
+                    if file_stem in other_stem or other_stem in file_stem:
+                        rel_path = py_file.relative_to(self.project_dir)
+                        
+                        # Quick similarity check
+                        try:
+                            other_content = py_file.read_text()
+                            other_tree = ast.parse(other_content)
+                            
+                            other_classes = [node.name for node in ast.walk(other_tree) if isinstance(node, ast.ClassDef)]
+                            other_functions = [node.name for node in ast.walk(other_tree) if isinstance(node, ast.FunctionDef)]
+                            
+                            # Check for common classes
+                            common_classes = set(classes) & set(other_classes)
+                            
+                            similar_files.append({
+                                "path": str(rel_path),
+                                "common_classes": list(common_classes),
+                                "reason": "Similar name and common classes" if common_classes else "Similar name"
+                            })
+                        except:
+                            similar_files.append({
+                                "path": str(rel_path),
+                                "reason": "Similar name"
+                            })
+                
+                result["similar_files"] = similar_files[:10]  # Limit to 10
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Map file relationships failed: {e}")
+            return {
+                "tool": "map_file_relationships",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_find_all_related_files(self, args: Dict) -> Dict:
+        """Handle find_all_related_files tool - find all files related to a file or pattern."""
+        try:
+            file_path = args.get('file_path')
+            pattern = args.get('pattern')
+            include_similar_names = args.get('include_similar_names', True)
+            include_same_class = args.get('include_same_class', True)
+            include_importers = args.get('include_importers', True)
+            include_imported = args.get('include_imported', True)
+            
+            if not file_path and not pattern:
+                return {
+                    "tool": "find_all_related_files",
+                    "success": False,
+                    "error": "Either file_path or pattern must be provided"
+                }
+            
+            self.logger.info(f"🔍 Finding all related files for {file_path or pattern}")
+            
+            import ast
+            from pathlib import Path
+            
+            related_files = []
+            
+            # Determine search term
+            if file_path:
+                search_term = Path(file_path).stem
+                base_file = self.project_dir / file_path
+            else:
+                search_term = pattern.replace('*', '').replace('_', '')
+                base_file = None
+            
+            # Search all Python files
+            for py_file in self.project_dir.glob("**/*.py"):
+                if '__pycache__' in str(py_file):
+                    continue
+                if base_file and py_file == base_file:
+                    continue
+                
+                rel_path = py_file.relative_to(self.project_dir)
+                reasons = []
+                
+                # Check similar names
+                if include_similar_names:
+                    if search_term.lower() in py_file.stem.lower():
+                        reasons.append("Similar name")
+                
+                # Check for same class names
+                if include_same_class and base_file and base_file.exists():
+                    try:
+                        base_content = base_file.read_text()
+                        base_tree = ast.parse(base_content)
+                        base_classes = {node.name for node in ast.walk(base_tree) if isinstance(node, ast.ClassDef)}
+                        
+                        other_content = py_file.read_text()
+                        other_tree = ast.parse(other_content)
+                        other_classes = {node.name for node in ast.walk(other_tree) if isinstance(node, ast.ClassDef)}
+                        
+                        common = base_classes & other_classes
+                        if common:
+                            reasons.append(f"Defines same classes: {', '.join(common)}")
+                    except:
+                        pass
+                
+                # Check if imports base file
+                if include_importers and file_path:
+                    try:
+                        other_content = py_file.read_text()
+                        if search_term in other_content or file_path.replace('/', '.').replace('.py', '') in other_content:
+                            reasons.append("Imports this file")
+                    except:
+                        pass
+                
+                # Check if imported by base file
+                if include_imported and base_file and base_file.exists():
+                    try:
+                        base_content = base_file.read_text()
+                        other_stem = py_file.stem
+                        if other_stem in base_content or str(rel_path).replace('/', '.').replace('.py', '') in base_content:
+                            reasons.append("Imported by this file")
+                    except:
+                        pass
+                
+                if reasons:
+                    related_files.append({
+                        "path": str(rel_path),
+                        "reasons": reasons
+                    })
+            
+            self.logger.info(f"  ✅ Found {len(related_files)} related files")
+            
+            return {
+                "tool": "find_all_related_files",
+                "success": True,
+                "search_term": file_path or pattern,
+                "total_related": len(related_files),
+                "related_files": related_files
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Find all related files failed: {e}")
+            return {
+                "tool": "find_all_related_files",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_analyze_file_purpose(self, args: Dict) -> Dict:
+        """Handle analyze_file_purpose tool - deeply analyze file purpose."""
+        try:
+            file_path = args['file_path']
+            extract_classes = args.get('extract_classes', True)
+            extract_functions = args.get('extract_functions', True)
+            extract_imports = args.get('extract_imports', True)
+            analyze_complexity = args.get('analyze_complexity', True)
+            extract_docstrings = args.get('extract_docstrings', True)
+            
+            self.logger.info(f"🔬 Analyzing purpose of {file_path}")
+            
+            import ast
+            
+            full_path = self.project_dir / file_path
+            if not full_path.exists():
+                return {
+                    "tool": "analyze_file_purpose",
+                    "success": False,
+                    "error": f"File not found: {file_path}"
+                }
+            
+            content = full_path.read_text()
+            
+            result = {
+                "tool": "analyze_file_purpose",
+                "success": True,
+                "file_path": file_path,
+                "size": len(content),
+                "lines": len(content.split('\n'))
+            }
+            
+            try:
+                tree = ast.parse(content)
+                
+                # Extract module docstring
+                if extract_docstrings:
+                    module_doc = ast.get_docstring(tree)
+                    result["module_docstring"] = module_doc
+                
+                # Extract classes
+                if extract_classes:
+                    classes = []
+                    for node in ast.walk(tree):
+                        if isinstance(node, ast.ClassDef):
+                            class_info = {
+                                "name": node.name,
+                                "methods": [m.name for m in node.body if isinstance(m, ast.FunctionDef)],
+                                "docstring": ast.get_docstring(node) if extract_docstrings else None
+                            }
+                            classes.append(class_info)
+                    result["classes"] = classes
+                
+                # Extract functions
+                if extract_functions:
+                    functions = []
+                    for node in ast.walk(tree):
+                        if isinstance(node, ast.FunctionDef) and not any(isinstance(p, ast.ClassDef) for p in ast.walk(tree) if node in getattr(p, 'body', [])):
+                            func_info = {
+                                "name": node.name,
+                                "args": [arg.arg for arg in node.args.args],
+                                "docstring": ast.get_docstring(node) if extract_docstrings else None
+                            }
+                            functions.append(func_info)
+                    result["functions"] = functions[:20]  # Limit to 20
+                
+                # Extract imports
+                if extract_imports:
+                    imports = []
+                    for node in ast.walk(tree):
+                        if isinstance(node, ast.Import):
+                            imports.extend(n.name for n in node.names)
+                        elif isinstance(node, ast.ImportFrom):
+                            if node.module:
+                                imports.append(node.module)
+                    result["imports"] = list(set(imports))
+                
+                # Analyze complexity
+                if analyze_complexity:
+                    # Count total nodes as rough complexity measure
+                    total_nodes = sum(1 for _ in ast.walk(tree))
+                    result["complexity_score"] = total_nodes
+                    result["complexity_level"] = "high" if total_nodes > 500 else "medium" if total_nodes > 200 else "low"
+                
+            except SyntaxError as e:
+                result["parse_error"] = str(e)
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Analyze file purpose failed: {e}")
+            return {
+                "tool": "analyze_file_purpose",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_compare_multiple_files(self, args: Dict) -> Dict:
+        """Handle compare_multiple_files tool - compare 3+ files."""
+        try:
+            file_paths = args['file_paths']
+            compare_structure = args.get('compare_structure', True)
+            compare_functionality = args.get('compare_functionality', True)
+            compare_quality = args.get('compare_quality', True)
+            recommend_action = args.get('recommend_action', True)
+            
+            if len(file_paths) < 2:
+                return {
+                    "tool": "compare_multiple_files",
+                    "success": False,
+                    "error": "At least 2 files required for comparison"
+                }
+            
+            self.logger.info(f"⚖️  Comparing {len(file_paths)} files")
+            
+            import ast
+            
+            files_data = []
+            
+            # Analyze each file
+            for file_path in file_paths:
+                full_path = self.project_dir / file_path
+                if not full_path.exists():
+                    continue
+                
+                try:
+                    content = full_path.read_text()
+                    tree = ast.parse(content)
+                    
+                    file_data = {
+                        "path": file_path,
+                        "size": len(content),
+                        "lines": len(content.split('\n')),
+                        "classes": [node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)],
+                        "functions": [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)],
+                        "imports": [],
+                        "has_docstrings": bool(ast.get_docstring(tree)),
+                        "has_type_hints": any('->') in content  # Rough check
+                    }
+                    
+                    # Extract imports
+                    for node in ast.walk(tree):
+                        if isinstance(node, ast.Import):
+                            file_data["imports"].extend(n.name for n in node.names)
+                        elif isinstance(node, ast.ImportFrom):
+                            if node.module:
+                                file_data["imports"].append(node.module)
+                    
+                    files_data.append(file_data)
+                    
+                except Exception as e:
+                    files_data.append({
+                        "path": file_path,
+                        "error": str(e)
+                    })
+            
+            result = {
+                "tool": "compare_multiple_files",
+                "success": True,
+                "files_compared": len(files_data),
+                "files": files_data
+            }
+            
+            # Compare structure
+            if compare_structure:
+                all_classes = set()
+                all_functions = set()
+                
+                for fd in files_data:
+                    if "classes" in fd:
+                        all_classes.update(fd["classes"])
+                    if "functions" in fd:
+                        all_functions.update(fd["functions"])
+                
+                # Find common elements
+                common_classes = set.intersection(*[set(fd.get("classes", [])) for fd in files_data if "classes" in fd])
+                common_functions = set.intersection(*[set(fd.get("functions", [])) for fd in files_data if "functions" in fd])
+                
+                result["common_classes"] = list(common_classes)
+                result["common_functions"] = list(common_functions)
+                result["total_unique_classes"] = len(all_classes)
+                result["total_unique_functions"] = len(all_functions)
+            
+            # Compare quality
+            if compare_quality:
+                quality_scores = []
+                for fd in files_data:
+                    if "error" in fd:
+                        continue
+                    
+                    score = 0
+                    if fd.get("has_docstrings"):
+                        score += 1
+                    if fd.get("has_type_hints"):
+                        score += 1
+                    if len(fd.get("classes", [])) > 0:
+                        score += 1
+                    
+                    quality_scores.append({
+                        "file": fd["path"],
+                        "score": score,
+                        "has_docstrings": fd.get("has_docstrings", False),
+                        "has_type_hints": fd.get("has_type_hints", False)
+                    })
+                
+                result["quality_scores"] = quality_scores
+                
+                # Find best quality file
+                if quality_scores:
+                    best = max(quality_scores, key=lambda x: x["score"])
+                    result["best_quality_file"] = best["file"]
+            
+            # Recommend action
+            if recommend_action:
+                recommendations = []
+                
+                # Check if files are very similar
+                if common_classes and len(common_classes) > 2:
+                    recommendations.append("Files have many common classes - consider merging")
+                
+                # Check if one file is clearly better
+                if compare_quality and quality_scores:
+                    scores = [qs["score"] for qs in quality_scores]
+                    if max(scores) > min(scores) + 1:
+                        recommendations.append(f"File {result['best_quality_file']} has better quality - consider using as base for merge")
+                
+                # Check if files are completely different
+                if not common_classes and not common_functions:
+                    recommendations.append("Files have no common elements - likely serve different purposes, keep both")
+                
+                result["recommendations"] = recommendations
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Compare multiple files failed: {e}")
+            return {
+                "tool": "compare_multiple_files",
                 "success": False,
                 "error": str(e)
             }
