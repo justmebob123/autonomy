@@ -347,6 +347,9 @@ class PipelineState:
     # Refactoring task manager (NEW - Phase 2)
     refactoring_manager: Optional[Any] = None
     
+    # Task analysis tracker (NEW - for checkpoint tracking)
+    analysis_tracker: Optional[Any] = None
+    
     def __post_init__(self):
         if not self.updated:
             self.updated = datetime.now().isoformat()
@@ -525,6 +528,10 @@ class PipelineState:
         if self.refactoring_manager is not None:
             result["refactoring_manager"] = self.refactoring_manager.to_dict()
         
+        # Serialize analysis_tracker if present
+        if self.analysis_tracker is not None:
+            result["analysis_tracker"] = self.analysis_tracker.to_dict()
+        
         return result
     
     @classmethod
@@ -544,6 +551,9 @@ class PipelineState:
         # Deserialize refactoring_manager if present
         refactoring_manager_data = data.pop("refactoring_manager", None)
         
+        # Deserialize analysis_tracker if present
+        analysis_tracker_data = data.pop("analysis_tracker", None)
+        
         # Create state instance
         state = cls(**data)
         
@@ -551,6 +561,11 @@ class PipelineState:
         if refactoring_manager_data is not None:
             from pipeline.state.refactoring_task import RefactoringTaskManager
             state.refactoring_manager = RefactoringTaskManager.from_dict(refactoring_manager_data)
+        
+        # Restore analysis_tracker
+        if analysis_tracker_data is not None:
+            from pipeline.state.task_analysis_tracker import TaskAnalysisTracker
+            state.analysis_tracker = TaskAnalysisTracker.from_dict(analysis_tracker_data)
         
         return state
     

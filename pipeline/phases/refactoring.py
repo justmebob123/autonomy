@@ -175,10 +175,14 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             self.logger.debug(f"  🔧 Initialized refactoring task manager")
         
         # Initialize analysis tracker if not exists
-        if not hasattr(self, '_analysis_tracker'):
+        # CRITICAL: Store in state so it persists across iterations!
+        if not hasattr(state, 'analysis_tracker') or state.analysis_tracker is None:
             from pipeline.state.task_analysis_tracker import TaskAnalysisTracker
-            self._analysis_tracker = TaskAnalysisTracker()
+            state.analysis_tracker = TaskAnalysisTracker()
             self.logger.debug(f"  📋 Initialized task analysis tracker")
+        
+        # Use the persisted tracker
+        self._analysis_tracker = state.analysis_tracker
     
     def _cleanup_broken_tasks(self, manager) -> None:
         """

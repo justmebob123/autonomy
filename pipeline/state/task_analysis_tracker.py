@@ -383,3 +383,49 @@ Attempt {attempt_number}: Proceeding, but comprehensive analysis would improve r
         for task_id in completed_task_ids:
             if task_id in self.task_states:
                 del self.task_states[task_id]
+    
+    def to_dict(self) -> Dict:
+        """Serialize tracker state to dictionary."""
+        return {
+            "task_states": {
+                task_id: {
+                    "task_id": state.task_id,
+                    "attempt_number": state.attempt_number,
+                    "tool_calls_history": state.tool_calls_history,
+                    "checkpoints": {
+                        name: {
+                            "name": cp.name,
+                            "description": cp.description,
+                            "completed": cp.completed,
+                            "completed_at": cp.completed_at.isoformat() if cp.completed_at else None
+                        }
+                        for name, cp in state.checkpoints.items()
+                    }
+                }
+                for task_id, state in self.task_states.items()
+            }
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> "TaskAnalysisTracker":
+        """Deserialize tracker state from dictionary."""
+        from datetime import datetime
+        
+        tracker = cls()
+        
+        for task_id, state_data in data.get("task_states", {}).items():
+            state = TaskAnalysisState(task_id=task_id)
+            state.attempt_number = state_data.get("attempt_number", 1)
+            state.tool_calls_history = state_data.get("tool_calls_history", [])
+            
+            # Restore checkpoints
+            for name, cp_data in state_data.get("checkpoints", {}).items():
+                if name in state.checkpoints:
+                    state.checkpoints[name].completed = cp_data.get("completed", False)
+                    completed_at_str = cp_data.get("completed_at")
+                    if completed_at_str:
+                        state.checkpoints[name].completed_at = datetime.fromisoformat(completed_at_str)
+            
+            tracker.task_states[task_id] = state
+        
+        return tracker
