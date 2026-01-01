@@ -713,6 +713,18 @@ IF VALIDATION FAILS:
 - Determine the correct filename based on context
 - Retry with the corrected filename
 - DO NOT ask for clarification - determine the correct name yourself
+
+📦 FILE ORGANIZATION TOOLS AVAILABLE:
+- move_file: Move files to correct locations (preserves git history, updates imports)
+- rename_file: Rename files (preserves git history, updates imports)
+- analyze_file_placement: Check if file is in correct location per ARCHITECTURE.md
+- analyze_import_impact: Check impact before moving/renaming files
+
+💡 WHEN TO USE:
+- If architectural context shows file is misplaced → use move_file
+- If file needs better name → use rename_file
+- Before moving → use analyze_import_impact to check risk
+- All imports are automatically updated - no manual work needed!
 """
     
     return f"""Implement this task:
@@ -1261,6 +1273,22 @@ You have access to strategic documents and phase outputs:
 - Consider INVESTIGATION_WRITE recommendations
 - Your refactoring results will be sent to appropriate phases
 - Always create backups before making changes
+
+📦 FILE ORGANIZATION TOOLS AVAILABLE:
+- move_file: Move files to correct locations (preserves git history, updates imports)
+- rename_file: Rename files (preserves git history, updates imports)
+- restructure_directory: Reorganize multiple files at once
+- analyze_file_placement: Check if files are in correct locations per ARCHITECTURE.md
+- analyze_import_impact: Check impact before moving/renaming files
+- build_import_graph: Visualize all import relationships
+
+💡 WHEN TO USE FILE OPERATIONS:
+- If file is in wrong location per ARCHITECTURE.md → use move_file
+- If file needs better name → use rename_file
+- For large reorganization → use restructure_directory
+- Before moving → ALWAYS use analyze_import_impact to check risk
+- All imports are automatically updated - no manual work needed!
+- Git history is preserved with git mv
 """
     
     if refactoring_type == "duplicate_detection":

@@ -213,6 +213,11 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         if tasks_created > 0:
             self.logger.info(f"  ✅ Auto-created {tasks_created} refactoring tasks from analysis")
         
+        # CRITICAL: Add file placement analysis
+        placement_tasks = self._analyze_file_placements(state)
+        if placement_tasks > 0:
+            self.logger.info(f"  ✅ Created {placement_tasks} file placement tasks")
+        
         # DEBUG: Check manager state
         if state.refactoring_manager:
             total_tasks = len(state.refactoring_manager.tasks)
@@ -240,6 +245,82 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 message="No refactoring issues found, codebase is clean",
                 next_phase="coding"  # Return to coding
             )
+    
+    def _analyze_file_placements(self, state: PipelineState) -> int:
+        """
+        Analyze file placements and create tasks for misplaced files.
+        
+        Returns:
+            Number of tasks created
+        """
+        try:
+            from ..analysis.file_placement import FilePlacementAnalyzer
+            from ..analysis.import_impact import ImportImpactAnalyzer
+            from ..state.refactoring_task import RefactoringIssueType, RefactoringPriority
+            
+            self.logger.info(f"  📁 Analyzing file placements...")
+            
+            placement_analyzer = FilePlacementAnalyzer(
+                str(self.project_dir),
+                self.logger,
+                self.arch_context
+            )
+            
+            # Find misplaced files (confidence >= 0.6)
+            misplaced_files = placement_analyzer.find_misplaced_files(min_confidence=0.6)
+            
+            if not misplaced_files:
+                return 0
+            
+            self.logger.info(f"  📁 Found {len(misplaced_files)} misplaced files")
+            
+            # Analyze import impact for each
+            impact_analyzer = ImportImpactAnalyzer(str(self.project_dir), self.logger)
+            
+            tasks_created = 0
+            for misplaced in misplaced_files:
+                # Analyze impact
+                impact = impact_analyzer.analyze_move_impact(
+                    misplaced.file,
+                    misplaced.suggested_location + '/' + Path(misplaced.file).name
+                )
+                
+                # Determine priority based on risk and confidence
+                if impact.risk_level.value == 'critical':
+                    priority = RefactoringPriority.CRITICAL
+                elif impact.risk_level.value == 'high' or misplaced.confidence >= 0.8:
+                    priority = RefactoringPriority.HIGH
+                elif misplaced.confidence >= 0.7:
+                    priority = RefactoringPriority.MEDIUM
+                else:
+                    priority = RefactoringPriority.LOW
+                
+                # Create task
+                task = state.refactoring_manager.create_task(
+                    issue_type=RefactoringIssueType.MISPLACED_FILE,
+                    title=f"File in wrong location: {misplaced.file}",
+                    description=f"File should be moved from {misplaced.current_location} to {misplaced.suggested_location}. "
+                               f"Reason: {misplaced.reason}. "
+                               f"Impact: {len(impact.affected_files)} files affected, risk level: {impact.risk_level.value}.",
+                    target_files=[misplaced.file],
+                    priority=priority,
+                    analysis_data={
+                        "current_location": misplaced.current_location,
+                        "suggested_location": misplaced.suggested_location,
+                        "reason": misplaced.reason,
+                        "confidence": misplaced.confidence,
+                        "affected_files": impact.affected_files,
+                        "risk_level": impact.risk_level.value,
+                        "estimated_changes": impact.estimated_changes
+                    }
+                )
+                tasks_created += 1
+            
+            return tasks_created
+            
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  File placement analysis failed: {e}")
+            return 0
     
     def _work_on_task(self, state: PipelineState, task: Any) -> PhaseResult:
         """

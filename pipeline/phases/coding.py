@@ -471,7 +471,90 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
                 else:
                     parts.append(f"\n{i}. {dep} (file not found yet - will be created by another task)")
         
+        # CRITICAL: Add import context for existing files
+        if task.target_file:
+            target_path = self.project_dir / task.target_file
+            if target_path.exists():
+                import_context = self._build_import_context(task.target_file)
+                if import_context:
+                    parts.append("\n=== IMPORT RELATIONSHIPS ===")
+                    parts.append(import_context)
+        
+        # CRITICAL: Add architectural context
+        arch_context = self._build_architectural_context(task.target_file)
+        if arch_context:
+            parts.append("\n=== ARCHITECTURAL CONTEXT ===")
+            parts.append(arch_context)
+        
         return "\n".join(parts)
+    
+    def _build_import_context(self, file_path: str) -> str:
+        """Build import relationship context for a file."""
+        try:
+            from ..analysis.import_graph import ImportGraphBuilder
+            
+            graph_builder = ImportGraphBuilder(str(self.project_dir), self.logger)
+            graph_builder.build_graph()
+            
+            if file_path not in graph_builder.nodes:
+                return ""
+            
+            imports = graph_builder.get_file_imports(file_path)
+            importers = graph_builder.get_file_importers(file_path)
+            
+            lines = []
+            
+            if imports:
+                lines.append(f"**This file imports** ({len(imports)} files):")
+                for imp in imports[:10]:  # Limit to 10
+                    lines.append(f"  - {imp}")
+                if len(imports) > 10:
+                    lines.append(f"  ... and {len(imports) - 10} more")
+            
+            if importers:
+                lines.append(f"\n**Imported by** ({len(importers)} files):")
+                for imp in importers[:10]:  # Limit to 10
+                    lines.append(f"  - {imp}")
+                if len(importers) > 10:
+                    lines.append(f"  ... and {len(importers) - 10} more")
+            
+            if not imports and not importers:
+                lines.append("⚠️  This file has no import relationships (orphaned or entry point)")
+            
+            return "\n".join(lines)
+            
+        except Exception as e:
+            self.logger.debug(f"Failed to build import context: {e}")
+            return ""
+    
+    def _build_architectural_context(self, file_path: str) -> str:
+        """Build architectural context for file placement."""
+        try:
+            from ..context.architectural import ArchitecturalContextProvider
+            
+            arch_context = ArchitecturalContextProvider(str(self.project_dir), self.logger)
+            validation = arch_context.validate_file_location(file_path)
+            
+            lines = []
+            
+            if validation.valid:
+                lines.append(f"✅ File is in correct location according to ARCHITECTURE.md")
+                lines.append(f"   Confidence: {validation.confidence:.0%}")
+            else:
+                lines.append(f"⚠️  File location issues detected:")
+                for violation in validation.violations:
+                    lines.append(f"   - {violation}")
+                if validation.suggested_location:
+                    lines.append(f"\n💡 **Suggested location**: {validation.suggested_location}")
+                    lines.append(f"   Reason: {validation.reason}")
+                    lines.append(f"   Confidence: {validation.confidence:.0%}")
+                    lines.append(f"\n   Use 'move_file' tool to relocate if appropriate.")
+            
+            return "\n".join(lines)
+            
+        except Exception as e:
+            self.logger.debug(f"Failed to build architectural context: {e}")
+            return ""
     
     def _build_user_message(self, task: TaskState, context: str, error_context: str) -> str:
         """
