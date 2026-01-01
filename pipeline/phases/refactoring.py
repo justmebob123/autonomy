@@ -485,15 +485,63 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             
             if any_success:
                 # Tools ran successfully but didn't resolve issue
-                error_msg = "Tools succeeded but issue not resolved - only analysis performed, no action taken"
-                task.fail(error_msg)
-                self.logger.warning(f"  ⚠️  Task {task.task_id}: {error_msg}")
+                # AUTO-FIX: Create issue report with analysis results
+                self.logger.warning(f"  ⚠️  Task {task.task_id}: Only analysis performed, auto-creating issue report")
                 
-                return PhaseResult(
-                    success=False,
-                    phase=self.phase_name,
-                    message=f"Task {task.task_id} not resolved: {error_msg}"
-                )
+                # Collect analysis results
+                analysis_summary = []
+                for result in results:
+                    if result.get("success"):
+                        tool_name = result.get("tool", "unknown")
+                        tool_result = result.get("result", {})
+                        
+                        if tool_name == "compare_file_implementations":
+                            similarity = tool_result.get("similarity", 0)
+                            conflicts = tool_result.get("conflicts", [])
+                            strategy = tool_result.get("merge_strategy", "unknown")
+                            analysis_summary.append(
+                                f"Comparison: {similarity:.0%} similar, "
+                                f"{len(conflicts)} conflicts, "
+                                f"recommended strategy: {strategy}"
+                            )
+                        else:
+                            analysis_summary.append(f"{tool_name}: {tool_result}")
+                
+                # Auto-create issue report
+                report_result = handler.process_tool_calls([{
+                    "function": {
+                        "name": "create_issue_report",
+                        "arguments": {
+                            "task_id": task.task_id,
+                            "severity": "medium",
+                            "impact_analysis": f"Integration conflict detected: {task.description}. Analysis performed but requires manual decision.",
+                            "recommended_approach": "Review analysis results and determine appropriate merge strategy or integration approach.",
+                            "code_examples": "\n".join(analysis_summary) if analysis_summary else "See task analysis_data for details",
+                            "estimated_effort": "30 minutes",
+                            "alternatives": "Consider: 1) Merge implementations, 2) Keep both with different purposes, 3) Refactor to eliminate conflict"
+                        }
+                    }
+                }])
+                
+                if report_result and report_result[0].get("success"):
+                    task.complete("Auto-created issue report after analysis")
+                    self.logger.info(f"  ✅ Task {task.task_id} resolved by creating issue report")
+                    return PhaseResult(
+                        success=True,
+                        phase=self.phase_name,
+                        message=f"Task {task.task_id} resolved: Issue report created"
+                    )
+                else:
+                    # Report creation failed, mark task as failed
+                    error_msg = "Tools succeeded but issue not resolved - only analysis performed, no action taken"
+                    task.fail(error_msg)
+                    self.logger.warning(f"  ⚠️  Task {task.task_id}: {error_msg}")
+                    
+                    return PhaseResult(
+                        success=False,
+                        phase=self.phase_name,
+                        message=f"Task {task.task_id} not resolved: {error_msg}"
+                    )
             else:
                 # All tools failed
                 errors = [r.get("error", "Unknown") for r in results if not r.get("success")]
