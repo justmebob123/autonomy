@@ -901,7 +901,7 @@ ACTION REQUIRED:
 3. Use create_issue_report if refactoring requires major changes
 """
         
-        elif issue_type == RefactoringIssueType.INTEGRATION:
+        elif issue_type == RefactoringIssueType.INTEGRATION or issue_type == RefactoringIssueType.CONFLICT:
             # Check if this is an unused class/function issue
             issue_desc = str(data).lower()
             if 'unused' in issue_desc or 'never instantiated' in issue_desc or 'dead code' in issue_desc:
