@@ -463,7 +463,8 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             task_id=task.task_id,
             tool_calls=tool_calls,
             target_files=task.target_files,
-            attempt_number=task.attempts
+            attempt_number=task.attempts,
+            analysis_data=task.analysis_data
         )
         
         if not is_valid:

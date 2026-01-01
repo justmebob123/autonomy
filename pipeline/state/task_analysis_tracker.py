@@ -230,7 +230,8 @@ class TaskAnalysisTracker:
         state.update_checkpoints(target_files)
     
     def validate_tool_calls(self, task_id: str, tool_calls: List[Dict], 
-                          target_files: List[str], attempt_number: int) -> tuple[bool, Optional[str]]:
+                          target_files: List[str], attempt_number: int,
+                          analysis_data: Dict[str, Any] = None) -> tuple[bool, Optional[str]]:
         """
         Validate that required analysis is complete before allowing resolving actions.
         
@@ -241,10 +242,14 @@ class TaskAnalysisTracker:
             tool_calls: Proposed tool calls
             target_files: Target files for this task
             attempt_number: Current attempt number
+            analysis_data: Task analysis data (for task-type detection)
             
         Returns:
             (is_valid, error_message)
         """
+        if analysis_data is None:
+            analysis_data = {}
+        
         state = self.get_or_create_state(task_id)
         state.attempt_number = attempt_number
         
