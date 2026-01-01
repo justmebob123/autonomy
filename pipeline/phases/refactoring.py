@@ -192,10 +192,27 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                  len(task.analysis_data) <= 1)
             )
             
+            # Also check for invalid file paths
+            has_invalid_files = False
+            if task.target_files:
+                for file_path in task.target_files:
+                    # Check for backup directories
+                    if '.autonomy' in file_path or '/backups/' in file_path or '\\backups\\' in file_path:
+                        has_invalid_files = True
+                        break
+                    # Check for placeholder paths
+                    if 'some_file' in file_path or file_path == '':
+                        has_invalid_files = True
+                        break
+            
             if is_broken:
                 broken_tasks.append(task.task_id)
                 self.logger.info(f"  🗑️  Removing broken task: {task.task_id} - {task.title}")
                 self.logger.debug(f"     Reason: Insufficient data (created before fixes)")
+            elif has_invalid_files:
+                broken_tasks.append(task.task_id)
+                self.logger.info(f"  🗑️  Removing broken task: {task.task_id} - {task.title}")
+                self.logger.debug(f"     Reason: Invalid file paths (backup dirs or placeholders): {task.target_files}")
         
         # Delete broken tasks
         for task_id in broken_tasks:
@@ -735,7 +752,84 @@ cleanup_redundant_files(
             # Check what type of architecture issue this is
             data_type = data.get('type', '') if isinstance(data, dict) else ''
             
-            if data_type == 'antipattern':
+            # Check if this is a missing method error
+            if 'method_name' in data and 'class_name' in data:
+                # This is a missing method from validate_method_existence
+                method_name = data.get('method_name', 'unknown')
+                class_name = data.get('class_name', 'unknown')
+                file_path = data.get('file', 'unknown')
+                line = data.get('line', '?')
+                message = data.get('message', 'Method not found')
+                
+                return f"""
+MISSING METHOD DETECTED:
+- Class: {class_name}
+- Method: {method_name}
+- File: {file_path}
+- Line: {line}
+- Error: {message}
+
+ACTION REQUIRED:
+1. Read the file to see the class definition
+2. Implement the missing method in the class
+3. If implementation requires domain knowledge, create an issue report
+
+EXAMPLE (implement method):
+read_file(filepath="{file_path}")
+# Then use insert_after or modify_file to add the method to the class
+
+EXAMPLE (if complex):
+create_issue_report(
+    title="Missing method: {class_name}.{method_name}",
+    description="Method {method_name} is called but not defined in {class_name} at line {line}",
+    severity="critical",
+    suggested_fix="Implement the {method_name} method in {class_name} class",
+    files_affected=["{file_path}"]
+)
+
+✅ PREFER implementing the method if it's straightforward (e.g., getter/setter, simple utility)
+⚠️ CREATE REPORT only if implementation requires business logic or domain knowledge
+"""
+            
+            # Check if this is a bug (bugs are categorized as ARCHITECTURE issues)
+            elif 'message' in data and 'line' in data and 'file' in data and 'type' in data:
+                # This is a bug from find_bugs tool
+                bug_type = data.get('type', 'unknown')
+                bug_message = data.get('message', 'Unknown error')
+                bug_file = data.get('file', 'unknown')
+                bug_line = data.get('line', '?')
+                bug_suggestion = data.get('suggestion', 'Fix the issue')
+                
+                return f"""
+BUG DETECTED:
+- Type: {bug_type}
+- File: {bug_file}
+- Line: {bug_line}
+- Error: {bug_message}
+- Suggestion: {bug_suggestion}
+
+ACTION REQUIRED:
+1. Read the file to understand the context
+2. Fix the bug using appropriate file modification tools
+3. If the bug is complex, create an issue report
+
+EXAMPLE (simple fix):
+read_file(filepath="{bug_file}")
+# Then use modify_file, replace_between, or str_replace to fix the issue
+
+EXAMPLE (complex fix):
+create_issue_report(
+    title="Bug: {bug_type}",
+    description="Line {bug_line} in {bug_file}: {bug_message}",
+    severity="high",
+    suggested_fix="{bug_suggestion}",
+    files_affected=["{bug_file}"]
+)
+
+⚠️ DO NOT try to fix bugs in files that don't exist - verify file path first!
+"""
+            
+            elif data_type == 'antipattern':
                 pattern_name = data.get('pattern_name', 'Unknown')
                 pattern_file = data.get('file', 'unknown')
                 pattern_desc = data.get('description', '')

@@ -227,6 +227,30 @@ class RefactoringTaskManager:
         Returns:
             Created RefactoringTask
         """
+        from pathlib import Path
+        
+        # VALIDATION: Filter out invalid file paths
+        valid_files = []
+        for file_path in target_files:
+            if not file_path or file_path == '':
+                continue
+            
+            # Skip backup directories
+            if '.autonomy' in file_path or '/backups/' in file_path or '\\backups\\' in file_path:
+                continue
+            
+            # Skip placeholder paths
+            if 'some_file' in file_path or 'unknown' in file_path:
+                continue
+            
+            valid_files.append(file_path)
+        
+        # If no valid files, skip task creation
+        if not valid_files:
+            if hasattr(self, 'logger'):
+                self.logger.warning(f"⚠️ Skipping task creation - no valid files: {target_files}")
+            return None
+        
         task_id = f"refactor_{self._next_id:04d}"
         self._next_id += 1
         
@@ -235,7 +259,7 @@ class RefactoringTaskManager:
             issue_type=issue_type,
             title=title,
             description=description,
-            target_files=target_files,
+            target_files=valid_files,  # Use validated files
             priority=priority,
             fix_approach=fix_approach,
             **kwargs

@@ -135,8 +135,13 @@ class IntegrationConflictDetector:
         else:
             # Analyze directory
             for root, dirs, files in os.walk(target_path):
-                # Skip common directories
-                dirs[:] = [d for d in dirs if d not in ['__pycache__', '.git', 'venv', '.venv', 'node_modules']]
+                # Skip common directories AND backup directories
+                dirs[:] = [d for d in dirs if d not in ['__pycache__', '.git', 'venv', '.venv', 'node_modules', '.autonomy']]
+                
+                # Skip if we're inside a backup directory
+                root_path = Path(root)
+                if '.autonomy' in root_path.parts or 'backups' in root_path.parts:
+                    continue
                 
                 for file in files:
                     if file.endswith('.py'):
