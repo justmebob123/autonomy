@@ -569,7 +569,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                     
                     # Add error context to force AI to read files
                     error_msg = (
-                        f"ATTEMPT {task.attempts + 1}/{task.max_attempts}: "
+                        f"ATTEMPT {task.attempts + 1} (CONTINUOUS MODE - no limit): "
                         "You only compared files without reading them. "
                         "You MUST read both files to understand their purpose. "
                         "Use read_file on both files, then check ARCHITECTURE.md, "
@@ -589,65 +589,43 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                         message=f"Task {task.task_id} retry needed: {error_msg}"
                     )
                 
-                # AI tried to understand but still couldn't resolve
-                # NOW we can auto-create a report
-                self.logger.warning(f"  ⚠️  Task {task.task_id}: AI tried to understand but couldn't resolve, auto-creating issue report")
+                # AI tried to understand but still hasn't resolved
+                # CONTINUOUS MODE: Don't auto-create report, force retry with stronger guidance
+                self.logger.warning(f"  ⚠️  Task {task.task_id}: AI read files but didn't resolve - RETRYING with comprehensive analysis requirements (attempt {task.attempts + 1})")
                 
-                # Collect analysis results
-                analysis_summary = []
-                for result in results:
-                    if result.get("success"):
-                        tool_name = result.get("tool", "unknown")
-                        tool_result = result.get("result", {})
-                        
-                        if tool_name == "compare_file_implementations":
-                            similarity = tool_result.get("similarity", 0)
-                            conflicts = tool_result.get("conflicts", [])
-                            strategy = tool_result.get("merge_strategy", "unknown")
-                            analysis_summary.append(
-                                f"Comparison: {similarity:.0%} similar, "
-                                f"{len(conflicts)} conflicts, "
-                                f"recommended strategy: {strategy}"
-                            )
-                        elif tool_name == "read_file":
-                            file_path = tool_result.get("file", "unknown")
-                            analysis_summary.append(f"Read: {file_path}")
-                        else:
-                            analysis_summary.append(f"{tool_name}: {tool_result}")
+                # DON'T create report - force retry with comprehensive analysis requirements
+                # Reset task to NEW status for retry
+                task.status = TaskStatus.NEW
                 
-                # Auto-create issue report
-                report_result = handler.process_tool_calls([{
-                    "function": {
-                        "name": "create_issue_report",
-                        "arguments": {
-                            "task_id": task.task_id,
-                            "severity": "medium",
-                            "impact_analysis": f"Integration conflict detected: {task.description}. AI analyzed files and architecture but requires human decision.",
-                            "recommended_approach": "AI has read the files and checked architecture. Review the analysis and make final decision on merge/keep/move.",
-                            "code_examples": "\n".join(analysis_summary) if analysis_summary else "See task analysis_data for details",
-                            "estimated_effort": "30 minutes",
-                            "alternatives": "Consider: 1) Merge implementations, 2) Keep both with different purposes, 3) Refactor to eliminate conflict, 4) Update ARCHITECTURE.md to clarify design"
-                        }
-                    }
-                }])
+                # Build comprehensive analysis requirements
+                tools_used = {r.get("tool") for r in results if r.get("success")}
+                missing_analysis = []
                 
-                if report_result and report_result[0].get("success"):
-                    task.complete("Auto-created issue report after thorough analysis")
-                    self.logger.info(f"  ✅ Task {task.task_id} resolved by creating issue report")
-                    return PhaseResult(
-                        success=True,
-                        phase=self.phase_name,
-                        message=f"Task {task.task_id} resolved: Issue report created after analysis"
-                    )
-                else:
-                    # Report creation failed, mark task as failed
-                    error_msg = "Tools succeeded but issue not resolved - analysis performed but couldn't create report"
-                    task.fail(error_msg)
-                    self.logger.warning(f"  ⚠️  Task {task.task_id}: {error_msg}")
-                    
-                    return PhaseResult(
-                        success=False,
-                        phase=self.phase_name,
+                if "list_all_source_files" not in tools_used:
+                    missing_analysis.append("list_all_source_files - examine entire codebase")
+                if "find_all_related_files" not in tools_used:
+                    missing_analysis.append("find_all_related_files - find all related code")
+                if "map_file_relationships" not in tools_used:
+                    missing_analysis.append("map_file_relationships - understand dependencies")
+                if "compare_file_implementations" not in tools_used:
+                    missing_analysis.append("compare_file_implementations - compare implementations")
+                
+                error_msg = (
+                    f"ATTEMPT {task.attempts + 1} (CONTINUOUS - no limit): "
+                    f"You read files but did NOT complete comprehensive analysis. "
+                    f"REQUIRED NEXT STEPS: {', '.join(missing_analysis)}. "
+                    f"You MUST use these tools to understand the full context before making a decision."
+                )
+                
+                if not task.analysis_data:
+                    task.analysis_data = {}
+                task.analysis_data['retry_reason'] = error_msg
+                task.analysis_data['tools_used'] = list(tools_used)
+                task.analysis_data['missing_analysis'] = missing_analysis
+                
+                return PhaseResult(
+                    success=False,
+                    phase=self.phase_name,
                         message=f"Task {task.task_id} not resolved: {error_msg}"
                     )
             else:
@@ -1328,6 +1306,25 @@ This is NOT a documentation task. This is a FIXING task.
 - Only create reports if the fix is genuinely too complex or risky
 - "Too complex" means requires major architectural changes, not just merging files
 - UNUSED CODE = create report (don't remove in early-stage projects)
+
+🔬 COMPREHENSIVE ANALYSIS REQUIRED (CONTINUOUS MODE):
+
+This system operates in CONTINUOUS MODE with NO ATTEMPT LIMITS. You will continue working on this task until it is ACTUALLY RESOLVED.
+
+Before taking ANY resolving action, you MUST complete comprehensive analysis:
+
+**REQUIRED ANALYSIS TOOLS** (use ALL of these):
+1. list_all_source_files - See the entire codebase structure
+2. find_all_related_files - Find ALL files related to this issue
+3. read_file - Read ALL target and related files
+4. map_file_relationships - Understand dependencies and imports
+5. cross_reference_file - Validate against ARCHITECTURE.md
+6. compare_file_implementations - Compare implementations
+7. analyze_file_purpose - Understand purpose of each file
+
+**DO NOT** create reports or make decisions until you have used these tools!
+
+The system will BLOCK you and force retry if you skip comprehensive analysis.
 
 🧠 INTELLIGENT CONFLICT RESOLUTION (CRITICAL FOR INTEGRATION CONFLICTS):
 
