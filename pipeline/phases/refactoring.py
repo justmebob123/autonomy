@@ -1452,19 +1452,27 @@ Review the issue and use appropriate refactoring tools to resolve it.
 
 {context}
 
-📋 COMPREHENSIVE WORKFLOW (analyze then decide):
+⚠️ CRITICAL: You can only call ONE tool per iteration. After each tool, wait for the result before calling the next tool.
 
-1️⃣ **Read the conflicting files** to understand what they do:
+📋 COMPREHENSIVE WORKFLOW (ONE STEP AT A TIME):
+
+1️⃣ **First iteration: Read the first conflicting file**
    read_file(filepath="<file1>")
+   → Wait for result
+
+2️⃣ **Second iteration: Read the second conflicting file**
    read_file(filepath="<file2>")
+   → Wait for result
 
-2️⃣ **Check architecture** to understand where they should be:
+3️⃣ **Third iteration: Check architecture**
    read_file(filepath="ARCHITECTURE.md")
+   → Wait for result
 
-3️⃣ **Compare implementations** to see if they're duplicates:
+4️⃣ **Fourth iteration: Compare implementations**
    compare_file_implementations(file1="<file1>", file2="<file2>")
+   → Wait for result
 
-4️⃣ **MAKE A DECISION** based on your analysis:
+5️⃣ **Fifth iteration: MAKE A DECISION** based on your analysis:
    
    **Scenario A: Files are duplicates (>80% similar)**
    → Decision: Merge them into the correct location per ARCHITECTURE.md
@@ -1490,16 +1498,24 @@ Review the issue and use appropriate refactoring tools to resolve it.
 - YOU decide and take action
 
 🎯 EXAMPLE DECISION PROCESS:
-After reading files and architecture, you find:
-- File A and File B both implement ResourceEstimator
-- They're 95% similar (duplicates)
-- ARCHITECTURE.md says: "Resource estimation in core/resource/"
-- File A is in core/resource/ (correct)
-- File B is in resources/ (wrong)
-→ DECISION: Merge B into A, delete B
-→ ACTION: merge_file_implementations(source_files=["resources/resource_estimator.py", "core/resource/resource_estimator.py"], target_file="core/resource/resource_estimator.py")
+Iteration 1: read_file("resources/resource_estimator.py") → See ResourceEstimator class
+Iteration 2: read_file("core/resource/resource_estimator.py") → See ResourceEstimator class
+Iteration 3: read_file("ARCHITECTURE.md") → See "Resource estimation in core/resource/"
+Iteration 4: compare_file_implementations(...) → 95% similar
+Iteration 5: DECISION: They're duplicates, merge into core/resource/
+Iteration 6: merge_file_implementations(source_files=["resources/resource_estimator.py", "core/resource/resource_estimator.py"], target_file="core/resource/resource_estimator.py") → ✅ RESOLVED
 
-🎯 TAKE ACTION NOW - You have the tools and information to resolve this!
+⚠️ CRITICAL: Call ONE tool per iteration, not multiple tools at once!
+
+DO NOT output multiple tool calls like this:
+❌ {"name": "read_file", ...} {"name": "read_file", ...} {"name": "compare_file_implementations", ...}
+
+Instead, output ONE tool call per iteration:
+✅ Iteration 1: {"name": "read_file", "arguments": {"filepath": "resources/resource_estimator.py"}}
+✅ Iteration 2: {"name": "read_file", "arguments": {"filepath": "core/resource/resource_estimator.py"}}
+✅ Iteration 3: {"name": "read_file", "arguments": {"filepath": "ARCHITECTURE.md"}}
+
+🎯 TAKE ACTION NOW - Call ONE tool, wait for result, then call the next tool!
 """
     
     def _get_dead_code_prompt(self, task: Any, context: str) -> str:
