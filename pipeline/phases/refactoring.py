@@ -698,7 +698,7 @@ RESOLVING means taking ONE of these actions:
                                 target_files=dup.get('files', []),
                                 priority=RefactoringPriority.MEDIUM,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort=30
+                                estimated_effort=30,
                                 analysis_data=dup,
                             )
                             tasks_created += 1
@@ -720,7 +720,7 @@ RESOLVING means taking ONE of these actions:
                                 target_files=[func_info.get('file', '')],
                                 priority=RefactoringPriority.HIGH,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI decide if it needs developer
-                                estimated_effort=60
+                                estimated_effort=60,
                                 analysis_data=func_info,
                             )
                             tasks_created += 1
@@ -835,7 +835,7 @@ RESOLVING means taking ONE of these actions:
                                 target_files=conflict_dict['files'],
                                 priority=RefactoringPriority.CRITICAL,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI analyze and decide
-                                estimated_effort=60
+                                estimated_effort=60,
                                 analysis_data=conflict_dict,
                             )
                             tasks_created += 1
@@ -854,7 +854,7 @@ RESOLVING means taking ONE of these actions:
                                 target_files=[bug.get('file', '')],
                                 priority=priority_map.get(bug.get('severity', 'medium'), RefactoringPriority.HIGH),
                                 fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI analyze and decide
-                                estimated_effort=45
+                                estimated_effort=45,
                                 analysis_data=bug,
                             )
                             tasks_created += 1
@@ -894,7 +894,7 @@ RESOLVING means taking ONE of these actions:
                                 target_files=[error.get('file', '')],
                                 priority=priority_map.get(error.get('error_type'), RefactoringPriority.HIGH),
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort=25
+                                estimated_effort=25,
                                 analysis_data=error,
                             )
                             tasks_created += 1
@@ -912,7 +912,7 @@ RESOLVING means taking ONE of these actions:
                                 target_files=[error.get('file', '')],
                                 priority=RefactoringPriority.CRITICAL,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI analyze and decide
-                                estimated_effort=30
+                                estimated_effort=30,
                                 analysis_data=error,
                             )
                             tasks_created += 1
@@ -930,7 +930,7 @@ RESOLVING means taking ONE of these actions:
                                 target_files=[error.get('file', '')],
                                 priority=RefactoringPriority.HIGH,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort=20
+                                estimated_effort=20,
                                 analysis_data=error,
                             )
                             tasks_created += 1
@@ -948,7 +948,7 @@ RESOLVING means taking ONE of these actions:
                                 target_files=[error.get('file', '')],
                                 priority=RefactoringPriority.CRITICAL,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort=25
+                                estimated_effort=25,
                                 analysis_data=error,
                             )
                             tasks_created += 1
@@ -966,7 +966,7 @@ RESOLVING means taking ONE of these actions:
                                 target_files=[error.get('file', '')],
                                 priority=RefactoringPriority.HIGH,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort=20
+                                estimated_effort=20,
                                 analysis_data=error,
                             )
                             tasks_created += 1
@@ -984,7 +984,7 @@ RESOLVING means taking ONE of these actions:
                                 target_files=[error.get('file', '')],
                                 priority=RefactoringPriority.CRITICAL,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
-                                estimated_effort=15
+                                estimated_effort=15,
                                 analysis_data=error,
                             )
                             tasks_created += 1
