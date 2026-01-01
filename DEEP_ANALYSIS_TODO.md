@@ -1,64 +1,36 @@
-# Deep Pipeline Analysis TODO
+# Deep Analysis - Root Cause Investigation
 
-## Phase 1: State Management Architecture ✅
-- [x] Examine PipelineState structure and serialization
-- [x] Analyze StateManager persistence and recovery
-- [x] Study state transitions and validation
-- [x] Trace RefactoringTaskManager integration
+## Current Symptoms
 
-## Phase 2: Orchestration Layer ✅
-- [x] Analyze PipelineOrchestrator control flow
-- [x] Study phase execution and transitions
-- [x] Examine error handling and recovery
-- [x] Trace coordinator integration
+1. **Task refactor_0272**: "Merge duplicates: resource_estimator.py ↔ resource_estimator.py"
+   - AI compares files (0% similar)
+   - Task fails: "only analysis performed, no action taken"
+   - Next iteration: AI does the SAME thing again
+   - Eventually succeeds on 2nd try with merge
 
-## Phase 3: Coordinator System ✅
-- [x] Examine PipelineCoordinator architecture
-- [x] Study shared resource management
-- [x] Analyze inter-phase communication (IPC)
-- [x] Trace message passing and document sharing
+2. **Pattern**: AI keeps using analysis tools instead of resolving tools
 
-## Phase 4: Refactoring Phase Deep Dive ✅
-- [x] Analyze task creation and management
-- [x] Study handler system and tool execution
-- [x] Examine context building and AI engagement
-- [x] Trace task completion and state updates
+## Questions to Answer
 
-## Phase 5: Coding Phase Deep Dive ✅
-- [x] Analyze task execution flow
-- [x] Study error handling and retry logic
-- [x] Examine filename validation integration
-- [x] Trace tool call validation and execution
+1. Why does the task title say "resource_estimator.py ↔ resource_estimator.py" (same file twice)?
+2. Why does AI compare first instead of merging directly?
+3. What's in the task's analysis_data that confuses the AI?
+4. What does the prompt actually tell the AI to do?
+5. Why does it work on the 2nd try but not the 1st?
 
-## Phase 6: Critical Path Analysis ✅
-- [x] Trace complete execution path from start to finish
-- [x] Identify all state mutation points
-- [x] Map all inter-component dependencies
-- [x] Verify developer engagement mechanisms
+## Investigation Plan
 
-## Phase 7: Bug Detection ✅
-- [x] Identify state synchronization issues
-- [x] Find missing error handlers
-- [x] Detect race conditions or deadlocks
-- [x] Verify all critical paths work correctly
+- [ ] Examine task creation for duplicates - what data is passed?
+- [ ] Check the formatted analysis_data - what does AI actually see?
+- [ ] Review the refactoring phase prompt - what instructions does AI get?
+- [ ] Check the tool descriptions - are they clear about when to use each?
+- [ ] Analyze the conversation history - what context does AI have?
+- [ ] Look at the task completion logic - why does it fail after compare?
 
-## Phase 8: Documentation and Recommendations ✅
-- [x] Document findings
-- [x] Create architectural diagrams
-- [x] List critical bugs found
-- [x] Provide recommendations
+## Root Causes to Find
 
-## ANALYSIS COMPLETE ✅
-
-All phases completed successfully. Comprehensive analysis document created at:
-`DEEP_PIPELINE_ANALYSIS.md`
-
-### Key Findings:
-1. ✅ All critical bugs previously fixed and verified
-2. ✅ Developer engagement mechanisms working properly
-3. ✅ State management and persistence correct
-4. ✅ Task lifecycle properly implemented
-5. ✅ Error handling and recovery robust
-6. ✅ Polytopic structure properly initialized
-
-### System Status: PRODUCTION READY
+1. **Task data quality** - Is the task created with correct file pairs?
+2. **Prompt clarity** - Does the prompt clearly say "merge immediately"?
+3. **Tool descriptions** - Do tools clearly explain their purpose?
+4. **Context building** - Does AI get enough info to make the right decision?
+5. **Completion logic** - Is the failure detection too aggressive?

@@ -662,13 +662,24 @@ DUPLICATE FILES DETECTED:
 - Similarity: {similarity:.0%}
 
 ACTION REQUIRED:
-1. Use compare_file_implementations to analyze differences between these two files
-2. Use merge_file_implementations to merge them into one file
-3. The merge tool will handle imports, preserve functionality, and remove duplicates
+Use merge_file_implementations to merge these duplicate files into one.
 
 EXAMPLE:
+merge_file_implementations(
+    source_files=["{file1}", "{file2}"],
+    target_file="{file1}",
+    strategy="ai_merge"
+)
+
+OPTIONAL: If you want to understand the differences first, you CAN compare:
 compare_file_implementations(file1="{file1}", file2="{file2}")
-merge_file_implementations(target="{file1}", source="{file2}", strategy="keep_target_structure")
+BUT you MUST still call merge_file_implementations after comparing!
+
+The merge tool will:
+- Automatically handle imports
+- Preserve all functionality
+- Remove duplicates
+- Create backups
 """
         
         elif issue_type == RefactoringIssueType.COMPLEXITY:
@@ -1046,20 +1057,33 @@ RESOLVING means taking ONE of these actions:
 
 🛠️ TOOL SELECTION GUIDE:
 - **Dead code**: cleanup_redundant_files (RESOLVES by removing)
-- **Duplicates**: compare_file_implementations → merge_file_implementations (RESOLVES by merging)
-- **Integration conflicts**: compare_file_implementations → merge_file_implementations OR move_file to correct location (RESOLVES by fixing)
+- **Duplicates**: merge_file_implementations (RESOLVES by merging) - compare first if needed, but MUST merge
+- **Integration conflicts**: merge_file_implementations OR move_file to correct location (RESOLVES by fixing)
 - **Architecture violations**: move_file/rename_file to align with ARCHITECTURE.md (RESOLVES by restructuring)
 - **Complexity issues**: Refactor code to reduce complexity OR create_issue_report if too complex (TRY TO FIX FIRST)
+
+⚠️ REMEMBER: compare_file_implementations is for UNDERSTANDING, not RESOLVING. Always follow it with a resolving tool!
 
 📋 CONCRETE EXAMPLE - DUPLICATE CODE:
 Task: Merge duplicates: resources.py ↔ resource_estimator.py
 Files: api/resources.py and resources/resource_estimator.py (85% similar)
 
-Step 1: compare_file_implementations(file1="api/resources.py", file2="resources/resource_estimator.py")
-Result: Shows differences, common code, suggests merge strategy
-
-Step 2: merge_file_implementations(target="api/resources.py", source="resources/resource_estimator.py", strategy="keep_target_structure")
+CORRECT APPROACH:
+merge_file_implementations(
+    source_files=["api/resources.py", "resources/resource_estimator.py"],
+    target_file="api/resources.py",
+    strategy="ai_merge"
+)
 Result: ✅ Files merged, duplicate removed, imports updated, task RESOLVED
+
+ALSO ACCEPTABLE (if you want to understand first):
+Step 1: compare_file_implementations(file1="api/resources.py", file2="resources/resource_estimator.py")
+Step 2: merge_file_implementations(source_files=["api/resources.py", "resources/resource_estimator.py"], target_file="api/resources.py", strategy="ai_merge")
+Result: ✅ Task RESOLVED
+
+WRONG APPROACH:
+compare_file_implementations(...) and then STOP
+Result: ❌ Task FAILED - only analysis, no action taken
 
 ⚠️ CRITICAL RULES:
 - NEVER stop after just analyzing (like calling detect_duplicate_implementations or compare_file_implementations alone)
@@ -1119,15 +1143,19 @@ Result: ✅ Files merged, duplicate removed, imports updated, task RESOLVED
                             files = dup.get('files', [])
                             similarity = dup.get('similarity', 0)
                             
-                            # Extract file names for title
+                            # Extract file paths for title (use relative paths, not just names)
                             from pathlib import Path
-                            file1_name = Path(files[0]).name if len(files) > 0 else 'unknown'
-                            file2_name = Path(files[1]).name if len(files) > 1 else 'unknown'
+                            file1_path = files[0] if len(files) > 0 else 'unknown'
+                            file2_path = files[1] if len(files) > 1 else 'unknown'
+                            
+                            # Use short paths for title (parent/filename)
+                            file1_short = str(Path(file1_path).parent.name / Path(file1_path).name) if file1_path != 'unknown' else 'unknown'
+                            file2_short = str(Path(file2_path).parent.name / Path(file2_path).name) if file2_path != 'unknown' else 'unknown'
                             
                             # Create task with specific, actionable information
                             task = manager.create_task(
                                 issue_type=RefactoringIssueType.DUPLICATE,
-                                title=f"Merge duplicates: {file1_name} ↔ {file2_name}",
+                                title=f"Merge duplicates: {file1_short} ↔ {file2_short}",
                                 description=f"Merge duplicate files: {files[0] if len(files) > 0 else 'unknown'} and {files[1] if len(files) > 1 else 'unknown'} ({similarity:.0%} similar)",
                                 target_files=files,
                                 priority=RefactoringPriority.MEDIUM,
