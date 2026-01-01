@@ -4,6 +4,8 @@ Team Orchestrator Meta-Prompt
 This meta-prompt teaches AI how to coordinate multiple specialist agents
 working in parallel across multiple servers to solve complex problems.
 """
+from typing import List, Optional, Dict
+
 
 TEAM_ORCHESTRATOR_PROMPT = """
 # TEAM ORCHESTRATOR - Multi-Agent Coordination Expert
@@ -391,9 +393,9 @@ at the right time, and together they create something greater than the sum of pa
 
 def get_team_orchestrator_prompt(
     problem: str,
-    available_specialists: list,
-    available_servers: list,
-    context: dict = None
+    available_specialists: List[str],
+    available_servers: List[str],
+    context: Optional[Dict] = None
 ) -> str:
     """
     Generate team orchestrator prompt for a specific problem.
