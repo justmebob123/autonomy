@@ -173,6 +173,12 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             from pipeline.state.refactoring_task import RefactoringTaskManager
             state.refactoring_manager = RefactoringTaskManager()
             self.logger.debug(f"  🔧 Initialized refactoring task manager")
+        
+        # Initialize analysis tracker if not exists
+        if not hasattr(self, '_analysis_tracker'):
+            from pipeline.state.task_analysis_tracker import TaskAnalysisTracker
+            self._analysis_tracker = TaskAnalysisTracker()
+            self.logger.debug(f"  📋 Initialized task analysis tracker")
     
     def _cleanup_broken_tasks(self, manager) -> None:
         """
@@ -451,10 +457,53 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 message=f"Task {task.task_id} failed: No tool calls"
             )
         
+        # CRITICAL: Validate tool calls before execution
+        # Ensure AI has completed required analysis before allowing resolving actions
+        is_valid, error_message = self._analysis_tracker.validate_tool_calls(
+            task_id=task.task_id,
+            tool_calls=tool_calls,
+            target_files=task.target_files,
+            attempt_number=task.attempts
+        )
+        
+        if not is_valid:
+            # Analysis incomplete - force retry with error message
+            self.logger.warning(f"  ⚠️ Task {task.task_id}: Analysis incomplete, forcing retry")
+            self.logger.info(f"  📋 Missing analysis steps detected")
+            
+            # Reset task to NEW status for retry
+            task.status = TaskStatus.NEW
+            task.attempts += 1
+            
+            # Add error message to analysis_data for next attempt
+            if not isinstance(task.analysis_data, dict):
+                task.analysis_data = {}
+            task.analysis_data['retry_reason'] = error_message
+            task.analysis_data['forced_retry'] = True
+            
+            return PhaseResult(
+                success=False,
+                phase=self.phase_name,
+                message=f"Task {task.task_id}: Analysis incomplete, retry required\n{error_message}"
+            )
+        
         # Execute tool calls
         from ..handlers import ToolCallHandler
         handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry, refactoring_manager=state.refactoring_manager)
         results = handler.process_tool_calls(tool_calls)
+        
+        # Record tool calls in analysis tracker
+        for i, tool_call in enumerate(tool_calls):
+            tool_name = tool_call.get("function", {}).get("name", "unknown")
+            arguments = tool_call.get("function", {}).get("arguments", {})
+            result = results[i] if i < len(results) else {}
+            
+            self._analysis_tracker.record_tool_call(
+                task_id=task.task_id,
+                tool_name=tool_name,
+                arguments=arguments,
+                result=result
+            )
         
         # Check if task was actually resolved (not just analyzed)
         task_resolved = False
@@ -1280,9 +1329,39 @@ Review the issue and use appropriate refactoring tools to resolve it.
     
     def _build_task_prompt(self, task: Any, context: str) -> str:
         """Build prompt for working on a specific task"""
+        
+        # Get checklist status from analysis tracker
+        checklist_status = self._analysis_tracker.get_checklist_status(
+            task_id=task.task_id,
+            target_files=task.target_files
+        )
+        
+        next_step = self._analysis_tracker.get_next_step(
+            task_id=task.task_id,
+            target_files=task.target_files
+        )
+        
+        is_complete = self._analysis_tracker.is_analysis_complete(
+            task_id=task.task_id,
+            target_files=task.target_files
+        )
+        
+        # Build checklist section
+        checklist_section = f"""
+📋 MANDATORY ANALYSIS CHECKLIST (Attempt {task.attempts}/{task.max_attempts}):
+
+{checklist_status}
+
+{'✅ Analysis complete! You can now take resolving action.' if is_complete else f'⚠️ NEXT REQUIRED STEP: {next_step}'}
+
+{'🔓 You may now use resolving tools (merge, report, etc.)' if is_complete else '🔒 You CANNOT use resolving tools until ALL checklist items are complete!'}
+"""
+        
         return f"""🎯 REFACTORING TASK - YOU MUST FIX THIS ISSUE
 
 ⚠️ CRITICAL: YOUR JOB IS TO FIX ISSUES, NOT JUST DOCUMENT THEM!
+
+{checklist_section}
 
 🚨 EXCEPTION: This is an EARLY-STAGE project. DO NOT remove unused/dead code automatically!
    - Unused code may be part of planned architecture not yet integrated
