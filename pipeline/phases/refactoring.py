@@ -560,79 +560,34 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                     # AI was lazy - just compared without understanding
                     # RETRY with stronger guidance (don't mark as failed yet)
                     
-                    # Check retry count
-                    if task.attempts >= task.max_attempts:
-                        # After max attempts, auto-create report
-                        self.logger.warning(f"  ⚠️  Task {task.task_id}: Max attempts reached ({task.attempts}/{task.max_attempts}), auto-creating issue report")
+                    # CONTINUOUS MODE: No max attempts - keep retrying with progressively stronger guidance
+                    # RETRY with stronger guidance
+                    self.logger.warning(f"  ⚠️  Task {task.task_id}: Only compared files without reading them - RETRYING (attempt {task.attempts + 1})")
                         
-                        # Collect analysis results
-                        analysis_summary = []
-                        for result in results:
-                            if result.get("success"):
-                                tool_name = result.get("tool", "unknown")
-                                analysis_summary.append(f"{tool_name}: {result.get('result', {})}")
-                        
-                        # Auto-create issue report
-                        report_result = handler.process_tool_calls([{
-                            "function": {
-                                "name": "create_issue_report",
-                                "arguments": {
-                                    "task_id": task.task_id,
-                                    "severity": "medium",
-                                    "impact_analysis": f"Integration conflict detected: {task.description}. AI attempted {task.attempts} times but only performed analysis without reading files.",
-                                    "recommended_approach": "Manually review the files to understand their purpose and determine if they should be merged, kept separate, or relocated.",
-                                    "code_examples": "\n".join(analysis_summary) if analysis_summary else "See task analysis_data for details",
-                                    "estimated_effort": "30 minutes",
-                                    "alternatives": "Consider: 1) Merge implementations, 2) Keep both with different purposes, 3) Refactor to eliminate conflict, 4) Update ARCHITECTURE.md to clarify design"
-                                }
-                            }
-                        }])
-                        
-                        if report_result and report_result[0].get("success"):
-                            task.complete("Auto-created issue report after max retry attempts")
-                            self.logger.info(f"  ✅ Task {task.task_id} resolved by creating issue report after {task.attempts} attempts")
-                            return PhaseResult(
-                                success=True,
-                                phase=self.phase_name,
-                                message=f"Task {task.task_id} resolved: Issue report created after {task.attempts} attempts"
-                            )
-                        else:
-                            # Report creation failed
-                            error_msg = f"Max attempts reached ({task.attempts}/{task.max_attempts}) and couldn't create report"
-                            task.fail(error_msg)
-                            return PhaseResult(
-                                success=False,
-                                phase=self.phase_name,
-                                message=f"Task {task.task_id} failed: {error_msg}"
-                            )
-                    else:
-                        # RETRY with stronger guidance
-                        self.logger.warning(f"  ⚠️  Task {task.task_id}: Only compared files without reading them - RETRYING (attempt {task.attempts + 1}/{task.max_attempts})")
-                        
-                        # DON'T mark as failed - reset to NEW so it can be retried
-                        task.status = TaskStatus.NEW
-                        
-                        # Add error context to force AI to read files
-                        error_msg = (
-                            f"ATTEMPT {task.attempts + 1}/{task.max_attempts}: "
-                            "You only compared files without reading them. "
-                            "You MUST read both files to understand their purpose. "
-                            "Use read_file on both files, then check ARCHITECTURE.md, "
-                            "then make an intelligent decision based on understanding. "
-                            "DO NOT just compare and stop - that is LAZY and will fail again."
-                        )
-                        
-                        # Store error context in task for next attempt
-                        if not task.analysis_data:
-                            task.analysis_data = {}
-                        task.analysis_data['retry_reason'] = error_msg
-                        task.analysis_data['previous_attempt'] = task.attempts
-                        
-                        return PhaseResult(
-                            success=False,
-                            phase=self.phase_name,
-                            message=f"Task {task.task_id} retry needed: {error_msg}"
-                        )
+                    # DON'T mark as failed - reset to NEW so it can be retried
+                    task.status = TaskStatus.NEW
+                    
+                    # Add error context to force AI to read files
+                    error_msg = (
+                        f"ATTEMPT {task.attempts + 1}/{task.max_attempts}: "
+                        "You only compared files without reading them. "
+                        "You MUST read both files to understand their purpose. "
+                        "Use read_file on both files, then check ARCHITECTURE.md, "
+                        "then make an intelligent decision based on understanding. "
+                        "DO NOT just compare and stop - that is LAZY and will fail again."
+                    )
+                    
+                    # Store error context in task for next attempt
+                    if not task.analysis_data:
+                        task.analysis_data = {}
+                    task.analysis_data['retry_reason'] = error_msg
+                    task.analysis_data['previous_attempt'] = task.attempts
+                    
+                    return PhaseResult(
+                        success=False,
+                        phase=self.phase_name,
+                        message=f"Task {task.task_id} retry needed: {error_msg}"
+                    )
                 
                 # AI tried to understand but still couldn't resolve
                 # NOW we can auto-create a report

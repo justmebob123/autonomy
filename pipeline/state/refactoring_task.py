@@ -73,7 +73,7 @@ class RefactoringTask:
     fix_details: Optional[str] = None
     error_message: Optional[str] = None
     attempts: int = 0
-    max_attempts: int = 3
+    max_attempts: int = 999  # Effectively unlimited - continuous until resolved
     
     # Timestamps
     created_at: datetime = field(default_factory=datetime.now)

@@ -116,13 +116,13 @@ class BasePhase(ABC):
         from ..orchestration.conversation_pruning import ConversationPruner
         
         pruning_config = PruningConfig(
-            max_messages=50,  # Keep max 50 messages
-            preserve_first_n=5,  # Keep first 5 (initial context)
-            preserve_last_n=20,  # Keep last 20 (recent context)
+            max_messages=500,  # Keep max 500 messages for substantial context (was 50)
+            preserve_first_n=10,  # Keep first 10 (initial context)
+            preserve_last_n=100,  # Keep last 100 (recent context)
             preserve_errors=True,  # Always keep errors
             preserve_decisions=True,  # Keep decision points
             summarize_pruned=True,  # Create summaries
-            min_prune_age_minutes=30  # Only prune messages >30 min old
+            min_prune_age_minutes=120  # Only prune messages >2 hours old (was 30 min)
         )
         
         pruner = ConversationPruner(pruning_config)

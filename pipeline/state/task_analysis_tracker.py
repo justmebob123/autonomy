@@ -31,22 +31,96 @@ class TaskAnalysisState:
         """Initialize checkpoints if not provided."""
         if not self.checkpoints:
             self.checkpoints = {
+                # Phase 1: Basic File Understanding
                 "read_target_files": AnalysisCheckpoint(
                     name="read_target_files",
                     description="Read all target files to understand their content",
                     required_tools={"read_file"}
                 ),
+                
+                # Phase 2: Architectural Context
                 "read_architecture": AnalysisCheckpoint(
                     name="read_architecture",
                     description="Read ARCHITECTURE.md to understand design intent",
                     required_tools={"read_file"}
                 ),
-                "perform_analysis": AnalysisCheckpoint(
-                    name="perform_analysis",
-                    description="Perform appropriate analysis (compare, analyze complexity, etc.)",
-                    required_tools={"compare_file_implementations", "analyze_complexity", 
-                                   "detect_dead_code", "analyze_import_impact"}
-                )
+                "read_master_plan": AnalysisCheckpoint(
+                    name="read_master_plan",
+                    description="Read MASTER_PLAN.md to understand project goals",
+                    required_tools={"read_file"}
+                ),
+                
+                # Phase 3: Codebase Context (NEW - COMPREHENSIVE)
+                "list_all_source_files": AnalysisCheckpoint(
+                    name="list_all_source_files",
+                    description="List all source files to understand codebase structure",
+                    required_tools={"list_all_source_files"}
+                ),
+                "find_all_related_files": AnalysisCheckpoint(
+                    name="find_all_related_files",
+                    description="Find all files related to the task",
+                    required_tools={"find_all_related_files"}
+                ),
+                "read_all_related_files": AnalysisCheckpoint(
+                    name="read_all_related_files",
+                    description="Read all related files to understand full context",
+                    required_tools={"read_file"}
+                ),
+                
+                # Phase 4: Relationship Mapping (NEW)
+                "map_file_relationships": AnalysisCheckpoint(
+                    name="map_file_relationships",
+                    description="Map imports, dependencies, and relationships between files",
+                    required_tools={"map_file_relationships"}
+                ),
+                "cross_reference_files": AnalysisCheckpoint(
+                    name="cross_reference_files",
+                    description="Cross-reference files against architecture and master plan",
+                    required_tools={"cross_reference_file"}
+                ),
+                
+                # Phase 5: Deep Analysis (NEW)
+                "analyze_all_file_purposes": AnalysisCheckpoint(
+                    name="analyze_all_file_purposes",
+                    description="Analyze the purpose of each related file",
+                    required_tools={"analyze_file_purpose"}
+                ),
+                "compare_all_implementations": AnalysisCheckpoint(
+                    name="compare_all_implementations",
+                    description="Compare all related implementations to find best approach",
+                    required_tools={"compare_file_implementations", "compare_multiple_files"}
+                ),
+                
+                # Phase 6: Integration Analysis (NEW)
+                "analyze_integration_points": AnalysisCheckpoint(
+                    name="analyze_integration_points",
+                    description="Analyze how files integrate with each other",
+                    required_tools={"analyze_import_impact", "detect_integration_conflicts"}
+                ),
+                "validate_design_patterns": AnalysisCheckpoint(
+                    name="validate_design_patterns",
+                    description="Validate design patterns are consistent across files",
+                    required_tools={"analyze_file_purpose", "cross_reference_file"}
+                ),
+                
+                # Phase 7: Decision Making (NEW)
+                "identify_superior_implementation": AnalysisCheckpoint(
+                    name="identify_superior_implementation",
+                    description="Identify which implementation is superior (if applicable)",
+                    required_tools={"compare_file_implementations", "analyze_file_purpose"}
+                ),
+                "plan_integration_strategy": AnalysisCheckpoint(
+                    name="plan_integration_strategy",
+                    description="Plan how to integrate or refactor the code",
+                    required_tools={"analyze_import_impact", "map_file_relationships"}
+                ),
+                
+                # Phase 8: Architecture Validation (NEW)
+                "validate_architecture_alignment": AnalysisCheckpoint(
+                    name="validate_architecture_alignment",
+                    description="Validate changes align with architecture",
+                    required_tools={"validate_architecture", "cross_reference_file"}
+                ),
             }
     
     def record_tool_call(self, tool_name: str, arguments: Dict, result: Dict) -> None:
@@ -64,30 +138,42 @@ class TaskAnalysisState:
             tool_name = tool_call["tool"]
             arguments = tool_call.get("arguments", {})
             
-            # Check read_target_files checkpoint
-            if tool_name == "read_file":
-                file_path = arguments.get("file_path", "")
+            # Check each checkpoint
+            for checkpoint_name, checkpoint in self.checkpoints.items():
+                if checkpoint.completed:
+                    continue  # Already complete
                 
-                # Check if reading target files
-                if any(target in file_path for target in target_files):
-                    checkpoint = self.checkpoints["read_target_files"]
-                    if not checkpoint.completed:
+                # Check if this tool call satisfies the checkpoint
+                if tool_name in checkpoint.required_tools:
+                    # Special handling for read_file (needs specific files)
+                    if tool_name == "read_file":
+                        file_path = arguments.get("file_path", "")
+                        
+                        if checkpoint_name == "read_target_files":
+                            if any(target in file_path for target in target_files):
+                                checkpoint.completed = True
+                                checkpoint.completed_at = tool_call["timestamp"]
+                        
+                        elif checkpoint_name == "read_architecture":
+                            if "ARCHITECTURE.md" in file_path:
+                                checkpoint.completed = True
+                                checkpoint.completed_at = tool_call["timestamp"]
+                        
+                        elif checkpoint_name == "read_master_plan":
+                            if "MASTER_PLAN.md" in file_path:
+                                checkpoint.completed = True
+                                checkpoint.completed_at = tool_call["timestamp"]
+                        
+                        elif checkpoint_name == "read_all_related_files":
+                            # Mark as complete if we've read multiple related files
+                            # (This is a progressive checkpoint)
+                            checkpoint.completed = True
+                            checkpoint.completed_at = tool_call["timestamp"]
+                    
+                    else:
+                        # For other tools, just check if tool was used
                         checkpoint.completed = True
                         checkpoint.completed_at = tool_call["timestamp"]
-                
-                # Check if reading ARCHITECTURE.md
-                if "ARCHITECTURE.md" in file_path:
-                    checkpoint = self.checkpoints["read_architecture"]
-                    if not checkpoint.completed:
-                        checkpoint.completed = True
-                        checkpoint.completed_at = tool_call["timestamp"]
-            
-            # Check perform_analysis checkpoint
-            if tool_name in self.checkpoints["perform_analysis"].required_tools:
-                checkpoint = self.checkpoints["perform_analysis"]
-                if not checkpoint.completed:
-                    checkpoint.completed = True
-                    checkpoint.completed_at = tool_call["timestamp"]
     
     def get_completion_status(self) -> Dict[str, bool]:
         """Get completion status of all checkpoints."""
@@ -148,6 +234,8 @@ class TaskAnalysisTracker:
         """
         Validate that required analysis is complete before allowing resolving actions.
         
+        CONTINUOUS MODE: No attempt limits - continues until comprehensive analysis complete.
+        
         Args:
             task_id: Task identifier
             tool_calls: Proposed tool calls
@@ -180,37 +268,66 @@ class TaskAnalysisTracker:
         )
         
         if is_resolving:
-            # Check if analysis is complete
-            if not state.is_analysis_complete():
-                missing = state.get_missing_checkpoints()
+            # Get completion status
+            missing = state.get_missing_checkpoints()
+            completed_count = len(state.checkpoints) - len(missing)
+            total_count = len(state.checkpoints)
+            
+            # PROGRESSIVE VALIDATION: Allow resolution after minimum analysis
+            # But encourage comprehensive analysis
+            minimum_required = ["read_target_files", "read_architecture", "perform_analysis"]
+            minimum_complete = all(
+                state.checkpoints[cp].completed 
+                for cp in minimum_required 
+                if cp in state.checkpoints
+            )
+            
+            if not minimum_complete:
+                # Block if minimum not met
                 next_step = state.get_next_required_step()
                 
                 error_msg = f"""
-🚫 ANALYSIS INCOMPLETE - Cannot proceed with resolving action yet!
+🚫 MINIMUM ANALYSIS INCOMPLETE - Cannot proceed yet!
 
-You are trying to take a resolving action (merge, report, etc.) but you have NOT completed the required analysis.
+You are trying to take a resolving action but have NOT completed the MINIMUM required analysis.
 
-📋 MISSING CHECKPOINTS:
-{chr(10).join(f"  ✗ {state.checkpoints[m].description}" for m in missing)}
+📋 MINIMUM REQUIRED (must complete):
+{chr(10).join(f"  {'✓' if state.checkpoints[cp].completed else '✗'} {state.checkpoints[cp].description}" for cp in minimum_required if cp in state.checkpoints)}
 
 ⚠️ NEXT REQUIRED STEP: {next_step}
 
-🔄 WHAT TO DO NOW:
-1. Complete the missing analysis steps listed above
-2. THEN you can take resolving action
+📊 COMPREHENSIVE ANALYSIS PROGRESS: {completed_count}/{total_count} checkpoints complete
 
-Example for this attempt:
-- First: read_file(file_path="{target_files[0] if target_files else 'target_file.py'}")
-- Then: read_file(file_path="ARCHITECTURE.md")
-- Then: compare_file_implementations(...) or other analysis
-- Finally: merge_file_implementations(...) or create_issue_report(...)
-
-📊 CURRENT CHECKLIST STATUS:
+🔄 RECOMMENDED: Complete ALL checkpoints for best results:
 {state.format_checklist()}
 
-Attempt {attempt_number}: You MUST complete analysis before resolving!
+Attempt {attempt_number}: Complete minimum analysis to proceed, but comprehensive analysis is strongly recommended!
 """
                 return False, error_msg
+            
+            elif len(missing) > 0:
+                # Minimum met, but comprehensive analysis incomplete
+                # ALLOW but WARN
+                next_step = state.get_next_required_step()
+                
+                warning_msg = f"""
+⚠️ COMPREHENSIVE ANALYSIS INCOMPLETE - Proceeding with caution!
+
+You have completed the MINIMUM required analysis, but comprehensive analysis is incomplete.
+
+📊 ANALYSIS PROGRESS: {completed_count}/{total_count} checkpoints complete
+
+📋 REMAINING CHECKPOINTS (recommended):
+{chr(10).join(f"  ✗ {state.checkpoints[m].description}" for m in missing)}
+
+💡 RECOMMENDATION: Complete remaining checkpoints for better decisions:
+- {next_step}
+
+Attempt {attempt_number}: Proceeding, but comprehensive analysis would improve results!
+"""
+                # Log warning but allow
+                print(warning_msg)
+                return True, None  # Allow with warning
         
         return True, None
     
