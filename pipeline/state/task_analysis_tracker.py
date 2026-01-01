@@ -275,7 +275,22 @@ class TaskAnalysisTracker:
             
             # PROGRESSIVE VALIDATION: Allow resolution after minimum analysis
             # But encourage comprehensive analysis
-            minimum_required = ["read_target_files", "read_architecture", "perform_analysis"]
+            # Task-type-specific requirements
+            task_type = task_id.split('_')[0] if '_' in task_id else 'unknown'
+            
+            # Determine minimum requirements based on task type
+            if 'duplicate' in str(analysis_data.get('type', '')).lower() or \
+               'Merge duplicates' in str(analysis_data.get('title', '')):
+                # For duplicate tasks: comparison is sufficient
+                minimum_required = ["compare_all_implementations"]
+            elif 'Missing method' in str(analysis_data.get('title', '')) or \
+                 'architecture' in str(analysis_data.get('type', '')).lower():
+                # For simple implementation tasks: just read the file
+                minimum_required = ["read_target_files"]
+            else:
+                # For complex tasks: read files and architecture
+                minimum_required = ["read_target_files", "read_architecture"]
+            
             minimum_complete = all(
                 state.checkpoints[cp].completed 
                 for cp in minimum_required 
