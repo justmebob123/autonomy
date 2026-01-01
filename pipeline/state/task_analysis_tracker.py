@@ -147,7 +147,8 @@ class TaskAnalysisState:
                 if tool_name in checkpoint.required_tools:
                     # Special handling for read_file (needs specific files)
                     if tool_name == "read_file":
-                        file_path = arguments.get("file_path", "")
+                        # Accept both 'filepath' and 'file_path' for backward compatibility
+                        file_path = arguments.get("filepath") or arguments.get("file_path", "")
                         
                         if checkpoint_name == "read_target_files":
                             if any(target in file_path for target in target_files):
