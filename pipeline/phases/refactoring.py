@@ -1447,76 +1447,114 @@ Review the issue and use appropriate refactoring tools to resolve it.
 """
     
     def _get_integration_conflict_prompt(self, task: Any, context: str) -> str:
-        """Prompt for integration conflicts - comprehensive analysis needed"""
-        return f"""🎯 INTEGRATION CONFLICT TASK - RESOLVE THE CONFLICT
+        """Prompt for integration conflicts - STEP-AWARE to prevent multiple tool outputs"""
+        
+        # Get target files from task
+        target_files = task.target_files if task.target_files else []
+        file1 = target_files[0] if len(target_files) > 0 else "file1"
+        file2 = target_files[1] if len(target_files) > 1 else "file2"
+        
+        # Determine current step based on conversation history
+        # Check what tools have been called in previous attempts
+        conversation_history = self.conversation.get_context() if hasattr(self, 'conversation') else []
+        
+        # Count what's been done by looking at assistant messages
+        files_read = set()
+        architecture_read = False
+        comparison_done = False
+        
+        for msg in conversation_history:
+            if msg.get('role') == 'assistant':
+                content = str(msg.get('content', ''))
+                # Check for file reads
+                if 'read_file' in content and file1 in content:
+                    files_read.add(file1)
+                if 'read_file' in content and file2 in content:
+                    files_read.add(file2)
+                if 'read_file' in content and 'ARCHITECTURE.md' in content:
+                    architecture_read = True
+                if 'compare_file_implementations' in content:
+                    comparison_done = True
+        
+        # Determine next step
+        if file1 not in files_read:
+            # Step 1: Read first file
+            step_num = 1
+            next_tool = f'read_file(filepath="{file1}")'
+            step_description = f"READ THE FIRST FILE: {file1}"
+            
+        elif file2 not in files_read:
+            # Step 2: Read second file
+            step_num = 2
+            next_tool = f'read_file(filepath="{file2}")'
+            step_description = f"READ THE SECOND FILE: {file2}"
+            
+        elif not architecture_read:
+            # Step 3: Read architecture
+            step_num = 3
+            next_tool = 'read_file(filepath="ARCHITECTURE.md")'
+            step_description = "READ ARCHITECTURE.md to see where files should be"
+            
+        elif not comparison_done:
+            # Step 4: Compare
+            step_num = 4
+            next_tool = f'compare_file_implementations(file1="{file1}", file2="{file2}")'
+            step_description = "COMPARE the two implementations"
+            
+        else:
+            # Step 5: Make decision and resolve
+            step_num = 5
+            next_tool = "merge_file_implementations(...) OR move_file(...) OR rename_file(...)"
+            step_description = "MAKE A DECISION and RESOLVE the conflict"
+        
+        return f"""🎯 INTEGRATION CONFLICT - STEP {step_num} OF 5
 
 {context}
 
-⚠️ CRITICAL: You can only call ONE tool per iteration. After each tool, wait for the result before calling the next tool.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  CRITICAL SYSTEM CONSTRAINT ⚠️
 
-📋 COMPREHENSIVE WORKFLOW (ONE STEP AT A TIME):
+THE SYSTEM CAN ONLY EXECUTE **ONE** TOOL CALL PER ITERATION.
 
-1️⃣ **First iteration: Read the first conflicting file**
-   read_file(filepath="<file1>")
-   → Wait for result
+If you output multiple tool calls, ONLY THE FIRST ONE will execute.
+The rest will be IGNORED and you'll be stuck in an infinite loop.
 
-2️⃣ **Second iteration: Read the second conflicting file**
-   read_file(filepath="<file2>")
-   → Wait for result
+YOU MUST OUTPUT EXACTLY ONE TOOL CALL. THEN STOP.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-3️⃣ **Third iteration: Check architecture**
-   read_file(filepath="ARCHITECTURE.md")
-   → Wait for result
+📍 YOU ARE ON STEP {step_num} OF 5
 
-4️⃣ **Fourth iteration: Compare implementations**
-   compare_file_implementations(file1="<file1>", file2="<file2>")
-   → Wait for result
+🎯 YOUR NEXT ACTION:
+{step_description}
 
-5️⃣ **Fifth iteration: MAKE A DECISION** based on your analysis:
-   
-   **Scenario A: Files are duplicates (>80% similar)**
-   → Decision: Merge them into the correct location per ARCHITECTURE.md
-   → Action: merge_file_implementations(source_files=[...], target_file="<correct_location>")
-   
-   **Scenario B: Files are different but one is misplaced**
-   → Decision: Move the misplaced file to correct location
-   → Action: move_file(source="<misplaced>", destination="<correct_location>")
-   
-   **Scenario C: Both files are in wrong locations**
-   → Decision: Move both to their correct locations
-   → Action: move_file for each file
-   
-   **Scenario D: Files serve different purposes but names conflict**
-   → Decision: Rename one to clarify purpose
-   → Action: rename_file(source="<file>", destination="<clearer_name>")
+💻 CALL THIS ONE TOOL:
+{next_tool}
 
-⚠️ CRITICAL RULES:
-- DO NOT create issue reports - you have all the information to decide
-- DO NOT ask for developer review - make the technical decision yourself
-- ARCHITECTURE.md tells you where files should be
-- Comparison tells you if they're duplicates
-- YOU decide and take action
+⛔ DO NOT:
+- Output multiple tool calls
+- Call any other tools
+- Plan ahead for future steps
+- Output JSON arrays
 
-🎯 EXAMPLE DECISION PROCESS:
-Iteration 1: read_file("resources/resource_estimator.py") → See ResourceEstimator class
-Iteration 2: read_file("core/resource/resource_estimator.py") → See ResourceEstimator class
-Iteration 3: read_file("ARCHITECTURE.md") → See "Resource estimation in core/resource/"
-Iteration 4: compare_file_implementations(...) → 95% similar
-Iteration 5: DECISION: They're duplicates, merge into core/resource/
-Iteration 6: merge_file_implementations(source_files=["resources/resource_estimator.py", "core/resource/resource_estimator.py"], target_file="core/resource/resource_estimator.py") → ✅ RESOLVED
+✅ DO:
+- Output EXACTLY ONE tool call
+- Use the exact tool shown above
+- Then STOP and wait
 
-⚠️ CRITICAL: Call ONE tool per iteration, not multiple tools at once!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-DO NOT output multiple tool calls like this:
-❌ {"name": "read_file", ...} {"name": "read_file", ...} {"name": "compare_file_implementations", ...}
+📊 PROGRESS TRACKER:
+Step 1: Read {file1} {'✅' if file1 in files_read else '⏳ ← YOU ARE HERE' if step_num == 1 else '⬜'}
+Step 2: Read {file2} {'✅' if file2 in files_read else '⏳ ← YOU ARE HERE' if step_num == 2 else '⬜'}
+Step 3: Read ARCHITECTURE.md {'✅' if architecture_read else '⏳ ← YOU ARE HERE' if step_num == 3 else '⬜'}
+Step 4: Compare implementations {'✅' if comparison_done else '⏳ ← YOU ARE HERE' if step_num == 4 else '⬜'}
+Step 5: Resolve conflict {'⏳ ← YOU ARE HERE' if step_num == 5 else '⬜'}
 
-Instead, output ONE tool call per iteration:
-✅ Iteration 1: {"name": "read_file", "arguments": {"filepath": "resources/resource_estimator.py"}}
-✅ Iteration 2: {"name": "read_file", "arguments": {"filepath": "core/resource/resource_estimator.py"}}
-✅ Iteration 3: {"name": "read_file", "arguments": {"filepath": "ARCHITECTURE.md"}}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🎯 TAKE ACTION NOW - Call ONE tool, wait for result, then call the next tool!
+🎯 OUTPUT YOUR ONE TOOL CALL NOW:
 """
+    
     
     def _get_dead_code_prompt(self, task: Any, context: str) -> str:
         """Prompt for dead code tasks - check usage then decide"""
