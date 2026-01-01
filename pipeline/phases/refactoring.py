@@ -459,12 +459,18 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         # CRITICAL: Validate tool calls before execution
         # Ensure AI has completed required analysis before allowing resolving actions
+        # Include task type and title in analysis_data for validation
+        validation_data = {
+            'type': task.issue_type.value if hasattr(task.issue_type, 'value') else str(task.issue_type),
+            'title': task.title,
+            **task.analysis_data  # Include original analysis data
+        }
         is_valid, error_message = self._analysis_tracker.validate_tool_calls(
             task_id=task.task_id,
             tool_calls=tool_calls,
             target_files=task.target_files,
             attempt_number=task.attempts,
-            analysis_data=task.analysis_data
+            analysis_data=validation_data
         )
         
         if not is_valid:

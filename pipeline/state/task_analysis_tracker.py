@@ -285,8 +285,11 @@ class TaskAnalysisTracker:
             task_type = task_id.split('_')[0] if '_' in task_id else 'unknown'
             
             # Determine minimum requirements based on task type
-            if 'duplicate' in str(analysis_data.get('type', '')).lower() or \
-               'Merge duplicates' in str(analysis_data.get('title', '')):
+            # DEBUG: Print analysis_data to see what we're checking
+            task_type_str = str(analysis_data.get('type', '')).lower()
+            task_title_str = str(analysis_data.get('title', ''))
+            
+            if 'duplicate' in task_type_str or 'Merge duplicates' in task_title_str:
                 # For duplicate tasks: comparison is sufficient
                 minimum_required = ["compare_all_implementations"]
             elif 'Missing method' in str(analysis_data.get('title', '')) or \
