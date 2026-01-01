@@ -102,8 +102,14 @@ class BasePhase(ABC):
         if hasattr(config, 'model_assignments') and self.phase_name in config.model_assignments:
             phase_model = config.model_assignments[self.phase_name][0]
         
-        # Get context window (default 8192)
+        # Get context window (default 8192, but much higher for refactoring)
         context_window = getattr(config, 'context_window', 8192)
+        
+        # CRITICAL: Refactoring phase needs MASSIVE context window for continuous operation
+        # With 500 messages and ~7k tokens per message, we need ~3.5M tokens
+        # Set to 1M tokens for refactoring (enough for ~140 messages at 7k each)
+        if self.phase_name == 'refactoring':
+            context_window = 1_000_000  # 1 million tokens for continuous refactoring
         
         # Create base conversation thread
         thread = OrchestrationConversationThread(

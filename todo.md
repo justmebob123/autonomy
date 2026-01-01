@@ -67,6 +67,9 @@ User identified major limitations:
 - [x] Implement continuous loop logic (removed max_attempts check)
 - [x] Add progressive validation (minimum + comprehensive)
 - [x] Update prompts for continuous operation
+- [x] Fix conversation reset bug (8192 → 1M tokens for refactoring)
+- [x] Remove premature report creation
+- [x] Force comprehensive analysis before decisions
 - [ ] Test with real refactoring tasks
 - [ ] Document new behavior
 
