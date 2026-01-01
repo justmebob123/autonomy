@@ -582,8 +582,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                         return PhaseResult(
                             success=False,
                             phase=self.phase_name,
-                            message=f"Task {task.task_id} retry needed: {error_msg}",
-                            retry_same_task=True  # Signal to retry same task
+                            message=f"Task {task.task_id} retry needed: {error_msg}"
                         )
                 
                 # AI tried to understand but still couldn't resolve
