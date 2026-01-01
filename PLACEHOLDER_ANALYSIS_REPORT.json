@@ -1,0 +1,205 @@
+[
+  {
+    "type": "PLACEHOLDER_COMMENT",
+    "severity": "HIGH",
+    "file": "analyze_placeholders.py",
+    "line": 24,
+    "content": "# 1. Search for explicit placeholders"
+  },
+  {
+    "type": "PLACEHOLDER_COMMENT",
+    "severity": "HIGH",
+    "file": "analyze_placeholders.py",
+    "line": 48,
+    "content": "pattern = re.compile(r'#.*placeholder', re.IGNORECASE)"
+  },
+  {
+    "type": "PLACEHOLDER_COMMENT",
+    "severity": "HIGH",
+    "file": "analyze_placeholders.py",
+    "line": 239,
+    "content": "(r'return\\s+None\\s*#.*placeholder', 'SUSPICIOUS_RETURN', 'MEDIUM'),"
+  },
+  {
+    "type": "PLACEHOLDER_COMMENT",
+    "severity": "HIGH",
+    "file": "analyze_placeholders.py",
+    "line": 240,
+    "content": "(r'return\\s+\\{\\}\\s*#.*placeholder', 'SUSPICIOUS_RETURN', 'MEDIUM'),"
+  },
+  {
+    "type": "PLACEHOLDER_COMMENT",
+    "severity": "HIGH",
+    "file": "analyze_placeholders.py",
+    "line": 241,
+    "content": "(r'return\\s+\\[\\]\\s*#.*placeholder', 'SUSPICIOUS_RETURN', 'MEDIUM'),"
+  },
+  {
+    "type": "PLACEHOLDER_COMMENT",
+    "severity": "HIGH",
+    "file": "HYPERDIMENSIONAL_ANALYSIS_FRAMEWORK.py",
+    "line": 332,
+    "content": "0.5,  # State (placeholder)"
+  },
+  {
+    "type": "PLACEHOLDER_COMMENT",
+    "severity": "HIGH",
+    "file": "HYPERDIMENSIONAL_ANALYSIS_FRAMEWORK.py",
+    "line": 333,
+    "content": "0.5,  # Error (placeholder)"
+  },
+  {
+    "type": "PLACEHOLDER_COMMENT",
+    "severity": "HIGH",
+    "file": "pipeline/team_orchestrator.py",
+    "line": 602,
+    "content": "# Check for variable placeholders"
+  },
+  {
+    "type": "PLACEHOLDER_COMMENT",
+    "severity": "HIGH",
+    "file": "pipeline/config_investigator.py",
+    "line": 179,
+    "content": "# Check for placeholder values"
+  },
+  {
+    "type": "PLACEHOLDER_COMMENT",
+    "severity": "HIGH",
+    "file": "pipeline/validation/filename_validator.py",
+    "line": 81,
+    "content": "# CRITICAL: Check for placeholder text"
+  },
+  {
+    "type": "PLACEHOLDER_COMMENT",
+    "severity": "HIGH",
+    "file": "pipeline/validation/filename_validator.py",
+    "line": 162,
+    "content": "# Check for other common placeholders"
+  },
+  {
+    "type": "PLACEHOLDER_COMMENT",
+    "severity": "HIGH",
+    "file": "pipeline/validation/filename_validator.py",
+    "line": 166,
+    "content": "# Generic placeholder - provide guidance"
+  },
+  {
+    "type": "PLACEHOLDER_COMMENT",
+    "severity": "HIGH",
+    "file": "bin/custom_tools/core/template.py",
+    "line": 235,
+    "content": "# Generate implementation placeholder"
+  },
+  {
+    "type": "TODO_IMPLEMENT",
+    "severity": "MEDIUM",
+    "file": "analyze_placeholders.py",
+    "line": 74,
+    "content": "pattern = re.compile(r'#.*(TODO|FIXME|HACK|XXX).*implement', re.IGNORECASE)"
+  },
+  {
+    "type": "TODO_IMPLEMENT",
+    "severity": "MEDIUM",
+    "file": "run.py",
+    "line": 1024,
+    "content": "# TODO: Implement specialist escalation"
+  },
+  {
+    "type": "TODO_IMPLEMENT",
+    "severity": "MEDIUM",
+    "file": "pipeline/coordinator.py",
+    "line": 1706,
+    "content": "# TODO: Implement actual complexity analysis"
+  },
+  {
+    "type": "TODO_IMPLEMENT",
+    "severity": "MEDIUM",
+    "file": "pipeline/coordinator.py",
+    "line": 1723,
+    "content": "# TODO: Implement actual architecture analysis"
+  },
+  {
+    "type": "TODO_IMPLEMENT",
+    "severity": "MEDIUM",
+    "file": "pipeline/custom_tools/developer.py",
+    "line": 195,
+    "content": "# TODO: Implement your tool logic here"
+  },
+  {
+    "type": "TODO_IMPLEMENT",
+    "severity": "MEDIUM",
+    "file": "pipeline/phases/planning.py",
+    "line": 125,
+    "content": "# TODO: Implement MASTER_PLAN update logic"
+  },
+  {
+    "type": "TODO_IMPLEMENT",
+    "severity": "MEDIUM",
+    "file": "bin/custom_tools/core/template.py",
+    "line": 237,
+    "content": "implementation_code = f\"\"\"            # TODO: Implement tool logic here"
+  },
+  {
+    "type": "NOT_IMPLEMENTED",
+    "severity": "HIGH",
+    "file": "pipeline/error_strategies.py",
+    "line": 16,
+    "function": "get_investigation_steps",
+    "content": "Function 'get_investigation_steps' raises NotImplementedError"
+  },
+  {
+    "type": "NOT_IMPLEMENTED",
+    "severity": "HIGH",
+    "file": "pipeline/error_strategies.py",
+    "line": 20,
+    "function": "get_fix_approaches",
+    "content": "Function 'get_fix_approaches' raises NotImplementedError"
+  },
+  {
+    "type": "EMPTY_FUNCTION",
+    "severity": "MEDIUM",
+    "file": "HYPERDIMENSIONAL_ANALYSIS_FRAMEWORK.py",
+    "line": 275,
+    "function": "_build_call_graph",
+    "content": "Function '_build_call_graph' is empty or only has pass"
+  },
+  {
+    "type": "EMPTY_FUNCTION",
+    "severity": "MEDIUM",
+    "file": "bin/custom_tools/core/validator.py",
+    "line": 34,
+    "function": "__init__",
+    "content": "Function '__init__' is empty or only has pass"
+  },
+  {
+    "type": "EMPTY_RETURN",
+    "severity": "LOW",
+    "file": "pipeline/tool_validator.py",
+    "line": 224,
+    "function": "_get_existing_tools",
+    "content": "Function '_get_existing_tools' only returns []"
+  },
+  {
+    "type": "EMPTY_RETURN",
+    "severity": "LOW",
+    "file": "pipeline/coordinator.py",
+    "line": 1693,
+    "function": "_has_high_complexity",
+    "content": "Function '_has_high_complexity' only returns False"
+  },
+  {
+    "type": "EMPTY_RETURN",
+    "severity": "LOW",
+    "file": "pipeline/coordinator.py",
+    "line": 1710,
+    "function": "_has_architectural_issues",
+    "content": "Function '_has_architectural_issues' only returns False"
+  },
+  {
+    "type": "STUB_COMMENT",
+    "severity": "MEDIUM",
+    "file": "analyze_placeholders.py",
+    "line": 242,
+    "content": "(r'#.*stub', 'STUB_COMMENT', 'MEDIUM'),"
+  }
+]

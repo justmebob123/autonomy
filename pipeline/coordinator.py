@@ -1694,8 +1694,7 @@ class PhaseCoordinator:
         """
         Check if codebase has high complexity issues.
         
-        This is a placeholder for now - will be implemented with actual
-        complexity analysis in Phase 2.
+        Uses ComplexityAnalyzer to detect functions with high cyclomatic complexity.
         
         Args:
             state: Current pipeline state
@@ -1703,16 +1702,30 @@ class PhaseCoordinator:
         Returns:
             True if high complexity detected, False otherwise
         """
-        # TODO: Implement actual complexity analysis
-        # For now, return False (no complexity data available)
-        return False
+        try:
+            from pipeline.analysis.complexity import ComplexityAnalyzer
+            
+            analyzer = ComplexityAnalyzer(self.project_dir)
+            results = analyzer.analyze()
+            
+            # Check if any functions have critical complexity (>10)
+            functions = results.get('functions', [])
+            critical_functions = [f for f in functions if f.get('complexity', 0) > 10]
+            
+            if critical_functions:
+                self.logger.debug(f"Found {len(critical_functions)} high-complexity functions")
+                return True
+            
+            return False
+        except Exception as e:
+            self.logger.debug(f"Complexity analysis failed: {e}")
+            return False
     
     def _has_architectural_issues(self, state: PipelineState) -> bool:
         """
         Check if codebase has architectural inconsistencies.
         
-        This is a placeholder for now - will be implemented with actual
-        architecture analysis in Phase 2.
+        Uses ArchitectureValidator to detect violations of ARCHITECTURE.md guidelines.
         
         Args:
             state: Current pipeline state
@@ -1720,9 +1733,23 @@ class PhaseCoordinator:
         Returns:
             True if architectural issues detected, False otherwise
         """
-        # TODO: Implement actual architecture analysis
-        # For now, return False (no architecture data available)
-        return False
+        try:
+            from pipeline.analysis.architecture_validator import ArchitectureValidator
+            
+            validator = ArchitectureValidator(self.project_dir)
+            results = validator.validate()
+            
+            # Check if any violations found
+            violations = results.get('violations', [])
+            
+            if violations:
+                self.logger.debug(f"Found {len(violations)} architecture violations")
+                return True
+            
+            return False
+        except Exception as e:
+            self.logger.debug(f"Architecture validation failed: {e}")
+            return False
     
     def _determine_next_action_tactical(self, state: PipelineState) -> Dict:
         """

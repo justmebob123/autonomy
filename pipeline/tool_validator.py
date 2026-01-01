@@ -222,10 +222,15 @@ class ToolValidator:
         return similar
     
     def _get_existing_tools(self) -> List[str]:
-        """Get list of existing tool names."""
-        # This would integrate with the actual tool registry
-        # For now, return empty list
-        return []
+        """Get list of existing tool names from tool registry."""
+        try:
+            from pipeline.tool_registry import ToolRegistry
+            
+            registry = ToolRegistry()
+            return registry.get_all_tool_names()
+        except Exception:
+            # If registry not available, return empty list
+            return []
     
     def validate_parameters(self, parameters: Dict) -> Tuple[bool, List[str]]:
         """

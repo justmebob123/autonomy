@@ -122,7 +122,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         # IPC: Check if MASTER_PLAN needs update (95% threshold)
         if self._should_update_master_plan(state):
             self.logger.info("  🎯 95% completion reached - MASTER_PLAN update needed")
-            # TODO: Implement MASTER_PLAN update logic
+            self._update_master_plan_for_completion(state)
         
         # ANALYSIS INTEGRATION: Analyze existing codebase before planning
         analysis_context = self._analyze_existing_codebase(existing_files)
@@ -634,6 +634,74 @@ Please address these architectural integration issues.
         except Exception as e:
             self.logger.error(f"  ❌ Failed to check completion rate: {e}")
             return False
+    
+    def _update_master_plan_for_completion(self, state: PipelineState):
+        """Update MASTER_PLAN.md when project nears completion."""
+        import re
+        from datetime import datetime
+        
+        try:
+            master_plan_path = self.project_dir / 'MASTER_PLAN.md'
+            
+            if not master_plan_path.exists():
+                self.logger.warning("  ⚠️  MASTER_PLAN.md not found, skipping update")
+                return
+            
+            content = master_plan_path.read_text()
+            
+            # Calculate statistics
+            total_tasks = len(state.tasks)
+            completed_tasks = len([t for t in state.tasks.values() 
+                                  if t.status == TaskStatus.COMPLETED])
+            pending_tasks = len([t for t in state.tasks.values() 
+                               if t.status in (TaskStatus.PENDING, TaskStatus.IN_PROGRESS)])
+            
+            # Create completion status section
+            completion_section = f"""
+## 📊 Project Status (Updated: {datetime.now().strftime('%Y-%m-%d %H:%M')})
+
+- **Completion**: {state.completion_percentage:.1f}%
+- **Current Phase**: {state.current_phase}
+- **Tasks Completed**: {completed_tasks}/{total_tasks}
+- **Tasks Remaining**: {pending_tasks}
+
+### Next Steps
+
+1. **Final Testing**: Comprehensive testing of all implemented features
+2. **Code Review**: Review all code for quality and consistency
+3. **Documentation**: Ensure all features are properly documented
+4. **Deployment Preparation**: Prepare for production deployment
+
+### Completion Checklist
+
+- [ ] All critical features implemented
+- [ ] All tests passing
+- [ ] Documentation complete
+- [ ] Code reviewed and refactored
+- [ ] Performance optimized
+- [ ] Security reviewed
+- [ ] Deployment plan ready
+"""
+            
+            # Update or append status section
+            if '## 📊 Project Status' in content or '## Project Status' in content:
+                # Update existing section
+                content = re.sub(
+                    r'## (?:📊 )?Project Status.*?(?=\n##|\Z)',
+                    completion_section.strip(),
+                    content,
+                    flags=re.DOTALL
+                )
+            else:
+                # Append new section
+                content += '\n\n' + completion_section
+            
+            # Write updated content
+            master_plan_path.write_text(content)
+            self.logger.info("  ✅ Updated MASTER_PLAN.md with completion status")
+            
+        except Exception as e:
+            self.logger.error(f"  ❌ Failed to update MASTER_PLAN.md: {e}")
     
     def generate_state_markdown(self, state: PipelineState) -> str:
         """Generate PLANNING_STATE.md content"""
