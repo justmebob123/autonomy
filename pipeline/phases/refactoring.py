@@ -1019,16 +1019,42 @@ Developer should determine:
                 
                 return decision_actions.get(analysis.decision, decision_actions[UnusedCodeDecision.REPORT])
             else:
-                # Regular integration conflict
+                # Regular integration conflict - extract specific details
+                files = data.get('files', []) if isinstance(data, dict) else []
+                description = data.get('description', 'Unknown conflict') if isinstance(data, dict) else str(data)
+                conflict_type = data.get('type', 'unknown') if isinstance(data, dict) else 'unknown'
+                
+                # Build specific file list
+                file_list = "\n".join(f"- {f}" for f in files) if files else "- (files not specified)"
+                
                 return f"""
 INTEGRATION CONFLICT DETECTED:
-{data}
+Type: {conflict_type}
+Description: {description}
 
-ACTION REQUIRED:
-1. Analyze the integration conflict
-2. Use move_file if files are in wrong locations
-3. Use merge_file_implementations if implementations conflict
-4. Use create_issue_report if issue requires developer decision
+FILES INVOLVED:
+{file_list}
+
+SPECIFIC ACTIONS TO TAKE:
+
+Step 1: READ the conflicting files to understand what they do
+{chr(10).join(f'read_file(filepath="{f}")' for f in files[:3]) if files else 'read_file(filepath="<file>")'}
+
+Step 2: READ ARCHITECTURE.md to understand where they should be
+read_file(filepath="ARCHITECTURE.md")
+
+Step 3: COMPARE the implementations to see if they're duplicates
+{f'compare_file_implementations(file1="{files[0]}", file2="{files[1]}")' if len(files) >= 2 else 'compare_file_implementations(file1="<file1>", file2="<file2>")'}
+
+Step 4: MAKE A DECISION based on what you found:
+- If files are >80% similar → merge_file_implementations
+- If one is misplaced → move_file to correct location
+- If both are misplaced → move both files
+- If names conflict → rename_file to clarify
+
+Step 5: EXECUTE your decision (merge, move, or rename)
+
+⚠️ DO NOT just analyze and stop - you MUST take action to resolve the conflict!
 """
         
         elif issue_type == RefactoringIssueType.DEAD_CODE:
