@@ -709,23 +709,36 @@ ACTION REQUIRED:
                 
                 return f"""
 UNUSED CODE DETECTED:
-- Type: Unused class/function (dead code)
+- Type: Unused class/function
 - File: {file_path}
 - Class/Function: {class_name}
 - Issue: This code is defined but never used anywhere in the project
 
+⚠️ CRITICAL: This is an EARLY-STAGE project. DO NOT remove unused code automatically!
+
 ACTION REQUIRED:
-Use cleanup_redundant_files to remove the unused code:
+Create an issue report for developer review:
 
 EXAMPLE:
-cleanup_redundant_files(
-    files_to_remove=["{file_path}"],
-    reason="Unused class {class_name} that is never instantiated",
-    create_backup=true
+create_issue_report(
+    task_id="current_task_id",
+    title="Unused code: {class_name}",
+    description="Class/function {class_name} in {file_path} is currently unused. This may be:
+    1. Part of planned architecture not yet integrated
+    2. Future functionality not yet implemented
+    3. Truly redundant code that should be removed
+    
+    Developer should review and decide whether to:
+    - Integrate it into the codebase
+    - Keep it for future use
+    - Remove it if truly redundant",
+    severity="low",
+    recommended_approach="Manual review required - do not auto-remove in early-stage projects",
+    files_affected=["{file_path}"]
 )
 
-⚠️ DO NOT use analyze_import_impact for unused code - that tool is for MOVING files, not removing them.
-✅ USE cleanup_redundant_files to remove unused/dead code.
+❌ DO NOT use cleanup_redundant_files for unused code in early-stage projects
+✅ CREATE ISSUE REPORT for developer to review and decide
 """
             else:
                 # Regular integration conflict
@@ -741,7 +754,7 @@ ACTION REQUIRED:
 """
         
         elif issue_type == RefactoringIssueType.DEAD_CODE:
-            # Dead code removal
+            # Dead code - but be careful in early-stage projects!
             item_name = data.get('name', 'unknown') if isinstance(data, dict) else 'unknown'
             item_file = data.get('file', 'unknown') if isinstance(data, dict) else 'unknown'
             
@@ -752,17 +765,31 @@ DEAD CODE DETECTED:
 - File: {item_file}
 - Reason: This code is defined but never used anywhere in the project
 
+⚠️ CRITICAL: This is an EARLY-STAGE project. DO NOT remove unused code automatically!
+
 ACTION REQUIRED:
-Use cleanup_redundant_files to remove the dead code:
+Create an issue report for developer review:
 
 EXAMPLE:
-cleanup_redundant_files(
-    files_to_remove=["{item_file}"],
-    reason="Dead code {item_name} that is never used",
-    create_backup=true
+create_issue_report(
+    task_id="current_task_id",
+    title="Dead code: {item_name}",
+    description="Item {item_name} in {item_file} is currently unused. This may be:
+    1. Part of planned architecture not yet integrated
+    2. Future functionality not yet implemented  
+    3. Truly dead code that should be removed
+    
+    Developer should review and decide whether to:
+    - Integrate it into the codebase
+    - Keep it for future use
+    - Remove it if truly dead",
+    severity="low",
+    recommended_approach="Manual review required - do not auto-remove in early-stage projects",
+    files_affected=["{item_file}"]
 )
 
-✅ USE cleanup_redundant_files to remove dead code.
+❌ DO NOT use cleanup_redundant_files for dead code in early-stage projects
+✅ CREATE ISSUE REPORT for developer to review and decide
 """
         
         elif issue_type == RefactoringIssueType.ARCHITECTURE:
@@ -999,10 +1026,16 @@ Review the issue and use appropriate refactoring tools to resolve it.
 
 ⚠️ CRITICAL: YOUR JOB IS TO FIX ISSUES, NOT JUST DOCUMENT THEM!
 
+🚨 EXCEPTION: This is an EARLY-STAGE project. DO NOT remove unused/dead code automatically!
+   - Unused code may be part of planned architecture not yet integrated
+   - Create issue reports for unused code instead of removing it
+   - Only merge duplicates or fix actual bugs
+
 This is NOT a documentation task. This is a FIXING task.
 - If you can fix it safely → FIX IT NOW using the tools
 - Only create reports if the fix is genuinely too complex or risky
 - "Too complex" means requires major architectural changes, not just merging files
+- UNUSED CODE = create report (don't remove in early-stage projects)
 
 {context}
 
@@ -1056,11 +1089,14 @@ RESOLVING means taking ONE of these actions:
 - OR use request_developer_review to ask
 
 🛠️ TOOL SELECTION GUIDE:
-- **Dead code**: cleanup_redundant_files (RESOLVES by removing)
+- **Dead code / Unused code**: create_issue_report (EARLY-STAGE PROJECT - do NOT auto-remove!)
 - **Duplicates**: merge_file_implementations (RESOLVES by merging) - compare first if needed, but MUST merge
 - **Integration conflicts**: merge_file_implementations OR move_file to correct location (RESOLVES by fixing)
 - **Architecture violations**: move_file/rename_file to align with ARCHITECTURE.md (RESOLVES by restructuring)
 - **Complexity issues**: Refactor code to reduce complexity OR create_issue_report if too complex (TRY TO FIX FIRST)
+
+⚠️ CRITICAL: This is an EARLY-STAGE project. Unused code may be part of planned architecture.
+DO NOT remove unused/dead code automatically - create issue reports for developer review instead!
 
 ⚠️ REMEMBER: compare_file_implementations is for UNDERSTANDING, not RESOLVING. Always follow it with a resolving tool!
 
