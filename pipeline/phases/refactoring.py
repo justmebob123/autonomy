@@ -192,6 +192,12 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                  len(task.analysis_data) <= 1)
             )
             
+            # Also check for dictionary key errors with invalid key_path
+            if "Dictionary key error" in task.title:
+                key_path = task.analysis_data.get('key_path', '') if isinstance(task.analysis_data, dict) else ''
+                if not key_path or key_path.isdigit() or key_path == 'unknown':
+                    is_broken = True
+            
             # Also check for invalid file paths
             has_invalid_files = False
             if task.target_files:
@@ -752,8 +758,49 @@ cleanup_redundant_files(
             # Check what type of architecture issue this is
             data_type = data.get('type', '') if isinstance(data, dict) else ''
             
+            # Check if this is a dictionary key error
+            if 'key_path' in data:
+                # This is a dictionary key error from validate_dict_structure
+                key_path = data.get('key_path', 'unknown')
+                file_path = data.get('file', 'unknown')
+                line = data.get('line', '?')
+                message = data.get('message', 'Dictionary key error')
+                suggestion = data.get('suggestion', 'Add default value or check if key exists')
+                
+                return f"""
+DICTIONARY KEY ERROR DETECTED:
+- Key path: {key_path}
+- File: {file_path}
+- Line: {line}
+- Error: {message}
+- Suggestion: {suggestion}
+
+ACTION REQUIRED:
+1. Read the file to understand the context
+2. Fix the dictionary access to handle missing keys
+3. If the fix is complex, create an issue report
+
+EXAMPLE (simple fix):
+read_file(filepath="{file_path}")
+# Then use modify_file or replace_between to add:
+# - .get() with default value: dict.get('key', default_value)
+# - Check if key exists: if 'key' in dict:
+# - Try/except: try: value = dict['key'] except KeyError: value = default
+
+EXAMPLE (complex fix):
+create_issue_report(
+    title="Dictionary key error: {key_path}",
+    description="Line {line} in {file_path}: {message}",
+    severity="high",
+    suggested_fix="{suggestion}",
+    files_affected=["{file_path}"]
+)
+
+⚠️ DO NOT try to fix errors in files that don't exist - verify file path first!
+"""
+            
             # Check if this is a missing method error
-            if 'method_name' in data and 'class_name' in data:
+            elif 'method_name' in data and 'class_name' in data:
                 # This is a missing method from validate_method_existence
                 method_name = data.get('method_name', 'unknown')
                 class_name = data.get('class_name', 'unknown')
@@ -1374,17 +1421,32 @@ Result: ✅ Files merged, duplicate removed, imports updated, task RESOLVED
                     if errors:
                         self.logger.info(f"  🔍 Found {len(errors)} dictionary structure errors, creating tasks...")
                         for error in errors[:15]:
+                            # Validate error data before creating task
+                            key_path = error.get('key_path', '')
+                            file_path = error.get('file', '')
+                            
+                            # Skip if key_path is invalid (just a number, empty, or 'unknown')
+                            if not key_path or key_path.isdigit() or key_path == 'unknown':
+                                self.logger.debug(f"  ⚠️  Skipping dict error with invalid key_path: {key_path}")
+                                continue
+                            
+                            # Skip if file path is invalid
+                            if not file_path or file_path == 'unknown':
+                                self.logger.debug(f"  ⚠️  Skipping dict error with invalid file: {file_path}")
+                                continue
+                            
                             task = manager.create_task(
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
-                                title=f"Dictionary key error: {error.get('key_path', 'unknown')}",
+                                title=f"Dictionary key error: {key_path}",
                                 description=error.get('message', 'Unknown'),
-                                target_files=[error.get('file', '')],
+                                target_files=[file_path],
                                 priority=RefactoringPriority.HIGH,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=20,
                                 analysis_data=error,
                             )
-                            tasks_created += 1
+                            if task:  # Only count if task was created
+                                tasks_created += 1
                 
                 elif tool_name == 'validate_type_usage':
                     result_data = tool_result.get('result', {})
