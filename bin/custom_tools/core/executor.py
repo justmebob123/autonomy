@@ -31,6 +31,8 @@ class ToolExecutor:
     - Security sandboxing
     
     Example:
+        # Note: This is for manual CLI execution only
+        # The pipeline loads tools from scripts/custom_tools/ instead
         executor = ToolExecutor('bin/custom_tools', '/project')
         result = executor.execute_tool('analyze_imports', {'filepath': 'main.py'})
         if result['success']:
@@ -42,7 +44,7 @@ class ToolExecutor:
         Initialize executor.
         
         Args:
-            tools_dir: Directory containing custom tools (bin/custom_tools/)
+            tools_dir: Directory containing custom tools (for manual CLI use)
             project_dir: Project root directory
             logger: Optional logger instance
         """

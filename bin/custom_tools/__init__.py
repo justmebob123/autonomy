@@ -13,6 +13,8 @@ This framework provides:
 Usage:
     from custom_tools import ToolExecutor
     
+    # Note: This is for manual CLI execution only
+    # The pipeline loads tools from scripts/custom_tools/ instead
     executor = ToolExecutor('bin/custom_tools', '/project')
     result = executor.execute_tool('analyze_imports', {'filepath': 'main.py'})
 """

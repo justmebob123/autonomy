@@ -967,7 +967,7 @@ def get_tools_for_phase(phase: str, tool_registry=None) -> List[Dict]:
     # Add custom tools from registry (Integration Point #3)
     if tool_registry:
         try:
-            # New ToolRegistry API (bin/custom_tools/)
+            # New ToolRegistry API (scripts/custom_tools/)
             if hasattr(tool_registry, 'get_tools_for_phase'):
                 custom_tools = tool_registry.get_tools_for_phase(phase)
                 if custom_tools:

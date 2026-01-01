@@ -84,25 +84,25 @@ class ToolCallHandler:
         else:
             self.tool_creator = tool_creator
         
-        # INTEGRATION: Custom Tool Handler (DISABLED)
-        # This feature allows dynamic loading of custom tools from bin/custom_tools/
-        # Currently disabled as it's not being used and causes confusing error messages
-        # To enable: uncomment the code below
+        # INTEGRATION: Custom Tool Handler for scripts/custom_tools/
+        # This feature allows dynamic loading of user-defined custom tools
+        # Tools are loaded from scripts/custom_tools/tools/ (part of pipeline infrastructure)
         self.custom_tool_handler = None
-        # try:
-        #     from .custom_tools import CustomToolRegistry, CustomToolHandler
-        #     custom_registry = CustomToolRegistry(str(self.project_dir))
-        #     custom_registry.discover_tools()
-        #     self.custom_tool_handler = CustomToolHandler(
-        #         str(self.project_dir),
-        #         custom_registry,
-        #         self.logger
-        #     )
-        #     tool_count = len(custom_registry.list_tools())
-        #     if tool_count > 0:
-        #         self.logger.info(f"Initialized custom tool handler with {tool_count} tools")
-        # except Exception as e:
-        #     self.logger.warning(f"Custom tool handler initialization failed: {e}")
+        try:
+            from .custom_tools import CustomToolRegistry, CustomToolHandler
+            custom_registry = CustomToolRegistry(str(self.project_dir))
+            custom_registry.discover_tools()
+            self.custom_tool_handler = CustomToolHandler(
+                str(self.project_dir),
+                custom_registry,
+                self.logger
+            )
+            tool_count = len(custom_registry.list_tools())
+            if tool_count > 0:
+                self.logger.info(f"Initialized custom tool handler with {tool_count} tools")
+        except Exception as e:
+            # Fail silently - custom tools are optional
+            pass
         
         # Tool handlers
         self._handlers: Dict[str, Callable] = {
