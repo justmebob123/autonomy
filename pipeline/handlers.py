@@ -3661,28 +3661,114 @@ class ToolCallHandler:
             # Create backup
             import shutil
             from datetime import datetime
+            import ast
             backup_dir = self.project_dir / '.autonomy' / 'backups' / f"merge_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             backup_dir.mkdir(parents=True, exist_ok=True)
             
+            # Backup target file if it exists
+            target_path = self.project_dir / target_file
+            if target_path.exists():
+                shutil.copy2(target_path, backup_dir / target_path.name)
+            
+            # Backup source files
             for src_file in source_files:
                 src_path = self.project_dir / src_file
                 if src_path.exists():
                     shutil.copy2(src_path, backup_dir / src_path.name)
             
-            # Placeholder merge
-            merged_content = f'# Merged from: {", ".join(source_files)}\n'
+            # Read and merge content
+            all_imports = set()
+            all_classes = {}
+            all_functions = {}
+            all_other_code = []
+            module_docstring = None
             
-            target_path = self.project_dir / target_file
+            for src_file in source_files:
+                src_path = self.project_dir / src_file
+                if not src_path.exists():
+                    self.logger.warning(f"Source file not found: {src_file}")
+                    continue
+                
+                try:
+                    content = src_path.read_text()
+                    tree = ast.parse(content)
+                    
+                    # Extract module docstring
+                    if ast.get_docstring(tree) and not module_docstring:
+                        module_docstring = ast.get_docstring(tree)
+                    
+                    for node in tree.body:
+                        if isinstance(node, (ast.Import, ast.ImportFrom)):
+                            # Collect imports
+                            all_imports.add(ast.unparse(node))
+                        elif isinstance(node, ast.ClassDef):
+                            # Collect classes (keep first occurrence)
+                            if node.name not in all_classes:
+                                all_classes[node.name] = ast.unparse(node)
+                        elif isinstance(node, ast.FunctionDef):
+                            # Collect functions (keep first occurrence)
+                            if node.name not in all_functions:
+                                all_functions[node.name] = ast.unparse(node)
+                        else:
+                            # Collect other code (constants, etc.)
+                            all_other_code.append(ast.unparse(node))
+                
+                except SyntaxError as e:
+                    self.logger.warning(f"Syntax error in {src_file}, copying raw content: {e}")
+                    # If parsing fails, just append the raw content
+                    all_other_code.append(f"\n# Content from {src_file} (could not parse):\n{content}\n")
+            
+            # Build merged content
+            merged_lines = []
+            
+            # Add header comment
+            merged_lines.append(f"# Merged from: {', '.join(source_files)}")
+            merged_lines.append(f"# Backup location: {backup_dir.relative_to(self.project_dir)}")
+            merged_lines.append("")
+            
+            # Add module docstring
+            if module_docstring:
+                merged_lines.append(f'"""{module_docstring}"""')
+                merged_lines.append("")
+            
+            # Add imports (sorted)
+            if all_imports:
+                merged_lines.extend(sorted(all_imports))
+                merged_lines.append("")
+            
+            # Add other code (constants, etc.)
+            if all_other_code:
+                merged_lines.extend(all_other_code)
+                merged_lines.append("")
+            
+            # Add classes
+            if all_classes:
+                for class_code in all_classes.values():
+                    merged_lines.append(class_code)
+                    merged_lines.append("")
+            
+            # Add functions
+            if all_functions:
+                for func_code in all_functions.values():
+                    merged_lines.append(func_code)
+                    merged_lines.append("")
+            
+            merged_content = "\n".join(merged_lines)
+            
+            # Write merged content
             target_path.parent.mkdir(parents=True, exist_ok=True)
             target_path.write_text(merged_content)
             
             result = {
                 'success': True,
                 'merged_file': target_file,
-                'backup_path': str(backup_dir.relative_to(self.project_dir))
+                'backup_path': str(backup_dir.relative_to(self.project_dir)),
+                'imports_merged': len(all_imports),
+                'classes_merged': len(all_classes),
+                'functions_merged': len(all_functions)
             }
             
-            self.logger.info(f"✅ Merge complete")
+            self.logger.info(f"✅ Merge complete: {len(all_imports)} imports, {len(all_classes)} classes, {len(all_functions)} functions")
             
             return {
                 "tool": "merge_file_implementations",
@@ -3691,6 +3777,8 @@ class ToolCallHandler:
             }
         except Exception as e:
             self.logger.error(f"File merge failed: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
             return {
                 "tool": "merge_file_implementations",
                 "success": False,

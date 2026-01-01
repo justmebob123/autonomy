@@ -357,7 +357,7 @@ TOOLS_REFACTORING = [
         "type": "function",
         "function": {
             "name": "merge_file_implementations",
-            "description": "Merge multiple files into one using AI-powered intelligent merging. Preserves all unique features and resolves conflicts.",
+            "description": "Merge multiple Python files into one by combining their imports, classes, and functions. Automatically deduplicates imports, preserves unique classes and functions (first occurrence wins), and maintains code structure. Creates backups before merging. Use this to consolidate duplicate implementations or merge related functionality.",
             "parameters": {
                 "type": "object",
                 "properties": {
