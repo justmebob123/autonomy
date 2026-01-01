@@ -811,14 +811,34 @@ class ResponseParser:
         
         # Prioritize known refactoring and file operation tools
         known_tools = [
+            # Refactoring tools
             'create_issue_report', 'request_developer_review', 
             'merge_file_implementations', 'cleanup_redundant_files',
             'compare_file_implementations', 'detect_duplicate_implementations',
+            'update_refactoring_task', 'validate_architecture',
+            'suggest_refactoring_plan', 'validate_refactoring',
+            # File operation tools
             'modify_python_file', 'create_python_file', 'create_file',
             'read_file', 'search_code', 'list_directory', 'report_issue',
             'move_file', 'rename_file', 'restructure_directory',
             'insert_after', 'insert_before', 'replace_between', 'full_file_rewrite',
-            'str_replace', 'update_refactoring_task', 'validate_architecture'
+            'str_replace', 'append_to_file', 'update_section', 'modify_file',
+            # Analysis tools
+            'analyze_complexity', 'detect_dead_code', 'find_integration_gaps',
+            'detect_integration_conflicts', 'generate_call_graph', 'find_bugs',
+            'detect_antipatterns', 'analyze_architecture_consistency',
+            'extract_file_features', 'analyze_file_placement',
+            # Documentation tools
+            'analyze_documentation_needs', 'update_readme_section', 'add_readme_section',
+            # Validation tools
+            'validate_function_calls', 'validate_method_existence', 'validate_dict_structure',
+            'validate_type_usage', 'validate_syntax', 'detect_circular_imports',
+            # Import tools
+            'build_import_graph', 'analyze_import_impact', 'validate_all_imports',
+            # Task management
+            'create_task_plan', 'mark_task_complete', 'approve_code',
+            # Command execution
+            'execute_command'
         ]
         
         # Check known tools first, then any other potential tools
