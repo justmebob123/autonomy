@@ -3268,18 +3268,30 @@ class ToolCallHandler:
                     "error": f"Task {task_id} not found"
                 }
             
+            # Handle both old parameter names (title, description, files_affected) 
+            # and new parameter names (impact_analysis, code_examples, etc.)
+            # This provides backward compatibility while the AI learns the correct schema
+            
+            # Map old parameters to new ones if present
+            impact_analysis = args.get('impact_analysis')
+            if not impact_analysis:
+                # Try old parameter names
+                impact_analysis = args.get('description', '')
+                if not impact_analysis:
+                    impact_analysis = f"Issue in files: {', '.join(args.get('files_affected', task.target_files))}"
+            
             # Create issue report
             report = {
                 "task_id": task_id,
-                "task_title": task.title,
+                "task_title": args.get('title', task.title),  # Support both 'title' and task.title
                 "issue_type": task.issue_type.value,
-                "severity": args['severity'],
-                "impact_analysis": args['impact_analysis'],
-                "recommended_approach": args['recommended_approach'],
+                "severity": args.get('severity', 'medium'),
+                "impact_analysis": impact_analysis,
+                "recommended_approach": args.get('recommended_approach', 'Manual review required'),
                 "code_examples": args.get('code_examples', ''),
                 "estimated_effort": args.get('estimated_effort', 'Unknown'),
                 "alternatives": args.get('alternatives', ''),
-                "target_files": task.target_files,
+                "target_files": args.get('files_affected', task.target_files),  # Support both parameter names
                 "created_at": datetime.now().isoformat()
             }
             

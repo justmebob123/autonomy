@@ -188,7 +188,7 @@ TOOLS_REFACTORING = [
                         "description": "Alternative approaches to consider"
                     }
                 },
-                "required": ["task_id", "severity", "impact_analysis", "recommended_approach"]
+                "required": ["task_id", "severity"]
             }
         }
     },

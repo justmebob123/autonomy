@@ -516,13 +516,15 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry, refactoring_manager=state.refactoring_manager)
                 
                 report_call = [{
-                    "name": "create_issue_report",
-                    "arguments": {
-                        "task_id": task.task_id,
-                        "severity": task.priority.value,
-                        "impact_analysis": f"Task failed {task.attempts} times. Errors: {error_msg}",
-                        "recommended_approach": "Manual review and fixing required",
-                        "estimated_effort": "Unknown - requires developer assessment"
+                    "function": {
+                        "name": "create_issue_report",
+                        "arguments": {
+                            "task_id": task.task_id,
+                            "severity": task.priority.value,
+                            "impact_analysis": f"Task failed {task.attempts} times. Errors: {error_msg}",
+                            "recommended_approach": "Manual review and fixing required",
+                            "estimated_effort": "Unknown - requires developer assessment"
+                        }
                     }
                 }]
                 
@@ -1149,14 +1151,23 @@ RESOLVING means taking ONE of these actions:
    - These tools RESOLVE the issue by FIXING it
 
 2️⃣ **CREATE DETAILED DEVELOPER REPORT** - If issue is complex:
-   - Use create_issue_report tool with:
-     * Specific files that need changes
-     * Exact modifications required (line-by-line if possible)
-     * Rationale for each change
-     * Impact analysis
-     * Step-by-step instructions
-   - Include code examples showing before/after
-   - Explain WHY changes are needed (reference MASTER_PLAN)
+   - Use create_issue_report tool with these EXACT parameters:
+     * task_id: (required) The task ID
+     * severity: (required) "critical", "high", "medium", or "low"
+     * impact_analysis: What breaks or degrades if not fixed
+     * recommended_approach: How to fix it (step-by-step)
+     * code_examples: Before/after code snippets
+     * estimated_effort: Time estimate (e.g., "2 hours", "1 day")
+     * alternatives: Other approaches to consider
+   - Example:
+     create_issue_report(
+         task_id="refactor_0294",
+         severity="medium",
+         impact_analysis="Unused ResourceEstimation class may be needed for future features",
+         recommended_approach="Review MASTER_PLAN to determine if this is planned functionality",
+         code_examples="class ResourceEstimation in timeline/resource_estimation.py",
+         estimated_effort="30 minutes"
+     )
    - This tool RESOLVES the issue by documenting it
 
 3️⃣ **REQUEST DEVELOPER INPUT** - If you need guidance:

@@ -1,45 +1,53 @@
-# TODO: Fix Refactoring Phase Infinite Loop
+# Critical Error Fix TODO
 
-## Problem
-- [x] AI stuck calling `analyze_architecture_consistency` repeatedly
-- [x] Tasks have "Anti-pattern: Unknown" with no data
-- [x] Tasks created BEFORE recent fixes lack proper analysis_data
-- [x] Infinite loop: task fails → same task selected → fails again
+## Phase 1: Investigate Tool Schema and Handler ✅
+- [x] Examine `create_issue_report` tool definition
+- [x] Examine `create_issue_report` handler implementation
+- [x] Identify schema mismatch
 
-## Root Cause Analysis
-- [x] Identified: Old tasks have empty analysis_data
-- [x] Identified: Tasks created before commits dd11f57, 6eb20a7, eb02d6c
-- [x] Identified: AI has zero information to work with
-- [x] Documented in CRITICAL_REFACTORING_ANALYSIS.md
+## Phase 2: Fix Tool Schema Mismatch ✅
+- [x] Fix `create_issue_report` tool schema (made impact_analysis optional)
+- [x] Fix `create_issue_report` handler (added backward compatibility)
+- [x] Make `impact_analysis` optional or provide default
+- [x] Add parameter mapping for old names (title, description, files_affected)
+- [x] Add example to prompt with exact parameter names
+- [ ] Test tool call works
 
-## Solution Implementation
-- [x] Add `_cleanup_broken_tasks()` method to RefactoringPhase
-- [x] Call cleanup at start of `execute()` method
-- [x] Delete tasks with "Unknown" or empty analysis_data
-- [x] Let phase re-detect issues with proper data
-- [x] Add `delete_task()` method to RefactoringTaskManager
+## Phase 3: Fix Response Parsing ✅
+- [x] Examined extraction system - comprehensive and working
+- [x] Issue is model returning JSON in text instead of native tool calls
+- [x] Extraction system successfully extracts from text
+- [x] Real issue: AI using wrong parameter names
+- [x] Fixed by adding backward compatibility in handler
 
-## Files Modified
-- [x] `pipeline/phases/refactoring.py` - Added cleanup method
-- [x] `pipeline/state/refactoring_task.py` - Added delete_task method
+## Phase 4: Fix Error Handling ✅
+- [x] Investigate "unknown" tool error in fallback handler
+- [x] Found bug: tool call missing "function" wrapper
+- [x] Fixed tool call structure in fallback handler
+- [ ] Test error handling paths
 
-## Testing
-- [ ] Verify broken tasks are deleted
-- [ ] Verify new tasks have proper analysis_data
-- [ ] Verify AI can actually fix issues
-- [ ] Verify no infinite loop
+## Phase 5: Fix Task Retry Logic
+- [ ] Add max retry limit enforcement
+- [ ] Mark tasks as permanently failed after max retries
+- [ ] Add alternative approach selection on retry
+- [ ] Prevent infinite retry loops
+- [ ] Test retry logic
 
-## Next Steps
-1. Commit and push changes
-2. User runs pipeline again
-3. Broken tasks will be deleted on first iteration
-4. New tasks will be created with proper analysis_data
-5. AI should be able to fix issues
+## Phase 6: Examine All Related Tools
+- [ ] Audit all tool schemas for missing parameters
+- [ ] Audit all handlers for parameter mismatches
+- [ ] Fix any other schema/handler mismatches found
+- [ ] Test all refactoring tools
 
-## Alternative Solution (if needed)
-User can manually reset:
-```bash
-cd /home/ai/AI/web
-rm -rf .pipeline_state/
-python3 /home/ai/AI/autonomy/run.py -vv .
-```
+## Phase 7: Improve Prompts
+- [x] Review tool calling instructions in prompts
+- [x] Add clear examples of tool call format
+- [ ] Add guidance on when to use each tool
+- [ ] Test prompts with model
+
+## Phase 8: Test Complete System
+- [ ] Run full refactoring phase
+- [ ] Verify no more KeyError exceptions
+- [ ] Verify tasks complete or fail properly
+- [ ] Verify no infinite loops
+- [ ] Document all fixes
