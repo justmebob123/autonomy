@@ -479,10 +479,10 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             'pending_tasks': []     # Could be populated from task manager
         }
         
-        # Extract affected code from task
+        # Extract affected code from task - FORMAT IT PROPERLY
         affected_code = ""
         if task.analysis_data:
-            affected_code = str(task.analysis_data)
+            affected_code = self._format_analysis_data(task.issue_type, task.analysis_data)
         
         # Get target file (first file in target_files list)
         target_file = task.target_files[0] if task.target_files else ""
@@ -567,6 +567,79 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             
             return "".join(context_parts)
     
+    def _format_analysis_data(self, issue_type, data: dict) -> str:
+        """
+        Format analysis data into clear, actionable text for the AI.
+        
+        Args:
+            issue_type: Type of refactoring issue
+            data: Raw analysis data dictionary
+            
+        Returns:
+            Formatted string with clear action items
+        """
+        from pipeline.state.refactoring_task import RefactoringIssueType
+        
+        if issue_type == RefactoringIssueType.DUPLICATE:
+            files = data.get('files', [])
+            similarity = data.get('similarity', 0)
+            file1 = files[0] if len(files) > 0 else 'unknown'
+            file2 = files[1] if len(files) > 1 else 'unknown'
+            
+            return f"""
+DUPLICATE FILES DETECTED:
+- File 1: {file1}
+- File 2: {file2}
+- Similarity: {similarity:.0%}
+
+ACTION REQUIRED:
+1. Use compare_file_implementations to analyze differences between these two files
+2. Use merge_file_implementations to merge them into one file
+3. The merge tool will handle imports, preserve functionality, and remove duplicates
+
+EXAMPLE:
+compare_file_implementations(file1="{file1}", file2="{file2}")
+merge_file_implementations(target="{file1}", source="{file2}", strategy="keep_target_structure")
+"""
+        
+        elif issue_type == RefactoringIssueType.COMPLEXITY:
+            func_name = data.get('name', 'unknown')
+            complexity = data.get('complexity', 0)
+            file_path = data.get('file', 'unknown')
+            
+            return f"""
+HIGH COMPLEXITY DETECTED:
+- Function: {func_name}
+- File: {file_path}
+- Complexity: {complexity}
+
+ACTION REQUIRED:
+1. Review the function to understand its logic
+2. Break it down into smaller, focused functions
+3. Use create_issue_report if refactoring requires major changes
+"""
+        
+        elif issue_type == RefactoringIssueType.INTEGRATION:
+            return f"""
+INTEGRATION ISSUE DETECTED:
+{data}
+
+ACTION REQUIRED:
+1. Analyze the integration conflict
+2. Use move_file if files are in wrong locations
+3. Use merge_file_implementations if implementations conflict
+4. Use create_issue_report if issue requires developer decision
+"""
+        
+        else:
+            return f"""
+ISSUE DETECTED:
+{data}
+
+ACTION REQUIRED:
+Review the issue and use appropriate refactoring tools to resolve it.
+"""
+    
     def _build_task_prompt(self, task: Any, context: str) -> str:
         """Build prompt for working on a specific task"""
         return f"""🎯 REFACTORING TASK - YOU MUST FIX THIS ISSUE
@@ -636,10 +709,20 @@ RESOLVING means taking ONE of these actions:
 - **Architecture violations**: move_file/rename_file to align with ARCHITECTURE.md (RESOLVES by restructuring)
 - **Complexity issues**: Refactor code to reduce complexity OR create_issue_report if too complex (TRY TO FIX FIRST)
 
+📋 CONCRETE EXAMPLE - DUPLICATE CODE:
+Task: Merge duplicates: resources.py ↔ resource_estimator.py
+Files: api/resources.py and resources/resource_estimator.py (85% similar)
+
+Step 1: compare_file_implementations(file1="api/resources.py", file2="resources/resource_estimator.py")
+Result: Shows differences, common code, suggests merge strategy
+
+Step 2: merge_file_implementations(target="api/resources.py", source="resources/resource_estimator.py", strategy="keep_target_structure")
+Result: ✅ Files merged, duplicate removed, imports updated, task RESOLVED
+
 ⚠️ CRITICAL RULES:
-- NEVER stop after just analyzing
+- NEVER stop after just analyzing (like calling detect_duplicate_implementations or compare_file_implementations alone)
 - ALWAYS use a RESOLVING tool (merge, cleanup, report, or review)
-- Analysis tools (compare) are for understanding, not resolving
+- Analysis tools (detect, compare) are for understanding, not resolving
 - Task is only complete when you use a resolving tool
 - If unsure, create detailed report rather than skip
 
@@ -690,12 +773,21 @@ RESOLVING means taking ONE of these actions:
                         self.logger.info(f"  🔍 Found {len(duplicates)} duplicate sets, creating tasks...")
                         
                         for dup in duplicates:
-                            # Create task for this duplicate
+                            # ENHANCED: Create task with specific file names and clear action
+                            files = dup.get('files', [])
+                            similarity = dup.get('similarity', 0)
+                            
+                            # Extract file names for title
+                            from pathlib import Path
+                            file1_name = Path(files[0]).name if len(files) > 0 else 'unknown'
+                            file2_name = Path(files[1]).name if len(files) > 1 else 'unknown'
+                            
+                            # Create task with specific, actionable information
                             task = manager.create_task(
                                 issue_type=RefactoringIssueType.DUPLICATE,
-                                title=f"Duplicate code detected",
-                                description=f"Duplicate code: {dup.get('similarity', 0):.0%} similar",
-                                target_files=dup.get('files', []),
+                                title=f"Merge duplicates: {file1_name} ↔ {file2_name}",
+                                description=f"Merge duplicate files: {files[0] if len(files) > 0 else 'unknown'} and {files[1] if len(files) > 1 else 'unknown'} ({similarity:.0%} similar)",
+                                target_files=files,
                                 priority=RefactoringPriority.MEDIUM,
                                 fix_approach=RefactoringApproach.AUTONOMOUS,
                                 estimated_effort=30,
