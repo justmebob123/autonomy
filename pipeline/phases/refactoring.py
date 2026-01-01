@@ -97,6 +97,9 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         # PHASE 2: Initialize refactoring task manager
         self._initialize_refactoring_manager(state)
         
+        # CRITICAL FIX: Clean up broken tasks from before recent fixes
+        self._cleanup_broken_tasks(state.refactoring_manager)
+        
         # PHASE 3: Check for pending refactoring tasks
         pending_tasks = self._get_pending_refactoring_tasks(state)
         
@@ -158,6 +161,49 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             from pipeline.state.refactoring_task import RefactoringTaskManager
             state.refactoring_manager = RefactoringTaskManager()
             self.logger.debug(f"  🔧 Initialized refactoring task manager")
+    
+    def _cleanup_broken_tasks(self, manager) -> None:
+        """
+        Remove tasks with insufficient data that were created before recent fixes.
+        
+        These tasks have:
+        - "Unknown" in title or description
+        - Empty or missing analysis_data
+        - No actionable information for AI
+        
+        This is a one-time cleanup for legacy tasks. New tasks created after
+        commits dd11f57, 6eb20a7, eb02d6c, b8f2b07 have proper analysis_data.
+        """
+        if manager is None:
+            return
+        
+        broken_tasks = []
+        
+        # Check all tasks (not just pending, as failed tasks can be retried)
+        for task in manager.tasks.values():
+            # Identify tasks with insufficient data
+            is_broken = (
+                "Unknown" in task.title or
+                task.description == "Unknown" or
+                not task.analysis_data or
+                task.analysis_data == {} or
+                (isinstance(task.analysis_data, dict) and 
+                 task.analysis_data.get('type') == '' and
+                 len(task.analysis_data) <= 1)
+            )
+            
+            if is_broken:
+                broken_tasks.append(task.task_id)
+                self.logger.info(f"  🗑️  Removing broken task: {task.task_id} - {task.title}")
+                self.logger.debug(f"     Reason: Insufficient data (created before fixes)")
+        
+        # Delete broken tasks
+        for task_id in broken_tasks:
+            manager.delete_task(task_id)
+        
+        if broken_tasks:
+            self.logger.info(f"  ✅ Cleaned up {len(broken_tasks)} broken tasks")
+            self.logger.info(f"  🔄 Will re-detect issues with proper data on next iteration")
     
     def _get_pending_refactoring_tasks(self, state: PipelineState) -> List:
         """Get all pending refactoring tasks"""

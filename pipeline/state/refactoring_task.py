@@ -344,6 +344,21 @@ class RefactoringTaskManager:
             "completion_percentage": (completed / total) * 100
         }
     
+    def delete_task(self, task_id: str) -> bool:
+        """
+        Delete a specific task by ID.
+        
+        Args:
+            task_id: Task ID to delete
+            
+        Returns:
+            True if deleted, False if not found
+        """
+        if task_id in self.tasks:
+            del self.tasks[task_id]
+            return True
+        return False
+    
     def clear_completed(self) -> int:
         """
         Remove completed tasks.
