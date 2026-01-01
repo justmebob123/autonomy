@@ -707,14 +707,88 @@ ACTION REQUIRED:
                 file_path = data.get('file', 'unknown') if isinstance(data, dict) else 'unknown'
                 class_name = data.get('class', 'unknown') if isinstance(data, dict) else 'unknown'
                 
-                return f"""
-UNUSED CODE DETECTED:
-- Type: Unused class/function
+                # Perform comprehensive analysis of unused code
+                from pipeline.analysis.unused_code_analyzer import UnusedCodeAnalyzer, UnusedCodeDecision
+                
+                analyzer = UnusedCodeAnalyzer(str(self.project_dir), self.logger)
+                analysis = analyzer.analyze(file_path, class_name, 'class')
+                
+                decision_actions = {
+                    UnusedCodeDecision.INTEGRATE: f"""
+UNUSED CODE ANALYSIS - INTEGRATION RECOMMENDED:
 - File: {file_path}
-- Class/Function: {class_name}
-- Issue: This code is defined but never used anywhere in the project
+- Item: {class_name}
+- Project Stage: {analysis.project_stage} ({analysis.completion_percentage:.1f}% complete)
+- Architecture Alignment: {analysis.architecture_alignment}
+- Decision: INTEGRATE (Confidence: {analysis.confidence:.0%})
 
-⚠️ CRITICAL: This is an EARLY-STAGE project. DO NOT remove unused code automatically!
+ANALYSIS:
+{analysis.reasoning}
+
+INTEGRATION PLAN:
+{analysis.integration_plan}
+
+ACTION REQUIRED:
+This unused code appears to be a SUPERIOR implementation that should be integrated.
+
+Use create_issue_report to document the integration plan:
+
+EXAMPLE:
+create_issue_report(
+    task_id="current_task_id",
+    title="Integrate superior implementation: {class_name}",
+    description="{analysis.reasoning}
+
+Integration Plan:
+{analysis.integration_plan}
+
+Related files that may need refactoring:
+{chr(10).join('- ' + f for f in analysis.related_files[:5])}",
+    severity="medium",
+    recommended_approach="Refactor related files to use this superior implementation",
+    files_affected=["{file_path}"] + {analysis.related_files[:5]}
+)
+
+✅ This code should be INTEGRATED, not removed!
+""",
+                    UnusedCodeDecision.KEEP: f"""
+UNUSED CODE ANALYSIS - KEEP FOR FUTURE USE:
+- File: {file_path}
+- Item: {class_name}
+- Project Stage: {analysis.project_stage} ({analysis.completion_percentage:.1f}% complete)
+- Architecture Alignment: {analysis.architecture_alignment}
+- Decision: KEEP (Confidence: {analysis.confidence:.0%})
+
+ANALYSIS:
+{analysis.reasoning}
+
+ACTION REQUIRED:
+Mark this task as complete - this code should be KEPT for future integration.
+
+Use update_refactoring_task to mark as resolved:
+
+EXAMPLE:
+update_refactoring_task(
+    task_id="current_task_id",
+    status="COMPLETED",
+    notes="Analysis shows this code aligns with architecture and should be kept for future integration. Project is in {analysis.project_stage} stage."
+)
+
+✅ This code is part of planned architecture - KEEP IT!
+""",
+                    UnusedCodeDecision.REPORT: f"""
+UNUSED CODE ANALYSIS - DEVELOPER REVIEW REQUIRED:
+- File: {file_path}
+- Item: {class_name}
+- Project Stage: {analysis.project_stage} ({analysis.completion_percentage:.1f}% complete)
+- Architecture Alignment: {analysis.architecture_alignment}
+- Decision: REPORT (Confidence: {analysis.confidence:.0%})
+
+ANALYSIS:
+{analysis.reasoning}
+
+Related files found:
+{chr(10).join('- ' + f for f in analysis.related_files[:5]) if analysis.related_files else '(none)'}
 
 ACTION REQUIRED:
 Create an issue report for developer review:
@@ -722,24 +796,26 @@ Create an issue report for developer review:
 EXAMPLE:
 create_issue_report(
     task_id="current_task_id",
-    title="Unused code: {class_name}",
-    description="Class/function {class_name} in {file_path} is currently unused. This may be:
-    1. Part of planned architecture not yet integrated
-    2. Future functionality not yet implemented
-    3. Truly redundant code that should be removed
-    
-    Developer should review and decide whether to:
-    - Integrate it into the codebase
-    - Keep it for future use
-    - Remove it if truly redundant",
+    title="Review unused code: {class_name}",
+    description="{analysis.reasoning}
+
+Related files:
+{chr(10).join('- ' + f for f in analysis.related_files[:5]) if analysis.related_files else '(none)'}
+
+Developer should determine:
+1. Is this part of planned architecture?
+2. Should it be integrated into existing code?
+3. Is it truly redundant and safe to remove?",
     severity="low",
-    recommended_approach="Manual review required - do not auto-remove in early-stage projects",
+    recommended_approach="Manual review and decision required",
     files_affected=["{file_path}"]
 )
 
-❌ DO NOT use cleanup_redundant_files for unused code in early-stage projects
-✅ CREATE ISSUE REPORT for developer to review and decide
+⚠️ Requires developer review to make final decision
 """
+                }
+                
+                return decision_actions.get(analysis.decision, decision_actions[UnusedCodeDecision.REPORT])
             else:
                 # Regular integration conflict
                 return f"""
@@ -754,43 +830,61 @@ ACTION REQUIRED:
 """
         
         elif issue_type == RefactoringIssueType.DEAD_CODE:
-            # Dead code - but be careful in early-stage projects!
+            # Dead code - perform comprehensive analysis
             item_name = data.get('name', 'unknown') if isinstance(data, dict) else 'unknown'
             item_file = data.get('file', 'unknown') if isinstance(data, dict) else 'unknown'
+            item_type = data.get('type', 'function') if isinstance(data, dict) else 'function'
             
-            return f"""
-DEAD CODE DETECTED:
-- Type: Dead code (unused function/class/variable)
-- Name: {item_name}
+            # Perform comprehensive analysis
+            from pipeline.analysis.unused_code_analyzer import UnusedCodeAnalyzer, UnusedCodeDecision
+            
+            analyzer = UnusedCodeAnalyzer(str(self.project_dir), self.logger)
+            analysis = analyzer.analyze(item_file, item_name, item_type)
+            
+            # Generate response based on analysis decision
+            if analysis.decision == UnusedCodeDecision.INTEGRATE:
+                action_text = f"""
+DEAD CODE ANALYSIS - INTEGRATION RECOMMENDED:
+- Item: {item_name}
 - File: {item_file}
-- Reason: This code is defined but never used anywhere in the project
+- Project: {analysis.project_stage} stage ({analysis.completion_percentage:.1f}% complete)
+- Decision: INTEGRATE (Confidence: {analysis.confidence:.0%})
 
-⚠️ CRITICAL: This is an EARLY-STAGE project. DO NOT remove unused code automatically!
+{analysis.reasoning}
 
-ACTION REQUIRED:
-Create an issue report for developer review:
+INTEGRATION PLAN:
+{analysis.integration_plan}
 
-EXAMPLE:
-create_issue_report(
-    task_id="current_task_id",
-    title="Dead code: {item_name}",
-    description="Item {item_name} in {item_file} is currently unused. This may be:
-    1. Part of planned architecture not yet integrated
-    2. Future functionality not yet implemented  
-    3. Truly dead code that should be removed
-    
-    Developer should review and decide whether to:
-    - Integrate it into the codebase
-    - Keep it for future use
-    - Remove it if truly dead",
-    severity="low",
-    recommended_approach="Manual review required - do not auto-remove in early-stage projects",
-    files_affected=["{item_file}"]
-)
-
-❌ DO NOT use cleanup_redundant_files for dead code in early-stage projects
-✅ CREATE ISSUE REPORT for developer to review and decide
+ACTION: Create issue report with integration plan
 """
+            elif analysis.decision == UnusedCodeDecision.KEEP:
+                action_text = f"""
+DEAD CODE ANALYSIS - KEEP FOR FUTURE:
+- Item: {item_name}
+- File: {item_file}
+- Project: {analysis.project_stage} stage ({analysis.completion_percentage:.1f}% complete)
+- Decision: KEEP (Confidence: {analysis.confidence:.0%})
+
+{analysis.reasoning}
+
+ACTION: Mark task complete - code should be kept
+"""
+            else:
+                action_text = f"""
+DEAD CODE ANALYSIS - REVIEW REQUIRED:
+- Item: {item_name}
+- File: {item_file}
+- Project: {analysis.project_stage} stage ({analysis.completion_percentage:.1f}% complete)
+- Decision: REPORT (Confidence: {analysis.confidence:.0%})
+
+{analysis.reasoning}
+
+Related files: {', '.join(analysis.related_files[:3]) if analysis.related_files else 'none'}
+
+ACTION: Create issue report for developer review
+"""
+            
+            return action_text
         
         elif issue_type == RefactoringIssueType.ARCHITECTURE:
             # Check what type of architecture issue this is
