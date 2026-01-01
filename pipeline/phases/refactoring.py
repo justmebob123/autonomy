@@ -1363,7 +1363,7 @@ Review the issue and use appropriate refactoring tools to resolve it.
         elif task.issue_type == RefactoringIssueType.DUPLICATE:
             return self._get_duplicate_code_prompt(task, context)
         
-        elif task.issue_type == RefactoringIssueType.INTEGRATION:
+        elif task.issue_type == RefactoringIssueType.INTEGRATION or task.issue_type == RefactoringIssueType.CONFLICT:
             return self._get_integration_conflict_prompt(task, context)
         
         elif task.issue_type == RefactoringIssueType.DEAD_CODE:
