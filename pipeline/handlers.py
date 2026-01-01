@@ -1232,7 +1232,8 @@ class ToolCallHandler:
     
     def _handle_read_file(self, args: Dict) -> Dict:
         """Handle read_file tool - read a file from the project."""
-        filepath = args.get("filepath", "")
+        # Accept both 'filepath' and 'file_path' for backward compatibility
+        filepath = args.get("filepath") or args.get("file_path", "")
         
         if not filepath:
             return {"tool": "read_file", "success": False, "error": "No filepath provided"}
