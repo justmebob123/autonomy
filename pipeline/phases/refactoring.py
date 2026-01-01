@@ -1436,11 +1436,25 @@ Review the issue and use appropriate refactoring tools to resolve it.
    compare_file_implementations(file1="<file1>", file2="<file2>")
    
 2️⃣ **Merge the files** (REQUIRED - this resolves the task):
-   merge_file_implementations(
-       source_files=["<file1>", "<file2>"],
-       target_file="<file1>",
-       strategy="ai_merge"
-   )
+
+⚠️ CRITICAL OUTPUT FORMAT - Use JSON, NOT Python syntax:
+
+CORRECT JSON FORMAT:
+{{
+    "name": "merge_file_implementations",
+    "arguments": {{
+        "source_files": ["<file1>", "<file2>"],
+        "target_file": "<file1>",
+        "strategy": "ai_merge"
+    }}
+}}
+
+WRONG (Python syntax - parser cannot handle lists):
+merge_file_implementations(
+    source_files=["<file1>", "<file2>"],
+    target_file="<file1>",
+    strategy="ai_merge"
+)
 
 ⚠️ DO NOT:
 - List all source files (you already know which files to merge)
@@ -1516,7 +1530,19 @@ Review the issue and use appropriate refactoring tools to resolve it.
         else:
             # Step 5: Make decision and resolve
             step_num = 5
-            next_tool = "merge_file_implementations(...) OR move_file(...) OR rename_file(...)"
+            next_tool = """
+⚠️ USE JSON FORMAT FOR TOOLS WITH LISTS:
+
+{
+    "name": "merge_file_implementations",
+    "arguments": {
+        "source_files": ["file1.py", "file2.py"],
+        "target_file": "file1.py",
+        "strategy": "ai_merge"
+    }
+}
+
+OR move_file(...) OR rename_file(...)"""
             step_description = "MAKE A DECISION and RESOLVE the conflict"
         
         return f"""🎯 INTEGRATION CONFLICT - STEP {step_num} OF 5
