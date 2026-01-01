@@ -84,7 +84,7 @@ class ToolCallHandler:
         else:
             self.tool_creator = tool_creator
         
-        # INTEGRATION: Custom Tool Handler for scripts/custom_tools/
+        # INTEGRATION: Custom Tool Handler for bin/custom_tools/
         # Initialize custom tool support
         self.custom_tool_handler = None
         try:
@@ -3240,12 +3240,10 @@ class ToolCallHandler:
     def _handle_create_issue_report(self, args: Dict) -> Dict:
         """Handle create_issue_report tool."""
         try:
+            # Get or create refactoring task manager
             if not hasattr(self, '_refactoring_manager'):
-                return {
-                    "tool": "create_issue_report",
-                    "success": False,
-                    "error": "No refactoring manager exists"
-                }
+                from pipeline.state.refactoring_task import RefactoringTaskManager
+                self._refactoring_manager = RefactoringTaskManager()
             
             task_id = args['task_id']
             task = self._refactoring_manager.get_task(task_id)
@@ -3302,12 +3300,10 @@ class ToolCallHandler:
     def _handle_request_developer_review(self, args: Dict) -> Dict:
         """Handle request_developer_review tool."""
         try:
+            # Get or create refactoring task manager
             if not hasattr(self, '_refactoring_manager'):
-                return {
-                    "tool": "request_developer_review",
-                    "success": False,
-                    "error": "No refactoring manager exists"
-                }
+                from pipeline.state.refactoring_task import RefactoringTaskManager
+                self._refactoring_manager = RefactoringTaskManager()
             
             task_id = args['task_id']
             task = self._refactoring_manager.get_task(task_id)

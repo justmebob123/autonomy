@@ -31,7 +31,7 @@ class ToolExecutor:
     - Security sandboxing
     
     Example:
-        executor = ToolExecutor('scripts/custom_tools', '/project')
+        executor = ToolExecutor('bin/custom_tools', '/project')
         result = executor.execute_tool('analyze_imports', {'filepath': 'main.py'})
         if result['success']:
             print(result['result'])
@@ -42,7 +42,7 @@ class ToolExecutor:
         Initialize executor.
         
         Args:
-            tools_dir: Directory containing custom tools (scripts/custom_tools/)
+            tools_dir: Directory containing custom tools (bin/custom_tools/)
             project_dir: Project root directory
             logger: Optional logger instance
         """

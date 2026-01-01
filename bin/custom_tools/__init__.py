@@ -13,7 +13,7 @@ This framework provides:
 Usage:
     from custom_tools import ToolExecutor
     
-    executor = ToolExecutor('scripts/custom_tools', '/project')
+    executor = ToolExecutor('bin/custom_tools', '/project')
     result = executor.execute_tool('analyze_imports', {'filepath': 'main.py'})
 """
 

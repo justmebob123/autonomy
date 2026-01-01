@@ -1,7 +1,7 @@
 """
 Custom Tools Integration Package
 
-Provides integration between scripts/custom_tools/ and the pipeline system.
+Provides integration between bin/custom_tools/ and the pipeline system.
 
 Components:
 - CustomToolRegistry: Discovers and registers custom tools
