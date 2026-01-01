@@ -1454,27 +1454,29 @@ Review the issue and use appropriate refactoring tools to resolve it.
         file1 = target_files[0] if len(target_files) > 0 else "file1"
         file2 = target_files[1] if len(target_files) > 1 else "file2"
         
-        # Determine current step based on conversation history
-        # Check what tools have been called in previous attempts
-        conversation_history = self.conversation.get_context() if hasattr(self, 'conversation') else []
+        # FIXED: Use TaskAnalysisTracker to check actual tool executions
+        # instead of checking assistant message content
+        state = self.analysis_tracker.get_or_create_state(task.task_id)
         
-        # Count what's been done by looking at assistant messages
+        # Count what's been done by looking at ACTUAL tool executions
         files_read = set()
-        architecture_read = False
+        architecture_read = state.checkpoints['read_architecture'].completed
         comparison_done = False
         
-        for msg in conversation_history:
-            if msg.get('role') == 'assistant':
-                content = str(msg.get('content', ''))
-                # Check for file reads
-                if 'read_file' in content and file1 in content:
+        for tool_call in state.tool_calls_history:
+            tool_name = tool_call['tool']
+            arguments = tool_call.get('arguments', {})
+            
+            if tool_name == 'read_file':
+                filepath = arguments.get('filepath') or arguments.get('file_path', '')
+                # Check if target files were read
+                if file1 in filepath:
                     files_read.add(file1)
-                if 'read_file' in content and file2 in content:
+                if file2 in filepath:
                     files_read.add(file2)
-                if 'read_file' in content and 'ARCHITECTURE.md' in content:
-                    architecture_read = True
-                if 'compare_file_implementations' in content:
-                    comparison_done = True
+            
+            if tool_name == 'compare_file_implementations':
+                comparison_done = True
         
         # Determine next step
         if file1 not in files_read:
