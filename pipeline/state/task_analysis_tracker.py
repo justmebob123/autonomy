@@ -391,7 +391,13 @@ Attempt {attempt_number}: Proceeding, but comprehensive analysis would improve r
                 task_id: {
                     "task_id": state.task_id,
                     "attempt_number": state.attempt_number,
-                    "tool_calls_history": state.tool_calls_history,
+                    "tool_calls_history": [
+                        {
+                            **call,
+                            "timestamp": call["timestamp"].isoformat() if isinstance(call.get("timestamp"), datetime) else call.get("timestamp")
+                        }
+                        for call in state.tool_calls_history
+                    ],
                     "checkpoints": {
                         name: {
                             "name": cp.name,
@@ -416,7 +422,19 @@ Attempt {attempt_number}: Proceeding, but comprehensive analysis would improve r
         for task_id, state_data in data.get("task_states", {}).items():
             state = TaskAnalysisState(task_id=task_id)
             state.attempt_number = state_data.get("attempt_number", 1)
-            state.tool_calls_history = state_data.get("tool_calls_history", [])
+            
+            # Restore tool calls history with timestamp deserialization
+            state.tool_calls_history = []
+            for call in state_data.get("tool_calls_history", []):
+                restored_call = call.copy()
+                timestamp = call.get("timestamp")
+                if timestamp and isinstance(timestamp, str):
+                    try:
+                        restored_call["timestamp"] = datetime.fromisoformat(timestamp)
+                    except (ValueError, AttributeError):
+                        # If parsing fails, keep as string
+                        pass
+                state.tool_calls_history.append(restored_call)
             
             # Restore checkpoints
             for name, cp_data in state_data.get("checkpoints", {}).items():
