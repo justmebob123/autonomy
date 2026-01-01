@@ -23,6 +23,7 @@ class TaskStatus(str, Enum):
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     SKIPPED = "SKIPPED"
+    BLOCKED = "BLOCKED"  # Waiting for developer review
     QA_PENDING = "QA_PENDING"
     QA_FAILED = "QA_FAILED"
     DEBUG_PENDING = "DEBUG_PENDING"
