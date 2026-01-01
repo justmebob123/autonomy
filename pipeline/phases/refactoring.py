@@ -518,7 +518,15 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             "move_file",
             "rename_file",
             "restructure_directory",
-            "analyze_file_placement"  # Provides actionable recommendations
+            "analyze_file_placement",  # Provides actionable recommendations
+            # File editing tools that actually fix code
+            "insert_after",
+            "insert_before",
+            "replace_between",
+            "append_to_file",
+            "update_section",
+            "modify_file",
+            "create_file"
         }
         
         for result in results:
