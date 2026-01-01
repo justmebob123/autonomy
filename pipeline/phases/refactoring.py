@@ -1290,8 +1290,8 @@ Result: ❌ Task FAILED - only analysis, no action taken
                             file2_path = files[1] if len(files) > 1 else 'unknown'
                             
                             # Use short paths for title (parent/filename)
-                            file1_short = str(Path(file1_path).parent.name / Path(file1_path).name) if file1_path != 'unknown' else 'unknown'
-                            file2_short = str(Path(file2_path).parent.name / Path(file2_path).name) if file2_path != 'unknown' else 'unknown'
+                            file1_short = f"{Path(file1_path).parent.name}/{Path(file1_path).name}" if file1_path != 'unknown' else 'unknown'
+                            file2_short = f"{Path(file2_path).parent.name}/{Path(file2_path).name}" if file2_path != 'unknown' else 'unknown'
                             
                             # Create task with specific, actionable information
                             task = manager.create_task(
