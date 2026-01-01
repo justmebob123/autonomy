@@ -4,7 +4,7 @@ Task Analysis Tracker - Tracks tool usage per task to enforce comprehensive anal
 This module ensures AI completes all required analysis steps before taking resolving actions.
 """
 
-from typing import Dict, List, Set, Optional
+from typing import Dict, List, Set, Optional, Any
 from dataclasses import dataclass, field
 from datetime import datetime
 
