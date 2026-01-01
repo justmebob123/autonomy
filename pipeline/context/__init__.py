@@ -1,15 +1,13 @@
 """
-Context Package
+Context Providers
 
-Provides rich context for LLM prompts including error history and code diffs.
+Provides various types of context for AI decision making.
 """
 
-from .error import ErrorContext, ErrorRecord
-from .code import CodeContext, CodeDiff
+from .architectural import ArchitecturalContextProvider, PlacementRule, ValidationResult
 
 __all__ = [
-    "ErrorContext",
-    "ErrorRecord", 
-    "CodeContext",
-    "CodeDiff",
+    'ArchitecturalContextProvider',
+    'PlacementRule',
+    'ValidationResult',
 ]

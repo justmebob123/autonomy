@@ -9,6 +9,10 @@ from .complexity import ComplexityAnalyzer, ComplexityResult
 from .dead_code import DeadCodeDetector, DeadCodeResult
 from .integration_gaps import IntegrationGapFinder, IntegrationGapResult
 from .call_graph import CallGraphGenerator, CallGraphResult
+from .import_graph import ImportGraphBuilder, ImportNode, CircularDependency
+from .import_impact import ImportImpactAnalyzer, ImpactReport, RiskLevel
+from .import_updater import ImportUpdater, UpdateResult
+from .file_placement import FilePlacementAnalyzer, MisplacedFile
 
 __all__ = [
     'ComplexityAnalyzer',
@@ -19,4 +23,14 @@ __all__ = [
     'IntegrationGapResult',
     'CallGraphGenerator',
     'CallGraphResult',
+    'ImportGraphBuilder',
+    'ImportNode',
+    'CircularDependency',
+    'ImportImpactAnalyzer',
+    'ImpactReport',
+    'RiskLevel',
+    'ImportUpdater',
+    'UpdateResult',
+    'FilePlacementAnalyzer',
+    'MisplacedFile',
 ]
