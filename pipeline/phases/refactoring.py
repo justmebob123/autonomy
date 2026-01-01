@@ -850,7 +850,7 @@ RESOLVING means taking ONE of these actions:
                             task = manager.create_task(
                                 issue_type=RefactoringIssueType.ARCHITECTURE,
                                 title=f"Bug: {bug.get('type', 'Unknown')}",
-                                description=f"Bug: {bug.get('description', 'Unknown')}",
+                                description=f"{bug.get('message', 'Unknown')} at line {bug.get('line', '?')} in {bug.get('file', '?')}. Suggestion: {bug.get('suggestion', 'Fix the issue')}",
                                 target_files=[bug.get('file', '')],
                                 priority=priority_map.get(bug.get('severity', 'medium'), RefactoringPriority.HIGH),
                                 fix_approach=RefactoringApproach.AUTONOMOUS,  # Let AI analyze and decide
