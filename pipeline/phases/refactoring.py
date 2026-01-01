@@ -485,8 +485,39 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             
             if any_success:
                 # Tools ran successfully but didn't resolve issue
-                # AUTO-FIX: Create issue report with analysis results
-                self.logger.warning(f"  ⚠️  Task {task.task_id}: Only analysis performed, auto-creating issue report")
+                # Check if AI actually tried to understand the files
+                tools_used = {r.get("tool") for r in results if r.get("success")}
+                
+                # Did AI read the files to understand them?
+                understanding_tools = {"read_file", "search_code", "list_directory"}
+                tried_to_understand = bool(tools_used & understanding_tools)
+                
+                # Did AI check architecture?
+                checked_architecture = "read_file" in tools_used  # Would read ARCHITECTURE.md
+                
+                if not tried_to_understand:
+                    # AI was lazy - just compared without understanding
+                    # Give it ONE MORE CHANCE with stronger guidance
+                    self.logger.warning(f"  ⚠️  Task {task.task_id}: Only compared files without reading them - RETRYING with stronger guidance")
+                    
+                    # Add error context to force AI to read files
+                    error_msg = (
+                        "You only compared files without reading them. "
+                        "You MUST read both files to understand their purpose. "
+                        "Use read_file on both files, then check ARCHITECTURE.md, "
+                        "then make an intelligent decision based on understanding."
+                    )
+                    task.fail(error_msg)
+                    
+                    return PhaseResult(
+                        success=False,
+                        phase=self.phase_name,
+                        message=f"Task {task.task_id} failed: {error_msg}"
+                    )
+                
+                # AI tried to understand but still couldn't resolve
+                # NOW we can auto-create a report
+                self.logger.warning(f"  ⚠️  Task {task.task_id}: AI tried to understand but couldn't resolve, auto-creating issue report")
                 
                 # Collect analysis results
                 analysis_summary = []
@@ -504,6 +535,9 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                                 f"{len(conflicts)} conflicts, "
                                 f"recommended strategy: {strategy}"
                             )
+                        elif tool_name == "read_file":
+                            file_path = tool_result.get("file", "unknown")
+                            analysis_summary.append(f"Read: {file_path}")
                         else:
                             analysis_summary.append(f"{tool_name}: {tool_result}")
                 
@@ -514,26 +548,26 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                         "arguments": {
                             "task_id": task.task_id,
                             "severity": "medium",
-                            "impact_analysis": f"Integration conflict detected: {task.description}. Analysis performed but requires manual decision.",
-                            "recommended_approach": "Review analysis results and determine appropriate merge strategy or integration approach.",
+                            "impact_analysis": f"Integration conflict detected: {task.description}. AI analyzed files and architecture but requires human decision.",
+                            "recommended_approach": "AI has read the files and checked architecture. Review the analysis and make final decision on merge/keep/move.",
                             "code_examples": "\n".join(analysis_summary) if analysis_summary else "See task analysis_data for details",
                             "estimated_effort": "30 minutes",
-                            "alternatives": "Consider: 1) Merge implementations, 2) Keep both with different purposes, 3) Refactor to eliminate conflict"
+                            "alternatives": "Consider: 1) Merge implementations, 2) Keep both with different purposes, 3) Refactor to eliminate conflict, 4) Update ARCHITECTURE.md to clarify design"
                         }
                     }
                 }])
                 
                 if report_result and report_result[0].get("success"):
-                    task.complete("Auto-created issue report after analysis")
+                    task.complete("Auto-created issue report after thorough analysis")
                     self.logger.info(f"  ✅ Task {task.task_id} resolved by creating issue report")
                     return PhaseResult(
                         success=True,
                         phase=self.phase_name,
-                        message=f"Task {task.task_id} resolved: Issue report created"
+                        message=f"Task {task.task_id} resolved: Issue report created after analysis"
                     )
                 else:
                     # Report creation failed, mark task as failed
-                    error_msg = "Tools succeeded but issue not resolved - only analysis performed, no action taken"
+                    error_msg = "Tools succeeded but issue not resolved - analysis performed but couldn't create report"
                     task.fail(error_msg)
                     self.logger.warning(f"  ⚠️  Task {task.task_id}: {error_msg}")
                     
@@ -1180,6 +1214,56 @@ This is NOT a documentation task. This is a FIXING task.
 - Only create reports if the fix is genuinely too complex or risky
 - "Too complex" means requires major architectural changes, not just merging files
 - UNUSED CODE = create report (don't remove in early-stage projects)
+
+🧠 INTELLIGENT CONFLICT RESOLUTION (CRITICAL FOR INTEGRATION CONFLICTS):
+
+When you see files with similar names in different locations:
+
+1️⃣ **READ BOTH FILES FIRST** - Don't just compare, UNDERSTAND them:
+   - Use read_file to see what each file actually does
+   - Understand their purpose, not just their similarity score
+   - 0% similarity doesn't mean "manual review" - it means they might be intentionally different!
+
+2️⃣ **CHECK ARCHITECTURE.MD** - Understand the intended design:
+   - Read ARCHITECTURE.md to see where files should be
+   - Check if this separation is intentional
+   - See if the architecture explains why both exist
+
+3️⃣ **MAKE AN INTELLIGENT DECISION** - Think, don't just report:
+   
+   **If files serve DIFFERENT purposes:**
+   - Keep both files
+   - Update ARCHITECTURE.md to clarify why both exist
+   - Document: "X handles A, Y handles B"
+   
+   **If one is MISPLACED:**
+   - Use move_file to relocate to correct location
+   - Update imports automatically
+   
+   **If they're TRUE DUPLICATES:**
+   - Use merge_file_implementations
+   - Keep the better implementation
+   
+   **If architecture is UNCLEAR:**
+   - Update ARCHITECTURE.md to document the design decision
+   - Then decide based on the clarified architecture
+
+4️⃣ **ONLY REPORT IF TRULY UNCLEAR** - Last resort only:
+   - You've read both files
+   - You've checked the architecture
+   - You still can't determine the right action
+   - Then and only then create an issue report
+
+❌ WRONG APPROACH:
+- compare_file_implementations → see 0% similarity → create report
+- This is LAZY and doesn't help anyone
+
+✅ RIGHT APPROACH:
+- read_file(file1) → understand purpose
+- read_file(file2) → understand purpose  
+- read_file("ARCHITECTURE.md") → understand design
+- Make intelligent decision based on understanding
+- Update architecture if needed to clarify design
 
 {context}
 
