@@ -84,9 +84,9 @@ class ToolCallHandler:
         else:
             self.tool_creator = tool_creator
         
-        # INTEGRATION: Custom Tool Handler for scripts/custom_tools/
+        # INTEGRATION: Custom Tool Handler for scripts/
         # This feature allows dynamic loading of user-defined custom tools
-        # Tools are loaded from scripts/custom_tools/tools/ (part of pipeline infrastructure)
+        # Tools are loaded from scripts/ directory (part of pipeline infrastructure)
         self.custom_tool_handler = None
         try:
             from .custom_tools import CustomToolRegistry, CustomToolHandler

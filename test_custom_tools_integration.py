@@ -192,7 +192,7 @@ def main():
         print("✓ All integration tests passed!")
         print("\nCustom Tools System is ready for use!")
         print("\nNext Steps:")
-        print("1. Create custom tools in scripts/custom_tools/tools/")
+        print("1. Create custom tools in scripts/")
         print("2. Tools are automatically discovered and available")
         print("3. Use tools in pipeline phases")
         print("4. Monitor tool execution in logs")

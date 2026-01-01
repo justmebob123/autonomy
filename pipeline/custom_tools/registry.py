@@ -1,7 +1,7 @@
 """
 CustomToolRegistry - Custom Tool Discovery and Registration
 
-Automatically discovers and registers custom tools from scripts/custom_tools/tools/
+Automatically discovers and registers custom tools from scripts/
 Provides tool metadata, definitions, and management.
 """
 
@@ -59,7 +59,7 @@ class CustomToolRegistry:
     """
     Registry for custom tools.
     
-    Discovers, registers, and manages custom tools from scripts/custom_tools/tools/
+    Discovers, registers, and manages custom tools from scripts/
     Provides tool metadata, definitions, and caching.
     
     Example:
@@ -90,7 +90,7 @@ class CustomToolRegistry:
         # Tools directory - ALWAYS use pipeline's own scripts directory
         # Custom tools are part of the pipeline, not the project being worked on
         pipeline_root = Path(__file__).parent.parent.parent  # Go up from pipeline/custom_tools/registry.py to autonomy/
-        self.tools_dir = pipeline_root / 'scripts' / 'custom_tools' / 'tools'
+        self.tools_dir = pipeline_root / 'scripts'
         
         # Registry cache
         self._tools: Dict[str, ToolMetadata] = {}

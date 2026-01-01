@@ -52,10 +52,9 @@ class CustomToolHandler:
             pipeline_root = Path(__file__).parent.parent.parent  # Go up from pipeline/custom_tools/handler.py to autonomy/
             tools_dir = pipeline_root / 'scripts' / 'custom_tools'
             
-            # Add scripts/custom_tools to path for imports
-            scripts_custom_tools = tools_dir.parent.parent
-            if str(scripts_custom_tools) not in sys.path:
-                sys.path.insert(0, str(scripts_custom_tools))
+            # Add scripts directory to path for imports
+            if str(tools_dir) not in sys.path:
+                sys.path.insert(0, str(tools_dir))
             
             # Import ToolExecutor from bin (manual tools) for execution infrastructure
             from bin.custom_tools.core.executor import ToolExecutor
