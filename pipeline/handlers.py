@@ -1143,7 +1143,8 @@ class ToolCallHandler:
     
     def _handle_report_issue(self, args: Dict) -> Dict:
         """Handle report_issue tool"""
-        filepath = args.get("filepath", "")
+        # Accept both 'filepath' and 'file_path' for backward compatibility
+        filepath = args.get("filepath") or args.get("file_path", "")
         
         # Normalize filepath if provided
         if filepath:
@@ -1165,7 +1166,8 @@ class ToolCallHandler:
     
     def _handle_approve_code(self, args: Dict) -> Dict:
         """Handle approve_code tool"""
-        filepath = args.get("filepath", "")
+        # Accept both 'filepath' and 'file_path' for backward compatibility
+        filepath = args.get("filepath") or args.get("file_path", "")
         if not filepath:
             return {"tool": "approve_code", "success": False, "error": "Missing filepath"}
         
@@ -1574,7 +1576,8 @@ class ToolCallHandler:
         
         Extracts function signature to verify what parameters it accepts.
         """
-        filepath = args.get("filepath")
+        # Accept both 'filepath' and 'file_path' for backward compatibility
+        filepath = args.get("filepath") or args.get("file_path")
         function_name = args.get("function_name")
         class_name = args.get("class_name")
         
@@ -1630,7 +1633,8 @@ class ToolCallHandler:
         
         Validates that a function call uses valid parameters before making the call.
         """
-        filepath = args.get("filepath")
+        # Accept both 'filepath' and 'file_path' for backward compatibility
+        filepath = args.get("filepath") or args.get("file_path")
         function_name = args.get("function_name")
         call_kwargs = args.get("call_kwargs", {})
         class_name = args.get("class_name")
@@ -1685,7 +1689,8 @@ class ToolCallHandler:
         
         CRITICAL: Use this BEFORE removing parameters from function calls.
         """
-        filepath = args.get("filepath")
+        # Accept both 'filepath' and 'file_path' for backward compatibility
+        filepath = args.get("filepath") or args.get("file_path")
         function_name = args.get("function_name")
         parameter_name = args.get("parameter_name")
         class_name = args.get("class_name")
@@ -1728,7 +1733,8 @@ class ToolCallHandler:
         
         Traces where data comes from and where it goes.
         """
-        filepath = args.get("filepath")
+        # Accept both 'filepath' and 'file_path' for backward compatibility
+        filepath = args.get("filepath") or args.get("file_path")
         variable_name = args.get("variable_name")
         line_number = args.get("line_number")
         
@@ -1811,7 +1817,8 @@ class ToolCallHandler:
         
         Analyzes where an import should be added.
         """
-        filepath = args.get("filepath")
+        # Accept both 'filepath' and 'file_path' for backward compatibility
+        filepath = args.get("filepath") or args.get("file_path")
         module_name = args.get("module_name")
         usage_line = args.get("usage_line", 0)
         
@@ -1853,7 +1860,8 @@ class ToolCallHandler:
         
         Checks if an import is in the correct scope.
         """
-        filepath = args.get("filepath")
+        # Accept both 'filepath' and 'file_path' for backward compatibility
+        filepath = args.get("filepath") or args.get("file_path")
         import_statement = args.get("import_statement")
         line_number = args.get("line_number", 0)
         
@@ -2337,7 +2345,8 @@ class ToolCallHandler:
         Args:
             filepath: Path to the file to analyze
         """
-        filepath = args.get('filepath', '')
+        # Accept both 'filepath' and 'file_path' for backward compatibility
+        filepath = args.get('filepath') or args.get('file_path', '')
         
         if not filepath:
             return {
@@ -2777,7 +2786,8 @@ class ToolCallHandler:
             from .tool_modules.file_updates import FileUpdateTools
             
             file_tools = FileUpdateTools(str(self.project_dir), self.logger)
-            filepath = args.get('filepath')
+            # Accept both 'filepath' and 'file_path' for backward compatibility
+            filepath = args.get('filepath') or args.get('file_path')
             content = args.get('content')
             ensure_newline = args.get('ensure_newline', True)
             
@@ -2808,7 +2818,8 @@ class ToolCallHandler:
             from .tool_modules.file_updates import FileUpdateTools
             
             file_tools = FileUpdateTools(str(self.project_dir), self.logger)
-            filepath = args.get('filepath')
+            # Accept both 'filepath' and 'file_path' for backward compatibility
+            filepath = args.get('filepath') or args.get('file_path')
             section_title = args.get('section_title')
             new_content = args.get('new_content')
             create_if_missing = args.get('create_if_missing', True)
@@ -2844,7 +2855,8 @@ class ToolCallHandler:
             from .tool_modules.file_updates import FileUpdateTools
             
             file_tools = FileUpdateTools(str(self.project_dir), self.logger)
-            filepath = args.get('filepath')
+            # Accept both 'filepath' and 'file_path' for backward compatibility
+            filepath = args.get('filepath') or args.get('file_path')
             marker = args.get('marker')
             content = args.get('content')
             first_occurrence = args.get('first_occurrence', True)
@@ -2876,7 +2888,8 @@ class ToolCallHandler:
             from .tool_modules.file_updates import FileUpdateTools
             
             file_tools = FileUpdateTools(str(self.project_dir), self.logger)
-            filepath = args.get('filepath')
+            # Accept both 'filepath' and 'file_path' for backward compatibility
+            filepath = args.get('filepath') or args.get('file_path')
             marker = args.get('marker')
             content = args.get('content')
             first_occurrence = args.get('first_occurrence', True)
@@ -2908,7 +2921,8 @@ class ToolCallHandler:
             from .tool_modules.file_updates import FileUpdateTools
             
             file_tools = FileUpdateTools(str(self.project_dir), self.logger)
-            filepath = args.get('filepath')
+            # Accept both 'filepath' and 'file_path' for backward compatibility
+            filepath = args.get('filepath') or args.get('file_path')
             start_marker = args.get('start_marker')
             end_marker = args.get('end_marker')
             new_content = args.get('new_content')
