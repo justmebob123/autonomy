@@ -1528,22 +1528,76 @@ merge_file_implementations(
             step_description = "COMPARE the two implementations"
             
         else:
-            # Step 5: Make decision and resolve
+            # Step 5: FORCE RESOLUTION - Analysis is complete!
             step_num = 5
-            next_tool = """
-⚠️ USE JSON FORMAT FOR TOOLS WITH LISTS:
+            
+            # CRITICAL: Return a completely different prompt that FORBIDS analysis
+            return f"""🚨 CRITICAL: ANALYSIS COMPLETE - TAKE ACTION NOW! 🚨
 
-{
+{context}
+
+═══════════════════════════════════════════════════════════════
+⛔ ANALYSIS PHASE IS COMPLETE ⛔
+
+You have already completed ALL analysis steps:
+✅ Read {file1}
+✅ Read {file2}
+✅ Read ARCHITECTURE.md
+✅ Compared implementations
+
+🚫 DO NOT READ ANY MORE FILES - Analysis is done!
+🚫 DO NOT COMPARE AGAIN - You already compared!
+🚫 DO NOT DO ANY MORE ANALYSIS - Time to act!
+
+═══════════════════════════════════════════════════════════════
+🎯 YOU MUST NOW RESOLVE THE CONFLICT 🎯
+
+This is attempt {task.attempts}. You've analyzed enough!
+
+Choose ONE resolution tool and use it NOW:
+
+1️⃣ merge_file_implementations - Merge the duplicate files
+2️⃣ move_file - Move file to correct location  
+3️⃣ rename_file - Rename file to match architecture
+4️⃣ create_issue_report - Report for manual review
+
+═══════════════════════════════════════════════════════════════
+⚠️ TOOL CALL FORMAT ⚠️
+
+Use JSON format for merge_file_implementations:
+
+{{{{
     "name": "merge_file_implementations",
-    "arguments": {
-        "source_files": ["file1.py", "file2.py"],
-        "target_file": "file1.py",
+    "arguments": {{{{
+        "source_files": ["{file1}", "{file2}"],
+        "target_file": "{file1}",
         "strategy": "ai_merge"
-    }
-}
+    }}}}
+}}}}
 
-OR move_file(...) OR rename_file(...)"""
-            step_description = "MAKE A DECISION and RESOLVE the conflict"
+OR for move_file:
+
+{{{{
+    "name": "move_file",
+    "arguments": {{{{
+        "source_path": "{file2}",
+        "destination_path": "correct/path/file.py",
+        "reason": "Moving to match architecture"
+    }}}}
+}}}}
+
+═══════════════════════════════════════════════════════════════
+
+⚠️ IF YOU USE read_file OR compare_file_implementations AGAIN,
+   THE TASK WILL FAIL AND YOU'LL BE STUCK IN AN INFINITE LOOP!
+
+🎯 OUTPUT YOUR RESOLUTION TOOL CALL NOW:
+"""
+            
+            # This code path should never be reached now
+            step_num = 5
+            next_tool = "RESOLUTION TOOL REQUIRED"
+            step_description = "RESOLVE THE CONFLICT"
         
         return f"""🎯 INTEGRATION CONFLICT - STEP {step_num} OF 5
 
