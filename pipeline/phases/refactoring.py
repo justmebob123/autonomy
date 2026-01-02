@@ -50,6 +50,10 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         super().__init__(*args, **kwargs)
         self.init_loop_detection()
         
+        # CRITICAL FIX: Track if comprehensive analysis has been run
+        # This prevents infinite loop where analysis runs after every task completion
+        self._comprehensive_analysis_done = False
+        
         # ARCHITECTURE CONFIG - Load project architecture configuration
         from ..architecture_parser import get_architecture_config
         self.architecture_config = get_architecture_config(self.project_dir)
@@ -104,9 +108,21 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         pending_tasks = self._get_pending_refactoring_tasks(state)
         
         if not pending_tasks:
-            # No pending tasks - run analysis to find issues
-            self.logger.info(f"  🔍 No pending tasks, analyzing codebase...")
-            return self._analyze_and_create_tasks(state)
+            # No pending tasks - check if we should run analysis
+            if not self._comprehensive_analysis_done:
+                # First time with no tasks - run analysis to find issues
+                self.logger.info(f"  🔍 No pending tasks, analyzing codebase...")
+                self._comprehensive_analysis_done = True
+                return self._analyze_and_create_tasks(state)
+            else:
+                # Analysis already done and no tasks left - we're truly done
+                self.logger.info(f"  ✅ All refactoring tasks completed")
+                return PhaseResult(
+                    success=True,
+                    phase=self.phase_name,
+                    message="All refactoring tasks completed successfully",
+                    next_phase="coding"  # Return to coding
+                )
         
         # PHASE 3: Work on next task
         self.logger.info(f"  📋 {len(pending_tasks)} pending tasks, working on next task...")
