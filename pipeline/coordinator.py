@@ -1383,6 +1383,7 @@ class PhaseCoordinator:
                 # CRITICAL: Update refactoring cooldown if we just ran refactoring
                 if phase_name == 'refactoring':
                     self.last_refactoring_iteration = iteration
+                    state._refactoring_just_completed = True  # Flag to prevent immediate re-trigger
                     self.logger.debug(f"  🔄 Refactoring completed, cooldown starts at iteration {iteration}")
                 
                 # Check if phase suggests next phase (loop prevention hint)
@@ -1629,7 +1630,14 @@ class PhaseCoordinator:
             self.logger.debug(f"  Refactoring is running, allowing it to continue")
             return True
         
-        # CRITICAL: Check cooldown to prevent infinite loops
+        # CRITICAL: If refactoring JUST completed, don't re-trigger immediately
+        # This prevents the infinite loop where refactoring completes and immediately re-triggers
+        if getattr(state, '_refactoring_just_completed', False):
+            self.logger.info("  ⏸️  Refactoring just completed, returning to coding phase")
+            state._refactoring_just_completed = False  # Clear flag for next time
+            return False
+        
+        # CRITICAL: Check cooldown to prevent rapid re-triggering
         # If we just ran refactoring, don't immediately trigger it again
         if self.last_refactoring_iteration is not None and hasattr(self, '_current_iteration'):
             iterations_since = self._current_iteration - self.last_refactoring_iteration
@@ -1905,9 +1913,15 @@ class PhaseCoordinator:
                 self.logger.info(f"📝 Routing documentation task to documentation phase: {task.description[:60]}...")
                 return {'phase': 'documentation', 'task': task, 'reason': f'Documentation task detected'}
             
-            # Check if refactoring is needed BEFORE routing to coding
-            if self._should_trigger_refactoring(state, pending):
-                return {'phase': 'refactoring', 'reason': 'Refactoring needed before continuing development'}
+            # CRITICAL FIX: Don't check for refactoring if it JUST completed
+            # This prevents the infinite loop where refactoring completes and immediately re-triggers
+            if not getattr(state, '_refactoring_just_completed', False):
+                # Check if refactoring is needed BEFORE routing to coding
+                if self._should_trigger_refactoring(state, pending):
+                    return {'phase': 'refactoring', 'reason': 'Refactoring needed before continuing development'}
+            else:
+                # Refactoring just completed, return to coding
+                self.logger.info("  ✅ Refactoring completed, returning to coding phase")
             
             # Regular code tasks go to coding phase
             return {'phase': 'coding', 'task': task, 'reason': f'{len(pending)} tasks in progress'}
