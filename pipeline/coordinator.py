@@ -142,6 +142,15 @@ class PhaseCoordinator:
         self.pattern_recognition.load_patterns()
         self.logger.info("🔍 Pattern recognition system initialized")
         
+        # INTEGRATION: Adaptive Prompt System
+        from .adaptive_prompts import AdaptivePromptSystem
+        self.adaptive_prompts = AdaptivePromptSystem(
+            self.project_dir,
+            self.pattern_recognition,
+            self.logger
+        )
+        self.logger.info("🎯 Adaptive prompt system initialized")
+        
         # INTEGRATION: Pattern Optimizer
         from .pattern_optimizer import PatternOptimizer
         self.pattern_optimizer = PatternOptimizer(self.project_dir)
@@ -199,6 +208,7 @@ class PhaseCoordinator:
             'reasoning_specialist': self.reasoning_specialist,
             'analysis_specialist': self.analysis_specialist,
             'message_bus': self.message_bus,
+            'adaptive_prompts': self.adaptive_prompts,
         }
         
         return {
@@ -220,6 +230,24 @@ class PhaseCoordinator:
             "prompt_improvement": PromptImprovementPhase(self.config, self.client, **shared_kwargs),
             "role_improvement": RoleImprovementPhase(self.config, self.client, **shared_kwargs),
         }
+        
+        # CRITICAL: Update all phases with adapted system prompts
+        # This must be done AFTER phases are initialized and adaptive_prompts is available
+        self.logger.info("🎯 Updating phases with adaptive prompts...")
+        for phase_name, phase in phases.items():
+            if hasattr(phase, 'update_system_prompt_with_adaptation'):
+                try:
+                    # Get current state for context
+                    state = self.state_manager.load()
+                    context = {
+                        'state': state,
+                        'self_awareness_level': self.polytope.get('self_awareness_level', 0.0)
+                    }
+                    phase.update_system_prompt_with_adaptation(context)
+                except Exception as e:
+                    self.logger.warning(f"  ⚠️  Could not update {phase_name} prompt: {e}")
+        
+        return phases
     
     
     def _calculate_initial_dimensions(self, phase_name: str, phase_type: str) -> Dict[str, float]:
@@ -1379,11 +1407,20 @@ class PhaseCoordinator:
                 # INTEGRATION: Record execution pattern for learning
                 self._record_execution_pattern(phase_name, result, state)
                 
-                # INTEGRATION: Periodic pattern optimization
+                # INTEGRATION: Periodic pattern optimization and document archiving
                 self.execution_count += 1
                 if self.execution_count % 50 == 0:  # Every 50 executions
                     self.logger.info("🔧 Running pattern optimization...")
                     self.pattern_optimizer.run_full_optimization()
+                    
+                    # Archive old IPC documents to prevent indefinite growth
+                    self.logger.info("📦 Archiving old IPC documents...")
+                    try:
+                        from .document_ipc import DocumentIPC
+                        doc_ipc = DocumentIPC(self.project_dir, self.logger)
+                        doc_ipc.archive_old_content(days_old=7)
+                    except Exception as e:
+                        self.logger.warning(f"  ⚠️  Document archiving failed: {e}")
                 
                 # Check if we should force transition AFTER execution
                 # This allows us to check the actual result for success/progress

@@ -70,7 +70,7 @@ class BasePhase(ABC):
                  state_manager=None, file_tracker=None,
                  prompt_registry=None, tool_registry=None, role_registry=None,
                  coding_specialist=None, reasoning_specialist=None, analysis_specialist=None,
-                 message_bus=None):
+                 message_bus=None, adaptive_prompts=None):
         self.config = config
         self.client = client
         self.project_dir = Path(config.project_dir)
@@ -150,8 +150,8 @@ class BasePhase(ABC):
             self.tool_registry = tool_registry
             self.role_registry = role_registry
         
-        # Initialize adaptive prompts (will be set by coordinator)
-        self.adaptive_prompts = None
+        # Initialize adaptive prompts (passed from coordinator)
+        self.adaptive_prompts = adaptive_prompts
         
         # CRITICAL FIX: Add system prompt to conversation at initialization
         # This ensures the model always sees the system prompt with tool calling instructions
@@ -716,3 +716,30 @@ class BasePhase(ABC):
             "tool_calls": tool_calls_parsed,
             "raw_response": response
         }
+    
+    def update_system_prompt_with_adaptation(self, context: Dict = None):
+        """
+        Update system prompt with adaptive enhancements.
+        
+        Called after adaptive_prompts is set to replace the base prompt
+        with an adapted version.
+        
+        Args:
+            context: Context for adaptation (state, self_awareness, etc.)
+        """
+        if not self.adaptive_prompts:
+            return
+        
+        try:
+            # Get adapted prompt
+            adapted_prompt = self._get_system_prompt(self.phase_name, context)
+            
+            # Replace system message in conversation
+            # Find and replace the first system message
+            for i, msg in enumerate(self.conversation.thread.messages):
+                if msg.get('role') == 'system':
+                    self.conversation.thread.messages[i]['content'] = adapted_prompt
+                    self.logger.debug(f"  🎯 Updated system prompt with adaptation ({len(adapted_prompt)} chars)")
+                    break
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error updating system prompt: {e}")
