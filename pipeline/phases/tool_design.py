@@ -86,7 +86,8 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
             self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
         
         # IPC INTEGRATION: Write status at start
-        self._write_status("Starting tool design", {
+        self._write_status({
+            "status": "Starting tool design",
             "action": "start",
             "tool_name": kwargs.get('tool_name')
         })
@@ -513,7 +514,8 @@ The specification must include:
                     self.send_message_to_phase('coding', f"New tool available: {spec['name']}")
                     
                     # IPC INTEGRATION: Write completion status
-                    self._write_status("Tool design completed", {
+                    self._write_status({
+                        "status": "Tool design completed",
                         "action": "complete",
                         "tool_name": spec['name'],
                         "category": spec.get('category', 'unknown')

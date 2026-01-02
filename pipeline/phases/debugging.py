@@ -511,7 +511,8 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
         
         # IPC INTEGRATION: Write status at start
-        self._write_status("Starting debugging", {
+        self._write_status({
+            "status": "Starting debugging",
             "action": "start",
             "issue": issue.get('description') if issue else None,
             "task_id": task.task_id if task else None
@@ -1070,7 +1071,8 @@ Remember:
             state.files[filepath].qa_status = FileStatus.PENDING
         
         # IPC INTEGRATION: Write completion status
-        self._write_status("Debugging completed", {
+        self._write_status({
+            "status": "Debugging completed",
             "action": "complete",
             "filepath": filepath,
             "issue_fixed": True,

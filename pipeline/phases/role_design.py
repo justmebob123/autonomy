@@ -71,7 +71,8 @@ class RoleDesignPhase(LoopDetectionMixin, BasePhase):
             self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
         
         # IPC INTEGRATION: Write status at start
-        self._write_status("Starting role design", {
+        self._write_status({
+            "status": "Starting role design",
             "action": "start",
             "role_description": kwargs.get('role_description')
         })
@@ -232,7 +233,8 @@ class RoleDesignPhase(LoopDetectionMixin, BasePhase):
                     self.logger.info(f"✅ Successfully registered specialist role: {spec['name']}")
                     
                     # IPC INTEGRATION: Write completion status
-                    self._write_status("Role design completed", {
+                    self._write_status({
+                        "status": "Role design completed",
                         "action": "complete",
                         "role_name": spec['name'],
                         "expertise": spec.get('expertise', '')

@@ -69,7 +69,10 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
             self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
         
         # IPC INTEGRATION: Write status at start
-        self._write_status("Starting prompt improvement", {"action": "start"})
+        self._write_status({
+            "status": "Starting prompt improvement",
+            "action": "start"
+        })
         
         # INITIALIZE IPC DOCUMENTS
         self.initialize_ipc_documents()
@@ -124,7 +127,8 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
         message = f"Analyzed {len(custom_prompts)} prompts: {improved} improved, {unchanged} unchanged"
         
         # IPC INTEGRATION: Write completion status
-        self._write_status("Prompt improvement completed", {
+        self._write_status({
+            "status": "Prompt improvement completed",
             "action": "complete",
             "total_prompts": len(custom_prompts),
             "improved": improved

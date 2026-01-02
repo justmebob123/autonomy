@@ -71,7 +71,8 @@ class InvestigationPhase(BasePhase):
             self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
         
         # IPC INTEGRATION: Write status at start
-        self._write_status("Starting investigation", {
+        self._write_status({
+            "status": "Starting investigation",
             "action": "start",
             "issue": issue.get('description') if issue else None,
             "filepath": issue.get('filepath') if issue else None
@@ -196,7 +197,8 @@ class InvestigationPhase(BasePhase):
             self.logger.info("  💡 Recommendation: Consider role_design phase")
         
         # IPC INTEGRATION: Write completion status
-        self._write_status("Investigation completed", {
+        self._write_status({
+            "status": "Investigation completed",
             "action": "complete",
             "filepath": filepath,
             "findings_count": len(findings),

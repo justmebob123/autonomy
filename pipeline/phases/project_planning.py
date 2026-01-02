@@ -89,7 +89,8 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
             self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
         
         # IPC INTEGRATION: Write status at start
-        self._write_status("Starting project planning", {
+        self._write_status({
+            "status": "Starting project planning",
             "action": "start",
             "expansion_cycle": state.metadata.get('expansion_cycles', 0)
         })
@@ -353,7 +354,8 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
             self.send_message_to_phase('planning', f"Created {len(tasks_created)} new expansion tasks for cycle {state.expansion_count}")
         
         # IPC INTEGRATION: Write completion status
-        self._write_status("Project planning completed", {
+        self._write_status({
+            "status": "Project planning completed",
             "action": "complete",
             "tasks_created": len(tasks_created),
             "expansion_count": state.expansion_count,

@@ -61,7 +61,8 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
             self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
         
         # IPC INTEGRATION: Write status at start
-        self._write_status("Starting documentation review", {
+        self._write_status({
+            "status": "Starting documentation review",
             "action": "start"
         })
         
@@ -282,7 +283,8 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
             self.send_message_to_phase('qa', "Documentation is current - ready for review")
         
         # IPC INTEGRATION: Write completion status
-        self._write_status("Documentation review completed", {
+        self._write_status({
+            "status": "Documentation review completed",
             "action": "complete",
             "updates_made": len(updates_made),
             "tasks_completed": doc_tasks_completed

@@ -80,7 +80,8 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
         
         # IPC INTEGRATION: Write status at start
-        self._write_status("Starting QA review", {
+        self._write_status({
+            "status": "Starting QA review",
             "action": "start",
             "filepath": filepath,
             "task_id": task.task_id if task else None
@@ -475,7 +476,8 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             self._send_phase_messages(filepath, handler.issues)
             
             # IPC INTEGRATION: Write completion status with issues
-            self._write_status("QA review completed with issues", {
+            self._write_status({
+                "status": "QA review completed with issues",
                 "action": "complete",
                 "filepath": filepath,
                 "approved": False,
@@ -535,7 +537,8 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         self._send_phase_messages(filepath, [])
         
         # IPC INTEGRATION: Write completion status
-        self._write_status("QA review completed", {
+        self._write_status({
+            "status": "QA review completed",
             "action": "complete",
             "filepath": filepath,
             "approved": True,

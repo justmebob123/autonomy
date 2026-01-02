@@ -69,7 +69,8 @@ class PromptDesignPhase(LoopDetectionMixin, BasePhase):
             self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
         
         # IPC INTEGRATION: Write status at start
-        self._write_status("Starting prompt design", {
+        self._write_status({
+            "status": "Starting prompt design",
             "action": "start",
             "task_description": kwargs.get('task_description')
         })
@@ -218,7 +219,8 @@ class PromptDesignPhase(LoopDetectionMixin, BasePhase):
                     self.logger.info(f"✅ Successfully registered prompt: {spec['name']}")
                     
                     # IPC INTEGRATION: Write completion status
-                    self._write_status("Prompt design completed", {
+                    self._write_status({
+                        "status": "Prompt design completed",
                         "action": "complete",
                         "prompt_name": spec['name'],
                         "filepath": prompt_file

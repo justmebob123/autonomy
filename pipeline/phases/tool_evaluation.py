@@ -79,7 +79,10 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
             self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
         
         # IPC INTEGRATION: Write status at start
-        self._write_status("Starting tool evaluation", {"action": "start"})
+        self._write_status({
+            "status": "Starting tool evaluation",
+            "action": "start"
+        })
         
         # INITIALIZE IPC DOCUMENTS
         self.initialize_ipc_documents()
@@ -226,7 +229,8 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
         ) if (evaluation['tests_passed'] or evaluation['tests_failed']) else 0
         
         # IPC INTEGRATION: Write completion status
-        self._write_status("Tool evaluation completed", {
+        self._write_status({
+            "status": "Tool evaluation completed",
             "action": "complete",
             "success_rate": f"{success_rate:.0%}",
             "tests_passed": len(evaluation['tests_passed'])
