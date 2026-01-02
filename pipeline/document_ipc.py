@@ -505,3 +505,183 @@ Directories containing test code:
                     self.logger.info("  ✅ Created ARCHITECTURE.md with minimal template")
                 except Exception as e:
                     self.logger.error(f"  ❌ Failed to create ARCHITECTURE.md: {e}")
+    
+    # =============================================================================
+    # CRITICAL FIX: Document Archiving System
+    # =============================================================================
+    
+    def archive_old_content(self, days_old: int = 7):
+        """
+        Archive old content from IPC documents.
+        
+        CRITICAL FIX: Prevent documents from growing indefinitely.
+        Archives content older than specified days to archive files.
+        
+        Args:
+            days_old: Archive content older than this many days (default: 7)
+        """
+        from datetime import datetime, timedelta
+        
+        cutoff_date = datetime.now() - timedelta(days=days_old)
+        archived_count = 0
+        
+        self.logger.info(f"📦 Archiving IPC content older than {days_old} days...")
+        
+        # Archive phase documents
+        for phase, docs in self.phase_documents.items():
+            # Archive WRITE documents (these grow with updates)
+            write_doc = docs['write']
+            archived = self._archive_document(write_doc, cutoff_date)
+            if archived:
+                archived_count += 1
+        
+        # Archive strategic documents (except MASTER_PLAN and ARCHITECTURE)
+        for doc_name in self.strategic_documents:
+            if doc_name not in ['MASTER_PLAN.md', 'ARCHITECTURE.md']:
+                archived = self._archive_document(doc_name, cutoff_date)
+                if archived:
+                    archived_count += 1
+        
+        if archived_count > 0:
+            self.logger.info(f"✅ Archived {archived_count} documents")
+        else:
+            self.logger.debug("  ℹ️  No documents needed archiving")
+    
+    def _archive_document(self, doc_name: str, cutoff_date: datetime) -> bool:
+        """
+        Archive a single document's old content.
+        
+        Args:
+            doc_name: Document filename
+            cutoff_date: Archive content before this date
+            
+        Returns:
+            True if archived, False otherwise
+        """
+        doc_path = self.project_dir / doc_name
+        
+        if not doc_path.exists():
+            return False
+        
+        try:
+            content = doc_path.read_text()
+            
+            # Check if document has timestamps
+            if not self._has_timestamps(content):
+                # No timestamps, can't archive by date
+                return False
+            
+            # Split into recent and old content
+            recent_content, old_content = self._split_by_date(content, cutoff_date)
+            
+            if not old_content:
+                # Nothing to archive
+                return False
+            
+            # Create archive directory
+            archive_dir = self.project_dir / '.pipeline' / 'archives'
+            archive_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Archive filename with timestamp
+            archive_name = f"{doc_name}.{datetime.now().strftime('%Y%m%d')}.archive"
+            archive_path = archive_dir / archive_name
+            
+            # Append to archive file
+            if archive_path.exists():
+                existing = archive_path.read_text()
+                archive_content = existing + "\n\n" + old_content
+            else:
+                archive_content = old_content
+            
+            archive_path.write_text(archive_content)
+            
+            # Update original document with only recent content
+            doc_path.write_text(recent_content)
+            
+            self.logger.debug(f"  📦 Archived {doc_name} → {archive_name}")
+            return True
+        
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error archiving {doc_name}: {e}")
+            return False
+    
+    def _has_timestamps(self, content: str) -> bool:
+        """Check if content has timestamp markers."""
+        # Look for common timestamp patterns
+        timestamp_patterns = [
+            'Updated:',
+            'Timestamp:',
+            '202',  # Year pattern
+            '##',   # Markdown headers often have dates
+        ]
+        return any(pattern in content for pattern in timestamp_patterns)
+    
+    def _split_by_date(self, content: str, cutoff_date: datetime) -> tuple:
+        """
+        Split content into recent and old based on cutoff date.
+        
+        Args:
+            content: Document content
+            cutoff_date: Split at this date
+            
+        Returns:
+            Tuple of (recent_content, old_content)
+        """
+        lines = content.split('\n')
+        recent_lines = []
+        old_lines = []
+        current_section_date = None
+        in_old_section = False
+        
+        for line in lines:
+            # Try to extract date from line
+            line_date = self._extract_date_from_line(line)
+            
+            if line_date:
+                current_section_date = line_date
+                in_old_section = (line_date < cutoff_date)
+            
+            # Add to appropriate section
+            if in_old_section:
+                old_lines.append(line)
+            else:
+                recent_lines.append(line)
+        
+        recent_content = '\n'.join(recent_lines)
+        old_content = '\n'.join(old_lines)
+        
+        return recent_content, old_content
+    
+    def _extract_date_from_line(self, line: str) -> Optional[datetime]:
+        """
+        Extract date from a line of text.
+        
+        Args:
+            line: Line of text
+            
+        Returns:
+            Datetime if found, None otherwise
+        """
+        import re
+        
+        # Pattern: YYYY-MM-DD HH:MM:SS
+        pattern = r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2})'
+        match = re.search(pattern, line)
+        
+        if match:
+            try:
+                return datetime.strptime(match.group(1), '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                pass
+        
+        # Pattern: YYYY-MM-DD
+        pattern = r'(\d{4}-\d{2}-\d{2})'
+        match = re.search(pattern, line)
+        
+        if match:
+            try:
+                return datetime.strptime(match.group(1), '%Y-%m-%d')
+            except ValueError:
+                pass
+        
+        return None

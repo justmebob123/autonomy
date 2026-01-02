@@ -150,9 +150,13 @@ class BasePhase(ABC):
             self.tool_registry = tool_registry
             self.role_registry = role_registry
         
+        # Initialize adaptive prompts (will be set by coordinator)
+        self.adaptive_prompts = None
+        
         # CRITICAL FIX: Add system prompt to conversation at initialization
         # This ensures the model always sees the system prompt with tool calling instructions
         # MUST be done AFTER prompt_registry is set!
+        # Note: We'll add the adapted prompt later when adaptive_prompts is available
         system_prompt = self._get_system_prompt(self.phase_name)
         if system_prompt:
             self.conversation.add_message("system", system_prompt)
@@ -469,18 +473,21 @@ class BasePhase(ABC):
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     
-    def _get_system_prompt(self, phase_name: str) -> str:
+    def _get_system_prompt(self, phase_name: str, context: Dict = None) -> str:
         """
-        Get system prompt from registry or fallback to hardcoded.
+        Get system prompt with adaptive enhancements.
         
-        This enables custom prompts from PromptArchitect to be used
-        when available, while maintaining backward compatibility.
+        ENHANCED: Now uses adaptive prompt system to customize prompts based on:
+        - Learned patterns from execution history
+        - Self-awareness level
+        - Current context and state
         
         Args:
             phase_name: Name of the phase (e.g., "debugging", "coding")
+            context: Optional context for adaptation
         
         Returns:
-            System prompt string
+            Adapted system prompt string
         """
         from ..prompts import SYSTEM_PROMPTS
         
@@ -488,10 +495,25 @@ class BasePhase(ABC):
         custom_prompt = self.prompt_registry.get_prompt(f"{phase_name}_system")
         if custom_prompt:
             self.logger.debug(f"  Using custom system prompt for {phase_name}")
-            return custom_prompt
+            base_prompt = custom_prompt
+        else:
+            # Fallback to hardcoded
+            base_prompt = SYSTEM_PROMPTS.get(phase_name, SYSTEM_PROMPTS.get("base", ""))
         
-        # Fallback to hardcoded
-        return SYSTEM_PROMPTS.get(phase_name, SYSTEM_PROMPTS.get("base", ""))
+        # CRITICAL FIX: Apply adaptive prompt system if available
+        if hasattr(self, 'adaptive_prompts') and self.adaptive_prompts and context:
+            try:
+                adapted_prompt = self.adaptive_prompts.adapt_prompt(
+                    phase=phase_name,
+                    base_prompt=base_prompt,
+                    context=context
+                )
+                return adapted_prompt
+            except Exception as e:
+                self.logger.warning(f"  ⚠️  Error adapting prompt: {e}")
+                return base_prompt
+        
+        return base_prompt
     
     # ==================== MESSAGE BUS METHODS ====================
     
