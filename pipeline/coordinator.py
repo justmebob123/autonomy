@@ -93,6 +93,22 @@ class PhaseCoordinator:
         self.analysis_specialist = create_analysis_specialist(self.analysis_tool)
         self.logger.info("🤖 Shared specialists initialized (coding, reasoning, analysis)")
         
+        # CRITICAL: Initialize pattern recognition and adaptive prompts BEFORE phases
+        # Pattern Recognition System
+        from .pattern_recognition import PatternRecognitionSystem
+        self.pattern_recognition = PatternRecognitionSystem(self.project_dir)
+        self.pattern_recognition.load_patterns()
+        self.logger.info("🔍 Pattern recognition system initialized")
+        
+        # Adaptive Prompt System (depends on pattern recognition)
+        from .adaptive_prompts import AdaptivePromptSystem
+        self.adaptive_prompts = AdaptivePromptSystem(
+            self.project_dir,
+            self.pattern_recognition,
+            self.logger
+        )
+        self.logger.info("🎯 Adaptive prompt system initialized")
+        
         # Initialize phases (lazy import to avoid circular deps)
         self.phases = self._init_phases()
         
@@ -135,21 +151,6 @@ class PhaseCoordinator:
         except Exception as e:
             self.logger.warning(f"Analytics integration not available: {e}")
             self.analytics = None
-        
-        # INTEGRATION: Pattern Recognition System
-        from .pattern_recognition import PatternRecognitionSystem
-        self.pattern_recognition = PatternRecognitionSystem(self.project_dir)
-        self.pattern_recognition.load_patterns()
-        self.logger.info("🔍 Pattern recognition system initialized")
-        
-        # INTEGRATION: Adaptive Prompt System
-        from .adaptive_prompts import AdaptivePromptSystem
-        self.adaptive_prompts = AdaptivePromptSystem(
-            self.project_dir,
-            self.pattern_recognition,
-            self.logger
-        )
-        self.logger.info("🎯 Adaptive prompt system initialized")
         
         # INTEGRATION: Pattern Optimizer
         from .pattern_optimizer import PatternOptimizer
