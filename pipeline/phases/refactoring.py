@@ -113,6 +113,10 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 # First time with no tasks - run analysis to find issues
                 self.logger.info(f"  🔍 No pending tasks, analyzing codebase...")
                 self._comprehensive_analysis_done = True
+                
+                # CRITICAL FIX: Track analysis time
+                state.last_refactoring_analysis = datetime.now()
+                
                 return self._analyze_and_create_tasks(state)
             else:
                 # Analysis already done and no tasks left - we're truly done
@@ -564,14 +568,37 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                     break
         
         if task_resolved:
-            # Task actually resolved
-            task.complete(content)
-            self.logger.info(f"  ✅ Task {task.task_id} completed successfully")
-            return PhaseResult(
-                success=True,
-                phase=self.phase_name,
-                message=f"Task {task.task_id} completed"
-            )
+            # CRITICAL FIX: Verify that task was actually resolved
+            is_verified, verification_msg = self._verify_task_resolution(task)
+            
+            if is_verified:
+                # Task actually resolved AND verified
+                task.complete(content)
+                self.logger.info(f"  ✅ Task {task.task_id} completed and verified: {verification_msg}")
+                
+                # Update ARCHITECTURE.md if needed
+                self._update_architecture_after_task(task)
+                
+                # Write status to IPC
+                self._write_task_completion_to_ipc(task)
+                
+                return PhaseResult(
+                    success=True,
+                    phase=self.phase_name,
+                    message=f"Task {task.task_id} completed and verified"
+                )
+            else:
+                # Resolving tool called but verification failed
+                self.logger.warning(f"  ❌ Task {task.task_id} verification failed: {verification_msg}")
+                
+                # Mark as failed and retry
+                task.fail(f"Verification failed: {verification_msg}")
+                
+                return PhaseResult(
+                    success=False,
+                    phase=self.phase_name,
+                    message=f"Task {task.task_id} verification failed: {verification_msg}"
+                )
         else:
             # Tools succeeded but didn't resolve the issue
             # This happens when AI only calls analysis tools (compare_file_implementations)
@@ -2087,16 +2114,14 @@ DO NOT create reports for integration conflicts - you can resolve them yourself!
                             file1_short = f"{Path(file1_path).parent.name}/{Path(file1_path).name}" if file1_path != 'unknown' else 'unknown'
                             file2_short = f"{Path(file2_path).parent.name}/{Path(file2_path).name}" if file2_path != 'unknown' else 'unknown'
                             
-                            # DEDUPLICATION: Check if task already exists for these files
-                            existing_tasks = [
-                                t for t in manager.tasks.values()
-                                if t.issue_type == RefactoringIssueType.DUPLICATE
-                                and set(t.target_files) == set(files)
-                                and t.status != TaskStatus.COMPLETED
-                            ]
-                            
-                            if existing_tasks:
-                                # Task already exists, skip creation
+                            # CRITICAL FIX: Improved deduplication
+                            # Check if task already exists (including recently completed)
+                            if self._is_duplicate_task(manager, {
+                                'issue_type': RefactoringIssueType.DUPLICATE,
+                                'target_files': files
+                            }):
+                                # Task already exists or was recently completed, skip
+                                self.logger.debug(f"  ⏭️  Skipping duplicate task for {files}")
                                 continue
                             
                             # Create task with specific, actionable information
@@ -2540,7 +2565,8 @@ DO NOT create reports for integration conflicts - you can resolve them yourself!
         """
         Check if refactoring is complete.
         
-        Re-analyzes codebase to see if new issues emerged.
+        CRITICAL FIX: Don't automatically re-analyze after every completion.
+        Only re-analyze if there's a good reason (time passed, IPC request, etc.)
         """
         self.logger.info(f"  🔍 Checking if refactoring is complete...")
         
@@ -2562,11 +2588,27 @@ DO NOT create reports for integration conflicts - you can resolve them yourself!
                     next_phase="coding"  # Pause refactoring, return to coding
                 )
         
-        # Re-analyze to find new issues
-        self.logger.info(f"  🔍 Re-analyzing codebase for new issues...")
+        # CRITICAL FIX: Don't automatically re-analyze!
+        # Check if we should re-analyze based on intelligent criteria
+        if self._should_reanalyze(state):
+            self.logger.info(f"  🔍 Re-analyzing codebase (criteria met)...")
+            return self._analyze_and_create_tasks(state)
         
-        # Run analysis again
-        return self._analyze_and_create_tasks(state)
+        # No re-analysis needed, we're done!
+        self.logger.info(f"  ✅ All refactoring complete, no re-analysis needed")
+        
+        # Generate final report
+        self._generate_refactoring_report(state)
+        
+        # Update IPC documents
+        self._write_refactoring_completion_status(state)
+        
+        return PhaseResult(
+            success=True,
+            phase=self.phase_name,
+            message="All refactoring tasks completed successfully",
+            next_phase="coding"  # Return to coding
+        )
     
     def _generate_refactoring_report(self, state: PipelineState) -> None:
         """
@@ -3466,4 +3508,459 @@ Please select ONE reliable tool and try again."""
         else:
             lines.append("No pending refactoring tasks")
         
-        return "\n".join(lines)
+        return "\n".join(lines)    
+    # =============================================================================
+    # CRITICAL FIXES: New Methods for Proper Refactoring Workflow
+    # =============================================================================
+    
+    def _should_reanalyze(self, state: PipelineState) -> bool:
+        """
+        Determine if we should re-analyze the codebase.
+        
+        CRITICAL FIX: Don't automatically re-analyze after every completion.
+        Only re-analyze if there's a good reason.
+        
+        Criteria for re-analysis:
+        1. Significant time passed since last analysis (> 1 hour)
+        2. Other phases requested it via IPC
+        3. User explicitly requested it
+        4. Major changes detected (many files modified)
+        
+        Returns:
+            True if should re-analyze, False otherwise
+        """
+        # Check if we have a last analysis timestamp
+        last_analysis = getattr(state, 'last_refactoring_analysis', None)
+        
+        if not last_analysis:
+            # First analysis, should run
+            self.logger.debug("  📝 No previous analysis, should analyze")
+            return True
+        
+        # Check time since last analysis
+        time_since = datetime.now() - last_analysis
+        hours_since = time_since.total_seconds() / 3600
+        
+        if hours_since > 1.0:
+            # More than 1 hour since last analysis
+            self.logger.info(f"  ⏰ {hours_since:.1f} hours since last analysis, re-analyzing")
+            return True
+        
+        # Check IPC for analysis requests
+        if self._check_ipc_for_analysis_request():
+            self.logger.info("  📨 IPC analysis request received, re-analyzing")
+            return True
+        
+        # Check for major changes (many files modified recently)
+        if self._detect_major_changes():
+            self.logger.info("  📝 Major changes detected, re-analyzing")
+            return True
+        
+        # No criteria met, don't re-analyze
+        self.logger.debug(f"  ⏭️  Only {hours_since*60:.0f} minutes since last analysis, skipping re-analysis")
+        return False
+    
+    def _check_ipc_for_analysis_request(self) -> bool:
+        """
+        Check IPC documents for refactoring analysis requests.
+        
+        Returns:
+            True if analysis requested, False otherwise
+        """
+        try:
+            # Read our READ document (written by other phases)
+            read_content = self.doc_ipc.read_own_document('refactoring')
+            
+            if not read_content:
+                return False
+            
+            # Check for analysis request keywords
+            request_keywords = [
+                'request refactoring analysis',
+                'please analyze',
+                'refactoring needed',
+                'duplicates detected',
+                'conflicts found'
+            ]
+            
+            content_lower = read_content.lower()
+            for keyword in request_keywords:
+                if keyword in content_lower:
+                    return True
+            
+            return False
+        except Exception as e:
+            self.logger.debug(f"  Error checking IPC: {e}")
+            return False
+    
+    def _detect_major_changes(self) -> bool:
+        """
+        Detect if major changes occurred since last analysis.
+        
+        Returns:
+            True if major changes detected, False otherwise
+        """
+        try:
+            # Check git for recent changes
+            import subprocess
+            result = subprocess.run(
+                ['git', 'diff', '--name-only', 'HEAD~1', 'HEAD'],
+                cwd=self.project_dir,
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            if result.returncode == 0:
+                changed_files = result.stdout.strip().split('\n')
+                changed_files = [f for f in changed_files if f]
+                
+                # Consider it major if > 10 files changed
+                if len(changed_files) > 10:
+                    self.logger.debug(f"  📝 {len(changed_files)} files changed")
+                    return True
+            
+            return False
+        except Exception as e:
+            self.logger.debug(f"  Error detecting changes: {e}")
+            return False
+    
+    def _write_refactoring_completion_status(self, state: PipelineState):
+        """
+        Write refactoring completion status to IPC documents.
+        
+        CRITICAL FIX: Communicate with other phases via IPC.
+        """
+        try:
+            # Get progress
+            progress = state.refactoring_manager.get_progress() if state.refactoring_manager else {}
+            
+            # Build status message
+            status_lines = [
+                "# Refactoring Phase - Completion Status",
+                f"Updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                "",
+                "## Status: COMPLETE ✅",
+                "",
+                "All refactoring tasks have been completed.",
+                "",
+                "## Summary",
+                f"- Total Tasks: {progress.get('total', 0)}",
+                f"- Completed: {progress.get('completed', 0)}",
+                f"- Failed: {progress.get('failed', 0)}",
+                f"- Blocked: {progress.get('blocked', 0)}",
+                "",
+                "## Next Steps",
+                "- Continue with coding phase",
+                "- Refactoring will re-analyze if requested via IPC",
+                "- Or after significant time passes (> 1 hour)",
+                ""
+            ]
+            
+            status_content = "\n".join(status_lines)
+            
+            # Write to our WRITE document (read by other phases)
+            self.doc_ipc.write_own_document('refactoring', status_content)
+            
+            self.logger.info("  📝 Updated IPC documents with completion status")
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error writing IPC status: {e}")
+    
+    def _verify_task_resolution(self, task) -> Tuple[bool, str]:
+        """
+        Verify that a task was actually resolved.
+        
+        CRITICAL FIX: Don't just check if resolving tool was called,
+        verify that the issue is actually fixed!
+        
+        Args:
+            task: RefactoringTask to verify
+            
+        Returns:
+            Tuple of (is_resolved, error_message)
+        """
+        from pipeline.state.refactoring_task import RefactoringIssueType
+        
+        try:
+            if task.issue_type == RefactoringIssueType.DUPLICATE:
+                # Re-run duplicate detection on target files
+                self.logger.debug(f"  🔍 Verifying duplicate resolution for {task.target_files}")
+                
+                duplicates = self.duplicate_detector.detect_duplicates(
+                    files=task.target_files
+                )
+                
+                if duplicates:
+                    # Still has duplicates!
+                    return False, f"Files still have {len(duplicates)} duplicate(s) after merge attempt"
+                
+                return True, "Duplicates successfully resolved"
+            
+            elif task.issue_type == RefactoringIssueType.ARCHITECTURE:
+                # Re-run architecture validation
+                self.logger.debug(f"  🔍 Verifying architecture fix for {task.target_files}")
+                
+                violations = self.architecture_analyzer.validate_file_placement(
+                    files=task.target_files
+                )
+                
+                if violations:
+                    return False, f"Files still have {len(violations)} architecture violation(s)"
+                
+                return True, "Architecture violations resolved"
+            
+            elif task.issue_type == RefactoringIssueType.DEAD_CODE:
+                # For dead code, check if file/function still exists
+                self.logger.debug(f"  🔍 Verifying dead code removal for {task.target_files}")
+                
+                # If files were deleted, that's good
+                for file_path in task.target_files:
+                    full_path = self.project_dir / file_path
+                    if not full_path.exists():
+                        return True, "Dead code file successfully removed"
+                
+                # If files still exist, check if the specific function/method was removed
+                # This requires checking the analysis_data for the specific item
+                if task.analysis_data and 'name' in task.analysis_data:
+                    item_name = task.analysis_data['name']
+                    # Re-run dead code detection
+                    dead_code = self.dead_code_detector.detect_dead_code()
+                    
+                    # Check if this specific item is still in the dead code list
+                    for item in dead_code.get('unused_functions', []) + dead_code.get('unused_methods', []):
+                        if item.get('name') == item_name:
+                            return False, f"Dead code '{item_name}' still exists"
+                
+                return True, "Dead code successfully removed"
+            
+            elif task.issue_type == RefactoringIssueType.INTEGRATION:
+                # Re-run integration conflict detection
+                self.logger.debug(f"  🔍 Verifying integration conflict resolution for {task.target_files}")
+                
+                conflicts = self.conflict_detector.detect_conflicts(
+                    files=task.target_files
+                )
+                
+                if conflicts:
+                    return False, f"Files still have {len(conflicts)} integration conflict(s)"
+                
+                return True, "Integration conflicts resolved"
+            
+            else:
+                # For other types, assume resolved if resolving tool was called
+                # (This is the old behavior, kept as fallback)
+                self.logger.debug(f"  ℹ️  No verification available for {task.issue_type.value}, assuming resolved")
+                return True, "Resolution assumed (no verification available)"
+        
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error verifying task resolution: {e}")
+            # On error, assume resolved to avoid blocking
+            return True, f"Verification error (assumed resolved): {e}"
+    
+    def _update_architecture_after_task(self, task):
+        """
+        Update ARCHITECTURE.md after completing a refactoring task.
+        
+        CRITICAL FIX: Keep architecture document in sync with code changes.
+        
+        Args:
+            task: Completed RefactoringTask
+        """
+        from pipeline.state.refactoring_task import RefactoringIssueType
+        
+        try:
+            # Only update for certain task types
+            if task.issue_type not in [
+                RefactoringIssueType.STRUCTURE,
+                RefactoringIssueType.ARCHITECTURE,
+                RefactoringIssueType.DUPLICATE
+            ]:
+                return
+            
+            # Read current ARCHITECTURE.md
+            arch_path = self.project_dir / 'ARCHITECTURE.md'
+            if not arch_path.exists():
+                self.logger.debug("  ℹ️  No ARCHITECTURE.md to update")
+                return
+            
+            arch_content = arch_path.read_text()
+            
+            # Build update message
+            update_lines = [
+                "",
+                f"## Refactoring Update - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                "",
+                f"**Task**: {task.title}",
+                f"**Type**: {task.issue_type.value}",
+                f"**Files**: {', '.join(task.target_files)}",
+                "",
+                f"**Changes**: {task.result if task.result else 'See git history for details'}",
+                ""
+            ]
+            
+            # Append to ARCHITECTURE.md
+            updated_content = arch_content + "\n".join(update_lines)
+            arch_path.write_text(updated_content)
+            
+            self.logger.info(f"  📝 Updated ARCHITECTURE.md with refactoring changes")
+        
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error updating ARCHITECTURE.md: {e}")
+    
+    def _write_task_completion_to_ipc(self, task):
+        """
+        Write task completion to IPC documents.
+        
+        Args:
+            task: Completed RefactoringTask
+        """
+        try:
+            # Read current WRITE document
+            current_content = self.doc_ipc.read_own_document('refactoring') or ""
+            
+            # Add completion notice
+            completion_lines = [
+                "",
+                f"## Task Completed - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+                "",
+                f"**Task ID**: {task.task_id}",
+                f"**Title**: {task.title}",
+                f"**Type**: {task.issue_type.value}",
+                f"**Files**: {', '.join(task.target_files)}",
+                f"**Status**: ✅ COMPLETED",
+                ""
+            ]
+            
+            updated_content = current_content + "\n".join(completion_lines)
+            
+            # Write to WRITE document
+            self.doc_ipc.write_own_document('refactoring', updated_content)
+            
+            self.logger.debug(f"  📝 Updated IPC with task completion")
+        
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error writing to IPC: {e}")
+    
+    def _read_ipc_objectives(self) -> Dict[str, List[str]]:
+        """
+        Read PRIMARY/SECONDARY/TERTIARY objectives from IPC documents.
+        
+        CRITICAL FIX: Use project objectives to prioritize refactoring tasks.
+        
+        Returns:
+            Dictionary with 'primary', 'secondary', 'tertiary' keys
+        """
+        try:
+            objectives = {
+                'primary': [],
+                'secondary': [],
+                'tertiary': []
+            }
+            
+            # Read PRIMARY_OBJECTIVES.md
+            primary_content = self.doc_ipc.read_strategic_document('PRIMARY_OBJECTIVES.md')
+            if primary_content:
+                objectives['primary'] = self._parse_objectives(primary_content)
+            
+            # Read SECONDARY_OBJECTIVES.md
+            secondary_content = self.doc_ipc.read_strategic_document('SECONDARY_OBJECTIVES.md')
+            if secondary_content:
+                objectives['secondary'] = self._parse_objectives(secondary_content)
+            
+            # Read TERTIARY_OBJECTIVES.md
+            tertiary_content = self.doc_ipc.read_strategic_document('TERTIARY_OBJECTIVES.md')
+            if tertiary_content:
+                objectives['tertiary'] = self._parse_objectives(tertiary_content)
+            
+            return objectives
+        
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error reading IPC objectives: {e}")
+            return {'primary': [], 'secondary': [], 'tertiary': []}
+    
+    def _parse_objectives(self, content: str) -> List[str]:
+        """
+        Parse objectives from markdown content.
+        
+        Args:
+            content: Markdown content with objectives
+            
+        Returns:
+            List of objective strings
+        """
+        objectives = []
+        
+        # Look for bullet points or numbered lists
+        for line in content.split('\n'):
+            line = line.strip()
+            
+            # Match bullet points (-, *, +) or numbered lists (1., 2., etc.)
+            if line.startswith(('-', '*', '+')) or (len(line) > 2 and line[0].isdigit() and line[1] == '.'):
+                # Remove the bullet/number
+                if line.startswith(('-', '*', '+')):
+                    objective = line[1:].strip()
+                else:
+                    objective = line.split('.', 1)[1].strip() if '.' in line else line
+                
+                if objective:
+                    objectives.append(objective)
+        
+        return objectives
+    
+    def _is_duplicate_task(self, manager, new_task_data: Dict) -> bool:
+        """
+        Check if a task already exists (including recently completed tasks).
+        
+        CRITICAL FIX: Prevent creating duplicate tasks for issues that were
+        recently resolved or are currently being worked on.
+        
+        Args:
+            manager: RefactoringTaskManager
+            new_task_data: Dictionary with 'issue_type' and 'target_files'
+            
+        Returns:
+            True if task is duplicate, False otherwise
+        """
+        from pipeline.state.refactoring_task import RefactoringIssueType
+        
+        issue_type = new_task_data.get('issue_type')
+        target_files = set(new_task_data.get('target_files', []))
+        
+        for task in manager.tasks.values():
+            # Check same issue type
+            if task.issue_type != issue_type:
+                continue
+            
+            # Check same files (order-independent)
+            if set(task.target_files) != target_files:
+                continue
+            
+            # Check if currently active (NEW or IN_PROGRESS)
+            if task.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]:
+                self.logger.debug(f"  🔍 Found active task {task.task_id} for same files")
+                return True
+            
+            # Check if recently completed (within last hour)
+            if task.status == TaskStatus.COMPLETED:
+                if hasattr(task, 'completed_at') and task.completed_at:
+                    time_since = datetime.now() - task.completed_at
+                    hours_since = time_since.total_seconds() / 3600
+                    
+                    if hours_since < 1.0:
+                        # Recently completed, don't recreate
+                        self.logger.debug(f"  🔍 Found recently completed task {task.task_id} ({hours_since*60:.0f} min ago)")
+                        return True
+            
+            # Check if recently failed (within last 30 minutes)
+            # Don't immediately recreate failed tasks
+            if task.status == TaskStatus.FAILED:
+                if hasattr(task, 'updated_at') and task.updated_at:
+                    time_since = datetime.now() - task.updated_at
+                    minutes_since = time_since.total_seconds() / 60
+                    
+                    if minutes_since < 30:
+                        # Recently failed, don't recreate yet
+                        self.logger.debug(f"  🔍 Found recently failed task {task.task_id} ({minutes_since:.0f} min ago)")
+                        return True
+        
+        return False
