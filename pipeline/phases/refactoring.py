@@ -344,6 +344,17 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         # We need to auto-create tasks when issues are found
         tasks_created = self._auto_create_tasks_from_analysis(state, result)
         
+        # CRITICAL INTELLIGENCE: Check if we should return to coding phase
+        if tasks_created == -1:
+            self.logger.warning(f"  🚨 Analysis found CODING problems (syntax/import errors), not refactoring issues")
+            self.logger.info(f"  ➡️  Returning to CODING phase to fix missing code...")
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message="Analysis found coding problems (syntax/import errors) - returning to coding phase",
+                next_phase="coding"
+            )
+        
         if tasks_created > 0:
             self.logger.info(f"  ✅ Auto-created {tasks_created} refactoring tasks from analysis")
         
@@ -2084,6 +2095,10 @@ DO NOT create reports for integration conflicts - you can resolve them yourself!
         """
         Auto-create refactoring tasks from analysis results.
         
+        CRITICAL INTELLIGENCE: Detect if issues are actually CODING problems (syntax errors,
+        missing imports, missing code) rather than refactoring problems. If so, return
+        to coding phase immediately instead of creating refactoring tasks.
+        
         When the LLM detects issues but does not create tasks, we auto-create them.
         This prevents infinite loops where issues are detected but never fixed.
         
@@ -2092,7 +2107,7 @@ DO NOT create reports for integration conflicts - you can resolve them yourself!
             analysis_result: Result from comprehensive analysis
             
         Returns:
-            Number of tasks created
+            Number of tasks created (or -1 if should return to coding phase)
         """
         from pipeline.state.refactoring_task import (
             RefactoringTask, RefactoringIssueType, RefactoringPriority, RefactoringApproach
@@ -2106,12 +2121,30 @@ DO NOT create reports for integration conflicts - you can resolve them yourself!
         
         manager = state.refactoring_manager
         
+        # CRITICAL INTELLIGENCE: Check if issues are CODING problems, not refactoring
+        coding_issues_count = 0
+        syntax_errors = 0
+        import_errors = 0
+        
         # Check if analysis found duplicates
         # The tool results are stored in the handler's activity log
         # We need to check the last tool execution results
         if hasattr(self, '_last_tool_results'):
             for tool_result in self._last_tool_results:
                 tool_name = tool_result.get('tool', '')
+                
+                # Count coding-related issues
+                if tool_name == 'validate_syntax':
+                    result_data = tool_result.get('result', {})
+                    errors = result_data.get('errors', [])
+                    syntax_errors = len(errors)
+                    coding_issues_count += syntax_errors
+                
+                elif tool_name == 'validate_all_imports':
+                    result_data = tool_result.get('result', {})
+                    errors = result_data.get('errors', [])
+                    import_errors = len(errors)
+                    coding_issues_count += import_errors
                 
                 # Handle duplicate detection results
                 if tool_name == 'detect_duplicate_implementations':
@@ -2581,6 +2614,21 @@ DO NOT create reports for integration conflicts - you can resolve them yourself!
                                 }
                             )
                             tasks_created += 1
+        
+        # CRITICAL INTELLIGENCE: If we found mostly coding issues (syntax/import errors),
+        # return -1 to signal we should go to coding phase instead
+        if coding_issues_count > 0:
+            # Calculate ratio of coding issues to total tasks
+            total_issues = tasks_created
+            if total_issues > 0:
+                coding_ratio = coding_issues_count / total_issues
+                
+                # If >50% of issues are coding problems, return to coding phase
+                if coding_ratio > 0.5:
+                    self.logger.warning(f"  🚨 INTELLIGENCE: {coding_issues_count}/{total_issues} issues are CODING problems (syntax: {syntax_errors}, imports: {import_errors})")
+                    self.logger.warning(f"  🚨 These require CODING phase, not refactoring!")
+                    self.logger.info(f"  ➡️  Returning to CODING phase to fix missing code...")
+                    return -1  # Signal to return to coding phase
         
         return tasks_created
     
