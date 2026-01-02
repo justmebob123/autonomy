@@ -86,14 +86,37 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 target_files: List[str] = None,
                 **kwargs) -> PhaseResult:
         """
-        Execute the refactoring phase with multi-iteration support.
+        Execute the refactoring phase with full architecture and IPC integration.
         
         NEW DESIGN (Phase 2+3):
         - Uses task system for tracking work
         - Runs for multiple iterations until complete
         - Maintains conversation continuity
         - Tracks progress
+        - INTEGRATES with architecture for design intent
+        - USES objectives to prioritize refactoring
         """
+        
+        # ========== INTEGRATION: READ ARCHITECTURE AND OBJECTIVES ==========
+        # Read architecture to understand design intent
+        architecture = self._read_architecture()
+        if architecture.get('structure'):
+            self.logger.debug(f"📐 Architecture loaded: {len(architecture['structure'])} chars")
+            # Store architecture for use in analysis
+            self._architecture_context = architecture
+        
+        # Read objectives to prioritize refactoring work
+        objectives = self._read_objectives()
+        obj_count = sum(len(objectives.get(level, [])) for level in ['primary', 'secondary', 'tertiary'])
+        if obj_count > 0:
+            self.logger.info(f"🎯 {obj_count} objectives loaded for prioritization")
+        
+        # Write starting status
+        self._write_status({
+            'status': 'running',
+            'message': 'Starting refactoring phase',
+            'architecture_loaded': bool(architecture.get('structure'))
+        })
         
         # IPC INTEGRATION: Initialize documents on first run
         self.initialize_ipc_documents()
@@ -2602,6 +2625,29 @@ DO NOT create reports for integration conflicts - you can resolve them yourself!
         
         # Update IPC documents
         self._write_refactoring_completion_status(state)
+        
+        # ========== INTEGRATION: WRITE COMPLETION STATUS ==========
+        self._write_status({
+            'status': 'completed',
+            'message': 'All refactoring tasks completed',
+            'tasks_completed': progress.get('completed', 0) if state.refactoring_manager else 0,
+            'tasks_failed': progress.get('failed', 0) if state.refactoring_manager else 0
+        })
+        
+        # ========== INTEGRATION: UPDATE ARCHITECTURE ==========
+        # Record refactoring changes in architecture
+        if state.refactoring_manager:
+            completed_tasks = [t for t in state.refactoring_manager.tasks.values() 
+                             if t.status == TaskStatus.COMPLETED]
+            if completed_tasks:
+                self._update_architecture({
+                    'type': 'refactoring_completed',
+                    'details': {
+                        'tasks_completed': len(completed_tasks),
+                        'issue_types': list(set(t.issue_type.value for t in completed_tasks)),
+                        'rationale': 'Code organization and quality improvements'
+                    }
+                })
         
         return PhaseResult(
             success=True,

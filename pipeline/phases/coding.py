@@ -56,7 +56,26 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
     
     def execute(self, state: PipelineState, 
                 task: TaskState = None, **kwargs) -> PhaseResult:
-        """Execute the coding phase for a task"""
+        """Execute the coding phase with full architecture and IPC integration"""
+        
+        # ========== INTEGRATION: READ ARCHITECTURE AND OBJECTIVES ==========
+        # Read architecture to understand where files should be placed
+        architecture = self._read_architecture()
+        if architecture.get('structure'):
+            self.logger.debug(f"📐 Architecture loaded: {len(architecture['structure'])} chars")
+        
+        # Read objectives to understand what needs to be built
+        objectives = self._read_objectives()
+        obj_count = sum(len(objectives.get(level, [])) for level in ['primary', 'secondary', 'tertiary'])
+        if obj_count > 0:
+            self.logger.info(f"🎯 {obj_count} objectives loaded")
+        
+        # Write starting status
+        self._write_status({
+            'status': 'running',
+            'message': 'Starting coding phase',
+            'task': task.task_id if task else None
+        })
         
         # IPC INTEGRATION: Initialize documents on first run
         self.initialize_ipc_documents()
@@ -425,6 +444,39 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
         
         # IPC INTEGRATION: Send messages to other phases
         self._send_phase_messages(task, files_created, files_modified, complexity_warnings)
+        
+        # ========== INTEGRATION: WRITE COMPLETION STATUS ==========
+        self._write_status({
+            'status': 'completed',
+            'message': message,
+            'task_id': task.task_id,
+            'files_created': files_created,
+            'files_modified': files_modified
+        })
+        
+        # ========== INTEGRATION: UPDATE ARCHITECTURE ==========
+        # Record new components in architecture
+        if files_created:
+            for file_path in files_created:
+                # Determine component type from file path
+                component_name = Path(file_path).stem
+                
+                self.arch_manager.add_component(
+                    name=component_name,
+                    description=f"Created by coding phase for task: {task.description[:100]}",
+                    location=file_path,
+                    responsibilities=[task.description]
+                )
+            
+            # Record the change
+            self._update_architecture({
+                'type': 'components_created',
+                'details': {
+                    'files_created': files_created,
+                    'task_id': task.task_id,
+                    'rationale': 'Implementation of planned tasks'
+                }
+            })
         
         return PhaseResult(
             success=True,

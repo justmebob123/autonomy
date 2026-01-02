@@ -64,7 +64,27 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
             ])
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
-        """Execute the planning phase"""
+        """Execute the planning phase with full architecture and IPC integration"""
+        
+        # ========== INTEGRATION: READ ARCHITECTURE AND OBJECTIVES ==========
+        # Read architecture to understand project structure
+        architecture = self._read_architecture()
+        if architecture.get('structure'):
+            self.logger.debug(f"📐 Architecture loaded: {len(architecture['structure'])} chars")
+        
+        # Read existing objectives to understand current goals
+        existing_objectives = self._read_objectives()
+        obj_count = sum(len(existing_objectives.get(level, [])) for level in ['primary', 'secondary', 'tertiary'])
+        if obj_count > 0:
+            self.logger.info(f"🎯 {obj_count} existing objectives loaded")
+        
+        # Write starting status
+        self._write_status({
+            'status': 'running',
+            'message': 'Starting planning phase',
+            'architecture_loaded': bool(architecture.get('structure')),
+            'objectives_loaded': obj_count
+        })
         
         # MESSAGE BUS: Check for relevant messages
         if self.message_bus:
@@ -345,6 +365,28 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         
         # Rebuild queue with current priorities
         state.rebuild_queue()
+        
+        # ========== INTEGRATION: WRITE COMPLETION STATUS ==========
+        self._write_status({
+            'status': 'completed',
+            'message': f'Created plan with {tasks_added} new tasks',
+            'tasks_added': tasks_added,
+            'tasks_suggested': tasks_suggested,
+            'tasks_skipped': tasks_skipped_duplicate
+        })
+        
+        # ========== INTEGRATION: UPDATE ARCHITECTURE IF NEEDED ==========
+        # Planning phase should update architecture with planned components
+        if tasks_added > 0:
+            planned_files = [task.get('target_file') for task in tasks if task.get('target_file')]
+            self._update_architecture({
+                'type': 'planning_completed',
+                'details': {
+                    'tasks_planned': tasks_added,
+                    'files_planned': planned_files[:10],  # First 10 files
+                    'rationale': 'Tasks created based on MASTER_PLAN analysis'
+                }
+            })
         
         return PhaseResult(
             success=True,
