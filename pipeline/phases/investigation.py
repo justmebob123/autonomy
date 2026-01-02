@@ -60,6 +60,23 @@ class InvestigationPhase(BasePhase):
                 issue: Dict = None, **kwargs) -> PhaseResult:
         """Execute investigation for an issue"""
         
+        # ARCHITECTURE INTEGRATION: Read architecture for design context
+        architecture = self._read_architecture()
+        if architecture:
+            self.logger.info(f"  📐 Architecture loaded: {len(architecture.get('components', {}))} components defined")
+        
+        # IPC INTEGRATION: Read objectives for investigation priorities
+        objectives = self._read_objectives()
+        if objectives:
+            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+        
+        # IPC INTEGRATION: Write status at start
+        self._write_status("Starting investigation", {
+            "action": "start",
+            "issue": issue.get('description') if issue else None,
+            "filepath": issue.get('filepath') if issue else None
+        })
+        
         # INITIALIZE IPC DOCUMENTS (if first run)
         self.initialize_ipc_documents()
         
@@ -177,6 +194,22 @@ class InvestigationPhase(BasePhase):
         elif "missing specialist" in response_content.lower() or "need expert" in response_content.lower():
             specialized_recommendation = "role_design"
             self.logger.info("  💡 Recommendation: Consider role_design phase")
+        
+        # IPC INTEGRATION: Write completion status
+        self._write_status("Investigation completed", {
+            "action": "complete",
+            "filepath": filepath,
+            "findings_count": len(findings),
+            "specialized_recommendation": specialized_recommendation
+        })
+        
+        # ARCHITECTURE INTEGRATION: Record investigation findings in architecture
+        if architecture and findings:
+            self._update_architecture(
+                'investigations',
+                f"Investigation of {filepath}: {len(findings)} findings",
+                f"Investigation: {issue.get('type')} in {filepath}"
+            )
         
         return PhaseResult(
             success=True,

@@ -69,6 +69,23 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 task: TaskState = None, **kwargs) -> PhaseResult:
         """Execute QA review for a file or task"""
         
+        # ARCHITECTURE INTEGRATION: Read architecture for quality standards
+        architecture = self._read_architecture()
+        if architecture:
+            self.logger.info(f"  📐 Architecture loaded: {len(architecture.get('components', {}))} components defined")
+        
+        # IPC INTEGRATION: Read objectives for quality criteria
+        objectives = self._read_objectives()
+        if objectives:
+            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+        
+        # IPC INTEGRATION: Write status at start
+        self._write_status("Starting QA review", {
+            "action": "start",
+            "filepath": filepath,
+            "task_id": task.task_id if task else None
+        })
+        
         # IPC INTEGRATION: Initialize documents on first run
         self.initialize_ipc_documents()
         
@@ -210,6 +227,19 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             )
         
         # ANALYSIS INTEGRATION: Run comprehensive analysis before manual review
+        # ARCHITECTURE VALIDATION: Check if file location matches architecture
+        architecture_issues = []
+        if architecture:
+            arch_validation = self._validate_file_against_architecture(filepath, architecture)
+            if not arch_validation['valid']:
+                architecture_issues.append({
+                    'type': 'architecture_violation',
+                    'severity': 'medium',
+                    'description': arch_validation['reason'],
+                    'file': filepath
+                })
+                self.logger.warning(f"  ⚠️ Architecture violation: {arch_validation['reason']}")
+        
         # OPTIMIZATION: Skip deep analysis for test files and library modules
         analysis_issues = []
         
@@ -238,6 +268,12 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         user_message_parts = [
             f"Please review this code for quality issues:\n\nFile: {filepath}\n\n```\n{content}\n```"
         ]
+        
+        # Add architecture issues first (highest priority)
+        if architecture_issues:
+            user_message_parts.append("\n## Architecture Violations:\n")
+            for issue in architecture_issues:
+                user_message_parts.append(f"- {issue['severity']}: {issue['description']}")
         
         if analysis_issues:
             user_message_parts.append("\n## Automated Analysis Found Issues:\n")
@@ -438,6 +474,15 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             # IPC INTEGRATION: Send messages to other phases
             self._send_phase_messages(filepath, handler.issues)
             
+            # IPC INTEGRATION: Write completion status with issues
+            self._write_status("QA review completed with issues", {
+                "action": "complete",
+                "filepath": filepath,
+                "approved": False,
+                "issues_found": len(handler.issues),
+                "next_phase": "debugging"
+            })
+            
             return PhaseResult(
                 success=True,  # QA succeeded in finding issues!
                 phase=self.phase_name,
@@ -488,6 +533,14 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         
         # IPC INTEGRATION: Send messages to other phases
         self._send_phase_messages(filepath, [])
+        
+        # IPC INTEGRATION: Write completion status
+        self._write_status("QA review completed", {
+            "action": "complete",
+            "filepath": filepath,
+            "approved": True,
+            "issues_found": 0
+        })
         
         return PhaseResult(
             success=True,
@@ -900,3 +953,33 @@ The code has passed quality assurance review. No issues detected.
             status += "- Ready for deployment or next phase\n"
         
         return status
+    
+    def _validate_file_against_architecture(self, filepath: str, architecture: Dict) -> Dict:
+        """
+        Validate if file location matches architecture design.
+        
+        Returns:
+            Dict with 'valid' (bool) and 'reason' (str) keys
+        """
+        # Get components from architecture
+        components = architecture.get('components', {})
+        if not components:
+            return {'valid': True, 'reason': 'No architecture components defined'}
+        
+        # Check if file matches any component's location
+        for component_name, component_data in components.items():
+            location = component_data.get('location', '')
+            if location and filepath.startswith(location):
+                return {'valid': True, 'reason': f'Matches component: {component_name}'}
+        
+        # Check if it's in a common directory that doesn't need explicit architecture
+        common_dirs = ['tests/', 'docs/', 'scripts/', 'examples/', '.github/']
+        for common_dir in common_dirs:
+            if filepath.startswith(common_dir):
+                return {'valid': True, 'reason': f'Common directory: {common_dir}'}
+        
+        # File doesn't match any component
+        return {
+            'valid': False,
+            'reason': f'File location "{filepath}" does not match any defined architecture component'
+        }

@@ -500,6 +500,23 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                 task: TaskState = None, **kwargs) -> PhaseResult:
         """Execute debugging for an issue"""
         
+        # ARCHITECTURE INTEGRATION: Read architecture for design context
+        architecture = self._read_architecture()
+        if architecture:
+            self.logger.info(f"  📐 Architecture loaded: {len(architecture.get('components', {}))} components defined")
+        
+        # IPC INTEGRATION: Read objectives for debugging priorities
+        objectives = self._read_objectives()
+        if objectives:
+            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+        
+        # IPC INTEGRATION: Write status at start
+        self._write_status("Starting debugging", {
+            "action": "start",
+            "issue": issue.get('description') if issue else None,
+            "task_id": task.task_id if task else None
+        })
+        
         # IPC INTEGRATION: Initialize documents on first run
         self.initialize_ipc_documents()
         
@@ -1051,6 +1068,24 @@ Remember:
         # Mark file for re-review
         if filepath in state.files:
             state.files[filepath].qa_status = FileStatus.PENDING
+        
+        # IPC INTEGRATION: Write completion status
+        self._write_status("Debugging completed", {
+            "action": "complete",
+            "filepath": filepath,
+            "issue_fixed": True,
+            "files_modified": handler.files_modified
+        })
+        
+        # ARCHITECTURE INTEGRATION: Update architecture if structural changes
+        if handler.files_modified and architecture:
+            for modified_file in handler.files_modified:
+                if modified_file.endswith('.py'):
+                    self._update_architecture(
+                        'components',
+                        f"Fixed issue in {modified_file}",
+                        f"Debugging: Fixed issue in {modified_file}"
+                    )
         
         return PhaseResult(
             success=True,
