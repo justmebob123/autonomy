@@ -60,6 +60,22 @@ class RoleDesignPhase(LoopDetectionMixin, BasePhase):
             PhaseResult with success status and created role info
         """
         
+        # ARCHITECTURE INTEGRATION: Read architecture
+        architecture = self._read_architecture()
+        if architecture:
+            self.logger.info(f"  📐 Architecture loaded: {len(architecture.get('components', {}))} components defined")
+        
+        # IPC INTEGRATION: Read objectives
+        objectives = self._read_objectives()
+        if objectives:
+            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+        
+        # IPC INTEGRATION: Write status at start
+        self._write_status("Starting role design", {
+            "action": "start",
+            "role_description": kwargs.get('role_description')
+        })
+        
         # INITIALIZE IPC DOCUMENTS
         self.initialize_ipc_documents()
         
@@ -214,6 +230,21 @@ class RoleDesignPhase(LoopDetectionMixin, BasePhase):
                 # Register with RoleRegistry
                 if self.role_registry.register_role(spec):
                     self.logger.info(f"✅ Successfully registered specialist role: {spec['name']}")
+                    
+                    # IPC INTEGRATION: Write completion status
+                    self._write_status("Role design completed", {
+                        "action": "complete",
+                        "role_name": spec['name'],
+                        "expertise": spec.get('expertise', '')
+                    })
+                    
+                    # ARCHITECTURE INTEGRATION: Record role
+                    if architecture:
+                        self._update_architecture(
+                            'roles',
+                            f"Created role: {spec['name']}",
+                            f"Role Design: Added {spec['name']} specialist"
+                        )
                     
                     return PhaseResult(
                         success=True,

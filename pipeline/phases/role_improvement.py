@@ -59,6 +59,19 @@ class RoleImprovementPhase(LoopDetectionMixin, BasePhase):
             PhaseResult with improvement outcomes
         """
         
+        # ARCHITECTURE INTEGRATION: Read architecture
+        architecture = self._read_architecture()
+        if architecture:
+            self.logger.info(f"  📐 Architecture loaded: {len(architecture.get('components', {}))} components defined")
+        
+        # IPC INTEGRATION: Read objectives
+        objectives = self._read_objectives()
+        if objectives:
+            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+        
+        # IPC INTEGRATION: Write status at start
+        self._write_status("Starting role improvement", {"action": "start"})
+        
         # INITIALIZE IPC DOCUMENTS
         self.initialize_ipc_documents()
         
@@ -110,6 +123,21 @@ class RoleImprovementPhase(LoopDetectionMixin, BasePhase):
         unchanged = len(custom_roles) - improved
         
         message = f"Analyzed {len(custom_roles)} roles: {improved} improved, {unchanged} unchanged"
+        
+        # IPC INTEGRATION: Write completion status
+        self._write_status("Role improvement completed", {
+            "action": "complete",
+            "total_roles": len(custom_roles),
+            "improved": improved
+        })
+        
+        # ARCHITECTURE INTEGRATION: Record improvements
+        if architecture and roles_improved:
+            self._update_architecture(
+                'roles',
+                f"Improved {improved} roles",
+                f"Role Improvement: Enhanced {', '.join(roles_improved)}"
+            )
         
         return PhaseResult(
             success=True,

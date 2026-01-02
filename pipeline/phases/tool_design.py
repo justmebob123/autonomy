@@ -75,6 +75,22 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
             PhaseResult with success status and analysis results
         """
         
+        # ARCHITECTURE INTEGRATION: Read architecture for tool context
+        architecture = self._read_architecture()
+        if architecture:
+            self.logger.info(f"  📐 Architecture loaded: {len(architecture.get('components', {}))} components defined")
+        
+        # IPC INTEGRATION: Read objectives
+        objectives = self._read_objectives()
+        if objectives:
+            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+        
+        # IPC INTEGRATION: Write status at start
+        self._write_status("Starting tool design", {
+            "action": "start",
+            "tool_name": kwargs.get('tool_name')
+        })
+        
         # INITIALIZE IPC DOCUMENTS (if first run)
         self.initialize_ipc_documents()
         
@@ -495,6 +511,21 @@ The specification must include:
                     # SEND MESSAGES to other phases
                     self.send_message_to_phase('tool_evaluation', f"New tool created: {spec['name']} - ready for testing")
                     self.send_message_to_phase('coding', f"New tool available: {spec['name']}")
+                    
+                    # IPC INTEGRATION: Write completion status
+                    self._write_status("Tool design completed", {
+                        "action": "complete",
+                        "tool_name": spec['name'],
+                        "category": spec.get('category', 'unknown')
+                    })
+                    
+                    # ARCHITECTURE INTEGRATION: Record tool in architecture
+                    if architecture:
+                        self._update_architecture(
+                            'tools',
+                            f"Created tool: {spec['name']}",
+                            f"Tool Design: Added {spec['name']} ({spec.get('category', 'unknown')})"
+                        )
                     
                     return PhaseResult(
                         success=True,

@@ -68,6 +68,19 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
             PhaseResult with evaluation results
         """
         
+        # ARCHITECTURE INTEGRATION: Read architecture
+        architecture = self._read_architecture()
+        if architecture:
+            self.logger.info(f"  📐 Architecture loaded: {len(architecture.get('components', {}))} components defined")
+        
+        # IPC INTEGRATION: Read objectives
+        objectives = self._read_objectives()
+        if objectives:
+            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+        
+        # IPC INTEGRATION: Write status at start
+        self._write_status("Starting tool evaluation", {"action": "start"})
+        
         # INITIALIZE IPC DOCUMENTS
         self.initialize_ipc_documents()
         
@@ -211,6 +224,21 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
         success_rate = len(evaluation['tests_passed']) / (
             len(evaluation['tests_passed']) + len(evaluation['tests_failed'])
         ) if (evaluation['tests_passed'] or evaluation['tests_failed']) else 0
+        
+        # IPC INTEGRATION: Write completion status
+        self._write_status("Tool evaluation completed", {
+            "action": "complete",
+            "success_rate": f"{success_rate:.0%}",
+            "tests_passed": len(evaluation['tests_passed'])
+        })
+        
+        # ARCHITECTURE INTEGRATION: Record evaluation
+        if architecture:
+            self._update_architecture(
+                'tools',
+                f"Evaluated tool: {evaluation.get('tool_name', 'unknown')}",
+                f"Tool Evaluation: {success_rate:.0%} success rate"
+            )
         
         return PhaseResult(
             success=True,

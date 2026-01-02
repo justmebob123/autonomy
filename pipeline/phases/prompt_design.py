@@ -58,6 +58,22 @@ class PromptDesignPhase(LoopDetectionMixin, BasePhase):
             PhaseResult with success status and created prompt info
         """
         
+        # ARCHITECTURE INTEGRATION: Read architecture for prompt context
+        architecture = self._read_architecture()
+        if architecture:
+            self.logger.info(f"  📐 Architecture loaded: {len(architecture.get('components', {}))} components defined")
+        
+        # IPC INTEGRATION: Read objectives for prompt design priorities
+        objectives = self._read_objectives()
+        if objectives:
+            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+        
+        # IPC INTEGRATION: Write status at start
+        self._write_status("Starting prompt design", {
+            "action": "start",
+            "task_description": kwargs.get('task_description')
+        })
+        
         # INITIALIZE IPC DOCUMENTS
         self.initialize_ipc_documents()
         
@@ -200,6 +216,21 @@ class PromptDesignPhase(LoopDetectionMixin, BasePhase):
                 # Register with PromptRegistry
                 if self.prompt_registry.register_prompt(spec):
                     self.logger.info(f"✅ Successfully registered prompt: {spec['name']}")
+                    
+                    # IPC INTEGRATION: Write completion status
+                    self._write_status("Prompt design completed", {
+                        "action": "complete",
+                        "prompt_name": spec['name'],
+                        "filepath": prompt_file
+                    })
+                    
+                    # ARCHITECTURE INTEGRATION: Record prompt in architecture
+                    if architecture:
+                        self._update_architecture(
+                            'prompts',
+                            f"Created prompt: {spec['name']}",
+                            f"Prompt Design: Added {spec['name']} for {spec.get('purpose', 'general use')}"
+                        )
                     
                     return PhaseResult(
                         success=True,
