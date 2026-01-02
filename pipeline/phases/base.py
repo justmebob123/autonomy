@@ -153,6 +153,15 @@ class BasePhase(ABC):
         # Initialize adaptive prompts (passed from coordinator)
         self.adaptive_prompts = adaptive_prompts
         
+        # CRITICAL: Initialize Architecture Manager and IPC Integration
+        from ..architecture_manager import ArchitectureManager
+        from ..ipc_integration import ObjectiveReader, StatusWriter, StatusReader
+        
+        self.arch_manager = ArchitectureManager(self.project_dir, self.logger)
+        self.objective_reader = ObjectiveReader(self.project_dir, self.logger)
+        self.status_writer = StatusWriter(self.project_dir, self.logger)
+        self.status_reader = StatusReader(self.project_dir, self.logger)
+        
         # CRITICAL FIX: Add system prompt to conversation at initialization
         # This ensures the model always sees the system prompt with tool calling instructions
         # MUST be done AFTER prompt_registry is set!
@@ -472,6 +481,98 @@ class BasePhase(ABC):
                 return iso_timestamp
         return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
+    
+    # ==================== ARCHITECTURE & IPC METHODS ====================
+    
+    def _read_architecture(self) -> Dict[str, Any]:
+        """
+        Read ARCHITECTURE.md before making decisions.
+        
+        All phases MUST call this before execution to understand:
+        - Project structure and organization
+        - Component definitions and locations
+        - Naming conventions
+        - Integration guidelines
+        
+        Returns:
+            Dict with architecture information
+        """
+        return self.arch_manager.read_architecture()
+    
+    def _update_architecture(self, changes: Dict[str, Any]):
+        """
+        Update ARCHITECTURE.md after making structural changes.
+        
+        Args:
+            changes: Dict with:
+                - type: Type of change (e.g., 'component_added', 'structure_modified')
+                - details: Change details
+        """
+        self.arch_manager.record_change(
+            phase=self.phase_name,
+            change_type=changes.get('type', 'unknown'),
+            details=changes.get('details', {})
+        )
+    
+    def _read_objectives(self) -> Dict[str, List[Dict[str, Any]]]:
+        """
+        Read objectives from PRIMARY/SECONDARY/TERTIARY_OBJECTIVES.md.
+        
+        All phases MUST call this to understand:
+        - What needs to be built (PRIMARY)
+        - What needs to be fixed (SECONDARY)
+        - What optimizations are needed (TERTIARY)
+        
+        Returns:
+            Dict with 'primary', 'secondary', 'tertiary' objectives
+        """
+        return self.objective_reader.get_all_objectives()
+    
+    def _write_status(self, status: Dict[str, Any]):
+        """
+        Write status update to this phase's WRITE document.
+        
+        Args:
+            status: Status dict with:
+                - status: 'running', 'completed', 'failed'
+                - message: Status message
+                - files_modified: List of modified files
+        """
+        self.status_writer.write_phase_status(self.phase_name, status)
+    
+    def _read_other_phase_status(self, phase: str) -> List[Dict[str, Any]]:
+        """
+        Read status updates from another phase.
+        
+        Args:
+            phase: Phase name to read from
+            
+        Returns:
+            List of status updates from that phase
+        """
+        return self.status_reader.read_phase_status(phase)
+    
+    def _request_from_phase(self, target_phase: str, action: str, reason: str, details: str = ""):
+        """
+        Request an action from another phase.
+        
+        Args:
+            target_phase: Phase to request from
+            action: What action is requested
+            reason: Why it's needed
+            details: Additional details
+        """
+        self.status_writer.write_request(
+            from_phase=self.phase_name,
+            to_phase=target_phase,
+            request={
+                'action': action,
+                'reason': reason,
+                'details': details
+            }
+        )
+    
+    # ==================== SYSTEM PROMPT METHODS ====================
     
     def _get_system_prompt(self, phase_name: str, context: Dict = None) -> str:
         """
