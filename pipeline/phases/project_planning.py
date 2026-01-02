@@ -78,6 +78,22 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         
         self.logger.info("  📊 Analyzing project for expansion opportunities...")
         
+        # ARCHITECTURE INTEGRATION: Read architecture for project structure
+        architecture = self._read_architecture()
+        if architecture:
+            self.logger.info(f"  📐 Architecture loaded: {len(architecture.get('components', {}))} components defined")
+        
+        # IPC INTEGRATION: Read objectives for expansion priorities
+        objectives = self._read_objectives()
+        if objectives:
+            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+        
+        # IPC INTEGRATION: Write status at start
+        self._write_status("Starting project planning", {
+            "action": "start",
+            "expansion_cycle": state.metadata.get('expansion_cycles', 0)
+        })
+        
         # INITIALIZE IPC DOCUMENTS (if first run)
         self.initialize_ipc_documents()
         
@@ -335,6 +351,24 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         # SEND MESSAGES to other phases
         if tasks_created:
             self.send_message_to_phase('planning', f"Created {len(tasks_created)} new expansion tasks for cycle {state.expansion_count}")
+        
+        # IPC INTEGRATION: Write completion status
+        self._write_status("Project planning completed", {
+            "action": "complete",
+            "tasks_created": len(tasks_created),
+            "expansion_count": state.expansion_count,
+            "focus": new_tasks[0].get("category", "general") if new_tasks else "none"
+        })
+        
+        # ARCHITECTURE INTEGRATION: Update architecture with new planned components
+        if architecture and tasks_created:
+            for task_data in tasks_created:
+                if 'target_file' in task_data:
+                    self._update_architecture(
+                        'planned_components',
+                        f"Planned: {task_data.get('description', 'New component')}",
+                        f"Project Planning: Added {task_data['target_file']}"
+                    )
         
         return PhaseResult(
             success=len(tasks_created) > 0,

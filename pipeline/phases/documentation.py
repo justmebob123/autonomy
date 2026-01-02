@@ -50,6 +50,21 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         
         self.logger.info("  📝 Reviewing documentation...")
         
+        # ARCHITECTURE INTEGRATION: Read architecture for documentation context
+        architecture = self._read_architecture()
+        if architecture:
+            self.logger.info(f"  📐 Architecture loaded: {len(architecture.get('components', {}))} components defined")
+        
+        # IPC INTEGRATION: Read objectives for documentation priorities
+        objectives = self._read_objectives()
+        if objectives:
+            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+        
+        # IPC INTEGRATION: Write status at start
+        self._write_status("Starting documentation review", {
+            "action": "start"
+        })
+        
         # CHECK IF README EXISTS - if not, complete documentation task anyway
         readme_path = self.project_dir / "README.md"
         if not readme_path.exists():
@@ -265,6 +280,21 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         if updates_made:
             self.send_message_to_phase('planning', f"Documentation updated: {len(updates_made)} changes made")
             self.send_message_to_phase('qa', "Documentation is current - ready for review")
+        
+        # IPC INTEGRATION: Write completion status
+        self._write_status("Documentation review completed", {
+            "action": "complete",
+            "updates_made": len(updates_made),
+            "tasks_completed": doc_tasks_completed
+        })
+        
+        # ARCHITECTURE INTEGRATION: Update architecture with documentation changes
+        if architecture and updates_made:
+            self._update_architecture(
+                'documentation',
+                f"Updated documentation: {len(updates_made)} changes",
+                f"Documentation: Updated README.md with {len(updates_made)} changes"
+            )
         
         return PhaseResult(
             success=True,
