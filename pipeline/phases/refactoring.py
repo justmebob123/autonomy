@@ -2018,7 +2018,6 @@ DO NOT create reports for integration conflicts - you can resolve them yourself!
                             file2_short = f"{Path(file2_path).parent.name}/{Path(file2_path).name}" if file2_path != 'unknown' else 'unknown'
                             
                             # DEDUPLICATION: Check if task already exists for these files
-                            from pipeline.state.refactoring_task import TaskStatus
                             existing_tasks = [
                                 t for t in manager.tasks.values()
                                 if t.issue_type == RefactoringIssueType.DUPLICATE
@@ -2508,7 +2507,7 @@ DO NOT create reports for integration conflicts - you can resolve them yourself!
         if not state.refactoring_manager:
             return
         
-        from pipeline.state.refactoring_task import RefactoringPriority, TaskStatus
+        from pipeline.state.refactoring_task import RefactoringPriority
         
         report_lines = []
         
