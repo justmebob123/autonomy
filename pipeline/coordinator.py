@@ -128,6 +128,10 @@ class PhaseCoordinator:
             'max_recursion_depth': 61
         }
         
+        # CRITICAL: Refactoring cooldown to prevent infinite loops
+        self.last_refactoring_iteration = None
+        self.refactoring_cooldown = 5  # Don't re-trigger for 5 iterations
+        
         # Initialize polytopic structure from phases
         self._initialize_polytopic_structure()
         
@@ -1179,6 +1183,9 @@ class PhaseCoordinator:
         min_interval = 0  # UNLIMITED - no delay between iterations
         last_iteration_time = 0
         
+        # Track current iteration for cooldown logic
+        self._current_iteration = 0
+        
         while iteration < max_iter:
             # No rate limiting - removed per user request
             last_iteration_time = time.time()
@@ -1191,6 +1198,7 @@ class PhaseCoordinator:
             
             # Log iteration
             iteration += 1
+            self._current_iteration = iteration  # Track for cooldown logic
             phase_name = phase_decision["phase"]
             reason = phase_decision.get("reason", "")
             
@@ -1371,6 +1379,11 @@ class PhaseCoordinator:
                 
                 # Store last phase result for specialized phase detection
                 state._last_phase_result = result
+                
+                # CRITICAL: Update refactoring cooldown if we just ran refactoring
+                if phase_name == 'refactoring':
+                    self.last_refactoring_iteration = iteration
+                    self.logger.debug(f"  🔄 Refactoring completed, cooldown starts at iteration {iteration}")
                 
                 # Check if phase suggests next phase (loop prevention hint)
                 if result.next_phase:
@@ -1615,6 +1628,16 @@ class PhaseCoordinator:
             # This allows multi-iteration refactoring
             self.logger.debug(f"  Refactoring is running, allowing it to continue")
             return True
+        
+        # CRITICAL: Check cooldown to prevent infinite loops
+        # If we just ran refactoring, don't immediately trigger it again
+        if self.last_refactoring_iteration is not None and hasattr(self, '_current_iteration'):
+            iterations_since = self._current_iteration - self.last_refactoring_iteration
+            if iterations_since < self.refactoring_cooldown:
+                self.logger.info(f"  ⏸️  Refactoring cooldown: {iterations_since}/{self.refactoring_cooldown} iterations since last run")
+                return False
+            else:
+                self.logger.debug(f"  Cooldown expired ({iterations_since} iterations), can trigger refactoring again")
         
         # FOUNDATION PHASE (0-25%): NO REFACTORING
         # Need substantial codebase before refactoring makes sense
