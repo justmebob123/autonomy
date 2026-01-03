@@ -3,6 +3,8 @@ Enum Attribute Validator
 
 Validates that Enum attributes exist before they are accessed.
 Detects invalid enum member access like MessageType.INVALID_ATTRIBUTE.
+
+Now uses shared SymbolTable for improved accuracy.
 """
 
 import ast
@@ -10,6 +12,8 @@ from typing import Dict, List, Set, Optional
 from pathlib import Path
 from dataclasses import dataclass
 from enum import Enum
+
+from .symbol_table import SymbolTable
 
 
 @dataclass
@@ -126,9 +130,10 @@ class EnumUsageChecker(ast.NodeVisitor):
 class EnumAttributeValidator:
     """Validates that Enum attributes exist before they are accessed."""
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, symbol_table: Optional[SymbolTable] = None):
         self.project_root = Path(project_root)
         self.errors: List[EnumAttributeError] = []
+        self.symbol_table = symbol_table
         self.all_enums: Dict[str, Set[str]] = {}
         
     def validate_all(self) -> Dict:
@@ -140,10 +145,14 @@ class EnumAttributeValidator:
         """
         self.errors = []
         
-        # First pass: collect all enum definitions
-        self._collect_enums()
+        # Use SymbolTable if available, otherwise collect enums
+        if self.symbol_table:
+            self.all_enums = self.symbol_table.enums.copy()
+        else:
+            # Fallback: collect enums ourselves
+            self._collect_enums()
         
-        # Second pass: validate enum usage
+        # Validate enum usage
         for py_file in self.project_root.rglob("*.py"):
             if py_file.name.startswith('.'):
                 continue
@@ -168,7 +177,7 @@ class EnumAttributeValidator:
         }
     
     def _collect_enums(self):
-        """Collect all enum definitions in the project."""
+        """Collect all enum definitions in the project (fallback when no SymbolTable)."""
         for py_file in self.project_root.rglob("*.py"):
             if py_file.name.startswith('.'):
                 continue

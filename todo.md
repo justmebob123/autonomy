@@ -16,10 +16,11 @@ We created the infrastructure but didn't integrate it. This must be fixed.
 - [ ] Update TypeUsageValidator to use SymbolTable instead of own collection
 - [ ] Update MethodExistenceValidator to use SymbolTable instead of own collection
 - [ ] Update FunctionCallValidator to use SymbolTable instead of own collection
-- [ ] Update EnumAttributeValidator to use SymbolTable instead of own collection
-- [ ] Update MethodSignatureValidator to use SymbolTable instead of own collection
-- [ ] Remove duplicate symbol collection code from each validator
-- [ ] Test each validator with SymbolTable
+- [x] Update EnumAttributeValidator to use SymbolTable instead of own collection
+- [x] Update MethodSignatureValidator to use SymbolTable instead of own collection
+- [ ] Remove duplicate symbol collection code from validators (keep as fallback)
+- [x] Test EnumAttributeValidator with SymbolTable (working correctly)
+- [x] Test MethodSignatureValidator with SymbolTable (working correctly)
 
 ## Phase 3: Integrate Call Graph (HIGH PRIORITY)
 - [ ] Add call graph integration to MethodExistenceValidator

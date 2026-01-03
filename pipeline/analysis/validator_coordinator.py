@@ -59,12 +59,13 @@ class ValidatorCoordinator:
         # Create symbol collector
         self.collector = SymbolCollector(self.symbol_table, self.logger)
         
-        # Initialize validators (will be updated to use symbol table)
+        # Initialize validators
+        # Note: Some validators will be re-initialized after symbol collection
         self.type_validator = TypeUsageValidator(str(self.project_root), config_file)
         self.method_validator = MethodExistenceValidator(str(self.project_root), config_file)
         self.call_validator = FunctionCallValidator(str(self.project_root), config_file)
-        self.enum_validator = EnumAttributeValidator(str(self.project_root))
-        self.signature_validator = MethodSignatureValidator(str(self.project_root))
+        self.enum_validator = None  # Will be initialized with SymbolTable
+        self.signature_validator = None  # Will be initialized with SymbolTable
     
     def validate_all(self) -> Dict:
         """
@@ -91,6 +92,10 @@ class ValidatorCoordinator:
         self.logger.info(f"  ✓ Collected {stats['total_enums']} enums")
         self.logger.info(f"  ✓ Built call graph with {stats['total_call_edges']} edges")
         self.logger.info("")
+        
+        # Initialize validators that use SymbolTable
+        self.enum_validator = EnumAttributeValidator(str(self.project_root), self.symbol_table)
+        self.signature_validator = MethodSignatureValidator(str(self.project_root), self.symbol_table)
         
         # Phase 2: Run validators
         self.logger.info("Phase 2: Running validators...")

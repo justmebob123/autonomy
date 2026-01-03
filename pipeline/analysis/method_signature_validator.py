@@ -3,6 +3,8 @@ Method Signature Validator
 
 Validates that method calls match the actual method signatures.
 Detects wrong number of arguments, missing methods, and signature mismatches.
+
+Now uses shared SymbolTable for improved accuracy.
 """
 
 import ast
@@ -10,6 +12,8 @@ import inspect
 from typing import Dict, List, Set, Optional, Tuple
 from pathlib import Path
 from dataclasses import dataclass
+
+from .symbol_table import SymbolTable
 
 
 @dataclass
@@ -145,9 +149,10 @@ class MethodCallChecker(ast.NodeVisitor):
 class MethodSignatureValidator:
     """Validates that method calls match actual method signatures."""
     
-    def __init__(self, project_root: str):
+    def __init__(self, project_root: str, symbol_table: Optional[SymbolTable] = None):
         self.project_root = Path(project_root)
         self.errors: List[MethodSignatureError] = []
+        self.symbol_table = symbol_table
         self.all_methods: Dict[Tuple[str, str], int] = {}
         
     def validate_all(self) -> Dict:
@@ -159,10 +164,20 @@ class MethodSignatureValidator:
         """
         self.errors = []
         
-        # First pass: collect all method signatures
-        self._collect_methods()
+        # Use SymbolTable if available, otherwise collect methods
+        if self.symbol_table:
+            # Extract method signatures from SymbolTable
+            for class_info in self.symbol_table.classes.values():
+                if ':' in class_info.name:  # Skip qualified names
+                    continue
+                for method_name, method_info in class_info.methods.items():
+                    key = (class_info.name, method_name)
+                    self.all_methods[key] = method_info.min_args
+        else:
+            # Fallback: collect methods ourselves
+            self._collect_methods()
         
-        # Second pass: validate method calls
+        # Validate method calls
         for py_file in self.project_root.rglob("*.py"):
             if py_file.name.startswith('.'):
                 continue
@@ -188,7 +203,7 @@ class MethodSignatureValidator:
         }
     
     def _collect_methods(self):
-        """Collect all method signatures in the project."""
+        """Collect all method signatures in the project (fallback when no SymbolTable)."""
         for py_file in self.project_root.rglob("*.py"):
             if py_file.name.startswith('.'):
                 continue
