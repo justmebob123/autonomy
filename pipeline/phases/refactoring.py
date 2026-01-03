@@ -1624,69 +1624,208 @@ merge_file_implementations(
 """
     
     def _get_integration_conflict_prompt(self, task: Any, context: str) -> str:
-        """
-        ULTRA-SIMPLIFIED prompt for integration conflicts.
-        
-        STRATEGY: Just escalate immediately to DEVELOPER PHASE.
-        Integration conflicts are too complex for refactoring AI.
-        """
+        """Prompt for integration conflicts - STEP-AWARE to prevent multiple tool outputs"""
         
         # Get target files from task
         target_files = task.target_files if task.target_files else []
         file1 = target_files[0] if len(target_files) > 0 else "file1"
         file2 = target_files[1] if len(target_files) > 1 else "file2"
         
-        # SIMPLIFIED: Just tell AI to escalate immediately
-        return f"""🚨 INTEGRATION CONFLICT - ESCALATE TO DEVELOPER PHASE 🚨
+        # FIXED: Use TaskAnalysisTracker to check actual tool executions
+        # instead of checking assistant message content
+        state = self.analysis_tracker.get_or_create_state(task.task_id)
+        
+        # Count what's been done by looking at ACTUAL tool executions
+        files_read = set()
+        architecture_read = state.checkpoints['read_architecture'].completed
+        comparison_done = False
+        
+        for tool_call in state.tool_calls_history:
+            tool_name = tool_call['tool']
+            arguments = tool_call.get('arguments', {})
+            
+            if tool_name == 'read_file':
+                filepath = arguments.get('filepath') or arguments.get('file_path', '')
+                # Check if target files were read
+                if file1 in filepath:
+                    files_read.add(file1)
+                if file2 in filepath:
+                    files_read.add(file2)
+            
+            if tool_name == 'compare_file_implementations':
+                comparison_done = True
+        
+        # Determine next step
+        if file1 not in files_read:
+            # Step 1: Read first file
+            step_num = 1
+            next_tool = f'read_file(filepath="{file1}")'
+            step_description = f"READ THE FIRST FILE: {file1}"
+            
+        elif file2 not in files_read:
+            # Step 2: Read second file
+            step_num = 2
+            next_tool = f'read_file(filepath="{file2}")'
+            step_description = f"READ THE SECOND FILE: {file2}"
+            
+        elif not architecture_read:
+            # Step 3: Read architecture
+            step_num = 3
+            next_tool = 'read_file(filepath="ARCHITECTURE.md")'
+            step_description = "READ ARCHITECTURE.md to see where files should be"
+            
+        elif not comparison_done:
+            # Step 4: Compare
+            step_num = 4
+            next_tool = f'compare_file_implementations(file1="{file1}", file2="{file2}")'
+            step_description = "COMPARE the two implementations"
+            
+        else:
+            # Step 5: Make decision and resolve
+            step_num = 5
+            next_tool = "merge_file_implementations(...) OR move_file(...) OR rename_file(...)"
+            step_description = "MAKE A DECISION and RESOLVE the conflict"
+        
+        return f"""🎯 INTEGRATION CONFLICT - STEP {step_num} OF 5
 
 {context}
 
-═══════════════════════════════════════════════════════════════
-⚠️ CRITICAL: INTEGRATION CONFLICTS ARE TOO COMPLEX ⚠️
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚠️  CRITICAL SYSTEM CONSTRAINT ⚠️
 
-Integration conflicts between files require careful analysis and
-decision-making that is best handled by the DEVELOPER PHASE.
+THE SYSTEM CAN ONLY EXECUTE **ONE** TOOL CALL PER ITERATION.
 
-Files in conflict:
-• {file1}
-• {file2}
+If you output multiple tool calls, ONLY THE FIRST ONE will execute.
+The rest will be IGNORED and you'll be stuck in an infinite loop.
 
-═══════════════════════════════════════════════════════════════
-🎯 YOUR ACTION: ESCALATE TO DEVELOPER PHASE 🎯
+YOU MUST OUTPUT EXACTLY ONE TOOL CALL. THEN STOP.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Use the request_developer_review tool to escalate this task:
+📍 YOU ARE ON STEP {step_num} OF 5
 
-{{{{
-    "name": "request_developer_review",
-    "arguments": {{{{
-        "task_id": "{task.task_id}",
-        "reason": "Integration conflict between {file1} and {file2}. These files have conflicting implementations that need careful review and resolution by the DEVELOPER PHASE orchestrator.",
-        "priority": "high",
-        "context": {{{{
-            "files": ["{file1}", "{file2}"],
-            "issue_type": "integration_conflict",
-            "description": "{task.description if hasattr(task, 'description') else 'Integration conflict detected'}"
-        }}}}
-    }}}}
-}}}}
+🎯 YOUR NEXT ACTION:
+{step_description}
 
-═══════════════════════════════════════════════════════════════
+💻 CALL THIS ONE TOOL:
+{next_tool}
 
-⚠️ DO NOT:
-- Try to read the files
-- Try to compare the files
-- Try to merge the files yourself
-- Do any analysis
+⛔ DO NOT:
+- Output multiple tool calls
+- Call any other tools
+- Plan ahead for future steps
+- Output JSON arrays
 
 ✅ DO:
-- Use request_developer_review tool IMMEDIATELY
-- Let the DEVELOPER PHASE handle this complex task
+- Output EXACTLY ONE tool call
+- Use the exact tool shown above
+- Then STOP and wait
 
-═══════════════════════════════════════════════════════════════
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🎯 OUTPUT THE request_developer_review TOOL CALL NOW:
+📊 PROGRESS TRACKER:
+Step 1: Read {file1} {'✅' if file1 in files_read else '⏳ ← YOU ARE HERE' if step_num == 1 else '⬜'}
+Step 2: Read {file2} {'✅' if file2 in files_read else '⏳ ← YOU ARE HERE' if step_num == 2 else '⬜'}
+Step 3: Read ARCHITECTURE.md {'✅' if architecture_read else '⏳ ← YOU ARE HERE' if step_num == 3 else '⬜'}
+Step 4: Compare implementations {'✅' if comparison_done else '⏳ ← YOU ARE HERE' if step_num == 4 else '⬜'}
+Step 5: Resolve conflict {'⏳ ← YOU ARE HERE' if step_num == 5 else '⬜'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 OUTPUT YOUR ONE TOOL CALL NOW:
 """
     
+    
+    def _get_dead_code_prompt(self, task: Any, context: str) -> str:
+        """Prompt for dead code tasks - check usage then decide"""
+        return f"""🎯 DEAD CODE TASK - ANALYZE AND REPORT
+
+⚠️ CRITICAL: This is an EARLY-STAGE project - DO NOT auto-remove code!
+
+{context}
+
+📋 SIMPLE WORKFLOW (2-3 steps):
+
+1️⃣ **Search for usages** of the code:
+   search_code(pattern="<class_name>", file_types=["py"])
+
+2️⃣ **Create issue report** (REQUIRED for early-stage projects):
+   create_issue_report(
+       task_id="{task.task_id}",
+       severity="low",
+       impact_analysis="Unused code may be part of planned architecture",
+       recommended_approach="Review MASTER_PLAN to determine if needed",
+       estimated_effort="30 minutes"
+   )
+
+⚠️ DO NOT:
+- Remove the code automatically (early-stage project!)
+- List all source files (not needed)
+- Do comprehensive analysis (just check if used)
+
+✅ WORKFLOW:
+- Search for usages
+- Create report for developer review
+- Done!
+
+🎯 TAKE ACTION NOW - Create the report to complete this task!
+"""
+    
+    def _get_complexity_prompt(self, task: Any, context: str) -> str:
+        """Prompt for complexity tasks - try to refactor or report"""
+        return f"""🎯 COMPLEXITY TASK - REFACTOR OR REPORT
+
+{context}
+
+📋 WORKFLOW (try to fix first):
+
+1️⃣ **Read the file** to understand the complex function:
+   read_file(filepath="<file_path>")
+
+2️⃣ **Try to refactor** if straightforward:
+   - Break into smaller functions
+   - Extract common logic
+   - Simplify conditionals
+   
+   OR **Create issue report** if too complex:
+   create_issue_report(
+       task_id="{task.task_id}",
+       severity="medium",
+       impact_analysis="High complexity makes code hard to maintain",
+       recommended_approach="Break function into smaller pieces",
+       estimated_effort="2 hours"
+   )
+
+🎯 TAKE ACTION NOW - Try to refactor, or create report!
+"""
+    
+    def _get_architecture_violation_prompt(self, task: Any, context: str) -> str:
+        """Prompt for architecture violations - move or rename"""
+        return f"""🎯 ARCHITECTURE VIOLATION TASK - FIX THE STRUCTURE
+
+{context}
+
+📋 WORKFLOW:
+
+1️⃣ **Check architecture** to understand correct location:
+   read_file(filepath="ARCHITECTURE.md")
+
+2️⃣ **Fix the violation**:
+   - Use move_file to relocate misplaced files
+   - Use rename_file to fix naming issues
+   - Use restructure_directory for large changes
+
+🎯 TAKE ACTION NOW - Align code with architecture!
+"""
+    
+    def _get_bug_fix_prompt(self, task: Any, context: str) -> str:
+        """Prompt for bug fix tasks - read, understand, fix"""
+        return f"""🎯 BUG FIX TASK - FIX THE BUG
+
+{context}
+
+📋 SIMPLE WORKFLOW:
+
+
     def _get_dead_code_prompt(self, task: Any, context: str) -> str:
         """Prompt for dead code tasks - check usage then decide"""
         return f"""🎯 DEAD CODE TASK - ANALYZE AND REPORT
