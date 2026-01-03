@@ -532,10 +532,12 @@ Recent architectural changes will be recorded here automatically by phases.
             components[module].functions.append(func_name)
         
         # Calculate dependencies from call graph
-        for caller, callees in symbol_table.call_graph.items():
+        # Note: call_graph is now Dict[str, CallGraphNode], not Dict[str, Set[str]]
+        for caller, node in symbol_table.call_graph.items():
             caller_module = '.'.join(caller.split('.')[:-1]) if '.' in caller else 'root'
             
-            for callee in callees:
+            # Iterate over the node's calls set
+            for callee in node.calls:
                 callee_module = '.'.join(callee.split('.')[:-1]) if '.' in callee else 'root'
                 
                 if caller_module != callee_module:
@@ -552,10 +554,20 @@ Recent architectural changes will be recorded here automatically by phases.
         # Return the call graph result from symbol table
         from .analysis.call_graph import CallGraphResult
         
+        # Convert CallGraphNode dict to simple Dict[str, Set[str]] format
+        calls = {}
+        called_by = {}
+        functions = {}
+        
+        for func_name, node in symbol_table.call_graph.items():
+            calls[func_name] = node.calls
+            called_by[func_name] = node.called_by
+            functions[func_name] = (node.file, node.line)
+        
         return CallGraphResult(
-            functions=symbol_table.functions,
-            calls=symbol_table.call_graph,
-            called_by=symbol_table.reverse_call_graph
+            functions=functions,
+            calls=calls,
+            called_by=called_by
         )
     
     def _calculate_integration_status(self, symbol_table, validation_results) -> Dict[str, IntegrationStatus]:
@@ -570,8 +582,15 @@ Recent architectural changes will be recorded here automatically by phases.
             module = '.'.join(class_name.split('.')[:-1]) if '.' in class_name else 'root'
             
             if module not in integration_status:
-                # Check if class is used
-                is_used = class_name in symbol_table.reverse_call_graph
+                # Check if class is used (check if any method is called)
+                is_used = False
+                for method_name in class_info.methods.keys():
+                    full_method = f"{class_name}.{method_name}"
+                    if full_method in symbol_table.call_graph:
+                        node = symbol_table.call_graph[full_method]
+                        if node.called_by:
+                            is_used = True
+                            break
                 
                 # Find missing integrations
                 missing = []
@@ -582,8 +601,13 @@ Recent architectural changes will be recorded here automatically by phases.
                 
                 # Calculate integration score (0-1)
                 total_methods = len(class_info.methods)
-                used_methods = sum(1 for m in class_info.methods.values() 
-                                 if f"{class_name}.{m.name}" in symbol_table.reverse_call_graph)
+                used_methods = 0
+                for method_name in class_info.methods.keys():
+                    full_method = f"{class_name}.{method_name}"
+                    if full_method in symbol_table.call_graph:
+                        node = symbol_table.call_graph[full_method]
+                        if node.called_by:
+                            used_methods += 1
                 
                 score = used_methods / total_methods if total_methods > 0 else 0.0
                 
