@@ -1,0 +1,13 @@
+🎯 {task_type} TASK - {action}
+
+{critical_note}
+
+{context}
+
+📋 {workflow_label}:
+
+{workflow_steps}
+
+{warnings}
+
+{completion_note}
