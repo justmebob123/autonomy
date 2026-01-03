@@ -93,6 +93,19 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         from .analysis_orchestrator import AnalysisOrchestrator
         self.analysis_orchestrator = AnalysisOrchestrator(self.project_dir, self.logger)
         
+        # MESSAGE BUS: Subscribe to relevant events for cross-phase coordination
+        if self.message_bus:
+            from ..messaging import MessageType
+            self._subscribe_to_messages([
+                MessageType.TASK_COMPLETED,      # When tasks complete in other phases
+                MessageType.FILE_CREATED,        # New files to analyze for duplicates
+                MessageType.FILE_MODIFIED,       # Modified files to check for conflicts
+                MessageType.ISSUE_FOUND,         # Issues from other phases that may need refactoring
+                MessageType.ARCHITECTURE_CHANGE, # Architecture updates requiring refactoring
+                MessageType.SYSTEM_ALERT,        # System-level alerts
+            ])
+            self.logger.info("  📡 Message bus subscriptions configured")
+        
         self.logger.info("  🔧 Refactoring phase initialized with analysis capabilities")
     
     def execute(self, state: PipelineState, 
@@ -110,6 +123,28 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         - INTEGRATES with architecture for design intent
         - USES objectives to prioritize refactoring
         """
+        
+        # ADAPTIVE PROMPTS: Update system prompt based on recent refactoring performance
+        if self.adaptive_prompts:
+            recent_tasks = []
+            if hasattr(state, 'refactoring_manager') and state.refactoring_manager:
+                recent_tasks = [
+                    {
+                        'task_id': t.task_id,
+                        'issue_type': t.issue_type.value,
+                        'status': t.status.value,
+                        'attempts': t.attempts,
+                        'priority': t.priority.value
+                    }
+                    for t in state.refactoring_manager.get_recent_tasks(limit=5)
+                ]
+            
+            self.update_system_prompt_with_adaptation({
+                'state': state,
+                'phase': self.phase_name,
+                'recent_tasks': recent_tasks,
+                'recent_issues': state.get_recent_issues(self.phase_name, limit=5) if hasattr(state, 'get_recent_issues') else []
+            })
         
         # ========== INTEGRATION: READ ARCHITECTURE AND OBJECTIVES ==========
         # Read architecture to understand design intent
@@ -350,6 +385,15 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         """
         self.logger.info(f"  🔬 Performing comprehensive analysis...")
         
+        # MESSAGE BUS: Publish analysis started event
+        if self.message_bus:
+            from ..messaging import MessageType
+            self.message_bus.publish(MessageType.ANALYSIS_STARTED, {
+                'phase': self.phase_name,
+                'analysis_type': 'comprehensive',
+                'timestamp': datetime.now().isoformat()
+            })
+        
         # Use existing comprehensive refactoring handler for analysis
         result = self._handle_comprehensive_refactoring(state)
         
@@ -390,6 +434,17 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         if pending:
             self.logger.info(f"  ✅ Analysis complete, {len(pending)} tasks to work on")
+            
+            # MESSAGE BUS: Publish analysis complete event
+            if self.message_bus:
+                from ..messaging import MessageType
+                self.message_bus.publish(MessageType.ANALYSIS_COMPLETE, {
+                    'phase': self.phase_name,
+                    'issues_found': len(pending),
+                    'tasks_created': tasks_created + placement_tasks,
+                    'timestamp': datetime.now().isoformat()
+                })
+            
             return PhaseResult(
                 success=True,
                 phase=self.phase_name,
@@ -398,6 +453,17 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             )
         else:
             self.logger.info(f"  ✅ Analysis complete, no issues found")
+            
+            # MESSAGE BUS: Publish analysis complete event
+            if self.message_bus:
+                from ..messaging import MessageType
+                self.message_bus.publish(MessageType.ANALYSIS_COMPLETE, {
+                    'phase': self.phase_name,
+                    'issues_found': 0,
+                    'tasks_created': 0,
+                    'timestamp': datetime.now().isoformat()
+                })
+            
             return PhaseResult(
                 success=True,
                 phase=self.phase_name,
@@ -493,6 +559,17 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             PhaseResult indicating success/failure
         """
         from pipeline.state.refactoring_task import RefactoringApproach
+        
+        # MESSAGE BUS: Publish refactoring started event
+        if self.message_bus:
+            from ..messaging import MessageType
+            self.message_bus.publish(MessageType.REFACTORING_STARTED, {
+                'phase': self.phase_name,
+                'task_id': task.task_id,
+                'issue_type': task.issue_type.value,
+                'priority': task.priority.value,
+                'timestamp': datetime.now().isoformat()
+            })
         
         # Mark task as started
         task.start()
@@ -695,6 +772,18 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                     }
                 )
                 self.logger.info(f"  📝 Recorded resolution in history to prevent re-detection")
+                
+                # MESSAGE BUS: Publish refactoring complete event
+                if self.message_bus:
+                    from ..messaging import MessageType
+                    self.message_bus.publish(MessageType.REFACTORING_COMPLETE, {
+                        'phase': self.phase_name,
+                        'task_id': task.task_id,
+                        'issue_type': task.issue_type.value,
+                        'success': True,
+                        'verification_msg': verification_msg,
+                        'timestamp': datetime.now().isoformat()
+                    })
                 
                 # Update ARCHITECTURE.md if needed
                 self._update_architecture_after_task(task)
@@ -1448,6 +1537,14 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             recommendations=content
         )
         
+        # Send message to Coding for implementation if needed
+        self.send_message_to_phase('coding', {
+            'type': 'implementation_request',
+            'source': 'refactoring',
+            'description': 'Duplicate detection completed - may need consolidated implementation',
+            'priority': 'medium'
+        })
+        
         return PhaseResult(
             success=True,
             phase=self.phase_name,
@@ -1502,6 +1599,15 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             results=results,
             recommendations=content
         )
+        
+        # Send message to QA for verification
+        self.send_message_to_phase('qa', {
+            'type': 'verification_request',
+            'source': 'refactoring',
+            'description': 'Conflict resolution completed - please verify merged implementations',
+            'files': [],  # Would be populated with actual files
+            'priority': 'high'
+        })
         
         return PhaseResult(
             success=True,
@@ -1610,6 +1716,14 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             results=results,
             recommendations=content
         )
+        
+        # Send message to Coding for consolidated implementation
+        self.send_message_to_phase('coding', {
+            'type': 'implementation_request',
+            'source': 'refactoring',
+            'description': 'Feature extraction completed - need consolidated implementation',
+            'priority': 'high'
+        })
         
         return PhaseResult(
             success=True,
