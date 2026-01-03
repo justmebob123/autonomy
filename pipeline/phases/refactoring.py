@@ -165,6 +165,9 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         if optimization and optimization.get('suggestions'):
             self.logger.info(f"  💡 Optimization suggestions: {len(optimization['suggestions'])}")
         
+        # Get current task if available
+        task = state.current_task if hasattr(state, 'current_task') else None
+        
         # MESSAGE BUS: Publish phase start event
         self._publish_message('PHASE_STARTED', {
             'phase': self.phase_name,
