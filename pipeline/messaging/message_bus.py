@@ -74,7 +74,8 @@ class MessageBus:
         self.max_queue_size = 1000
         self.message_ttl = timedelta(hours=24)  # Messages expire after 24 hours
         
-        logger.info("MessageBus initialized")
+        # Only log initialization in debug mode to avoid spam
+        logger.debug("MessageBus initialized")
     
     def publish(self, message: Message) -> None:
         """

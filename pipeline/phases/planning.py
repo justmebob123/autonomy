@@ -1280,39 +1280,36 @@ Please address these architectural integration issues.
         # 1. CRITICAL: Missing components
         for component in validation.missing_components:
             task = TaskState(
-                id=f"arch_missing_{component}",
+                task_id=f"arch_missing_{component}",
                 description=f"Create missing component: {component}",
                 target_file=f"{component.replace('.', '/')}.py",
                 status=TaskStatus.NEW,
                 priority=TaskPriority.CRITICAL,
-                created_at=datetime.now(),
-                phase='planning'
+                created_at=datetime.now().isoformat()
             )
             tasks.append(task)
         
         # 2. HIGH: Misplaced components
         for issue in validation.misplaced_components:
             task = TaskState(
-                id=f"arch_misplaced_{issue.component}",
+                task_id=f"arch_misplaced_{issue.component}",
                 description=f"Move {issue.component} to correct location: {issue.expected_location}",
                 target_file=issue.current_location,
                 status=TaskStatus.NEW,
                 priority=TaskPriority.HIGH,
-                created_at=datetime.now(),
-                phase='refactoring'
+                created_at=datetime.now().isoformat()
             )
             tasks.append(task)
         
         # 3. MEDIUM: Integration gaps (limit to top 5)
         for gap in validation.integration_gaps[:5]:
             task = TaskState(
-                id=f"arch_integration_{gap.component}",
+                task_id=f"arch_integration_{gap.component}",
                 description=f"Integrate component {gap.component}: {gap.reason}",
                 target_file=f"{gap.component.replace('.', '/')}.py",
                 status=TaskStatus.NEW,
                 priority=TaskPriority.SECONDARY_FEATURES,
-                created_at=datetime.now(),
-                phase='refactoring'
+                created_at=datetime.now().isoformat()
             )
             tasks.append(task)
         
