@@ -1,4 +1,4 @@
-# 🎯 REFACTORING ANALYSIS LOOP - FIXED
+# 🎯 REFACTORING ANALYSIS LOOP - FIXED (CORRECTED)
 
 ## What Was Wrong
 
@@ -21,22 +21,27 @@ Refactoring triggered → AI reads files → AI reads more files → AI reads ev
 
 **After:**
 - System counts tool calls BEFORE execution
-- If 3+ tools used without a resolving tool → FORCE `create_issue_report`
-- Task is escalated to developer for manual review
-- Ensures tasks ALWAYS complete (either resolved or escalated)
+- If 3+ tools used without a resolving tool → FORCE `request_developer_review`
+- Task is escalated to **DEVELOPER PHASE (orchestrator)** NOT to user
+- Ensures tasks ALWAYS complete (either resolved or escalated to another phase)
 
 **Code:**
 ```python
 # Check if 3+ tools used without resolution
 if tool_call_count >= 3 and not has_resolving_tool:
-    # Override AI's tool calls with forced resolution
+    # Override AI's tool calls with forced escalation to DEVELOPER PHASE
     tool_calls = [{
         "function": {
-            "name": "create_issue_report",
+            "name": "request_developer_review",
             "arguments": {
-                "title": f"Refactoring task {task.task_id} needs manual review",
-                "description": "AI analyzed but couldn't resolve automatically",
-                "severity": "medium"
+                "task_id": task.task_id,
+                "reason": "Refactoring AI analyzed but couldn't resolve automatically",
+                "context": {
+                    "task_type": str(task.issue_type),
+                    "target_files": task.target_files,
+                    "attempts": task.attempts,
+                    "analysis_count": tool_call_count
+                }
             }
         }
     }]
@@ -86,10 +91,13 @@ Iteration 23: Refactoring triggered
   - AI reads file 1 (analysis)
   - AI reads file 2 (analysis)
   - AI reads file 3 (analysis)
-  - HARD LIMIT: 3 tools used, forcing create_issue_report
-  - Task escalated to developer ✅
+  - HARD LIMIT: 3 tools used, forcing request_developer_review
+  - Task escalated to DEVELOPER PHASE ✅
   
-Iteration 24: Returns to coding
+Iteration 24: DEVELOPER PHASE handles the task
+  - Developer phase has full coding capabilities
+  - Can implement fixes that refactoring couldn't
+  - Task gets resolved by developer phase
 ```
 
 ### Scenario 3: AI Ignores Prompt on Retry (Stronger Warning)
@@ -108,15 +116,26 @@ Iteration 25: Refactoring retry (attempt 2)
 ## What This Fixes
 
 ✅ **No more infinite analysis loops** - Hard limit ensures tasks complete
-✅ **Tasks always progress** - Either resolved or escalated
-✅ **System keeps moving** - Returns to coding after refactoring
-✅ **Developer visibility** - Failed tasks escalated with create_issue_report
+✅ **Tasks always progress** - Either resolved or escalated to DEVELOPER PHASE
+✅ **System stays autonomous** - No manual user intervention required
+✅ **Proper phase coordination** - Refactoring → Developer → Coding flow
 
 ## What This Doesn't Fix
 
 ⚠️ **AI still tries to analyze** - The AI model itself still prefers analysis over resolution
-⚠️ **Not all tasks will be resolved** - Some will be escalated to developer
+⚠️ **Not all tasks will be resolved by refactoring** - Some will be escalated to developer phase
 ⚠️ **Root cause remains** - AI model needs better training/prompting
+
+## CRITICAL CORRECTION
+
+**PREVIOUS VERSION WAS WRONG:**
+- Used `create_issue_report` which escalates to USER (manual intervention)
+- Broke the autonomous nature of the system
+
+**CORRECTED VERSION:**
+- Uses `request_developer_review` which escalates to DEVELOPER PHASE (orchestrator)
+- Keeps tasks in the autonomous system
+- Developer phase can implement fixes that refactoring couldn't
 
 ## Testing
 
@@ -129,20 +148,22 @@ python3 run.py -vv ../web/
 ```
 
 **Look for:**
-- `🚨 Task refactor_XXXX: 3 tools used without resolution, FORCING create_issue_report`
-- Tasks completing (either resolved or escalated)
+- `🚨 Task refactor_XXXX: 3 tools used without resolution, FORCING request_developer_review`
+- `📝 Escalating task refactor_XXXX to DEVELOPER PHASE (orchestrator)`
+- Tasks completing (either resolved or escalated to developer phase)
 - No infinite loops in refactoring phase
-- System returning to coding phase after refactoring
+- System continuing autonomously
 
 ## Commits
 
 - **960bc0f**: Emergency fix (disabled specialized phases)
 - **2207fdb**: Refactoring analysis loop fix (hard limits + stronger prompts)
+- **83c4932**: CORRECTED escalation to DEVELOPER PHASE not user
 
-Both pushed to `justmebob123/autonomy` main branch.
+All pushed to `justmebob123/autonomy` main branch.
 
 ---
 
-**Status**: FIXED ✅
+**Status**: FIXED ✅ (CORRECTED)
 **Date**: 2026-01-03
 **Severity**: CRITICAL
