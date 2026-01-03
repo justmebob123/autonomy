@@ -552,26 +552,9 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 message=f"Task {task.task_id}: Analysis incomplete, retry required\n{error_message}"
             )
         
-        # Execute tool calls
-        from ..handlers import ToolCallHandler
-        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry, refactoring_manager=state.refactoring_manager)
-        results = handler.process_tool_calls(tool_calls)
-        
-        # Record tool calls in analysis tracker
-        for i, tool_call in enumerate(tool_calls):
-            tool_name = tool_call.get("function", {}).get("name", "unknown")
-            arguments = tool_call.get("function", {}).get("arguments", {})
-            result = results[i] if i < len(results) else {}
-            
-            self._analysis_tracker.record_tool_call(
-                task_id=task.task_id,
-                tool_name=tool_name,
-                arguments=arguments,
-                result=result
-            )
-        
-        # Check if task was actually resolved (not just analyzed)
-        task_resolved = False
+        # CRITICAL FIX: Hard limit on analysis tools
+        # If AI has used 3+ tools without resolving, FORCE resolution
+        tool_call_count = len(tool_calls)
         
         # Tools that actually resolve issues (not just analyze)
         resolving_tools = {
@@ -593,6 +576,62 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             "modify_file",
             "create_file"
         }
+        
+        # Check if any tool call is a resolving tool
+        has_resolving_tool = any(
+            tc.get("function", {}).get("name") in resolving_tools 
+            for tc in tool_calls
+        )
+        
+        # HARD LIMIT: If 3+ tools used without resolution, FORCE create_issue_report
+        if tool_call_count >= 3 and not has_resolving_tool:
+            self.logger.warning(
+                f"🚨 Task {task.task_id}: {tool_call_count} tools used without resolution, "
+                f"FORCING create_issue_report"
+            )
+            
+            # Override AI's tool calls with forced resolution
+            tool_calls = [{
+                "function": {
+                    "name": "create_issue_report",
+                    "arguments": {
+                        "title": f"Refactoring task {task.task_id} needs manual review",
+                        "description": (
+                            f"AI analyzed but couldn't resolve automatically:\n\n"
+                            f"Task: {task.title}\n"
+                            f"Type: {task.issue_type}\n"
+                            f"Files: {', '.join(task.target_files) if task.target_files else 'None'}\n\n"
+                            f"The AI performed {tool_call_count} analysis operations but didn't "
+                            f"use a resolution tool. This task requires manual developer review."
+                        ),
+                        "severity": "medium",
+                        "files_affected": task.target_files if task.target_files else []
+                    }
+                }
+            }]
+            
+            self.logger.info(f"  📝 Escalating task {task.task_id} to developer for manual review")
+        
+        # Execute tool calls
+        from ..handlers import ToolCallHandler
+        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry, refactoring_manager=state.refactoring_manager)
+        results = handler.process_tool_calls(tool_calls)
+        
+        # Record tool calls in analysis tracker
+        for i, tool_call in enumerate(tool_calls):
+            tool_name = tool_call.get("function", {}).get("name", "unknown")
+            arguments = tool_call.get("function", {}).get("arguments", {})
+            result = results[i] if i < len(results) else {}
+            
+            self._analysis_tracker.record_tool_call(
+                task_id=task.task_id,
+                tool_name=tool_name,
+                arguments=arguments,
+                result=result
+            )
+        
+        # Check if task was actually resolved (not just analyzed)
+        task_resolved = False
         
         for result in results:
             if result.get("success"):
@@ -1608,10 +1647,28 @@ merge_file_implementations(
             # Step 5: FORCE RESOLUTION - Analysis is complete!
             step_num = 5
             
+            # CRITICAL: Make prompt even MORE forceful on retry attempts
+            attempt_warning = ""
+            if task.attempts >= 2:
+                attempt_warning = f"""
+╔═══════════════════════════════════════════════════════════════╗
+║  THIS IS ATTEMPT {task.attempts} - YOU MUST RESOLVE NOW!                    ║
+║  You have FAILED {task.attempts - 1} times to resolve this task.            ║
+║  You keep ANALYZING instead of RESOLVING.                     ║
+║  NO MORE READING FILES                                        ║
+║  NO MORE COMPARING FILES                                      ║
+║  NO MORE ANALYSIS OF ANY KIND                                 ║
+║  USE A RESOLUTION TOOL IN YOUR NEXT RESPONSE                  ║
+║  OR THIS TASK WILL BE MARKED AS FAILED                        ║
+╚═══════════════════════════════════════════════════════════════╝
+"""
+            
             # CRITICAL: Return a completely different prompt that FORBIDS analysis
             return f"""🚨 CRITICAL: ANALYSIS COMPLETE - TAKE ACTION NOW! 🚨
 
 {context}
+
+{attempt_warning}
 
 ═══════════════════════════════════════════════════════════════
 ⛔ ANALYSIS PHASE IS COMPLETE ⛔
