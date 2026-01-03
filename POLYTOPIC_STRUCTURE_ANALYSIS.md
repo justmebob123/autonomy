@@ -71,13 +71,13 @@
 - **coding.py**: 441 lines 🔴 LARGE
 - **qa.py**: 390 lines 🔴 LARGE
 - **debugging.py**: 380 lines 🔴 LARGE
-- **planning.py**: 337 lines 🔴 LARGE
-- **project_planning.py**: 309 lines 🔴 LARGE
-- **documentation.py**: 260 lines 🔴 LARGE
+- **planning.py**: 346 lines 🔴 LARGE
+- **project_planning.py**: 318 lines 🔴 LARGE
+- **documentation.py**: 269 lines 🔴 LARGE
 - **role_design.py**: 235 lines 🔴 LARGE
 - **prompt_design.py**: 221 lines 🔴 LARGE
 - **tool_evaluation.py**: 197 lines 🟡 MEDIUM
-- **investigation.py**: 168 lines 🟡 MEDIUM
+- **investigation.py**: 178 lines 🟡 MEDIUM
 - **refactoring.py**: 146 lines 🟡 MEDIUM
 - **prompt_improvement.py**: 108 lines 🟡 MEDIUM
 - **role_improvement.py**: 108 lines 🟡 MEDIUM
@@ -89,11 +89,14 @@
 
 ### Engine Integration Scores (0-6)
 
+- **documentation.py**: 2/6 🟡 PARTIAL
 - **qa.py**: 2/6 🟡 PARTIAL
+- **project_planning.py**: 2/6 🟡 PARTIAL
+- **planning.py**: 2/6 🟡 PARTIAL
+- **investigation.py**: 2/6 🟡 PARTIAL
 - **refactoring.py**: 2/6 🟡 PARTIAL
 - **debugging.py**: 2/6 🟡 PARTIAL
 - **coding.py**: 1/6 🔴 MINIMAL
-- **planning.py**: 1/6 🔴 MINIMAL
 - **base.py**: 1/6 🔴 MINIMAL
 - **prompt_improvement.py**: 0/6 🔴 MINIMAL
 - **tool_evaluation.py**: 0/6 🔴 MINIMAL
@@ -101,27 +104,24 @@
 - **tool_design.py**: 0/6 🔴 MINIMAL
 - **role_design.py**: 0/6 🔴 MINIMAL
 - **prompt_design.py**: 0/6 🔴 MINIMAL
-- **documentation.py**: 0/6 🔴 MINIMAL
 - **phase_builder.py**: 0/6 🔴 MINIMAL
 - **analysis_orchestrator.py**: 0/6 🔴 MINIMAL
 - **phase_dependencies.py**: 0/6 🔴 MINIMAL
 - **refactoring_context_builder.py**: 0/6 🔴 MINIMAL
-- **project_planning.py**: 0/6 🔴 MINIMAL
-- **investigation.py**: 0/6 🔴 MINIMAL
 - **role_improvement.py**: 0/6 🔴 MINIMAL
 - **prompt_builder.py**: 0/6 🔴 MINIMAL
 
 ### BasePhase Method Usage
 
+- **documentation.py**: 2 methods ✅ GOOD
 - **qa.py**: 2 methods ✅ GOOD
 - **coding.py**: 2 methods ✅ GOOD
+- **project_planning.py**: 2 methods ✅ GOOD
+- **planning.py**: 2 methods ✅ GOOD
+- **investigation.py**: 2 methods ✅ GOOD
 - **refactoring.py**: 2 methods ✅ GOOD
 - **debugging.py**: 2 methods ✅ GOOD
 - **tool_design.py**: 1 methods 🟡 MINIMAL
-- **documentation.py**: 1 methods 🟡 MINIMAL
-- **project_planning.py**: 1 methods 🟡 MINIMAL
-- **planning.py**: 1 methods 🟡 MINIMAL
-- **investigation.py**: 1 methods 🟡 MINIMAL
 - **prompt_improvement.py**: 0 methods 🔴 NONE
 - **tool_evaluation.py**: 0 methods 🔴 NONE
 - **loop_detection_mixin.py**: 0 methods 🔴 NONE
@@ -202,10 +202,10 @@
 
 **Methods**: 9
 
-**Message Bus**: ❌ Not used
-**Adaptive Prompts**: ❌ Not used
+**Message Bus**: ✅ 1 calls
+**Adaptive Prompts**: ✅ 1 calls
 **Pattern Recognition**: ❌ Not used
-**BasePhase Methods**: send_message_to_phase
+**BasePhase Methods**: send_message_to_phase, update_system_prompt_with_adaptation
 
 
 ### investigation.py
@@ -216,10 +216,10 @@
 
 **Methods**: 8
 
-**Message Bus**: ❌ Not used
-**Adaptive Prompts**: ❌ Not used
+**Message Bus**: ✅ 1 calls
+**Adaptive Prompts**: ✅ 1 calls
 **Pattern Recognition**: ❌ Not used
-**BasePhase Methods**: send_message_to_phase
+**BasePhase Methods**: send_message_to_phase, update_system_prompt_with_adaptation
 
 
 ### loop_detection_mixin.py
@@ -273,9 +273,9 @@
 **Methods**: 16
 
 **Message Bus**: ✅ 2 calls
-**Adaptive Prompts**: ❌ Not used
+**Adaptive Prompts**: ✅ 1 calls
 **Pattern Recognition**: ❌ Not used
-**BasePhase Methods**: send_message_to_phase
+**BasePhase Methods**: send_message_to_phase, update_system_prompt_with_adaptation
 
 
 ### project_planning.py
@@ -286,10 +286,10 @@
 
 **Methods**: 14
 
-**Message Bus**: ❌ Not used
-**Adaptive Prompts**: ❌ Not used
+**Message Bus**: ✅ 1 calls
+**Adaptive Prompts**: ✅ 1 calls
 **Pattern Recognition**: ❌ Not used
-**BasePhase Methods**: send_message_to_phase
+**BasePhase Methods**: send_message_to_phase, update_system_prompt_with_adaptation
 
 
 ### prompt_builder.py
@@ -443,15 +443,11 @@
 - **tool_design.py**: Add message_bus and adaptive_prompts integration
 - **role_design.py**: Add message_bus and adaptive_prompts integration
 - **prompt_design.py**: Add message_bus and adaptive_prompts integration
-- **documentation.py**: Add message_bus and adaptive_prompts integration
 - **phase_builder.py**: Add message_bus and adaptive_prompts integration
 - **coding.py**: Add message_bus and adaptive_prompts integration
 - **analysis_orchestrator.py**: Add message_bus and adaptive_prompts integration
 - **phase_dependencies.py**: Add message_bus and adaptive_prompts integration
 - **refactoring_context_builder.py**: Add message_bus and adaptive_prompts integration
-- **project_planning.py**: Add message_bus and adaptive_prompts integration
-- **planning.py**: Add message_bus and adaptive_prompts integration
-- **investigation.py**: Add message_bus and adaptive_prompts integration
 - **role_improvement.py**: Add message_bus and adaptive_prompts integration
 - **base.py**: Add message_bus and adaptive_prompts integration
 - **prompt_builder.py**: Add message_bus and adaptive_prompts integration
@@ -460,11 +456,11 @@
 
 - **role_design.py**: Break down execute() method (235 lines)
 - **prompt_design.py**: Break down execute() method (221 lines)
-- **documentation.py**: Break down execute() method (260 lines)
+- **documentation.py**: Break down execute() method (269 lines)
 - **qa.py**: Break down execute() method (390 lines)
 - **coding.py**: Break down execute() method (441 lines)
-- **project_planning.py**: Break down execute() method (309 lines)
-- **planning.py**: Break down execute() method (337 lines)
+- **project_planning.py**: Break down execute() method (318 lines)
+- **planning.py**: Break down execute() method (346 lines)
 - **debugging.py**: Break down execute() method (380 lines)
 
 ### Phases Not Using BasePhase Integration:

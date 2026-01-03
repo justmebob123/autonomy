@@ -54,10 +54,30 @@ class InvestigationPhase(BasePhase):
         self.antipattern_detector = AntiPatternDetector(str(self.project_dir), self.logger)
         self.dataflow_analyzer = DataFlowAnalyzer(str(self.project_dir), self.logger)
         
+        # MESSAGE BUS: Subscribe to relevant events
+        if self.message_bus:
+            from ..messaging import MessageType
+            self._subscribe_to_messages([
+                MessageType.ISSUE_FOUND,
+                MessageType.DEBUG_STARTED,
+                MessageType.SYSTEM_ALERT,
+            ])
+            self.logger.info("  📡 Message bus subscriptions configured")
+        
         self.logger.info("  🔍 Investigation phase initialized with ALL analysis capabilities and IPC integration")
     
     def execute(self, state: PipelineState,
                 issue: Dict = None, **kwargs) -> PhaseResult:
+        """Execute investigation phase"""
+        
+        # ADAPTIVE PROMPTS: Update system prompt based on recent investigations
+        if self.adaptive_prompts:
+            self.update_system_prompt_with_adaptation({
+                'state': state,
+                'phase': self.phase_name,
+                'recent_investigations': [],  # Could track recent investigations
+                'recent_issues': state.get_recent_issues(self.phase_name, limit=5) if hasattr(state, 'get_recent_issues') else []
+            })
         """Execute investigation for an issue"""
         
         # ARCHITECTURE INTEGRATION: Read architecture for design context

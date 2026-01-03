@@ -66,6 +66,15 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """Execute the planning phase with full architecture and IPC integration"""
         
+        # ADAPTIVE PROMPTS: Update system prompt based on recent planning performance
+        if self.adaptive_prompts:
+            self.update_system_prompt_with_adaptation({
+                'state': state,
+                'phase': self.phase_name,
+                'recent_objectives': state.get_recent_objectives(limit=5) if hasattr(state, 'get_recent_objectives') else [],
+                'recent_issues': state.get_recent_issues(self.phase_name, limit=5) if hasattr(state, 'get_recent_issues') else []
+            })
+        
         # ========== INTEGRATION: READ ARCHITECTURE AND OBJECTIVES ==========
         # Read architecture to understand project structure
         architecture = self._read_architecture()

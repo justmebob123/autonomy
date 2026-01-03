@@ -43,12 +43,32 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         self.architecture_config = get_architecture_config(self.project_dir)
         self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
         
+        # MESSAGE BUS: Subscribe to relevant events
+        if self.message_bus:
+            from ..messaging import MessageType
+            self._subscribe_to_messages([
+                MessageType.TASK_COMPLETED,
+                MessageType.FILE_CREATED,
+                MessageType.FILE_MODIFIED,
+                MessageType.ARCHITECTURE_CHANGE,
+            ])
+            self.logger.info("  📡 Message bus subscriptions configured")
+        
         self.logger.info("  📝 Documentation phase initialized with IPC integration")
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """Execute documentation phase"""
         
         self.logger.info("  📝 Reviewing documentation...")
+        
+        # ADAPTIVE PROMPTS: Update system prompt based on recent documentation updates
+        if self.adaptive_prompts:
+            self.update_system_prompt_with_adaptation({
+                'state': state,
+                'phase': self.phase_name,
+                'recent_updates': [],  # Could track recent doc updates
+                'recent_issues': state.get_recent_issues(self.phase_name, limit=5) if hasattr(state, 'get_recent_issues') else []
+            })
         
         # ARCHITECTURE INTEGRATION: Read architecture for documentation context
         architecture = self._read_architecture()
