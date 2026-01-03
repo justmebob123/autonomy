@@ -927,19 +927,35 @@ class PhaseCoordinator:
         Returns:
             Phase name ('tool_design', 'prompt_improvement', 'role_design') or None
         """
-        # Check for failure loops first (highest priority)
-        loop_info = self._detect_failure_loop(state)
-        if loop_info:
-            self.logger.info(f"🎯 Activating {loop_info['suggested_action']} to break failure loop")
-            return loop_info['suggested_action']
-        
-        # Check for capability gaps
-        gap = self._detect_capability_gap(state, last_result)
-        if gap:
-            self.logger.info(f"🎯 Activating {gap} to fill capability gap")
-            return gap
-        
+        # EMERGENCY FIX: Disable specialized phase activation entirely
+        # These phases are causing infinite loops (tool_design fails → loop detection → 
+        # suggests tool_design → infinite loop). Specialized phases should only be 
+        # manually invoked, not automatically activated.
+        # 
+        # Root cause: Loop detection suggests the SAME phase that's failing, creating
+        # an infinite loop. Until we fix the root cause (blacklisting, better detection),
+        # we disable this feature entirely.
+        #
+        # TODO: Re-enable with proper safeguards:
+        # 1. Blacklist phases that have 20+ consecutive failures
+        # 2. Don't suggest a phase that's currently failing
+        # 3. Add cooldown period after specialized phase failures
         return None
+        
+        # DISABLED CODE BELOW - kept for reference
+        # # Check for failure loops first (highest priority)
+        # loop_info = self._detect_failure_loop(state)
+        # if loop_info:
+        #     self.logger.info(f"🎯 Activating {loop_info['suggested_action']} to break failure loop")
+        #     return loop_info['suggested_action']
+        # 
+        # # Check for capability gaps
+        # gap = self._detect_capability_gap(state, last_result)
+        # if gap:
+        #     self.logger.info(f"🎯 Activating {gap} to fill capability gap")
+        #     return gap
+        # 
+        # return None
 
     def _develop_tool(self, tool_name: str, tool_args: dict, 
                      usage_context: dict, state: PipelineState) -> 'PhaseResult':
