@@ -1310,7 +1310,7 @@ Please address these architectural integration issues.
                 description=f"Integrate component {gap.component}: {gap.reason}",
                 target_file=f"{gap.component.replace('.', '/')}.py",
                 status=TaskStatus.NEW,
-                priority=TaskPriority.MEDIUM,
+                priority=TaskPriority.SECONDARY_FEATURES,
                 created_at=datetime.now(),
                 phase='refactoring'
             )
