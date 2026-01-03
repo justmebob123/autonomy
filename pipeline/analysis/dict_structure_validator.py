@@ -30,6 +30,16 @@ class DictStructureError:
     severity: str
 
 
+
+# Polytopic Integration Imports
+from pipeline.messaging.message_bus import MessageBus, Message, MessageType, MessagePriority
+from pipeline.pattern_recognition import PatternRecognitionSystem
+from pipeline.correlation_engine import CorrelationEngine
+from pipeline.analytics.optimizer import OptimizationEngine
+from pipeline.adaptive_prompts import AdaptivePromptSystem
+from pipeline.polytopic.dimensional_space import DimensionalSpace
+
+
 class DictStructureValidator:
     """Validates dictionary access patterns against known structures."""
     
@@ -37,7 +47,22 @@ class DictStructureValidator:
         self.project_root = Path(project_root)
         self.errors: List[DictStructureError] = []
         self.known_structures: Dict[str, Dict] = {}
-        self.instance_vars: Dict[str, Dict[str, Dict]] = {}  # class_name -> {var_name: structure}
+        self.instance_vars: Dict[str, Dict[str, Dict]] = {}
+        
+        # Polytopic Integration
+        self.message_bus = MessageBus()
+        self.pattern_recognition = PatternRecognitionSystem(self.project_root)
+        self.correlation_engine = CorrelationEngine()
+        self.optimizer = OptimizationEngine()
+        self.adaptive_prompts = AdaptivePromptSystem(
+            self.project_root,
+            self.pattern_recognition
+        )
+        self.dimensional_space = DimensionalSpace()
+        
+        # Subscribe to file change events for real-time validation
+        # Note: Using existing message types from the system
+  # class_name -> {var_name: structure}
         
     def validate_all(self) -> Dict:
         """
@@ -57,7 +82,10 @@ class DictStructureValidator:
                 continue
             self._validate_file(py_file)
         
-        return {
+        
+        
+        # Build result dict first
+        result = {
             'errors': [
                 {
                     'file': err.file,
@@ -76,6 +104,19 @@ class DictStructureValidator:
             'by_severity': self._count_by_severity(),
             'by_type': self._count_by_type()
         }
+        
+        # Polytopic Integration: Record patterns and optimize
+        self._record_validation_pattern(self.errors)
+        self._optimize_validation(result)
+        
+        # Publish validation completed event
+        self._publish_validation_event('validation_completed', {
+            'total_errors': result['total_errors'],
+            'by_severity': result['by_severity'],
+            'structures_analyzed': result['structures_analyzed']
+        })
+        
+        return result
     
     def _collect_dict_structures(self):
         """Collect dictionary structures from return statements, assignments, and instance vars."""
@@ -466,3 +507,105 @@ class DictStructureValidator:
         for err in self.errors:
             counts[err.error_type] = counts.get(err.error_type, 0) + 1
         return counts
+    
+    def _publish_validation_event(self, event_type: str, payload: dict):
+        """Publish validation events using existing message types."""
+        # Map validation events to existing system message types
+        message_type_map = {
+            'validation_started': MessageType.SYSTEM_INFO,
+            'validation_completed': MessageType.SYSTEM_INFO,
+            'validation_error': MessageType.SYSTEM_WARNING,
+            'validation_critical': MessageType.SYSTEM_ALERT,
+            'validation_insight': MessageType.SYSTEM_INFO,
+        }
+        
+        message_type = message_type_map.get(event_type, MessageType.SYSTEM_INFO)
+        
+        message = Message(
+            sender='DictStructureValidator',
+            recipient='ALL',
+            message_type=message_type,
+            priority=MessagePriority.NORMAL,
+            payload={
+                'event': event_type,
+                'validator': 'dict_structure',
+                **payload
+            }
+        )
+        
+        self.message_bus.publish(message)
+    
+    def _record_validation_pattern(self, errors: list):
+        """Record validation patterns for learning."""
+        if not errors:
+            return
+        
+        # Record execution data for pattern recognition
+        execution_data = {
+            'phase': 'validation',
+            'tool': 'dict_structure_validator',
+            'success': len([e for e in errors if (e.severity if hasattr(e, 'severity') else e.get('severity')) == 'high']) == 0,
+            'error_count': len(errors),
+            'timestamp': str(Path.cwd())  # Use as context
+        }
+        
+        self.pattern_recognition.record_execution(execution_data)
+        
+        # Add findings to correlation engine
+        for error in errors:
+            # Handle both dict and DictStructureError objects
+            if isinstance(error, dict):
+                component = error['file']
+                finding = {
+                    'type': 'dict_validation_error',
+                    'error_type': error['error_type'],
+                    'severity': error['severity'],
+                    'variable': error['variable'],
+                    'key_path': error['key_path']
+                }
+            else:
+                # DictStructureError object
+                component = error.file
+                finding = {
+                    'type': 'dict_validation_error',
+                    'error_type': error.error_type,
+                    'severity': error.severity,
+                    'variable': error.variable,
+                    'key_path': error.key_path
+                }
+            
+            self.correlation_engine.add_finding(component, finding)
+        
+        # Find correlations
+        correlations = self.correlation_engine.correlate()
+        
+        if correlations:
+            # Publish correlation insights
+            self._publish_validation_event('validation_insight', {
+                'type': 'validation_correlations',
+                'correlations': correlations
+            })
+    
+    def _optimize_validation(self, result: dict):
+        """Optimize validation based on results."""
+        # Record quality metrics for optimization
+        self.optimizer.record_quality_metric(
+            'dict_structure_errors',
+            result['total_errors']
+        )
+        
+        self.optimizer.record_quality_metric(
+            'dict_structure_high_severity',
+            result['by_severity']['high']
+        )
+        
+        # Track in dimensional space (if it has the right methods)
+        try:
+            if hasattr(self.dimensional_space, 'record_metric'):
+                self.dimensional_space.record_metric(
+                    dimension='validation_quality',
+                    metric='dict_structure_errors',
+                    value=result['total_errors']
+                )
+        except Exception:
+            pass  # Dimensional space may not support this yet
