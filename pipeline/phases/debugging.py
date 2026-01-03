@@ -524,7 +524,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             self.logger.debug(f"  💡 Optimization suggestions available")
         
         # MESSAGE BUS: Publish phase start event
-        self.publish_event('PHASE_STARTED', {
+        self._publish_message('PHASE_STARTED', {
             'phase': self.phase_name,
             'timestamp': datetime.now().isoformat(),
             'issue': issue.get('description') if issue else None,
@@ -1843,7 +1843,7 @@ Apply the fix immediately.""",
                 state.files[filepath].qa_status = FileStatus.PENDING
             
             # MESSAGE BUS: Publish phase completion (success)
-            self.publish_event('PHASE_COMPLETED', {
+            self._publish_message('PHASE_COMPLETED', {
                 'phase': self.phase_name,
                 'timestamp': datetime.now().isoformat(),
                 'success': True,
@@ -1876,7 +1876,7 @@ Apply the fix immediately.""",
             )
         else:
             # MESSAGE BUS: Publish phase completion (failure)
-            self.publish_event('PHASE_COMPLETED', {
+            self._publish_message('PHASE_COMPLETED', {
                 'phase': self.phase_name,
                 'timestamp': datetime.now().isoformat(),
                 'success': False,

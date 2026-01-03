@@ -92,7 +92,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         })
         
         # MESSAGE BUS: Publish phase start event
-        self.publish_event('PHASE_STARTED', {
+        self._publish_message('PHASE_STARTED', {
             'phase': self.phase_name,
             'timestamp': datetime.now().isoformat(),
             'filepath': filepath,
@@ -291,7 +291,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 task.completed = datetime.now().isoformat()
             
             # MESSAGE BUS: Publish phase completion (approved)
-            self.publish_event('PHASE_COMPLETED', {
+            self._publish_message('PHASE_COMPLETED', {
                 'phase': self.phase_name,
                 'timestamp': datetime.now().isoformat(),
                 'success': True,
@@ -458,7 +458,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             })
             
             # MESSAGE BUS: Publish phase completion (issues found)
-            self.publish_event('PHASE_COMPLETED', {
+            self._publish_message('PHASE_COMPLETED', {
                 'phase': self.phase_name,
                 'timestamp': datetime.now().isoformat(),
                 'success': True,

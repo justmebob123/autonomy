@@ -81,7 +81,7 @@ class PromptDesignPhase(LoopDetectionMixin, BasePhase):
         optimization = self.get_optimization_suggestion()
         
         # MESSAGE BUS: Publish phase start event
-        self.publish_event('PHASE_STARTED', {
+        self._publish_message('PHASE_STARTED', {
             'phase': self.phase_name,
             'timestamp': datetime.now().isoformat(),
             'correlations': correlations,
@@ -265,7 +265,7 @@ class PromptDesignPhase(LoopDetectionMixin, BasePhase):
                         )
                     
                     # MESSAGE BUS: Publish phase completion
-                    self.publish_event('PHASE_COMPLETED', {
+                    self._publish_message('PHASE_COMPLETED', {
                         'phase': self.phase_name,
                         'timestamp': datetime.now().isoformat(),
                         'success': True,

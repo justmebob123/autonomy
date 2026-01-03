@@ -97,7 +97,7 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
         optimization = self.get_optimization_suggestion()
         
         # MESSAGE BUS: Publish phase start event
-        self.publish_event('PHASE_STARTED', {
+        self._publish_message('PHASE_STARTED', {
             'phase': self.phase_name,
             'timestamp': datetime.now().isoformat(),
             'correlations': correlations,
@@ -182,7 +182,7 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
         
         else:
             # MESSAGE BUS: Publish phase completion (failure)
-            self.publish_event('PHASE_COMPLETED', {
+            self._publish_message('PHASE_COMPLETED', {
                 'phase': self.phase_name,
                 'timestamp': datetime.now().isoformat(),
                 'success': False
@@ -236,7 +236,7 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
         self.logger.info(f"✓ Tool '{analysis.existing_tool_name}' already exists - no action needed")
         
         # MESSAGE BUS: Publish phase completion
-        self.publish_event('PHASE_COMPLETED', {
+        self._publish_message('PHASE_COMPLETED', {
             'phase': self.phase_name,
             'timestamp': datetime.now().isoformat(),
             'success': True,

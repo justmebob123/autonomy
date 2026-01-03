@@ -80,7 +80,7 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
         optimization = self.get_optimization_suggestion()
         
         # MESSAGE BUS: Publish phase start event
-        self.publish_event('PHASE_STARTED', {
+        self._publish_message('PHASE_STARTED', {
             'phase': self.phase_name,
             'timestamp': datetime.now().isoformat(),
             'correlations': correlations,
@@ -124,7 +124,7 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
             self.logger.info("  No custom prompts found to improve")
             
             # MESSAGE BUS: Publish phase completion
-            self.publish_event('PHASE_COMPLETED', {
+            self._publish_message('PHASE_COMPLETED', {
                 'phase': self.phase_name,
                 'timestamp': datetime.now().isoformat(),
                 'success': True,
@@ -140,7 +140,7 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
         self.logger.info(f"  Found {len(custom_prompts)} custom prompts to analyze")
         
         # MESSAGE BUS: Publish analysis start
-        self.publish_event('ANALYSIS_STARTED', {
+        self._publish_message('ANALYSIS_STARTED', {
             'phase': self.phase_name,
             'timestamp': datetime.now().isoformat(),
             'prompts_count': len(custom_prompts)
@@ -169,7 +169,7 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
                 self.logger.info(f"    ✅ Prompt improved")
                 
                 # MESSAGE BUS: Publish improvement event
-                self.publish_event('PROMPT_IMPROVED', {
+                self._publish_message('PROMPT_IMPROVED', {
                     'phase': self.phase_name,
                     'prompt_name': prompt_name,
                     'timestamp': datetime.now().isoformat()
@@ -228,7 +228,7 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
             )
         
         # MESSAGE BUS: Publish phase completion
-        self.publish_event('PHASE_COMPLETED', {
+        self._publish_message('PHASE_COMPLETED', {
             'phase': self.phase_name,
             'timestamp': datetime.now().isoformat(),
             'success': True,

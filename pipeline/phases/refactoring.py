@@ -166,7 +166,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             self.logger.info(f"  💡 Optimization suggestions: {len(optimization['suggestions'])}")
         
         # MESSAGE BUS: Publish phase start event
-        self.publish_event('PHASE_STARTED', {
+        self._publish_message('PHASE_STARTED', {
             'phase': self.phase_name,
             'timestamp': datetime.now().isoformat(),
             'task_id': task.task_id if task else None,
@@ -2069,7 +2069,7 @@ Please select ONE reliable tool and try again."""
         next_phase = "refactoring"  # Continue refactoring to work on tasks
         
         # MESSAGE BUS: Publish phase completion
-        self.publish_event('PHASE_COMPLETED', {
+        self._publish_message('PHASE_COMPLETED', {
             'phase': self.phase_name,
             'timestamp': datetime.now().isoformat(),
             'success': True,

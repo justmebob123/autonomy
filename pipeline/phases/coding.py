@@ -93,7 +93,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
             self.logger.debug(f"  💡 Optimization suggestions available")
         
         # MESSAGE BUS: Publish phase start event
-        self.publish_event('PHASE_STARTED', {
+        self._publish_message('PHASE_STARTED', {
             'phase': self.phase_name,
             'timestamp': datetime.now().isoformat(),
             'task_id': task.task_id if task else None,
@@ -531,7 +531,7 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
             })
         
         # MESSAGE BUS: Publish phase completion
-        self.publish_event('PHASE_COMPLETED', {
+        self._publish_message('PHASE_COMPLETED', {
             'phase': self.phase_name,
             'timestamp': datetime.now().isoformat(),
             'success': True,
