@@ -500,6 +500,14 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                 task: TaskState = None, **kwargs) -> PhaseResult:
         """Execute debugging for an issue"""
         
+        # ADAPTIVE PROMPTS: Update system prompt based on recent debugging performance
+        if self.adaptive_prompts:
+            self.update_system_prompt_with_adaptation({
+                'state': state,
+                'phase': self.phase_name,
+                'recent_fixes': [t for t in state.tasks.values() if t.status == TaskStatus.COMPLETED and 'debug' in t.task_id.lower()][-5:] if state.tasks else []
+            })
+        
         # ARCHITECTURE INTEGRATION: Read architecture for design context
         architecture = self._read_architecture()
         if architecture:

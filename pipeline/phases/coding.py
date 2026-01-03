@@ -59,6 +59,14 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 task: TaskState = None, **kwargs) -> PhaseResult:
         """Execute the coding phase with full architecture and IPC integration"""
         
+        # ADAPTIVE PROMPTS: Update system prompt based on recent performance
+        if self.adaptive_prompts:
+            self.update_system_prompt_with_adaptation({
+                'state': state,
+                'phase': self.phase_name,
+                'recent_tasks': [t for t in state.tasks.values() if t.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]][-5:] if state.tasks else []
+            })
+        
         # ========== INTEGRATION: READ ARCHITECTURE AND OBJECTIVES ==========
         # Read architecture to understand where files should be placed
         architecture = self._read_architecture()
