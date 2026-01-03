@@ -69,6 +69,14 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 task: TaskState = None, **kwargs) -> PhaseResult:
         """Execute QA review for a file or task"""
         
+        # ADAPTIVE PROMPTS: Update system prompt based on recent performance
+        if self.adaptive_prompts:
+            self.update_system_prompt_with_adaptation({
+                'state': state,
+                'phase': self.phase_name,
+                'recent_issues': state.get_recent_issues(self.phase_name, limit=5) if hasattr(state, 'get_recent_issues') else []
+            })
+        
         # Initialize context
         context = self._initialize_qa_context(state, filepath, task)
         
