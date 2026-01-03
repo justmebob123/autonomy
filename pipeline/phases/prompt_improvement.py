@@ -173,6 +173,13 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
                     'success': True,
                     'timestamp': datetime.now().isoformat()
                 })
+                
+                # ANALYTICS: Track improvement metric
+                self.track_phase_metric({
+                    'metric': 'prompt_improved',
+                    'prompt_name': prompt_name,
+                    'phase': self.phase_name
+                })
             else:
                 self.logger.info(f"    ℹ️  Prompt already optimal")
                 
@@ -228,6 +235,15 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
             'improved': improved,
             'success': True,
             'timestamp': datetime.now().isoformat()
+        })
+        
+        # ANALYTICS: Track phase completion metrics
+        self.track_phase_metric({
+            'metric': 'phase_complete',
+            'total_prompts': len(custom_prompts),
+            'improved': improved,
+            'unchanged': unchanged,
+            'success_rate': improved / len(custom_prompts) if len(custom_prompts) > 0 else 0
         })
         
         return PhaseResult(

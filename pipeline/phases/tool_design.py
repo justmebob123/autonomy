@@ -243,6 +243,13 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
             'timestamp': datetime.now().isoformat()
         })
         
+        # ANALYTICS: Track tool usage metric
+        self.track_phase_metric({
+            'metric': 'tool_reused',
+            'tool_name': analysis.existing_tool_name,
+            'action': 'use_existing'
+        })
+        
         return PhaseResult(
             success=True,
             phase=self.phase_name,

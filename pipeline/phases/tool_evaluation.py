@@ -282,6 +282,15 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
             'timestamp': datetime.now().isoformat()
         })
         
+        # ANALYTICS: Track phase completion metrics
+        self.track_phase_metric({
+            'metric': 'phase_complete',
+            'success_rate': success_rate,
+            'tests_passed': len(evaluation.get('tests_passed', [])),
+            'tests_failed': len(evaluation.get('tests_failed', [])),
+            'tool_name': evaluation.get('tool_name', 'unknown')
+        })
+        
         return PhaseResult(
             success=True,
             phase=self.phase_name,

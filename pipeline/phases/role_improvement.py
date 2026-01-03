@@ -181,6 +181,15 @@ class RoleImprovementPhase(LoopDetectionMixin, BasePhase):
             'timestamp': datetime.now().isoformat()
         })
         
+        # ANALYTICS: Track phase completion metrics
+        self.track_phase_metric({
+            'metric': 'phase_complete',
+            'total_roles': len(custom_roles),
+            'improved': improved,
+            'unchanged': unchanged,
+            'success_rate': improved / len(custom_roles) if len(custom_roles) > 0 else 0
+        })
+        
         return PhaseResult(
             success=True,
             phase=self.phase_name,

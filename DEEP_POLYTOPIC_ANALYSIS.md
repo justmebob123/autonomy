@@ -7,7 +7,7 @@
 ## 📊 Executive Summary
 
 - **Total Phases Analyzed**: 20
-- **Average Integration Score**: 3.90/6
+- **Average Integration Score**: 4.20/6
 - **Improvement Opportunities**: 32
 - **Symbol Table Size**: 4259 components
 
@@ -26,15 +26,15 @@
 | planning | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | project_planning | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | prompt_builder | 0/6 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| prompt_design | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| prompt_improvement | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| prompt_design | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| prompt_improvement | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | qa | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | refactoring | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | refactoring_context_builder | 0/6 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| role_design | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| role_improvement | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| tool_design | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| tool_evaluation | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| role_design | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| role_improvement | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| tool_design | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| tool_evaluation | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ## 🔗 Integration Patterns
 
@@ -444,26 +444,26 @@
 
 ### prompt_design
 
-- **Integration Score**: 5/6
+- **Integration Score**: 6/6
 - **Methods**: 3
 - **Message Bus Calls**: 2
 - **Adaptive Prompts Calls**: 1
 - **Pattern Recognition Calls**: 1
 - **Correlation Calls**: 1
-- **Analytics Calls**: 0
+- **Analytics Calls**: 1
 - **Optimizer Calls**: 1
 - **Cross-Phase Calls**: 0
 - **Dimension Awareness**: 0
 
 ### prompt_improvement
 
-- **Integration Score**: 5/6
+- **Integration Score**: 6/6
 - **Methods**: 8
 - **Message Bus Calls**: 5
 - **Adaptive Prompts Calls**: 1
 - **Pattern Recognition Calls**: 4
 - **Correlation Calls**: 1
-- **Analytics Calls**: 0
+- **Analytics Calls**: 2
 - **Optimizer Calls**: 1
 - **Cross-Phase Calls**: 0
 - **Dimension Awareness**: 0
@@ -509,52 +509,52 @@
 
 ### role_design
 
-- **Integration Score**: 5/6
+- **Integration Score**: 6/6
 - **Methods**: 3
 - **Message Bus Calls**: 2
 - **Adaptive Prompts Calls**: 1
 - **Pattern Recognition Calls**: 1
 - **Correlation Calls**: 1
-- **Analytics Calls**: 0
+- **Analytics Calls**: 1
 - **Optimizer Calls**: 1
 - **Cross-Phase Calls**: 0
 - **Dimension Awareness**: 0
 
 ### role_improvement
 
-- **Integration Score**: 5/6
+- **Integration Score**: 6/6
 - **Methods**: 10
 - **Message Bus Calls**: 2
 - **Adaptive Prompts Calls**: 1
 - **Pattern Recognition Calls**: 1
 - **Correlation Calls**: 1
-- **Analytics Calls**: 0
+- **Analytics Calls**: 1
 - **Optimizer Calls**: 1
 - **Cross-Phase Calls**: 0
 - **Dimension Awareness**: 0
 
 ### tool_design
 
-- **Integration Score**: 5/6
+- **Integration Score**: 6/6
 - **Methods**: 12
 - **Message Bus Calls**: 3
 - **Adaptive Prompts Calls**: 1
 - **Pattern Recognition Calls**: 2
 - **Correlation Calls**: 1
-- **Analytics Calls**: 0
+- **Analytics Calls**: 1
 - **Optimizer Calls**: 1
 - **Cross-Phase Calls**: 2
 - **Dimension Awareness**: 0
 
 ### tool_evaluation
 
-- **Integration Score**: 5/6
+- **Integration Score**: 6/6
 - **Methods**: 13
 - **Message Bus Calls**: 2
 - **Adaptive Prompts Calls**: 1
 - **Pattern Recognition Calls**: 1
 - **Correlation Calls**: 1
-- **Analytics Calls**: 0
+- **Analytics Calls**: 1
 - **Optimizer Calls**: 1
 - **Cross-Phase Calls**: 0
 - **Dimension Awareness**: 0

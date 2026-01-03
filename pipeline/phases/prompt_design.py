@@ -270,6 +270,14 @@ class PromptDesignPhase(LoopDetectionMixin, BasePhase):
                         'timestamp': datetime.now().isoformat()
                     })
                     
+                    # ANALYTICS: Track prompt creation metric
+                    self.track_phase_metric({
+                        'metric': 'prompt_created',
+                        'prompt_name': spec['name'],
+                        'purpose': spec.get('purpose', ''),
+                        'files_created': 1
+                    })
+                    
                     return PhaseResult(
                         success=True,
                         phase=self.phase_name,
