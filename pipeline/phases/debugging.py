@@ -522,6 +522,17 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         })
         if optimization and optimization.get('suggestions'):
             self.logger.debug(f"  💡 Optimization suggestions available")
+        
+        # MESSAGE BUS: Publish phase start event
+        self.publish_event('PHASE_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'issue': issue.get('description') if issue else None,
+            'task_id': task.task_id if task else None,
+            'correlations': correlations,
+            'optimization': optimization
+        })
+        
         # ARCHITECTURE INTEGRATION: Read architecture for design context
         architecture = self._read_architecture()
         if architecture:
@@ -1822,6 +1833,16 @@ Apply the fix immediately.""",
             if filepath in state.files:
                 state.files[filepath].qa_status = FileStatus.PENDING
             
+            # MESSAGE BUS: Publish phase completion (success)
+            self.publish_event('PHASE_COMPLETED', {
+                'phase': self.phase_name,
+                'timestamp': datetime.now().isoformat(),
+                'success': True,
+                'filepath': filepath,
+                'attempts': thread.current_attempt,
+                'task_id': task.task_id if task else None
+            })
+            
             return PhaseResult(
                 success=True,
                 phase=self.phase_name,
@@ -1836,6 +1857,15 @@ Apply the fix immediately.""",
                 }
             )
         else:
+            # MESSAGE BUS: Publish phase completion (failure)
+            self.publish_event('PHASE_COMPLETED', {
+                'phase': self.phase_name,
+                'timestamp': datetime.now().isoformat(),
+                'success': False,
+                'attempts': thread.current_attempt,
+                'task_id': task.task_id if task else None
+            })
+            
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,

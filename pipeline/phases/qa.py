@@ -91,6 +91,16 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             'recent_issues': recent_issues
         })
         
+        # MESSAGE BUS: Publish phase start event
+        self.publish_event('PHASE_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'filepath': filepath,
+            'task_id': task.task_id if task else None,
+            'correlations': correlations,
+            'optimization': optimization
+        })
+        
         # Initialize context
         context = self._initialize_qa_context(state, filepath, task)
         
@@ -271,6 +281,16 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 task.status = TaskStatus.COMPLETED
                 task.completed = datetime.now().isoformat()
             
+            # MESSAGE BUS: Publish phase completion (approved)
+            self.publish_event('PHASE_COMPLETED', {
+                'phase': self.phase_name,
+                'timestamp': datetime.now().isoformat(),
+                'success': True,
+                'approved': True,
+                'filepath': filepath,
+                'task_id': task.task_id if task else None
+            })
+            
             return PhaseResult(
                 success=True,
                 phase=self.phase_name,
@@ -417,6 +437,17 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 "approved": False,
                 "issues_found": len(handler.issues),
                 "next_phase": "debugging"
+            })
+            
+            # MESSAGE BUS: Publish phase completion (issues found)
+            self.publish_event('PHASE_COMPLETED', {
+                'phase': self.phase_name,
+                'timestamp': datetime.now().isoformat(),
+                'success': True,
+                'approved': False,
+                'filepath': filepath,
+                'issues_found': len(handler.issues),
+                'task_id': task.task_id if task else None
             })
             
             return PhaseResult(

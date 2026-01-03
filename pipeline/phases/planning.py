@@ -90,6 +90,14 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         if optimization and optimization.get('suggestions'):
             self.logger.debug(f"  💡 Optimization suggestions available")
         
+        # MESSAGE BUS: Publish phase start event
+        self.publish_event('PHASE_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'correlations': correlations,
+            'optimization': optimization
+        })
+        
         # ========== ARCHITECTURE VALIDATION ==========
         # 1. READ INTENDED ARCHITECTURE from MASTER_PLAN.md
         intended_arch = self.arch_manager._read_intended_architecture()
@@ -454,6 +462,15 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                     'rationale': 'Tasks created based on MASTER_PLAN analysis'
                 }
             })
+        
+        # MESSAGE BUS: Publish phase completion
+        self.publish_event('PHASE_COMPLETED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'success': True,
+            'tasks_added': tasks_added,
+            'tasks_suggested': tasks_suggested
+        })
         
         return PhaseResult(
             success=True,

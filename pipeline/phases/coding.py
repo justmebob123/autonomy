@@ -81,6 +81,16 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         })
         if optimization and optimization.get('suggestions'):
             self.logger.debug(f"  💡 Optimization suggestions available")
+        
+        # MESSAGE BUS: Publish phase start event
+        self.publish_event('PHASE_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'task_id': task.task_id if task else None,
+            'correlations': correlations,
+            'optimization': optimization
+        })
+        
         # ========== INTEGRATION: READ ARCHITECTURE AND OBJECTIVES ==========
         # Read architecture to understand where files should be placed
         architecture = self._read_architecture()
@@ -500,6 +510,16 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
                     'rationale': 'Implementation of planned tasks'
                 }
             })
+        
+        # MESSAGE BUS: Publish phase completion
+        self.publish_event('PHASE_COMPLETED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'success': True,
+            'task_id': task.task_id,
+            'files_created': len(files_created),
+            'files_modified': len(files_modified)
+        })
         
         return PhaseResult(
             success=True,

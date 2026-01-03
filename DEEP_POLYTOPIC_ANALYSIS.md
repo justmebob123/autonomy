@@ -7,8 +7,8 @@
 ## 📊 Executive Summary
 
 - **Total Phases Analyzed**: 20
-- **Average Integration Score**: 3.50/6
-- **Improvement Opportunities**: 40
+- **Average Integration Score**: 3.90/6
+- **Improvement Opportunities**: 32
 - **Symbol Table Size**: 4259 components
 
 ## 🎯 Phase Integration Scores
@@ -16,20 +16,20 @@
 | Phase | Score | Message Bus | Adaptive | Pattern | Correlation | Analytics | Optimizer |
 |-------|-------|-------------|----------|---------|-------------|-----------|----------|
 | analysis_orchestrator | 0/6 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| coding | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| debugging | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| documentation | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| investigation | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| coding | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| debugging | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| documentation | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| investigation | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | loop_detection_mixin | 0/6 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | phase_builder | 0/6 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | phase_dependencies | 0/6 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| planning | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| project_planning | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| planning | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| project_planning | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | prompt_builder | 0/6 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | prompt_design | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
 | prompt_improvement | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
-| qa | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| refactoring | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| qa | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| refactoring | 6/6 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | refactoring_context_builder | 0/6 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | role_design | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
 | role_improvement | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
@@ -49,6 +49,22 @@
 - **role_design**: 2 calls
   - Methods: publish_event
 - **prompt_design**: 2 calls
+  - Methods: publish_event
+- **documentation**: 2 calls
+  - Methods: publish_event
+- **qa**: 3 calls
+  - Methods: publish_event
+- **coding**: 2 calls
+  - Methods: publish_event
+- **project_planning**: 2 calls
+  - Methods: publish_event
+- **planning**: 2 calls
+  - Methods: publish_event
+- **investigation**: 2 calls
+  - Methods: publish_event
+- **refactoring**: 2 calls
+  - Methods: publish_event
+- **debugging**: 3 calls
   - Methods: publish_event
 - **role_improvement**: 2 calls
   - Methods: publish_event
@@ -133,7 +149,7 @@
 
 ## 💡 Improvement Opportunities
 
-### 🔴 High Priority (26)
+### 🔴 High Priority (18)
 
 #### Low Integration
 - **Phase**: loop_detection_mixin
@@ -194,19 +210,7 @@
 - **Suggestion**: Add publish_event() calls for key events
 
 #### No Message Bus
-- **Phase**: documentation
-- **Suggestion**: Add publish_event() calls for key events
-
-#### No Message Bus
 - **Phase**: phase_builder
-- **Suggestion**: Add publish_event() calls for key events
-
-#### No Message Bus
-- **Phase**: qa
-- **Suggestion**: Add publish_event() calls for key events
-
-#### No Message Bus
-- **Phase**: coding
 - **Suggestion**: Add publish_event() calls for key events
 
 #### No Message Bus
@@ -219,26 +223,6 @@
 
 #### No Message Bus
 - **Phase**: refactoring_context_builder
-- **Suggestion**: Add publish_event() calls for key events
-
-#### No Message Bus
-- **Phase**: project_planning
-- **Suggestion**: Add publish_event() calls for key events
-
-#### No Message Bus
-- **Phase**: planning
-- **Suggestion**: Add publish_event() calls for key events
-
-#### No Message Bus
-- **Phase**: investigation
-- **Suggestion**: Add publish_event() calls for key events
-
-#### No Message Bus
-- **Phase**: refactoring
-- **Suggestion**: Add publish_event() calls for key events
-
-#### No Message Bus
-- **Phase**: debugging
 - **Suggestion**: Add publish_event() calls for key events
 
 #### No Message Bus
@@ -330,9 +314,9 @@
 
 ### coding
 
-- **Integration Score**: 5/6
+- **Integration Score**: 6/6
 - **Methods**: 13
-- **Message Bus Calls**: 0
+- **Message Bus Calls**: 2
 - **Adaptive Prompts Calls**: 1
 - **Pattern Recognition Calls**: 1
 - **Correlation Calls**: 1
@@ -343,9 +327,9 @@
 
 ### debugging
 
-- **Integration Score**: 5/6
+- **Integration Score**: 6/6
 - **Methods**: 17
-- **Message Bus Calls**: 0
+- **Message Bus Calls**: 3
 - **Adaptive Prompts Calls**: 1
 - **Pattern Recognition Calls**: 1
 - **Correlation Calls**: 1
@@ -356,9 +340,9 @@
 
 ### documentation
 
-- **Integration Score**: 5/6
+- **Integration Score**: 6/6
 - **Methods**: 10
-- **Message Bus Calls**: 0
+- **Message Bus Calls**: 2
 - **Adaptive Prompts Calls**: 1
 - **Pattern Recognition Calls**: 1
 - **Correlation Calls**: 1
@@ -369,9 +353,9 @@
 
 ### investigation
 
-- **Integration Score**: 5/6
+- **Integration Score**: 6/6
 - **Methods**: 8
-- **Message Bus Calls**: 0
+- **Message Bus Calls**: 2
 - **Adaptive Prompts Calls**: 1
 - **Pattern Recognition Calls**: 1
 - **Correlation Calls**: 1
@@ -421,9 +405,9 @@
 
 ### planning
 
-- **Integration Score**: 5/6
+- **Integration Score**: 6/6
 - **Methods**: 18
-- **Message Bus Calls**: 0
+- **Message Bus Calls**: 2
 - **Adaptive Prompts Calls**: 1
 - **Pattern Recognition Calls**: 1
 - **Correlation Calls**: 1
@@ -434,9 +418,9 @@
 
 ### project_planning
 
-- **Integration Score**: 5/6
+- **Integration Score**: 6/6
 - **Methods**: 14
-- **Message Bus Calls**: 0
+- **Message Bus Calls**: 2
 - **Adaptive Prompts Calls**: 1
 - **Pattern Recognition Calls**: 1
 - **Correlation Calls**: 1
@@ -486,9 +470,9 @@
 
 ### qa
 
-- **Integration Score**: 5/6
+- **Integration Score**: 6/6
 - **Methods**: 15
-- **Message Bus Calls**: 0
+- **Message Bus Calls**: 3
 - **Adaptive Prompts Calls**: 1
 - **Pattern Recognition Calls**: 1
 - **Correlation Calls**: 1
@@ -499,9 +483,9 @@
 
 ### refactoring
 
-- **Integration Score**: 5/6
+- **Integration Score**: 6/6
 - **Methods**: 42
-- **Message Bus Calls**: 0
+- **Message Bus Calls**: 2
 - **Adaptive Prompts Calls**: 1
 - **Pattern Recognition Calls**: 1
 - **Correlation Calls**: 1

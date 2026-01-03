@@ -92,6 +92,16 @@ class InvestigationPhase(BasePhase):
         })
         if optimization and optimization.get('suggestions'):
             self.logger.debug(f"  💡 Optimization suggestions available")
+        
+        # MESSAGE BUS: Publish phase start event
+        self.publish_event('PHASE_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'issue': issue.get('description') if issue else None,
+            'correlations': correlations,
+            'optimization': optimization
+        })
+        
         """Execute investigation for an issue"""
         
         # ARCHITECTURE INTEGRATION: Read architecture for design context
@@ -257,6 +267,15 @@ class InvestigationPhase(BasePhase):
                 f"Investigation of {filepath}: {len(findings)} findings",
                 f"Investigation: {issue.get('type')} in {filepath}"
             )
+        
+        # MESSAGE BUS: Publish phase completion
+        self.publish_event('PHASE_COMPLETED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'success': True,
+            'findings_count': len(findings),
+            'filepath': filepath
+        })
         
         return PhaseResult(
             success=True,

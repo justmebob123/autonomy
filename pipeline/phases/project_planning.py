@@ -111,6 +111,15 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         })
         if optimization and optimization.get('suggestions'):
             self.logger.debug(f"  💡 Optimization suggestions available")
+        
+        # MESSAGE BUS: Publish phase start event
+        self.publish_event('PHASE_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'correlations': correlations,
+            'optimization': optimization
+        })
+        
         # ARCHITECTURE INTEGRATION: Read architecture for project structure
         architecture = self._read_architecture()
         if architecture:
@@ -417,6 +426,15 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
                         f"Planned: {task_data.get('description', 'New component')}",
                         f"Project Planning: Added {task_data['target_file']}"
                     )
+        
+        # MESSAGE BUS: Publish phase completion
+        self.publish_event('PHASE_COMPLETED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'success': True,
+            'tasks_created': len(tasks_created),
+            'expansion_count': state.expansion_count
+        })
         
         return PhaseResult(
             success=len(tasks_created) > 0,

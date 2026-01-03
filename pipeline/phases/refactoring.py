@@ -165,6 +165,15 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         if optimization and optimization.get('suggestions'):
             self.logger.info(f"  💡 Optimization suggestions: {len(optimization['suggestions'])}")
         
+        # MESSAGE BUS: Publish phase start event
+        self.publish_event('PHASE_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'task_id': task.task_id if task else None,
+            'correlations': correlations,
+            'optimization': optimization
+        })
+        
         # ========== INTEGRATION: READ ARCHITECTURE AND OBJECTIVES ==========
         # Read architecture to understand design intent
         architecture = self._read_architecture()
@@ -2049,6 +2058,14 @@ Please select ONE reliable tool and try again."""
         
         # Determine next phase based on recommendations
         next_phase = "refactoring"  # Continue refactoring to work on tasks
+        
+        # MESSAGE BUS: Publish phase completion
+        self.publish_event('PHASE_COMPLETED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'success': True,
+            'task_id': task.task_id if task else None
+        })
         
         return PhaseResult(
             success=True,

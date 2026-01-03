@@ -84,6 +84,15 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         })
         if optimization and optimization.get('suggestions'):
             self.logger.debug(f"  💡 Optimization suggestions available")
+        
+        # MESSAGE BUS: Publish phase start event
+        self.publish_event('PHASE_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'correlations': correlations,
+            'optimization': optimization
+        })
+        
         # ========== ARCHITECTURE MAINTENANCE ==========
         # 1. READ INTENDED ARCHITECTURE from MASTER_PLAN.md
         intended_arch = self.arch_manager._read_intended_architecture()
@@ -384,6 +393,15 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
                 f"Updated documentation: {len(updates_made)} changes",
                 f"Documentation: Updated README.md with {len(updates_made)} changes"
             )
+        
+        # MESSAGE BUS: Publish phase completion
+        self.publish_event('PHASE_COMPLETED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'success': True,
+            'updates_made': len(updates_made),
+            'tasks_completed': doc_tasks_completed
+        })
         
         return PhaseResult(
             success=True,
