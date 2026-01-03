@@ -45,6 +45,17 @@ class SymbolCollectorVisitor(ast.NodeVisitor):
     
     def visit_ClassDef(self, node: ast.ClassDef):
         """Collect class definition."""
+        # Check if it's an enum
+        is_enum = any(
+            base.id == 'Enum' if isinstance(base, ast.Name) else False
+            for base in node.bases
+        )
+        
+        # If it's an enum, collect it separately
+        if is_enum:
+            self._collect_enum(node)
+            return  # Don't process as regular class
+        
         # Check if it's a dataclass
         is_dataclass = any(
             isinstance(d, ast.Name) and d.id == 'dataclass'
@@ -96,14 +107,16 @@ class SymbolCollectorVisitor(ast.NodeVisitor):
                 method_info = self._collect_function(item, is_method=True)
                 if method_info:
                     class_info.methods[method_info.name] = method_info
-        
-        self.current_class = old_class
+                    # Also add to global functions dict with qualified name
+                    self.symbol_table.add_function(method_info)
         
         # Add to symbol table
         self.symbol_table.add_class(class_info)
         
-        # Continue visiting
+        # Continue visiting (with current_class still set for nested classes)
         self.generic_visit(node)
+        
+        self.current_class = old_class
     
     def visit_FunctionDef(self, node: ast.FunctionDef):
         """Collect function definition."""
@@ -112,7 +125,7 @@ class SymbolCollectorVisitor(ast.NodeVisitor):
             if func_info:
                 self.symbol_table.add_function(func_info)
         
-        # Visit function body for calls
+        # Visit function body for calls (methods already collected in visit_ClassDef)
         old_function = self.current_function
         if self.current_class:
             self.current_function = f"{self.current_class}.{node.name}"
@@ -273,6 +286,23 @@ class SymbolCollectorVisitor(ast.NodeVisitor):
             return_type=return_type,
             decorators=decorators
         )
+    
+    def _collect_enum(self, node: ast.ClassDef):
+        """Collect enum definition."""
+        enum_name = node.name
+        attributes = set()
+        
+        # Collect enum members
+        for item in node.body:
+            if isinstance(item, ast.Assign):
+                for target in item.targets:
+                    if isinstance(target, ast.Name):
+                        # Skip special attributes
+                        if not target.id.startswith('_'):
+                            attributes.add(target.id)
+        
+        # Add to symbol table
+        self.symbol_table.add_enum(enum_name, attributes, self.filepath, node.lineno)
     
     def _get_type_from_annotation(self, annotation) -> TypeInfo:
         """Extract type information from type annotation."""

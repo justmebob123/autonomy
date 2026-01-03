@@ -199,12 +199,8 @@ class SymbolTable:
     
     def add_function(self, func_info: FunctionInfo) -> None:
         """Add a function/method definition to the symbol table."""
+        # Always store by qualified name
         self.functions[func_info.qualified_name] = func_info
-        
-        # Also store by simple name for quick lookup
-        simple_name = func_info.name
-        if simple_name not in self.functions:
-            self.functions[simple_name] = func_info
     
     def get_function(self, func_name: str) -> Optional[FunctionInfo]:
         """Get function info by name."""
@@ -341,8 +337,8 @@ class SymbolTable:
         """Get statistics about the symbol table."""
         return {
             'total_classes': len([c for c in self.classes.values() if ':' not in c.name]),
-            'total_functions': len([f for f in self.functions.values() if '.' not in f.name]),
-            'total_methods': len([f for f in self.functions.values() if '.' in f.name]),
+            'total_functions': len([f for f in self.functions.values() if '.' not in f.qualified_name]),
+            'total_methods': len([f for f in self.functions.values() if '.' in f.qualified_name]),
             'total_enums': len(self.enums),
             'total_imports': sum(len(imports) for imports in self.file_imports.values()),
             'total_call_edges': sum(len(node.calls) for node in self.call_graph.values()),
