@@ -1,3 +1,0 @@
-Traceback (most recent call last):
-  File "<string>", line 13, in <module>
-AttributeError: 'SymbolCollector' object has no attribute 'collect_from_directory'. Did you mean: 'collect_from_file'?

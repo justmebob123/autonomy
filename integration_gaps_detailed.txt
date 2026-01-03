@@ -1,3 +1,0 @@
-Traceback (most recent call last):
-  File "<string>", line 7, in <module>
-TypeError: SymbolCollector.__init__() missing 1 required positional argument: 'symbol_table'
