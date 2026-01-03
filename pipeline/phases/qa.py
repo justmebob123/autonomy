@@ -14,6 +14,10 @@ from ..tools import get_tools_for_phase
 from ..prompts import SYSTEM_PROMPTS, get_qa_prompt
 from ..handlers import ToolCallHandler
 from .loop_detection_mixin import LoopDetectionMixin
+from .shared.status_formatter import StatusFormatter
+from .qa_prompt_builder import QAPromptBuilder
+from .qa_analysis_orchestrator import QAAnalysisOrchestrator
+from .qa_task_creator import QATaskCreator
 
 
 class QAPhase(BasePhase, LoopDetectionMixin):
@@ -53,6 +57,19 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         
         self.logger.info("  🔍 QA phase initialized with comprehensive analysis capabilities")
         self.logger.info("  🔀 Integration conflict detection enabled")
+        
+        # EXTRACTED COMPONENTS - Initialize new modular components
+        self.prompt_builder = QAPromptBuilder(str(self.project_dir))
+        self.analysis_orchestrator = QAAnalysisOrchestrator(
+            self.complexity_analyzer,
+            self.dead_code_detector,
+            self.gap_finder,
+            self.conflict_detector,
+            self.architecture_config,
+            self.logger
+        )
+        self.task_creator = QATaskCreator(str(self.project_dir), self.logger)
+        self.logger.info("  🔧 QA modular components initialized")
         
         # MESSAGE BUS: Subscribe to relevant events
         if self.message_bus:
@@ -670,7 +687,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         """
         Run comprehensive analysis on a file using native analysis tools.
         
-        This is CORE QA functionality - not external tools.
+        This delegates to QAAnalysisOrchestrator for modular analysis.
         
         Args:
             filepath: Path to file to analyze
@@ -678,152 +695,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         Returns:
             Dict with analysis results and quality issues
         """
-        issues = []
-        
-        # Use architecture config to check if this is a library module
-        # Library modules are meant to be imported, not executed directly
-        is_library_module = self.architecture_config.is_library_module(filepath)
-        
-        try:
-            # 1. Complexity Analysis
-            self.logger.info(f"  📊 Analyzing complexity...")
-            complexity_result = self.complexity_analyzer.analyze(target=filepath)
-            
-            # Check for high complexity functions
-            for func in complexity_result.results:
-                if func.complexity >= 30:
-                    issues.append({
-                        'type': 'high_complexity',
-                        'severity': 'high' if func.complexity >= 50 else 'medium',
-                        'function': func.name,
-                        'complexity': func.complexity,
-                        'line': func.line,
-                        'description': f"Function {func.name} has complexity {func.complexity} (threshold: 30)",
-                        'recommendation': f"Refactor to reduce complexity. Estimated effort: {func.effort_days}"
-                    })
-            
-            # 2. Dead Code Detection (skip for library modules)
-            if not is_library_module:
-                self.logger.info(f"  🔍 Detecting dead code...")
-                dead_code_result = self.dead_code_detector.analyze(target=filepath)
-                
-                # Check for unused functions
-                if dead_code_result.unused_functions:
-                    for func_name, file, line in dead_code_result.unused_functions:
-                        if file == filepath or filepath in file:
-                            issues.append({
-                                'type': 'dead_code',
-                                'severity': 'medium',
-                                'function': func_name,
-                                'line': line,
-                                'description': f"Function {func_name} is defined but never called",
-                                'recommendation': "Remove if truly unused, or add usage"
-                            })
-            else:
-                self.logger.info(f"  ⏭️  Skipping dead code detection for library module")
-            
-            # Check for unused methods
-            if dead_code_result.unused_methods:
-                for method_key, file, line in dead_code_result.unused_methods:
-                    if file == filepath or filepath in file:
-                        issues.append({
-                            'type': 'dead_code',
-                            'severity': 'low',
-                            'method': method_key,
-                            'line': line,
-                            'description': f"Method {method_key} is defined but never called",
-                            'recommendation': "Verify if method is needed"
-                        })
-            
-            # 3. Integration Gap Analysis
-            self.logger.info(f"  🔗 Checking integration gaps...")
-            gap_result = self.gap_finder.analyze(target=filepath)
-            
-            # Check for unused classes
-            if gap_result.unused_classes:
-                for class_name, file, line in gap_result.unused_classes:
-                    if file == filepath or filepath in file:
-                        issues.append({
-                            'type': 'integration_gap',
-                            'severity': 'medium',
-                            'class': class_name,
-                            'line': line,
-                            'description': f"Class {class_name} is defined but never instantiated",
-                            'recommendation': "Complete integration or remove if not needed"
-                        })
-            
-            # 4. Integration Conflict Detection (project-wide)
-            self.logger.info(f"  🔀 Checking for integration conflicts...")
-            conflict_result = self.conflict_detector.analyze(target=filepath)
-            
-            # Add conflicts as issues
-            for conflict in conflict_result.conflicts:
-                # Only include if this file is involved
-                if filepath in conflict.files or any(filepath in f for f in conflict.files):
-                    issues.append({
-                        'type': 'integration_conflict',
-                        'severity': conflict.severity,
-                        'conflict_type': conflict.conflict_type,
-                        'files': conflict.files,
-                        'description': conflict.description,
-                        'recommendation': conflict.recommendation,
-                        'details': conflict.details
-                    })
-            
-            # 5. Dead Code Review Issues (enhanced with context)
-            if dead_code_result.review_issues:
-                self.logger.info(f"  📋 Processing dead code review issues...")
-                for issue in dead_code_result.review_issues:
-                    if issue.file == filepath or filepath in issue.file:
-                        issues.append({
-                            'type': 'dead_code_review',
-                            'severity': issue.severity,
-                            'name': issue.name,
-                            'line': issue.line,
-                            'issue_type': issue.issue_type,
-                            'description': f"{issue.reason}: {issue.context}",
-                            'recommendation': issue.context,
-                            'similar_code': issue.similar_code
-                        })
-            
-            # Log summary
-            if issues:
-                self.logger.warning(f"  ⚠️  Found {len(issues)} quality issues via analysis")
-                complexity_issues = [i for i in issues if i['type'] == 'high_complexity']
-                dead_code_issues = [i for i in issues if i['type'] == 'dead_code']
-                gap_issues = [i for i in issues if i['type'] == 'integration_gap']
-                conflict_issues = [i for i in issues if i['type'] == 'integration_conflict']
-                review_issues = [i for i in issues if i['type'] == 'dead_code_review']
-                
-                if complexity_issues:
-                    self.logger.warning(f"    - {len(complexity_issues)} high complexity functions")
-                if dead_code_issues:
-                    self.logger.warning(f"    - {len(dead_code_issues)} dead code instances")
-                if gap_issues:
-                    self.logger.warning(f"    - {len(gap_issues)} integration gaps")
-                if conflict_issues:
-                    self.logger.warning(f"    - {len(conflict_issues)} integration conflicts")
-                if review_issues:
-                    self.logger.warning(f"    - {len(review_issues)} items marked for review")
-            else:
-                self.logger.info(f"  ✅ No quality issues found via analysis")
-            
-            return {
-                'success': True,
-                'issues': issues,
-                'complexity': complexity_result.to_dict(),
-                'dead_code': dead_code_result.to_dict(),
-                'gaps': gap_result.to_dict(),
-                'conflicts': conflict_result.to_dict()
-            }
-            
-        except Exception as e:
-            self.logger.error(f"  ❌ Analysis failed: {e}")
-            return {
-                'success': False,
-                'error': str(e),
-                'issues': []
-            }
+        return self.analysis_orchestrator.run_comprehensive_analysis(filepath)
     
     def _read_relevant_phase_outputs(self) -> Dict[str, str]:
         """Read outputs from other phases for context"""
@@ -857,120 +729,28 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         """
         Create NEEDS_FIXES tasks for each issue found.
         
-        This is CRITICAL for the coordinator to route to debugging phase.
-        Without this, issues are reported but never fixed.
+        This delegates to QATaskCreator for modular task creation.
         """
-        from ..state.manager import TaskStatus
-        from datetime import datetime
-        
-        if not issues:
-            return
-        
-        self.logger.info(f"  🔧 Creating {len(issues)} NEEDS_FIXES tasks for {filepath}")
-        
-        for idx, issue in enumerate(issues):
-            # Create unique task ID
-            task_id = f"qa_fix_{filepath.replace('/', '_')}_{issue.get('line_number', idx)}"
-            
-            # Check if task already exists
-            if task_id in state.tasks:
-                self.logger.debug(f"    ⏭️  Task {task_id} already exists, skipping")
-                continue
-            
-            # Determine priority based on severity
-            severity = issue.get('severity', 'medium')
-            priority_map = {
-                'critical': 1,
-                'high': 5,
-                'medium': 10,
-                'low': 20
-            }
-            priority = priority_map.get(severity, 10)
-            
-            # Create task
-            from ..state.manager import TaskState
-            task = TaskState(
-                task_id=task_id,
-                description=f"Fix {issue.get('issue_type', 'issue')} in {filepath}: {issue.get('description', 'No description')}",
-                target_file=filepath,
-                status=TaskStatus.NEEDS_FIXES,
-                priority=priority,
-                created_at=datetime.now().isoformat()
-            )
-            
-            # Store issue data in task for debugging phase
-            task.metadata = {
-                'issue_type': issue.get('issue_type'),
-                'line_number': issue.get('line_number'),
-                'severity': severity,
-                'description': issue.get('description'),
-                'source': 'qa_phase'
-            }
-            
-            # Add to state
-            state.tasks[task_id] = task
-            self.logger.info(f"    ✅ Created task {task_id} (priority {priority})")
-        
-        # Save state immediately so coordinator sees the tasks
-        from ..state.manager import StateManager
-        state_manager = StateManager(self.project_dir)
-        state_manager.save(state)
-        self.logger.info(f"  💾 Saved state with {len(issues)} new NEEDS_FIXES tasks")
+        self.task_creator.create_fix_tasks_for_issues(state, filepath, issues)
     
     def _send_phase_messages(self, filepath: str, issues_found: List[Dict]):
         """Send messages to other phases' READ documents"""
         try:
+            timestamp = self.format_timestamp()
+            
             if issues_found:
                 # Send to debugging phase when bugs found
-                debug_message = f"""
-## QA Issues Found - {self.format_timestamp()}
-
-**File**: {filepath}
-**Issues Found**: {len(issues_found)}
-**Status**: Requires debugging
-
-### Issue Summary
-"""
-                
-                # Group by severity
-                critical = [i for i in issues_found if i.get('severity') == 'critical']
-                high = [i for i in issues_found if i.get('severity') == 'high']
-                medium = [i for i in issues_found if i.get('severity') == 'medium']
-                low = [i for i in issues_found if i.get('severity') == 'low']
-                
-                if critical:
-                    debug_message += f"\n🔴 **Critical**: {len(critical)} issues\n"
-                    for issue in critical[:3]:
-                        debug_message += f"  - Line {issue.get('line', 'N/A')}: {issue.get('description', 'N/A')}\n"
-                
-                if high:
-                    debug_message += f"\n🟠 **High**: {len(high)} issues\n"
-                    for issue in high[:3]:
-                        debug_message += f"  - Line {issue.get('line', 'N/A')}: {issue.get('description', 'N/A')}\n"
-                
-                if medium:
-                    debug_message += f"\n🟡 **Medium**: {len(medium)} issues\n"
-                
-                if low:
-                    debug_message += f"\n🟢 **Low**: {len(low)} issues\n"
-                
-                debug_message += "\nPlease address these issues and resubmit for QA.\n"
-                
+                debug_message = self.prompt_builder.build_debug_phase_message(
+                    filepath, issues_found, timestamp
+                )
                 self.send_message_to_phase('debugging', debug_message)
                 self.logger.info(f"  📤 Sent {len(issues_found)} issues to debugging phase")
             else:
                 # Send approval to coding phase
-                dev_message = f"""
-## QA Approval - {self.format_timestamp()}
-
-**File**: {filepath}
-**Status**: ✅ Approved
-**Issues Found**: None
-
-The code has passed quality assurance review. No issues detected.
-"""
-                
-                self.send_message_to_phase('coding', dev_message)
+                coding_message = self.prompt_builder.build_coding_phase_message(
+                    filepath, True, timestamp
+                )
+                self.send_message_to_phase('coding', coding_message)
                 self.logger.info("  📤 Sent approval to coding phase")
                 
         except Exception as e:
@@ -978,52 +758,13 @@ The code has passed quality assurance review. No issues detected.
     
     def _format_status_for_write(self, filepath: str, issues_found: List[Dict], 
                                  approved: bool) -> str:
-        """Format status for QA_WRITE.md"""
-        status = f"""# QA Phase Status
-
-**Timestamp**: {self.format_timestamp()}
-**File Reviewed**: {filepath}
-**Status**: {'✅ Approved' if approved else '❌ Issues Found'}
-
-## Review Summary
-
-"""
-        
-        if issues_found:
-            status += f"**Total Issues**: {len(issues_found)}\n\n"
-            
-            # Group by severity
-            by_severity = {}
-            for issue in issues_found:
-                severity = issue.get('severity', 'unknown')
-                if severity not in by_severity:
-                    by_severity[severity] = []
-                by_severity[severity].append(issue)
-            
-            # Report by severity
-            for severity in ['critical', 'high', 'medium', 'low']:
-                if severity in by_severity:
-                    issues = by_severity[severity]
-                    status += f"### {severity.title()} Priority ({len(issues)} issues)\n\n"
-                    for issue in issues[:5]:  # Show first 5
-                        status += f"- **Line {issue.get('line', 'N/A')}**: {issue.get('description', 'N/A')}\n"
-                        if issue.get('recommendation'):
-                            status += f"  - *Recommendation*: {issue['recommendation']}\n"
-                    if len(issues) > 5:
-                        status += f"  - ... and {len(issues) - 5} more\n"
-                    status += "\n"
-        else:
-            status += "✅ No issues found. Code meets quality standards.\n\n"
-        
-        status += "## Next Steps\n\n"
-        if issues_found:
-            status += "- Issues sent to debugging phase\n"
-            status += "- Awaiting fixes and resubmission\n"
-        else:
-            status += "- File approved and marked as reviewed\n"
-            status += "- Ready for deployment or next phase\n"
-        
-        return status
+        """Format status for QA_WRITE.md - delegates to StatusFormatter"""
+        return StatusFormatter.format_qa_status(
+            filepath=filepath,
+            issues_found=issues_found,
+            approved=approved,
+            timestamp=self.format_timestamp()
+        )
     
     def _validate_file_against_architecture(self, filepath: str, architecture: Dict) -> Dict:
         """
