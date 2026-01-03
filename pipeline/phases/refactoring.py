@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Refactoring Phase
 
@@ -1824,8 +1825,8 @@ Step 5: Resolve conflict {'⏳ ← YOU ARE HERE' if step_num == 5 else '⬜'}
 {context}
 
 📋 SIMPLE WORKFLOW:
-
-
+"""
+    
     def _get_dead_code_prompt(self, task: Any, context: str) -> str:
         """Prompt for dead code tasks - check usage then decide"""
         return f"""🎯 DEAD CODE TASK - ANALYZE AND REPORT
