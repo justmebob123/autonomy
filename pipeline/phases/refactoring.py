@@ -583,34 +583,38 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             for tc in tool_calls
         )
         
-        # HARD LIMIT: If 3+ tools used without resolution, FORCE create_issue_report
+        # HARD LIMIT: If 3+ tools used without resolution, FORCE request_developer_review
         if tool_call_count >= 3 and not has_resolving_tool:
             self.logger.warning(
                 f"🚨 Task {task.task_id}: {tool_call_count} tools used without resolution, "
-                f"FORCING create_issue_report"
+                f"FORCING request_developer_review"
             )
             
-            # Override AI's tool calls with forced resolution
+            # Override AI's tool calls with forced escalation to DEVELOPER PHASE
             tool_calls = [{
                 "function": {
-                    "name": "create_issue_report",
+                    "name": "request_developer_review",
                     "arguments": {
-                        "title": f"Refactoring task {task.task_id} needs manual review",
-                        "description": (
-                            f"AI analyzed but couldn't resolve automatically:\n\n"
+                        "task_id": task.task_id,
+                        "reason": (
+                            f"Refactoring AI analyzed but couldn't resolve automatically:\n\n"
                             f"Task: {task.title}\n"
                             f"Type: {task.issue_type}\n"
                             f"Files: {', '.join(task.target_files) if task.target_files else 'None'}\n\n"
                             f"The AI performed {tool_call_count} analysis operations but didn't "
-                            f"use a resolution tool. This task requires manual developer review."
+                            f"use a resolution tool. This task needs the DEVELOPER PHASE to handle it."
                         ),
-                        "severity": "medium",
-                        "files_affected": task.target_files if task.target_files else []
+                        "context": {
+                            "task_type": str(task.issue_type),
+                            "target_files": task.target_files if task.target_files else [],
+                            "attempts": task.attempts,
+                            "analysis_count": tool_call_count
+                        }
                     }
                 }
             }]
             
-            self.logger.info(f"  📝 Escalating task {task.task_id} to developer for manual review")
+            self.logger.info(f"  📝 Escalating task {task.task_id} to DEVELOPER PHASE (orchestrator)")
         
         # Execute tool calls
         from ..handlers import ToolCallHandler
@@ -1693,7 +1697,7 @@ Choose ONE resolution tool and use it NOW:
 1️⃣ merge_file_implementations - Merge the duplicate files
 2️⃣ move_file - Move file to correct location  
 3️⃣ rename_file - Rename file to match architecture
-4️⃣ create_issue_report - Report for manual review
+4️⃣ request_developer_review - Escalate to DEVELOPER PHASE (orchestrator)
 
 ═══════════════════════════════════════════════════════════════
 ⚠️ TOOL CALL FORMAT ⚠️
