@@ -860,7 +860,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         This is CRITICAL for the coordinator to route to debugging phase.
         Without this, issues are reported but never fixed.
         """
-        from ..state.task import TaskStatus
+        from ..state.manager import TaskStatus
         from datetime import datetime
         
         if not issues:
@@ -888,7 +888,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             priority = priority_map.get(severity, 10)
             
             # Create task
-            from ..state.task import TaskState
+            from ..state.manager import TaskState
             task = TaskState(
                 task_id=task_id,
                 description=f"Fix {issue.get('issue_type', 'issue')} in {filepath}: {issue.get('description', 'No description')}",
