@@ -396,6 +396,79 @@ Output the corrected tool call now:"""
 class ResponseParser:
     """Parses LLM responses, including fallback JSON extraction"""
     
+    # CRITICAL: Whitelist of valid tools to prevent hallucination
+    # The AI often tries to call Python code constructs (relationship(), run(), plot())
+    # as tools. This whitelist ensures only real tools are accepted.
+    VALID_TOOLS = {
+        # File operations
+        "create_python_file", "modify_python_file", "full_file_rewrite",
+        "create_file", "modify_file", "read_file", "delete_file",
+        "append_to_file", "insert_after", "insert_before", "replace_between",
+        "update_section", "move_file", "rename_file",
+        
+        # Code analysis
+        "analyze_complexity", "detect_dead_code", "find_integration_gaps",
+        "generate_call_graph", "deep_analysis", "advanced_analysis",
+        "unified_analysis", "analyze_connectivity", "analyze_dataflow",
+        "analyze_import_impact", "analyze_integration_depth",
+        "analyze_missing_import", "analyze_project_status",
+        "analyze_architecture_consistency", "analyze_documentation_needs",
+        "analyze_file_placement", "analyze_file_purpose",
+        
+        # Validation
+        "validate_syntax", "validate_imports_comprehensive", "validate_all_imports",
+        "validate_architecture", "validate_refactoring", "validate_type_usage",
+        "validate_function_call", "validate_function_calls",
+        "validate_method_existence", "validate_attribute_access",
+        "validate_dict_access", "validate_dict_structure",
+        "verify_import_class_match", "verify_tool_handlers",
+        
+        # Refactoring
+        "detect_duplicate_implementations", "compare_file_implementations",
+        "merge_file_implementations", "cleanup_redundant_files",
+        "create_refactoring_task", "update_refactoring_task",
+        "list_refactoring_tasks", "get_refactoring_progress",
+        "get_refactoring_suggestions", "suggest_refactoring_plan",
+        "restructure_directory",
+        
+        # Investigation
+        "investigate_data_flow", "investigate_parameter_removal",
+        "trace_variable_flow", "find_recursive_patterns",
+        "cross_reference_file", "map_file_relationships",
+        "find_all_related_files", "build_import_graph",
+        "detect_circular_imports", "detect_antipatterns",
+        "extract_file_features", "compare_multiple_files",
+        
+        # Bug detection
+        "find_bugs", "detect_integration_conflicts",
+        "check_abstract_methods", "check_config_structure",
+        "check_import_scope", "get_function_signature",
+        
+        # Project management
+        "list_directory", "list_all_source_files", "search_code",
+        "create_task_plan", "mark_task_complete", "propose_expansion_tasks",
+        
+        # Documentation
+        "add_readme_section", "update_readme_section",
+        "confirm_documentation_current",
+        
+        # QA
+        "approve_code", "assess_code_quality",
+        
+        # Issue reporting
+        "create_issue_report", "report_issue", "request_developer_review",
+        
+        # Architecture
+        "update_architecture",
+        
+        # System
+        "execute_command", "get_system_resources", "get_cpu_profile",
+        "get_memory_profile", "inspect_process", "show_process_tree",
+        
+        # Utilities
+        "fix_html_entities"
+    }
+    
     def __init__(self, client: OllamaClient = None):
         self.logger = get_logger()
         self.client = client
@@ -457,12 +530,29 @@ class ResponseParser:
         self.logger.debug("    Trying: find all JSON blocks with name/arguments")
         result = self._extract_all_json_blocks(text)
         if result:
+            # CRITICAL: Validate tool name against whitelist
+            tool_name = result.get("function", {}).get("name")
+            if tool_name not in self.VALID_TOOLS:
+                self.logger.warning(
+                    f"🚫 Rejecting hallucinated tool: '{tool_name}' - "
+                    f"This looks like Python code, not a tool call. "
+                    f"Python code should go INSIDE the 'content' argument of create_python_file."
+                )
+                return None
             return result
         
         # 2. Try standard JSON format
         self.logger.debug("    Trying: standard tool call format {name, arguments}")
         result = self._try_standard_json(text)
         if result:
+            # CRITICAL: Validate tool name against whitelist
+            tool_name = result.get("function", {}).get("name")
+            if tool_name not in self.VALID_TOOLS:
+                self.logger.warning(
+                    f"🚫 Rejecting hallucinated tool: '{tool_name}' - "
+                    f"This looks like Python code, not a tool call."
+                )
+                return None
             return result
         
         # 3. Try to extract file creation with code block (handles malformed JSON)
@@ -493,7 +583,15 @@ class ResponseParser:
         self.logger.debug("    Trying: aggressive JSON extraction")
         result = self._extract_json_aggressive(text)
         if result:
-            self.logger.debug(f"    ✓ Aggressive extraction found: {result.get('function', {}).get('name', '?')}")
+            # CRITICAL: Validate tool name against whitelist
+            tool_name = result.get("function", {}).get("name")
+            if tool_name not in self.VALID_TOOLS:
+                self.logger.warning(
+                    f"🚫 Rejecting hallucinated tool: '{tool_name}' - "
+                    f"This looks like Python code, not a tool call."
+                )
+                return None
+            self.logger.debug(f"    ✓ Aggressive extraction found: {tool_name}")
             return result
         
         self.logger.debug("    ✗ All extraction methods failed")

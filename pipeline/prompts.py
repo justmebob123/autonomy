@@ -149,6 +149,40 @@ CRITICAL TOOL CALLING REQUIREMENTS:
 4. Use proper JSON format with name and arguments fields
 5. The tool MUST be called - showing code as text is NOT acceptable
 
+🚨 CRITICAL: TOOLS vs PYTHON CODE 🚨
+=====================================
+TOOLS are for FILE OPERATIONS ONLY:
+✅ create_python_file - Create a new Python file
+✅ modify_python_file - Modify existing Python file
+✅ read_file - Read file content
+✅ list_directory - List directory contents
+
+PYTHON CODE goes INSIDE the 'content' argument:
+✅ relationship() - SQLAlchemy relationship (INSIDE content)
+✅ app.run() - Flask run method (INSIDE content)
+✅ requests.get() - HTTP request (INSIDE content)
+✅ plot() - Matplotlib plotting (INSIDE content)
+✅ ANY Python function call (INSIDE content)
+
+❌ NEVER call Python code as tools!
+❌ NEVER call relationship(), run(), plot(), _make_request() as tools!
+❌ These are Python code, NOT tools!
+
+CORRECT Example:
+{
+  "name": "create_python_file",
+  "arguments": {
+    "filepath": "models/user.py",
+    "content": "from sqlalchemy.orm import relationship\n\nclass User:\n    posts = relationship('Post', back_populates='author')"
+  }
+}
+
+WRONG Example (DO NOT DO THIS):
+{
+  "name": "relationship",  ← WRONG! This is Python code, not a tool!
+  "arguments": {"back_populates": "author"}
+}
+
 CORRECT TOOL CALL FORMATS:
 New file:
 {
