@@ -170,7 +170,7 @@ class DictStructureValidator:
                     
                     # Analyze entire functions to track dynamic dict modifications
                     if isinstance(node, ast.FunctionDef):
-                        structure = self._analyze_function_return(node, current_class, file_key)
+                        structure = self._analyze_function_return(node, current_class)
                         if structure:
                             func_name = node.name
                             key = f"{current_class}.{func_name}" if current_class else func_name
@@ -191,7 +191,7 @@ class DictStructureValidator:
                 # Silently skip files with parse errors
                 continue
     
-    def _analyze_function_return(self, func_node: ast.FunctionDef, current_class: Optional[str], file_key: str) -> Optional[Dict]:
+    def _analyze_function_return(self, func_node: ast.FunctionDef, current_class: Optional[str]) -> Optional[Dict]:
         """
         Analyze a function to determine the structure it returns.
         Tracks variable assignments and dynamic key additions within the function.
@@ -246,7 +246,7 @@ class DictStructureValidator:
                         return local_vars[var_name]
                 
                 # If returning a direct dict or other expression
-                return self._extract_return_structure(node.value, current_class, file_key)
+                return self._extract_return_structure(node.value, current_class)
         
         return None
     
@@ -265,7 +265,7 @@ class DictStructureValidator:
                                 if structure:
                                     self.instance_vars[class_name][var_name] = structure
     
-    def _extract_return_structure(self, return_value: ast.AST, current_class: Optional[str], file_key: str) -> Optional[Dict]:
+    def _extract_return_structure(self, return_value: ast.AST, current_class: Optional[str]) -> Optional[Dict]:
         """Extract structure from a return statement, following variables and .copy()."""
         
         # Direct dict literal
@@ -275,15 +275,9 @@ class DictStructureValidator:
         # Variable return - need to trace it
         if isinstance(return_value, ast.Name):
             var_name = return_value.id
-            # Check if we know this variable's structure (file-local first)
-            if file_key in self.file_dict_structures:
-                if var_name in self.file_dict_structures[file_key]:
-                    return self.file_dict_structures[file_key][var_name]
-            
-            # Check all files (for imported variables)
-            for file_structs in self.file_dict_structures.values():
-                if var_name in file_structs:
-                    return file_structs[var_name]
+            # Check if we know this variable's structure
+            if var_name in self.known_structures:
+                return self.known_structures[var_name]
         
         # self.attribute return
         if isinstance(return_value, ast.Attribute):
@@ -297,7 +291,7 @@ class DictStructureValidator:
         if isinstance(return_value, ast.Call):
             if isinstance(return_value.func, ast.Attribute) and return_value.func.attr == "copy":
                 # Recursively extract from the source
-                return self._extract_return_structure(return_value.func.value, current_class, file_key)
+                return self._extract_return_structure(return_value.func.value, current_class)
         
         return None
     
