@@ -152,59 +152,10 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         # Read file content
         content = self.read_file(filepath)
         if not content:
-            # File not found - mark task as SKIPPED and save state
-            self.logger.warning(f"⚠️ File not found, marking task as SKIPPED: {filepath}")
-            
-            # Update task status if we have a task object
-            if task is not None:
-                task.status = TaskStatus.SKIPPED
-                state_manager.save(state)
-            
-            return PhaseResult(
-                success=True,  # Mark as success to avoid infinite loop
-                phase=self.phase_name,
-                message=f"File not found (task marked SKIPPED): {filepath}",
-                next_phase="coding",  # Move to coding to continue with other tasks
-                data={"skipped": True, "reason": "file_not_found"}
-            )
+            return self._handle_file_not_found(state, task, filepath)
         
-        # ANALYSIS INTEGRATION: Run comprehensive analysis before manual review
-        # ARCHITECTURE VALIDATION: Check if file location matches architecture
-        architecture_issues = []
-        if architecture:
-            arch_validation = self._validate_file_against_architecture(filepath, architecture)
-            if not arch_validation['valid']:
-                architecture_issues.append({
-                    'type': 'architecture_violation',
-                    'severity': 'medium',
-                    'description': arch_validation['reason'],
-                    'file': filepath
-                })
-                self.logger.warning(f"  ⚠️ Architecture violation: {arch_validation['reason']}")
-        
-        # OPTIMIZATION: Skip deep analysis for test files and library modules
-        analysis_issues = []
-        
-        # Use architecture config to determine if this is a library module
-        # Library modules are meant to be imported, not executed directly
-        # Don't flag them as "dead code" just because they're not used yet
-        is_library_module = self.architecture_config.is_library_module(filepath)
-        
-        # Use architecture config to determine if this is a test file
-        skip_analysis = self.architecture_config.is_test_module(filepath)
-        
-        if filepath.endswith('.py') and not skip_analysis:
-            self.logger.info(f"  📊 Running comprehensive analysis on {filepath}...")
-            try:
-                analysis_result = self.run_comprehensive_analysis(filepath)
-                if analysis_result and analysis_result.get('success'):
-                    analysis_issues = analysis_result.get('issues', [])
-                    if analysis_issues:
-                        self.logger.info(f"  Found {len(analysis_issues)} issues via analysis")
-            except Exception as e:
-                self.logger.warning(f"  Analysis failed: {e}")
-        elif skip_analysis:
-            self.logger.info(f"  ⚡ Skipping deep analysis for test file: {filepath}")
+        # Run comprehensive analysis
+        architecture_issues, analysis_issues = self._run_file_analysis(filepath, architecture)
         
         # Build review message with analysis results
         user_message_parts = [
@@ -713,6 +664,99 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             # If not found, keep the original (might be a standalone review)
         
         return task, filepath
+    
+    def _handle_file_not_found(self, state: PipelineState, task: TaskState, filepath: str):
+        """Handle case where file is not found"""
+        from ..state.manager import StateManager
+        
+        self.logger.warning(f"⚠️ File not found, marking task as SKIPPED: {filepath}")
+        
+        # Update task status if we have a task object
+        if task is not None:
+            task.status = TaskStatus.SKIPPED
+            state_manager = StateManager(self.project_dir)
+            state_manager.save(state)
+        
+        # MESSAGE BUS: Publish file not found event
+        if self.message_bus:
+            from ..messaging import MessageType
+            self._publish_message(
+                MessageType.FILE_NOT_FOUND,
+                {
+                    'file': filepath,
+                    'task_id': task.task_id if task else None,
+                    'phase': self.phase_name
+                }
+            )
+        
+        return PhaseResult(
+            success=True,  # Mark as success to avoid infinite loop
+            phase=self.phase_name,
+            message=f"File not found (task marked SKIPPED): {filepath}",
+            next_phase="coding",  # Move to coding to continue with other tasks
+            data={"skipped": True, "reason": "file_not_found"}
+        )
+    
+    def _run_file_analysis(self, filepath: str, architecture: Dict):
+        """Run comprehensive analysis on a file"""
+        # ARCHITECTURE VALIDATION: Check if file location matches architecture
+        architecture_issues = []
+        if architecture:
+            arch_validation = self._validate_file_against_architecture(filepath, architecture)
+            if not arch_validation['valid']:
+                architecture_issues.append({
+                    'type': 'architecture_violation',
+                    'severity': 'medium',
+                    'description': arch_validation['reason'],
+                    'file': filepath
+                })
+                self.logger.warning(f"  ⚠️ Architecture violation: {arch_validation['reason']}")
+                
+                # MESSAGE BUS: Publish architecture violation
+                if self.message_bus:
+                    from ..messaging import MessageType
+                    self._publish_message(
+                        MessageType.ISSUE_FOUND,
+                        {
+                            'file': filepath,
+                            'issue_type': 'architecture_violation',
+                            'severity': 'medium',
+                            'description': arch_validation['reason']
+                        }
+                    )
+        
+        # OPTIMIZATION: Skip deep analysis for test files and library modules
+        analysis_issues = []
+        
+        # Use architecture config to determine if this is a test file
+        skip_analysis = self.architecture_config.is_test_module(filepath)
+        
+        if filepath.endswith('.py') and not skip_analysis:
+            self.logger.info(f"  📊 Running comprehensive analysis on {filepath}...")
+            try:
+                analysis_result = self.run_comprehensive_analysis(filepath)
+                if analysis_result and analysis_result.get('success'):
+                    analysis_issues = analysis_result.get('issues', [])
+                    if analysis_issues:
+                        self.logger.info(f"  Found {len(analysis_issues)} issues via analysis")
+                        
+                        # MESSAGE BUS: Publish analysis complete event
+                        if self.message_bus:
+                            from ..messaging import MessageType
+                            self._publish_message(
+                                MessageType.ANALYSIS_COMPLETE,
+                                {
+                                    'file': filepath,
+                                    'issues_found': len(analysis_issues),
+                                    'issue_types': list(set(i.get('type') for i in analysis_issues))
+                                }
+                            )
+            except Exception as e:
+                self.logger.warning(f"  Analysis failed: {e}")
+        elif skip_analysis:
+            self.logger.info(f"  ⚡ Skipping deep analysis for test file: {filepath}")
+        
+        return architecture_issues, analysis_issues
     
     def run_comprehensive_analysis(self, filepath: str) -> Dict:
         """
