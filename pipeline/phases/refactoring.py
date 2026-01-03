@@ -127,6 +127,10 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         recent_tasks = []
         if self.adaptive_prompts:
             if hasattr(state, 'refactoring_manager') and state.refactoring_manager:
+                # Get all tasks and take the most recent ones
+                all_tasks = list(state.refactoring_manager.tasks.values())
+                # Sort by created_at if available, otherwise just take last 5
+                recent = sorted(all_tasks, key=lambda t: t.created_at if hasattr(t, 'created_at') else datetime.min, reverse=True)[:5]
                 recent_tasks = [
                     {
                         'task_id': t.task_id,
@@ -135,7 +139,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                         'attempts': t.attempts,
                         'priority': t.priority.value
                     }
-                    for t in state.refactoring_manager.get_recent_tasks(limit=5)
+                    for t in recent
                 ]
             
             self.update_system_prompt_with_adaptation({

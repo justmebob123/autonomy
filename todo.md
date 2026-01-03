@@ -1,27 +1,30 @@
-# System Analysis and Improvement Tasks
+# Critical Error Detection and Fixing
 
-## Phase 1: Critical Prompt Fixes
-- [x] Implement investigation phase system prompt
-- [x] Add goal statements to all 14 phases
-- [x] Verify prompt consistency across phases
+## Phase 1: Analyze Error Patterns 🔬
+- [x] Identify recurring errors from logs
+- [x] Categorize error types
+- [x] Create validators to detect these errors
 
-## Phase 2: Deep System Analysis
-- [x] Phase 1 completed and pushed to GitHub
-- [x] Analyze inter-process communication (IPC) mechanisms
-- [x] Map document usage patterns across phases
-- [x] Examine learning process integration with polytopic structure
-- [x] Analyze state management and persistence
-- [x] Review tool usage patterns and effectiveness
+## Phase 2: Create Validators 🛠️
+- [x] Create EnumAttributeValidator (detects invalid enum members)
+- [x] Create MethodSignatureValidator (detects signature mismatches)
+- [x] Test validators on codebase
 
-## Phase 3: Documentation and Recommendations
-- [x] Create comprehensive IPC analysis document
-- [x] Document learning process integration
-- [x] Provide actionable recommendations
-- [x] Create implementation roadmap
+## Phase 3: Fix All Detected Errors 🔧
+- [x] Fix RefactoringTaskManager.get_recent_tasks (doesn't exist) - use tasks.values() instead
+- [x] Fix CorrelationEngine.correlate() signature (takes 0 args, we passed 1) - call with no args
+- [x] Fix AnalyticsIntegration.track_metric (doesn't exist) - use logger instead
+- [x] Fix PatternOptimizer.get_suggestion (doesn't exist) - return empty dict
+- [x] Fix 5 enum attribute errors (REPORT, PENDING, MISPLACED_FILE, etc.)
 
-## Phase 4: Verification
-- [x] Review all changes
-- [x] Ensure consistency
-- [x] Prepare final report
+## Phase 4: Integrate New Validators 📦
+- [x] Add EnumAttributeValidator to validate_all.py
+- [x] Update bin/README.md with new validator
+- [x] Test on entire codebase
+- [x] Verify enum errors = 0
 
-## ALL TASKS COMPLETED ✅
+## Phase 5: Document and Commit ✅
+- [ ] Create comprehensive summary document
+- [ ] Commit all validator improvements
+- [ ] Push to main
+- [ ] Verify system works

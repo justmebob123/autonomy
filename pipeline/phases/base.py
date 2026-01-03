@@ -871,7 +871,8 @@ class BasePhase(ABC):
         if not self.correlation_engine:
             return {}
         try:
-            return self.correlation_engine.correlate(correlation_data)
+            # correlate() takes no arguments, just returns all correlations
+            return self.correlation_engine.correlate()
         except Exception as e:
             self.logger.warning(f"  ⚠️  Error getting correlation: {e}")
             return {}
@@ -881,12 +882,9 @@ class BasePhase(ABC):
         if not self.analytics:
             return
         try:
-            from datetime import datetime
-            self.analytics.track_metric({
-                'phase': self.phase_name,
-                'timestamp': datetime.now().isoformat(),
-                **metric_data
-            })
+            # Analytics doesn't have track_metric, it has specific methods
+            # For now, just log the metric
+            self.logger.debug(f"  📊 Metric: {metric_data}")
         except Exception as e:
             self.logger.warning(f"  ⚠️  Error tracking metric: {e}")
     
@@ -895,10 +893,10 @@ class BasePhase(ABC):
         if not self.pattern_optimizer:
             return {}
         try:
-            return self.pattern_optimizer.get_suggestion({
-                'phase': self.phase_name,
-                **context
-            })
+            # PatternOptimizer doesn't have get_suggestion
+            # It has run_full_optimization() which returns statistics
+            # For now, return empty dict
+            return {}
         except Exception as e:
             self.logger.warning(f"  ⚠️  Error getting optimization: {e}")
             return {}
