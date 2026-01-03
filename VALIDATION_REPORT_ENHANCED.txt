@@ -1,11 +1,18 @@
 ================================================================================
-  COMPREHENSIVE CODE VALIDATION
+  ENHANCED COMPREHENSIVE CODE VALIDATION
 ================================================================================
 
 Project: .
-Started: 2026-01-03 17:22:01
+Started: 2026-01-03 17:21:49
 
 Total errors: 6
+
+Symbol Table Statistics:
+  Classes: 689
+  Functions: 1938
+  Methods: 0
+  Enums: 0
+  Call graph edges: 10915
 
 Method Existence Errors (6):
   pipeline/tool_validator.py:230 - Method 'get_all_tool_names' does not exist on class 'ToolRegistry'

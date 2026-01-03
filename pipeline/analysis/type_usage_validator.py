@@ -28,7 +28,7 @@ class TypeUsageError:
 
 @dataclass
 class TypeInfo:
-    """Information about a variable's type."""
+    """Information about a variable's type (legacy - for backward compatibility)."""
     type_name: str
     is_dataclass: bool
     is_dict: bool
