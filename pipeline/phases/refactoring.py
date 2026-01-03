@@ -1633,7 +1633,7 @@ merge_file_implementations(
         
         # FIXED: Use TaskAnalysisTracker to check actual tool executions
         # instead of checking assistant message content
-        state = self.analysis_tracker.get_or_create_state(task.task_id)
+        state = self._analysis_tracker.get_or_create_state(task.task_id)
         
         # Count what's been done by looking at ACTUAL tool executions
         files_read = set()
