@@ -169,15 +169,13 @@ class DictStructureValidator:
                             self._collect_instance_vars(node, current_class)
                     
                     # Analyze entire functions to track dynamic dict modifications
-                    # DISABLED: This was causing false positives by merging structures
-                    # from different code paths. Only track direct dict literals.
-                    # if isinstance(node, ast.FunctionDef):
-                    #     structure = self._analyze_function_return(node, current_class, file_key)
-                    #     if structure:
-                    #         func_name = node.name
-                    #         key = f"{current_class}.{func_name}" if current_class else func_name
-                    #         # Store in per-file structures
-                    #         self.file_dict_structures[file_key][key] = structure
+                    if isinstance(node, ast.FunctionDef):
+                        structure = self._analyze_function_return(node, current_class, file_key)
+                        if structure:
+                            func_name = node.name
+                            key = f"{current_class}.{func_name}" if current_class else func_name
+                            # Store in per-file structures
+                            self.file_dict_structures[file_key][key] = structure
                     
                     # Look for assignments with dicts
                     if isinstance(node, ast.Assign):
