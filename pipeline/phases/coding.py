@@ -17,6 +17,8 @@ from ..handlers import ToolCallHandler
 from ..utils import validate_python_syntax
 from .loop_detection_mixin import LoopDetectionMixin
 from ..validation.filename_validator import FilenameValidator, IssueLevel
+from .shared.status_formatter import StatusFormatter
+from .coding_prompt_builder import CodingPromptBuilder
 
 
 class CodingPhase(BasePhase, LoopDetectionMixin):
@@ -52,6 +54,10 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         
         # FILENAME VALIDATION - Prevent problematic filenames
         self.filename_validator = FilenameValidator(strict_mode=True)
+        
+        # EXTRACTED COMPONENTS - Initialize new modular components
+        self.prompt_builder = CodingPromptBuilder(str(self.project_dir))
+        self.logger.info("  🔧 Coding modular components initialized")
         
         self.logger.info("  💻 Coding phase initialized with analysis capabilities")
     
@@ -774,30 +780,12 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
         """Send messages to other phases' READ documents"""
         try:
             # Send to QA phase when code is ready for review
-            qa_message = f"""
-## Code Completion Update - {self.format_timestamp()}
-
-**Task**: {task.description[:100]}
-**Target File**: {task.target_file}
-**Status**: Ready for QA review
-
-### Changes Made
-- **Files Created**: {len(files_created)}
-  {chr(10).join(f'  - {f}' for f in files_created[:5])}
-- **Files Modified**: {len(files_modified)}
-  {chr(10).join(f'  - {f}' for f in files_modified[:5])}
-
-### Quality Notes
-"""
-            
-            if complexity_warnings:
-                qa_message += f"⚠️ **Complexity Warnings**: {len(complexity_warnings)}\n"
-                for warning in complexity_warnings[:3]:
-                    qa_message += f"  - {warning}\n"
-            else:
-                qa_message += "✅ No complexity warnings detected\n"
-            
-            qa_message += "\nPlease review the changes and verify functionality.\n"
+            timestamp = self.format_timestamp()
+            qa_message = self.prompt_builder.build_qa_phase_message(
+                task.target_file,
+                task.task_id,
+                timestamp
+            )
             
             self.send_message_to_phase('qa', qa_message)
             self.logger.info("  📤 Sent completion message to QA phase")
@@ -934,42 +922,11 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
     
     def _format_status_for_write(self, task: TaskState, files_created: List[str],
                                  files_modified: List[str], complexity_warnings: List[str]) -> str:
-        """Format status for DEVELOPER_WRITE.md"""
-        status = f"""# Coding Phase Status
-
-**Timestamp**: {self.format_timestamp()}
-**Status**: Task Completed
-**Task ID**: {task.task_id}
-
-## Task Summary
-**Description**: {task.description}
-**Target File**: {task.target_file}
-**Attempt**: {task.attempts}
-
-## Changes Made
-
-### Files Created ({len(files_created)})
-"""
-        
-        for filepath in files_created:
-            status += f"- `{filepath}`\n"
-        
-        status += f"\n### Files Modified ({len(files_modified)})\n"
-        for filepath in files_modified:
-            status += f"- `{filepath}`\n"
-        
-        status += "\n## Quality Metrics\n\n"
-        
-        if complexity_warnings:
-            status += f"⚠️ **Complexity Warnings**: {len(complexity_warnings)}\n\n"
-            for warning in complexity_warnings:
-                status += f"- {warning}\n"
-        else:
-            status += "✅ No complexity warnings detected\n"
-        
-        status += f"\n## Next Steps\n\n"
-        status += f"- Task marked as QA_PENDING\n"
-        status += f"- Files ready for quality assurance review\n"
-        status += f"- Awaiting QA phase verification\n"
-        
-        return status
+        """Format status for DEVELOPER_WRITE.md - delegates to StatusFormatter"""
+        return StatusFormatter.format_coding_status(
+            task=task,
+            files_created=files_created,
+            files_modified=files_modified,
+            complexity_warnings=complexity_warnings,
+            timestamp=self.format_timestamp()
+        )
