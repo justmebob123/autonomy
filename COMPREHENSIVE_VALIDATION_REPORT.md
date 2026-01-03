@@ -2,18 +2,18 @@
 
 ## Executive Summary
 
-- **Critical Issues:** 0
+- **Critical Issues:** 23
 - **Warnings:** 69
 - **Other Errors:** 0
 
-✅ **Status:** PASS - No critical issues or errors
+❌ **Status:** FAIL - Issues need attention
 
 ## Dictionary Structure Validation
 
-- Total errors: 69
-- High severity: 0
+- Total errors: 92
+- High severity: 23
 - Low severity: 69
-- Structures analyzed: 548
+- Structures analyzed: 553
 
 ### Low Severity Warnings
 
@@ -23,7 +23,7 @@ See DICT_WARNINGS_DEEP_ANALYSIS.md for details.
 ## Keyword Argument Validation
 
 - Total errors: 0
-- Methods checked: 2469
+- Methods checked: 0
 
 ## Syntax Validation
 

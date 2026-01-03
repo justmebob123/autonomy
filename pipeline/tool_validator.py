@@ -22,6 +22,15 @@ import difflib
 
 from .logging_setup import get_logger
 
+# Polytopic Integration Imports
+from pipeline.messaging.message_bus import MessageBus, Message, MessageType, MessagePriority
+from pipeline.pattern_recognition import PatternRecognitionSystem
+from pipeline.correlation_engine import CorrelationEngine
+from pipeline.analytics.optimizer import OptimizationEngine
+from pipeline.adaptive_prompts import AdaptivePromptSystem
+from pipeline.polytopic.dimensional_space import DimensionalSpace
+
+
 
 class ToolMetrics:
     """Metrics for a single tool."""
@@ -37,6 +46,21 @@ class ToolMetrics:
         self.error_types = Counter()
         self.usage_by_phase = Counter()
     
+        # Polytopic Integration
+        self.message_bus = MessageBus()
+        self.pattern_recognition = PatternRecognitionSystem(self.project_root)
+        self.correlation_engine = CorrelationEngine()
+        self.optimizer = OptimizationEngine()
+        self.adaptive_prompts = AdaptivePromptSystem(
+            self.project_root,
+            self.pattern_recognition
+        )
+        self.dimensional_space = DimensionalSpace()
+        
+        # Validation tracking
+        self.validation_count = 0
+        self.validator_name = 'ToolValidator'
+
     def record_call(self, success: bool, execution_time: float = 0.0, 
                    phase: str = None, error_type: str = None):
         """Record a tool call."""
@@ -511,3 +535,119 @@ class ToolValidator:
             
         except Exception as e:
             self.logger.error(f"❌ Failed to load metrics: {e}")
+    
+    def _publish_validation_event(self, event_type: str, payload: dict):
+        """Publish validation events using existing message types."""
+        message_type_map = {
+            'validation_started': MessageType.SYSTEM_INFO,
+            'validation_completed': MessageType.SYSTEM_INFO,
+            'validation_error': MessageType.SYSTEM_WARNING,
+            'validation_critical': MessageType.SYSTEM_ALERT,
+            'validation_insight': MessageType.SYSTEM_INFO,
+        }
+        
+        message_type = message_type_map.get(event_type, MessageType.SYSTEM_INFO)
+        
+        message = Message(
+            sender=self.validator_name,
+            recipient='ALL',
+            message_type=message_type,
+            priority=MessagePriority.NORMAL,
+            payload={
+                'event': event_type,
+                'validator': self.validator_name,
+                **payload
+            }
+        )
+        
+        self.message_bus.publish(message)
+    
+    def _record_validation_pattern(self, errors: list):
+        """Record validation patterns for learning."""
+        if not errors:
+            return
+        
+        # Record execution data
+        execution_data = {
+            'phase': 'validation',
+            'tool': self.validator_name,
+            'success': len([e for e in errors if self._get_severity(e) == 'high']) == 0,
+            'error_count': len(errors),
+            'validation_count': self.validation_count
+        }
+        
+        self.pattern_recognition.record_execution(execution_data)
+        
+        # Add findings to correlation engine
+        for error in errors:
+            component = self._get_error_file(error)
+            finding = {
+                'type': f'{self.validator_name}_error',
+                'error_type': self._get_error_type(error),
+                'severity': self._get_severity(error),
+                'message': self._get_error_message(error)
+            }
+            
+            self.correlation_engine.add_finding(component, finding)
+        
+        # Find correlations
+        correlations = self.correlation_engine.correlate()
+        
+        if correlations:
+            self._publish_validation_event('validation_insight', {
+                'type': 'validation_correlations',
+                'correlations': correlations
+            })
+    
+    def _optimize_validation(self, result: dict):
+        """Optimize validation based on results."""
+        # Record quality metrics
+        self.optimizer.record_quality_metric(
+            f'{self.validator_name}_errors',
+            result.get('total_errors', 0)
+        )
+        
+        if 'by_severity' in result:
+            self.optimizer.record_quality_metric(
+                f'{self.validator_name}_high_severity',
+                result.get('by_severity', {}).get('high', 0)
+            )
+    
+    def _get_error_file(self, error):
+        """Extract file path from error."""
+        if isinstance(error, dict):
+            return error.get('file', 'unknown')
+        elif hasattr(error, 'file'):
+            return error.file
+        elif hasattr(error, 'filepath'):
+            return error.filepath
+        return 'unknown'
+    
+    def _get_error_type(self, error):
+        """Extract error type from error."""
+        if isinstance(error, dict):
+            return error.get('error_type', 'unknown')
+        elif hasattr(error, 'error_type'):
+            return error.error_type
+        elif hasattr(error, 'type'):
+            return error.type
+        return 'unknown'
+    
+    def _get_severity(self, error):
+        """Extract severity from error."""
+        if isinstance(error, dict):
+            return error.get('severity', 'medium')
+        elif hasattr(error, 'severity'):
+            return error.severity
+        return 'medium'
+    
+    def _get_error_message(self, error):
+        """Extract message from error."""
+        if isinstance(error, dict):
+            return error.get('message', '')
+        elif hasattr(error, 'message'):
+            return error.message
+        elif hasattr(error, 'msg'):
+            return error.msg
+        return str(error)
+

@@ -60,6 +60,10 @@ class DictStructureValidator:
         )
         self.dimensional_space = DimensionalSpace()
         
+        # Validation tracking
+        self.validation_count = 0
+        self.validator_name = 'DictStructureValidator'
+        
         # Subscribe to file change events for real-time validation
         # Note: Using existing message types from the system
   # class_name -> {var_name: structure}
@@ -83,6 +87,9 @@ class DictStructureValidator:
             self._validate_file(py_file)
         
         
+        
+        # Increment validation count
+        self.validation_count += 1
         
         # Build result dict first
         result = {
@@ -508,6 +515,44 @@ class DictStructureValidator:
             counts[err.error_type] = counts.get(err.error_type, 0) + 1
         return counts
     
+    def _get_error_file(self, error):
+        """Extract file path from error."""
+        if isinstance(error, dict):
+            return error.get('file', 'unknown')
+        elif hasattr(error, 'file'):
+            return error.file
+        elif hasattr(error, 'filepath'):
+            return error.filepath
+        return 'unknown'
+    
+    def _get_error_type(self, error):
+        """Extract error type from error."""
+        if isinstance(error, dict):
+            return error.get('error_type', 'unknown')
+        elif hasattr(error, 'error_type'):
+            return error.error_type
+        elif hasattr(error, 'type'):
+            return error.type
+        return 'unknown'
+    
+    def _get_severity(self, error):
+        """Extract severity from error."""
+        if isinstance(error, dict):
+            return error.get('severity', 'medium')
+        elif hasattr(error, 'severity'):
+            return error.severity
+        return 'medium'
+    
+    def _get_error_message(self, error):
+        """Extract message from error."""
+        if isinstance(error, dict):
+            return error.get('message', '')
+        elif hasattr(error, 'message'):
+            return error.message
+        elif hasattr(error, 'msg'):
+            return error.msg
+        return str(error)
+    
     def _publish_validation_event(self, event_type: str, payload: dict):
         """Publish validation events using existing message types."""
         # Map validation events to existing system message types
@@ -543,36 +588,23 @@ class DictStructureValidator:
         # Record execution data for pattern recognition
         execution_data = {
             'phase': 'validation',
-            'tool': 'dict_structure_validator',
-            'success': len([e for e in errors if (e.severity if hasattr(e, 'severity') else e.get('severity')) == 'high']) == 0,
+            'tool': self.validator_name,
+            'success': len([e for e in errors if self._get_severity(e) == 'high']) == 0,
             'error_count': len(errors),
-            'timestamp': str(Path.cwd())  # Use as context
+            'validation_count': self.validation_count
         }
         
         self.pattern_recognition.record_execution(execution_data)
         
         # Add findings to correlation engine
         for error in errors:
-            # Handle both dict and DictStructureError objects
-            if isinstance(error, dict):
-                component = error['file']
-                finding = {
-                    'type': 'dict_validation_error',
-                    'error_type': error['error_type'],
-                    'severity': error['severity'],
-                    'variable': error['variable'],
-                    'key_path': error['key_path']
-                }
-            else:
-                # DictStructureError object
-                component = error.file
-                finding = {
-                    'type': 'dict_validation_error',
-                    'error_type': error.error_type,
-                    'severity': error.severity,
-                    'variable': error.variable,
-                    'key_path': error.key_path
-                }
+            component = self._get_error_file(error)
+            finding = {
+                'type': f'{self.validator_name}_error',
+                'error_type': self._get_error_type(error),
+                'severity': self._get_severity(error),
+                'message': self._get_error_message(error)
+            }
             
             self.correlation_engine.add_finding(component, finding)
         
