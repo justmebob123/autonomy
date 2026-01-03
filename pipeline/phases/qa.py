@@ -475,6 +475,10 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             # IPC INTEGRATION: Send messages to other phases
             self._send_phase_messages(filepath, handler.issues)
             
+            # CRITICAL FIX: Create NEEDS_FIXES tasks for each issue
+            # This ensures the coordinator routes to debugging phase
+            self._create_fix_tasks_for_issues(state, filepath, handler.issues)
+            
             # IPC INTEGRATION: Write completion status with issues
             self._write_status({
                 "status": "QA review completed with issues",
@@ -848,6 +852,70 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             self.logger.debug(f"  Error reading phase outputs: {e}")
         
         return outputs
+    
+    def _create_fix_tasks_for_issues(self, state: PipelineState, filepath: str, issues: List[Dict]):
+        """
+        Create NEEDS_FIXES tasks for each issue found.
+        
+        This is CRITICAL for the coordinator to route to debugging phase.
+        Without this, issues are reported but never fixed.
+        """
+        from ..state.task import TaskStatus
+        from datetime import datetime
+        
+        if not issues:
+            return
+        
+        self.logger.info(f"  🔧 Creating {len(issues)} NEEDS_FIXES tasks for {filepath}")
+        
+        for idx, issue in enumerate(issues):
+            # Create unique task ID
+            task_id = f"qa_fix_{filepath.replace('/', '_')}_{issue.get('line_number', idx)}"
+            
+            # Check if task already exists
+            if task_id in state.tasks:
+                self.logger.debug(f"    ⏭️  Task {task_id} already exists, skipping")
+                continue
+            
+            # Determine priority based on severity
+            severity = issue.get('severity', 'medium')
+            priority_map = {
+                'critical': 1,
+                'high': 5,
+                'medium': 10,
+                'low': 20
+            }
+            priority = priority_map.get(severity, 10)
+            
+            # Create task
+            from ..state.task import TaskState
+            task = TaskState(
+                task_id=task_id,
+                description=f"Fix {issue.get('issue_type', 'issue')} in {filepath}: {issue.get('description', 'No description')}",
+                target_file=filepath,
+                status=TaskStatus.NEEDS_FIXES,
+                priority=priority,
+                created_at=datetime.now()
+            )
+            
+            # Store issue data in task for debugging phase
+            task.metadata = {
+                'issue_type': issue.get('issue_type'),
+                'line_number': issue.get('line_number'),
+                'severity': severity,
+                'description': issue.get('description'),
+                'source': 'qa_phase'
+            }
+            
+            # Add to state
+            state.tasks[task_id] = task
+            self.logger.info(f"    ✅ Created task {task_id} (priority {priority})")
+        
+        # Save state immediately so coordinator sees the tasks
+        from ..state.manager import StateManager
+        state_manager = StateManager(self.project_dir)
+        state_manager.save(state)
+        self.logger.info(f"  💾 Saved state with {len(issues)} new NEEDS_FIXES tasks")
     
     def _send_phase_messages(self, filepath: str, issues_found: List[Dict]):
         """Send messages to other phases' READ documents"""
