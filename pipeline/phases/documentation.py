@@ -708,17 +708,19 @@ This project uses an AI-assisted development pipeline that:
         from ..messaging import MessageType
         
         # Publish SYSTEM_ALERT
-        self.message_bus.publish(
-            MessageType.SYSTEM_ALERT,
-            source=self.phase_name,
-            payload={
+        Message(
+                sender=self.phase_name,
+                recipient="broadcast",
+                message_type=MessageType.SYSTEM_ALERT,
+                priority=MessagePriority.HIGH,
+                payload={
                 'type': 'critical_architecture_drift',
                 'severity': validation.severity.value,
                 'missing_components': validation.missing_components,
                 'integration_gaps': len(validation.integration_gaps),
                 'message': 'Critical architecture drift detected - planning phase should address'
             }
-        )
+            )
         
         # Write to DOCUMENTATION_WRITE.md
         alert_message = f"""

@@ -1192,26 +1192,32 @@ Please address these architectural integration issues.
         if not self.message_bus:
             return
         
-        from ..messaging import MessageType
+        from ..messaging import Message, MessageType, MessagePriority
         
         # Publish validation event
         self.message_bus.publish(
-            MessageType.SYSTEM_ALERT,  # Use SYSTEM_ALERT for architecture validation
-            source=self.phase_name,
-            payload={
-                'type': 'architecture_validated',
-                'is_consistent': validation.is_consistent,
-                'severity': validation.severity.value,
-                'missing_components': validation.missing_components,
-                'integration_gaps': len(validation.integration_gaps)
-            }
+            Message(
+                sender=self.phase_name,
+                recipient="broadcast",
+                message_type=MessageType.SYSTEM_ALERT,
+                priority=MessagePriority.HIGH,
+                payload={
+                    'type': 'architecture_validated',
+                    'is_consistent': validation.is_consistent,
+                    'severity': validation.severity.value,
+                    'missing_components': validation.missing_components,
+                    'integration_gaps': len(validation.integration_gaps)
+                }
+            )
         )
         
         # Publish drift detection if not consistent
         if not validation.is_consistent:
-            self.message_bus.publish(
-                MessageType.SYSTEM_ALERT,
-                source=self.phase_name,
+            Message(
+                sender=self.phase_name,
+                recipient="broadcast",
+                message_type=MessageType.SYSTEM_ALERT,
+                priority=MessagePriority.HIGH,
                 payload={
                     'type': 'architecture_drift_detected',
                     'severity': validation.severity.value,
@@ -1222,9 +1228,11 @@ Please address these architectural integration issues.
         
         # Publish component events
         for component in validation.missing_components:
-            self.message_bus.publish(
-                MessageType.SYSTEM_ALERT,
-                source=self.phase_name,
+            Message(
+                sender=self.phase_name,
+                recipient="broadcast",
+                message_type=MessageType.SYSTEM_ALERT,
+                priority=MessagePriority.HIGH,
                 payload={
                     'type': 'architecture_component_missing',
                     'component': component
@@ -1233,9 +1241,11 @@ Please address these architectural integration issues.
         
         # Publish architecture update event
         if diff.has_changes():
-            self.message_bus.publish(
-                MessageType.SYSTEM_ALERT,
-                source=self.phase_name,
+            Message(
+                sender=self.phase_name,
+                recipient="broadcast",
+                message_type=MessageType.SYSTEM_ALERT,
+                priority=MessagePriority.HIGH,
                 payload={
                     'type': 'architecture_updated',
                     'added': len(diff.added),

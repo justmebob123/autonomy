@@ -425,11 +425,17 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         # MESSAGE BUS: Publish analysis started event
         if self.message_bus:
             from ..messaging import MessageType
-            self.message_bus.publish(MessageType.PHASE_STARTED, {
+            self.message_bus.publish(Message(
+                sender=self.phase_name,
+                recipient="broadcast",
+                message_type=MessageType.PHASE_STARTED,
+                priority=MessagePriority.NORMAL,
+                payload={
                 'phase': self.phase_name,
                 'analysis_type': 'comprehensive',
                 'timestamp': datetime.now().isoformat()
-            })
+            }
+            ))
         
         # Use existing comprehensive refactoring handler for analysis
         result = self._handle_comprehensive_refactoring(state)
@@ -475,12 +481,18 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             # MESSAGE BUS: Publish analysis complete event
             if self.message_bus:
                 from ..messaging import MessageType
-                self.message_bus.publish(MessageType.PHASE_COMPLETED, {
+                self.message_bus.publish(Message(
+                sender=self.phase_name,
+                recipient="broadcast",
+                message_type=MessageType.PHASE_COMPLETED,
+                priority=MessagePriority.NORMAL,
+                payload={
                     'phase': self.phase_name,
                     'issues_found': len(pending),
                     'tasks_created': tasks_created + placement_tasks,
                     'timestamp': datetime.now().isoformat()
-                })
+                }
+            ))
             
             return PhaseResult(
                 success=True,
@@ -494,12 +506,18 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             # MESSAGE BUS: Publish analysis complete event
             if self.message_bus:
                 from ..messaging import MessageType
-                self.message_bus.publish(MessageType.PHASE_COMPLETED, {
+                self.message_bus.publish(Message(
+                sender=self.phase_name,
+                recipient="broadcast",
+                message_type=MessageType.PHASE_COMPLETED,
+                priority=MessagePriority.NORMAL,
+                payload={
                     'phase': self.phase_name,
                     'issues_found': 0,
                     'tasks_created': 0,
                     'timestamp': datetime.now().isoformat()
-                })
+                }
+            ))
             
             return PhaseResult(
                 success=True,
@@ -600,13 +618,19 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         # MESSAGE BUS: Publish refactoring started event
         if self.message_bus:
             from ..messaging import MessageType
-            self.message_bus.publish(MessageType.TASK_STARTED, {
+            self.message_bus.publish(Message(
+                sender=self.phase_name,
+                recipient="broadcast",
+                message_type=MessageType.TASK_STARTED,
+                priority=MessagePriority.NORMAL,
+                payload={
                 'phase': self.phase_name,
                 'task_id': task.task_id,
                 'issue_type': task.issue_type.value,
                 'priority': task.priority.value,
                 'timestamp': datetime.now().isoformat()
-            })
+            }
+            ))
         
         # Mark task as started
         task.start()
@@ -813,14 +837,20 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 # MESSAGE BUS: Publish refactoring complete event
                 if self.message_bus:
                     from ..messaging import MessageType
-                    self.message_bus.publish(MessageType.TASK_COMPLETED, {
+                    self.message_bus.publish(Message(
+                sender=self.phase_name,
+                recipient="broadcast",
+                message_type=MessageType.TASK_COMPLETED,
+                priority=MessagePriority.NORMAL,
+                payload={
                         'phase': self.phase_name,
                         'task_id': task.task_id,
                         'issue_type': task.issue_type.value,
                         'success': True,
                         'verification_msg': verification_msg,
                         'timestamp': datetime.now().isoformat()
-                    })
+                    }
+            ))
                 
                 # PATTERN RECOGNITION: Record successful resolution pattern
                 self.record_execution_pattern({
