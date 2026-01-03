@@ -69,80 +69,21 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 task: TaskState = None, **kwargs) -> PhaseResult:
         """Execute QA review for a file or task"""
         
+        # Initialize context
+        context = self._initialize_qa_context(state, filepath, task)
+        
+        # Check for loop prevention
+        loop_result = self._check_loop_prevention(state)
+        if loop_result:
+            return loop_result
+        
+        # Get the actual task and filepath to review
+        task, filepath = self._resolve_review_target(state, task, filepath)
+        
+        # Continue with rest of execute...
         # ARCHITECTURE INTEGRATION: Read architecture for quality standards
-        architecture = self._read_architecture()
-        if architecture:
-            self.logger.info(f"  📐 Architecture loaded: {len(architecture.get('components', {}))} components defined")
-        
-        # IPC INTEGRATION: Read objectives for quality criteria
-        objectives = self._read_objectives()
-        if objectives:
-            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
-        
-        # IPC INTEGRATION: Write status at start
-        self._write_status({
-            "status": "Starting QA review",
-            "action": "start",
-            "filepath": filepath,
-            "task_id": task.task_id if task else None
-        })
-        
-        # IPC INTEGRATION: Initialize documents on first run
-        self.initialize_ipc_documents()
-        
-        # IPC INTEGRATION: Read review requests from QA_READ.md
-        review_requests = self.read_own_tasks()
-        if review_requests:
-            self.logger.info(f"  📋 Read review requests from QA_READ.md")
-        
-        # IPC INTEGRATION: Read strategic documents for quality criteria
-        strategic_docs = self.read_strategic_docs()
-        if strategic_docs:
-            self.logger.debug(f"  📚 Loaded {len(strategic_docs)} strategic documents")
-        
-        # IPC INTEGRATION: Read other phases' outputs
-        phase_outputs = self._read_relevant_phase_outputs()
-        
-        # MESSAGE BUS: Check for relevant messages
-        if self.message_bus:
-            from ..messaging import MessageType
-            messages = self._get_messages(
-                message_types=[MessageType.TASK_COMPLETED, MessageType.FILE_MODIFIED],
-                limit=5
-            )
-            if messages:
-                self.logger.info(f"  📨 Received {len(messages)} messages")
-                for msg in messages:
-                    self.logger.info(f"    • {msg.message_type.value}: {msg.payload.get('file', msg.payload.get('task_id', 'N/A'))}")
-                # Clear processed messages
-                self._clear_messages([msg.id for msg in messages])
-        
-        # Check no-update count BEFORE processing (loop prevention)
-        from ..state.manager import StateManager
-        state_manager = StateManager(self.project_dir)
-        no_update_count = state_manager.get_no_update_count(state, self.phase_name)
-        
-        if no_update_count >= 3:
-            self.logger.warning(f"  ⚠️ QA phase returned 'no files to review' {no_update_count} times")
-            self.logger.info("  🔄 Forcing transition to next phase to prevent loop")
-            
-            # Reset counter
-            state_manager.reset_no_update_count(state, self.phase_name)
-            
-            return PhaseResult(
-                success=True,
-                phase=self.phase_name,
-                message="QA reviewed multiple times - forcing completion to prevent loop",
-                next_phase="coding"
-            )
-        
-        # CRITICAL: If task was passed from coordinator, look it up in the loaded state
-        # This ensures we modify the task in the state that will be saved
-        if task is not None:
-            task_from_state = state.get_task(task.task_id)
-            if task_from_state is not None:
-                task = task_from_state
-            # If not found, keep the original (might be a standalone review)
+        architecture = context['architecture']
+        objectives = context['objectives']
         
         # Determine what to review
         if filepath is None and task is not None:
@@ -665,6 +606,113 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         lines.append("")
         
         return "\n".join(lines)
+    
+    def _initialize_qa_context(self, state: PipelineState, filepath: str, task: TaskState) -> Dict:
+        """Initialize QA context with architecture, objectives, and messages"""
+        # ARCHITECTURE INTEGRATION: Read architecture for quality standards
+        architecture = self._read_architecture()
+        if architecture:
+            self.logger.info(f"  📐 Architecture loaded: {len(architecture.get('components', {}))} components defined")
+        
+        # IPC INTEGRATION: Read objectives for quality criteria
+        objectives = self._read_objectives()
+        if objectives:
+            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+        
+        # IPC INTEGRATION: Write status at start
+        self._write_status({
+            "status": "Starting QA review",
+            "action": "start",
+            "filepath": filepath,
+            "task_id": task.task_id if task else None
+        })
+        
+        # IPC INTEGRATION: Initialize documents on first run
+        self.initialize_ipc_documents()
+        
+        # IPC INTEGRATION: Read review requests from QA_READ.md
+        review_requests = self.read_own_tasks()
+        if review_requests:
+            self.logger.info(f"  📋 Read review requests from QA_READ.md")
+        
+        # IPC INTEGRATION: Read strategic documents for quality criteria
+        strategic_docs = self.read_strategic_docs()
+        if strategic_docs:
+            self.logger.debug(f"  📚 Loaded {len(strategic_docs)} strategic documents")
+        
+        # IPC INTEGRATION: Read other phases' outputs
+        phase_outputs = self._read_relevant_phase_outputs()
+        
+        # MESSAGE BUS: Check for relevant messages
+        messages = []
+        if self.message_bus:
+            from ..messaging import MessageType
+            messages = self._get_messages(
+                message_types=[MessageType.TASK_COMPLETED, MessageType.FILE_MODIFIED],
+                limit=5
+            )
+            if messages:
+                self.logger.info(f"  📨 Received {len(messages)} messages")
+                for msg in messages:
+                    self.logger.info(f"    • {msg.message_type.value}: {msg.payload.get('file', msg.payload.get('task_id', 'N/A'))}")
+                # Clear processed messages
+                self._clear_messages([msg.id for msg in messages])
+        
+        return {
+            'architecture': architecture,
+            'objectives': objectives,
+            'review_requests': review_requests,
+            'strategic_docs': strategic_docs,
+            'phase_outputs': phase_outputs,
+            'messages': messages
+        }
+    
+    def _check_loop_prevention(self, state: PipelineState):
+        """Check no-update count to prevent infinite loops"""
+        from ..state.manager import StateManager
+        state_manager = StateManager(self.project_dir)
+        no_update_count = state_manager.get_no_update_count(state, self.phase_name)
+        
+        if no_update_count >= 3:
+            self.logger.warning(f"  ⚠️ QA phase returned 'no files to review' {no_update_count} times")
+            self.logger.info("  🔄 Forcing transition to next phase to prevent loop")
+            
+            # Reset counter
+            state_manager.reset_no_update_count(state, self.phase_name)
+            
+            # MESSAGE BUS: Publish loop prevention event
+            if self.message_bus:
+                from ..messaging import MessageType
+                self._publish_message(
+                    MessageType.PHASE_TRANSITION,
+                    {
+                        'from_phase': self.phase_name,
+                        'to_phase': 'coding',
+                        'reason': 'loop_prevention',
+                        'no_update_count': no_update_count
+                    }
+                )
+            
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message="QA reviewed multiple times - forcing completion to prevent loop",
+                next_phase="coding"
+            )
+        
+        return None
+    
+    def _resolve_review_target(self, state: PipelineState, task: TaskState, filepath: str):
+        """Resolve the actual task and filepath to review"""
+        # CRITICAL: If task was passed from coordinator, look it up in the loaded state
+        # This ensures we modify the task in the state that will be saved
+        if task is not None:
+            task_from_state = state.get_task(task.task_id)
+            if task_from_state is not None:
+                task = task_from_state
+            # If not found, keep the original (might be a standalone review)
+        
+        return task, filepath
     
     def run_comprehensive_analysis(self, filepath: str) -> Dict:
         """
