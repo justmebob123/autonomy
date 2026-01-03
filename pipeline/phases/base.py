@@ -70,7 +70,8 @@ class BasePhase(ABC):
                  state_manager=None, file_tracker=None,
                  prompt_registry=None, tool_registry=None, role_registry=None,
                  coding_specialist=None, reasoning_specialist=None, analysis_specialist=None,
-                 message_bus=None, adaptive_prompts=None):
+                 message_bus=None, adaptive_prompts=None,
+                 pattern_recognition=None, correlation_engine=None, analytics=None, pattern_optimizer=None):
         self.config = config
         self.client = client
         self.project_dir = Path(config.project_dir)
@@ -152,6 +153,12 @@ class BasePhase(ABC):
         
         # Initialize adaptive prompts (passed from coordinator)
         self.adaptive_prompts = adaptive_prompts
+        
+        # Initialize the 6 core engines (passed from coordinator)
+        self.pattern_recognition = pattern_recognition
+        self.correlation_engine = correlation_engine
+        self.analytics = analytics
+        self.pattern_optimizer = pattern_optimizer
         
         # CRITICAL: Initialize Architecture Manager and IPC Integration
         from ..architecture_manager import ArchitectureManager
@@ -844,3 +851,54 @@ class BasePhase(ABC):
                     break
         except Exception as e:
             self.logger.warning(f"  ⚠️  Error updating system prompt: {e}")
+    
+    def record_execution_pattern(self, pattern_data: Dict):
+        """Record execution pattern for learning."""
+        if not self.pattern_recognition:
+            return
+        try:
+            from datetime import datetime
+            self.pattern_recognition.record_execution({
+                'phase': self.phase_name,
+                'timestamp': datetime.now().isoformat(),
+                **pattern_data
+            })
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error recording pattern: {e}")
+    
+    def get_cross_phase_correlation(self, correlation_data: Dict) -> Dict:
+        """Get cross-phase correlations."""
+        if not self.correlation_engine:
+            return {}
+        try:
+            return self.correlation_engine.correlate(correlation_data)
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error getting correlation: {e}")
+            return {}
+    
+    def track_phase_metric(self, metric_data: Dict):
+        """Track phase metric for analytics."""
+        if not self.analytics:
+            return
+        try:
+            from datetime import datetime
+            self.analytics.track_metric({
+                'phase': self.phase_name,
+                'timestamp': datetime.now().isoformat(),
+                **metric_data
+            })
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error tracking metric: {e}")
+    
+    def get_optimization_suggestion(self, context: Dict) -> Dict:
+        """Get optimization suggestion from pattern optimizer."""
+        if not self.pattern_optimizer:
+            return {}
+        try:
+            return self.pattern_optimizer.get_suggestion({
+                'phase': self.phase_name,
+                **context
+            })
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error getting optimization: {e}")
+            return {}

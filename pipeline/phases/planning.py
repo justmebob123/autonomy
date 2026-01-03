@@ -75,6 +75,20 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                 'recent_issues': state.get_recent_issues(self.phase_name, limit=5) if hasattr(state, 'get_recent_issues') else []
             })
         
+        
+        # CORRELATION ENGINE: Get cross-phase correlations
+        correlations = self.get_cross_phase_correlation({
+            'phase': self.phase_name
+        })
+        if correlations:
+            self.logger.debug(f"  🔗 Found {len(correlations)} cross-phase correlations")
+        
+        # PATTERN OPTIMIZER: Get optimization suggestions
+        optimization = self.get_optimization_suggestion({
+            'current_strategy': 'phase_execution'
+        })
+        if optimization and optimization.get('suggestions'):
+            self.logger.debug(f"  💡 Optimization suggestions available")
         # ========== INTEGRATION: READ ARCHITECTURE AND OBJECTIVES ==========
         # Read architecture to understand project structure
         architecture = self._read_architecture()
@@ -637,6 +651,17 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                         message += f"- `{task.target_file}`: {task.description[:60]}\n"
                     
                     self.send_message_to_phase('coding', message)
+                    
+                    # PATTERN RECOGNITION: Record planning pattern
+                    self.record_execution_pattern({
+                        'pattern_type': 'planning_complete',
+                        'success': True
+                    })
+                    
+                    # ANALYTICS: Track planning metric
+                    self.track_phase_metric({
+                        'metric': 'planning_completed'
+                    })
                     self.logger.info(f"  📤 Sent {len(dev_tasks)} tasks to coding phase")
             
             # Message to QA

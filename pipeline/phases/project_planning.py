@@ -97,6 +97,20 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
                 'recent_issues': state.get_recent_issues(self.phase_name, limit=5) if hasattr(state, 'get_recent_issues') else []
             })
         
+        
+        # CORRELATION ENGINE: Get cross-phase correlations
+        correlations = self.get_cross_phase_correlation({
+            'phase': self.phase_name
+        })
+        if correlations:
+            self.logger.debug(f"  🔗 Found {len(correlations)} cross-phase correlations")
+        
+        # PATTERN OPTIMIZER: Get optimization suggestions
+        optimization = self.get_optimization_suggestion({
+            'current_strategy': 'phase_execution'
+        })
+        if optimization and optimization.get('suggestions'):
+            self.logger.debug(f"  💡 Optimization suggestions available")
         # ARCHITECTURE INTEGRATION: Read architecture for project structure
         architecture = self._read_architecture()
         if architecture:
@@ -371,6 +385,19 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         # SEND MESSAGES to other phases
         if tasks_created:
             self.send_message_to_phase('planning', f"Created {len(tasks_created)} new expansion tasks for cycle {state.expansion_count}")
+            
+            # PATTERN RECOGNITION: Record expansion pattern
+            self.record_execution_pattern({
+                'pattern_type': 'expansion_planning',
+                'tasks_created': len(tasks_created),
+                'success': True
+            })
+            
+            # ANALYTICS: Track expansion metric
+            self.track_phase_metric({
+                'metric': 'expansion_planned',
+                'tasks_created': len(tasks_created)
+            })
         
         # IPC INTEGRATION: Write completion status
         self._write_status({

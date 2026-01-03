@@ -508,6 +508,20 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                 'recent_fixes': [t for t in state.tasks.values() if t.status == TaskStatus.COMPLETED and 'debug' in t.task_id.lower()][-5:] if state.tasks else []
             })
         
+        
+        # CORRELATION ENGINE: Get cross-phase correlations
+        correlations = self.get_cross_phase_correlation({
+            'phase': self.phase_name
+        })
+        if correlations:
+            self.logger.debug(f"  🔗 Found {len(correlations)} cross-phase correlations")
+        
+        # PATTERN OPTIMIZER: Get optimization suggestions
+        optimization = self.get_optimization_suggestion({
+            'current_strategy': 'phase_execution'
+        })
+        if optimization and optimization.get('suggestions'):
+            self.logger.debug(f"  💡 Optimization suggestions available")
         # ARCHITECTURE INTEGRATION: Read architecture for design context
         architecture = self._read_architecture()
         if architecture:
@@ -2018,6 +2032,19 @@ The issue has been addressed. Please verify the fix and ensure no regressions we
                 
                 self.send_message_to_phase('qa', qa_message)
                 self.logger.info("  📤 Sent fix completion to QA phase")
+                
+                # PATTERN RECOGNITION: Record fix completion pattern
+                self.record_execution_pattern({
+                    'pattern_type': 'fix_completion',
+                    'issue_type': issue.get('type', 'unknown'),
+                    'success': True
+                })
+                
+                # ANALYTICS: Track fix completion metric
+                self.track_phase_metric({
+                    'metric': 'fix_completed',
+                    'issue_type': issue.get('type', 'unknown')
+                })
                 
                 # Also notify coding phase if architectural changes were needed
                 if issue.get('type') in ['integration_gap', 'architectural']:

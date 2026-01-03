@@ -67,6 +67,20 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 'recent_tasks': [t for t in state.tasks.values() if t.status in [TaskStatus.COMPLETED, TaskStatus.FAILED]][-5:] if state.tasks else []
             })
         
+        
+        # CORRELATION ENGINE: Get cross-phase correlations
+        correlations = self.get_cross_phase_correlation({
+            'phase': self.phase_name
+        })
+        if correlations:
+            self.logger.debug(f"  🔗 Found {len(correlations)} cross-phase correlations")
+        
+        # PATTERN OPTIMIZER: Get optimization suggestions
+        optimization = self.get_optimization_suggestion({
+            'current_strategy': 'phase_execution'
+        })
+        if optimization and optimization.get('suggestions'):
+            self.logger.debug(f"  💡 Optimization suggestions available")
         # ========== INTEGRATION: READ ARCHITECTURE AND OBJECTIVES ==========
         # Read architecture to understand where files should be placed
         architecture = self._read_architecture()
@@ -809,6 +823,19 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
             
             self.send_message_to_phase('qa', qa_message)
             self.logger.info("  📤 Sent completion message to QA phase")
+            
+            # PATTERN RECOGNITION: Record task completion pattern
+            self.record_execution_pattern({
+                'pattern_type': 'task_completion',
+                'task_id': task.task_id if task else 'unknown',
+                'success': True
+            })
+            
+            # ANALYTICS: Track task completion metric
+            self.track_phase_metric({
+                'metric': 'task_completed',
+                'task_id': task.task_id if task else 'unknown'
+            })
             
         except Exception as e:
             self.logger.debug(f"  Error sending phase messages: {e}")

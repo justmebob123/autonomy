@@ -78,6 +78,20 @@ class InvestigationPhase(BasePhase):
                 'recent_investigations': [],  # Could track recent investigations
                 'recent_issues': state.get_recent_issues(self.phase_name, limit=5) if hasattr(state, 'get_recent_issues') else []
             })
+        
+        # CORRELATION ENGINE: Get cross-phase correlations
+        correlations = self.get_cross_phase_correlation({
+            'phase': self.phase_name
+        })
+        if correlations:
+            self.logger.debug(f"  🔗 Found {len(correlations)} cross-phase correlations")
+        
+        # PATTERN OPTIMIZER: Get optimization suggestions
+        optimization = self.get_optimization_suggestion({
+            'current_strategy': 'phase_execution'
+        })
+        if optimization and optimization.get('suggestions'):
+            self.logger.debug(f"  💡 Optimization suggestions available")
         """Execute investigation for an issue"""
         
         # ARCHITECTURE INTEGRATION: Read architecture for design context
@@ -202,6 +216,17 @@ class InvestigationPhase(BasePhase):
         # SEND MESSAGES to other phases
         if findings.get('recommended_fix'):
             self.send_message_to_phase('debugging', f"Investigation complete for {filepath}: {findings.get('recommended_fix')}")
+            
+            # PATTERN RECOGNITION: Record investigation pattern
+            self.record_execution_pattern({
+                'pattern_type': 'investigation_complete',
+                'success': True
+            })
+            
+            # ANALYTICS: Track investigation metric
+            self.track_phase_metric({
+                'metric': 'investigation_completed'
+            })
         
         # RECOMMEND SPECIALIZED PHASES (but don't activate them)
         # The coordinator will decide whether to activate based on failure loops

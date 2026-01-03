@@ -71,19 +71,19 @@ class PolytopicAnalyzer(ast.NodeVisitor):
                         self.adaptive_prompt_calls.append(attr)
                         
                     # Pattern recognition
-                    if 'pattern_recognition' in attr or 'record_pattern' in attr:
+                    if 'pattern_recognition' in attr or 'record_pattern' in attr or 'record_execution_pattern' in attr:
                         self.pattern_recognition_calls.append(attr)
                         
                     # Correlation
-                    if 'correlation' in attr or 'correlate' in attr:
+                    if 'correlation' in attr or 'correlate' in attr or 'get_cross_phase_correlation' in attr:
                         self.correlation_calls.append(attr)
                         
                     # Analytics
-                    if 'analytics' in attr or 'track_metric' in attr:
+                    if 'analytics' in attr or 'track_metric' in attr or 'track_phase_metric' in attr:
                         self.analytics_calls.append(attr)
                         
                     # Optimizer
-                    if 'optimizer' in attr or 'optimize' in attr:
+                    if 'optimizer' in attr or 'optimize' in attr or 'get_optimization_suggestion' in attr:
                         self.optimizer_calls.append(attr)
                         
                     # BasePhase methods

@@ -70,12 +70,26 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         """Execute QA review for a file or task"""
         
         # ADAPTIVE PROMPTS: Update system prompt based on recent performance
+        recent_issues = []
         if self.adaptive_prompts:
+            recent_issues = state.get_recent_issues(self.phase_name, limit=5) if hasattr(state, 'get_recent_issues') else []
             self.update_system_prompt_with_adaptation({
                 'state': state,
                 'phase': self.phase_name,
-                'recent_issues': state.get_recent_issues(self.phase_name, limit=5) if hasattr(state, 'get_recent_issues') else []
+                'recent_issues': recent_issues
             })
+        
+        # CORRELATION ENGINE: Get cross-phase correlations
+        correlations = self.get_cross_phase_correlation({
+            'phase': self.phase_name,
+            'recent_issues': recent_issues
+        })
+        
+        # PATTERN OPTIMIZER: Get optimization suggestions
+        optimization = self.get_optimization_suggestion({
+            'current_strategy': 'qa_review',
+            'recent_issues': recent_issues
+        })
         
         # Initialize context
         context = self._initialize_qa_context(state, filepath, task)
@@ -328,6 +342,22 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                         objective_id=task.objective_id if task else None,
                         file_path=file_path
                     )
+                    
+                    # PATTERN RECOGNITION: Record issue detection pattern
+                    self.record_execution_pattern({
+                        'pattern_type': 'issue_detection',
+                        'issue_type': issue_type,
+                        'severity': severity.value if hasattr(severity, 'value') else str(severity),
+                        'file': file_path
+                    })
+                    
+                    # ANALYTICS: Track issue metric
+                    self.track_phase_metric({
+                        'metric': 'issue_found',
+                        'issue_type': issue_type,
+                        'severity': severity.value if hasattr(severity, 'value') else str(severity),
+                        'file': file_path
+                    })
                     
                     # Link to objective if present
                     if task and task.objective_id and task.objective_level:

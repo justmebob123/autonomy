@@ -214,6 +214,10 @@ class PhaseCoordinator:
             'analysis_specialist': self.analysis_specialist,
             'message_bus': self.message_bus,
             'adaptive_prompts': self.adaptive_prompts,
+            'pattern_recognition': self.pattern_recognition,
+            'correlation_engine': self.correlation_engine,
+            'analytics': self.analytics,
+            'pattern_optimizer': self.pattern_optimizer,
         }
         
         return {

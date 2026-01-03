@@ -125,8 +125,8 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         """
         
         # ADAPTIVE PROMPTS: Update system prompt based on recent refactoring performance
+        recent_tasks = []
         if self.adaptive_prompts:
-            recent_tasks = []
             if hasattr(state, 'refactoring_manager') and state.refactoring_manager:
                 recent_tasks = [
                     {
@@ -145,6 +145,22 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 'recent_tasks': recent_tasks,
                 'recent_issues': state.get_recent_issues(self.phase_name, limit=5) if hasattr(state, 'get_recent_issues') else []
             })
+        
+        # CORRELATION ENGINE: Get cross-phase correlations
+        correlations = self.get_cross_phase_correlation({
+            'phase': self.phase_name,
+            'recent_tasks': recent_tasks
+        })
+        if correlations:
+            self.logger.info(f"  🔗 Found {len(correlations)} cross-phase correlations")
+        
+        # PATTERN OPTIMIZER: Get optimization suggestions
+        optimization = self.get_optimization_suggestion({
+            'current_strategy': 'comprehensive_analysis',
+            'recent_performance': recent_tasks
+        })
+        if optimization and optimization.get('suggestions'):
+            self.logger.info(f"  💡 Optimization suggestions: {len(optimization['suggestions'])}")
         
         # ========== INTEGRATION: READ ARCHITECTURE AND OBJECTIVES ==========
         # Read architecture to understand design intent
@@ -784,6 +800,25 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                         'verification_msg': verification_msg,
                         'timestamp': datetime.now().isoformat()
                     })
+                
+                # PATTERN RECOGNITION: Record successful resolution pattern
+                self.record_execution_pattern({
+                    'pattern_type': 'task_resolution',
+                    'task_id': task.task_id,
+                    'issue_type': task.issue_type.value,
+                    'attempts': task.attempts,
+                    'success': True,
+                    'verification': verification_msg
+                })
+                
+                # ANALYTICS: Track task completion metric
+                self.track_phase_metric({
+                    'metric': 'task_completion',
+                    'task_id': task.task_id,
+                    'issue_type': task.issue_type.value,
+                    'attempts': task.attempts,
+                    'duration': (datetime.now() - task.created_at).total_seconds() if hasattr(task, 'created_at') else 0
+                })
                 
                 # Update ARCHITECTURE.md if needed
                 self._update_architecture_after_task(task)
