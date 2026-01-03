@@ -739,6 +739,36 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 checked_architecture = "read_file" in tools_used  # Would read ARCHITECTURE.md
                 
                 if not tried_to_understand:
+                    # CRITICAL: Check if we've exceeded retry limit
+                    if task.attempts >= 2:
+                        self.logger.warning(f"  🚨 Task {task.task_id}: Max retries reached (2), escalating to issue report")
+                        
+                        # Create issue report and mark complete
+                        from ..handlers import ToolCallHandler
+                        handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry, refactoring_manager=state.refactoring_manager)
+                        
+                        report_call = [{
+                            "function": {
+                                "name": "create_issue_report",
+                                "arguments": {
+                                    "task_id": task.task_id,
+                                    "severity": task.priority.value,
+                                    "impact_analysis": f"Task failed {task.attempts} times without proper analysis. AI did not read files to understand them.",
+                                    "recommended_approach": "Manual review required - AI unable to analyze properly",
+                                    "estimated_effort": "Unknown - requires developer assessment"
+                                }
+                            }
+                        }]
+                        
+                        handler.process_tool_calls(report_call)
+                        task.complete("Issue report created - max retries reached")
+                        
+                        return PhaseResult(
+                            success=True,
+                            phase=self.phase_name,
+                            message=f"Task {task.task_id} escalated after max retries"
+                        )
+                    
                     # AI was lazy - just compared without understanding
                     # TASK-TYPE-AWARE RETRY: Different tasks need different analysis
                     from pipeline.state.refactoring_task import RefactoringIssueType
@@ -792,6 +822,37 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                         success=False,
                         phase=self.phase_name,
                         message=f"Task {task.task_id} retry needed: {error_msg}"
+                    )
+                
+                # CRITICAL: Check if we've exceeded retry limit
+                if task.attempts >= 2:
+                    self.logger.warning(f"  🚨 Task {task.task_id}: Max retries reached (2), escalating to issue report")
+                    
+                    # Create issue report and mark complete
+                    from ..handlers import ToolCallHandler
+                    handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry, refactoring_manager=state.refactoring_manager)
+                    
+                    tools_used = {r.get("tool") for r in results if r.get("success")}
+                    report_call = [{
+                        "function": {
+                            "name": "create_issue_report",
+                            "arguments": {
+                                "task_id": task.task_id,
+                                "severity": task.priority.value,
+                                "impact_analysis": f"Task failed {task.attempts} times. AI analyzed but did not resolve. Tools used: {', '.join(tools_used)}",
+                                "recommended_approach": "Manual review required - AI unable to resolve autonomously",
+                                "estimated_effort": "Unknown - requires developer assessment"
+                            }
+                        }
+                    }]
+                    
+                    handler.process_tool_calls(report_call)
+                    task.complete("Issue report created - max retries reached")
+                    
+                    return PhaseResult(
+                        success=True,
+                        phase=self.phase_name,
+                        message=f"Task {task.task_id} escalated after max retries"
                     )
                 
                 # AI tried to understand but still hasn't resolved
@@ -896,6 +957,18 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 }]
                 
                 handler.process_tool_calls(report_call)
+                
+                # CRITICAL FIX: Mark task as complete to prevent infinite retry loop
+                # The issue report has been created, so the task is "resolved" by escalation
+                task.complete("Issue report created for manual review")
+                self.logger.info(f"  ✅ Task {task.task_id} marked complete (escalated to issue report)")
+                
+                # Return success since we successfully escalated the task
+                return PhaseResult(
+                    success=True,
+                    phase=self.phase_name,
+                    message=f"Task {task.task_id} escalated to issue report"
+                )
             
             return result
     
