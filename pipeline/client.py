@@ -615,17 +615,30 @@ class ResponseParser:
             # Try function call syntax first
             result = self._extract_function_call_syntax(block)
             if result:
-                return result
+                # Validate before returning
+                tool_name = result.get("function", {}).get("name")
+                if tool_name in self.VALID_TOOLS:
+                    return result
+                else:
+                    self.logger.debug(f"    ✗ Skipping invalid tool from function syntax: {tool_name}")
+                    continue
             
             # Then try JSON with triple-quote conversion
             cleaned_block = self._convert_python_strings_to_json(block.strip())
             try:
                 data = json.loads(cleaned_block)
                 if isinstance(data, dict) and "name" in data and "arguments" in data:
-                    self.logger.debug(f"    ✓ Found tool call in code block: {data['name']}")
+                    tool_name = data["name"]
+                    
+                    # CRITICAL: Validate tool name BEFORE returning
+                    if tool_name not in self.VALID_TOOLS:
+                        self.logger.debug(f"    ✗ Skipping invalid tool in code block: {tool_name}")
+                        continue  # Skip this block, try next one
+                    
+                    self.logger.debug(f"    ✓ Found tool call in code block: {tool_name}")
                     return {
                         "function": {
-                            "name": data["name"],
+                            "name": tool_name,
                             "arguments": data["arguments"]
                         }
                     }
@@ -661,10 +674,17 @@ class ResponseParser:
             try:
                 data = json.loads(block)
                 if isinstance(data, dict) and "name" in data and "arguments" in data:
-                    self.logger.debug(f"    ✓ Found embedded JSON with tool call: {data['name']}")
+                    tool_name = data["name"]
+                    
+                    # CRITICAL: Validate tool name BEFORE returning
+                    if tool_name not in self.VALID_TOOLS:
+                        self.logger.debug(f"    ✗ Skipping invalid tool in JSON block: {tool_name}")
+                        continue  # Skip this block, try next one
+                    
+                    self.logger.debug(f"    ✓ Found embedded JSON with tool call: {tool_name}")
                     return {
                         "function": {
-                            "name": data["name"],
+                            "name": tool_name,
                             "arguments": data["arguments"]
                         }
                     }
