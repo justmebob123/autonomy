@@ -7,6 +7,11 @@ Run this manually to check for type usage errors.
 
 Usage:
     python bin/validate_type_usage.py [project_dir]
+
+This is a GENERAL PURPOSE tool that can analyze ANY Python codebase.
+
+Usage:
+    python validate_type_usage.py <project_directory>
 """
 
 import sys
@@ -21,18 +26,22 @@ from pipeline.analysis.type_usage_validator import TypeUsageValidator
 
 def main():
     """Run type usage validation."""
-    project_dir = "."
-    config_file = None
+    # Require explicit project directory
+    if len(sys.argv) < 2:
+        print("ERROR: Project directory required")
+        print()
+        print("Usage: {} <project_directory>".format(sys.argv[0]))
+        print()
+        print("This tool can analyze ANY Python codebase.")
+        print()
+        print("Examples:")
+        print("  {} /path/to/any/project".format(sys.argv[0]))
+        print("  {} /home/user/django-app".format(sys.argv[0]))
+        print()
+        sys.exit(1)
     
-    # Parse arguments
-    i = 1
-    while i < len(sys.argv):
-        if sys.argv[i] == '--config' and i + 1 < len(sys.argv):
-            config_file = sys.argv[i + 1]
-            i += 2
-        else:
-            project_dir = sys.argv[i]
-            i += 1
+    project_dir = sys.argv[1]
+    config_file = None
     
     print(f"🔍 Validating type usage in: {project_dir}")
     if config_file:

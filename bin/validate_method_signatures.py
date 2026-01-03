@@ -7,6 +7,11 @@ Detects wrong number of arguments and signature mismatches.
 
 Usage:
     python bin/validate_method_signatures.py [project_dir]
+
+This is a GENERAL PURPOSE tool that can analyze ANY Python codebase.
+
+Usage:
+    python validate_method_signatures.py <project_directory>
 """
 
 import sys
@@ -21,12 +26,21 @@ from pipeline.analysis.method_signature_validator import MethodSignatureValidato
 
 def main():
     """Run method signature validation."""
-    project_dir = "."
+    # Require explicit project directory
+    if len(sys.argv) < 2:
+        print("ERROR: Project directory required")
+        print()
+        print("Usage: {} <project_directory>".format(sys.argv[0]))
+        print()
+        print("This tool can analyze ANY Python codebase.")
+        print()
+        print("Examples:")
+        print("  {} /path/to/any/project".format(sys.argv[0]))
+        print("  {} /home/user/django-app".format(sys.argv[0]))
+        print()
+        sys.exit(1)
     
-    # Parse arguments
-    if len(sys.argv) > 1:
-        project_dir = sys.argv[1]
-    
+    project_dir = sys.argv[1]
     print(f"🔍 Validating method signatures in: {project_dir}")
     print("=" * 80)
     print()

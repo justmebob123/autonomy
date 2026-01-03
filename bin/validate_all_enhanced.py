@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """
-Enhanced Comprehensive Code Validation
+Enhanced Comprehensive Code Validation - GENERAL PURPOSE TOOL
+
+This tool can analyze ANY Python codebase, not just this project.
 
 Uses ValidatorCoordinator with shared symbol table for improved accuracy
 and performance.
@@ -22,17 +24,32 @@ from pipeline.analysis.validator_coordinator import ValidatorCoordinator
 
 def main():
     """Run all validators with shared symbol table."""
-    project_dir = "."
+    # Require explicit project directory
+    if len(sys.argv) < 2:
+        print("ERROR: Project directory required")
+        print()
+        print("Usage: {} <project_directory> [--config <file>]".format(sys.argv[0]))
+        print()
+        print("This is a GENERAL PURPOSE tool that can analyze ANY Python codebase.")
+        print()
+        print("Examples:")
+        print("  {} /path/to/any/project".format(sys.argv[0]))
+        print("  {} /home/user/django-app".format(sys.argv[0]))
+        print("  {} /var/www/flask-app".format(sys.argv[0]))
+        print("  {} . --config custom.yaml".format(sys.argv[0]))
+        print()
+        sys.exit(1)
+    
+    project_dir = sys.argv[1]
     config_file = None
     
-    # Parse arguments
-    i = 1
+    # Parse additional arguments
+    i = 2
     while i < len(sys.argv):
         if sys.argv[i] == '--config' and i + 1 < len(sys.argv):
             config_file = sys.argv[i + 1]
             i += 2
         else:
-            project_dir = sys.argv[i]
             i += 1
     
     print("=" * 80)

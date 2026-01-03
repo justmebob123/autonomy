@@ -7,6 +7,11 @@ Run this manually to check for dictionary key errors.
 
 Usage:
     python bin/validate_dict_structure.py [project_dir]
+
+This is a GENERAL PURPOSE tool that can analyze ANY Python codebase.
+
+Usage:
+    python validate_dict_structure.py <project_directory>
 """
 
 import sys
@@ -20,12 +25,21 @@ from pipeline.analysis.dict_structure_validator import DictStructureValidator
 
 
 def main():
-    # Get project directory from args or use current directory
-    if len(sys.argv) > 1:
-        project_dir = sys.argv[1]
-    else:
-        project_dir = os.getcwd()
+    # Require explicit project directory
+    if len(sys.argv) < 2:
+        print("ERROR: Project directory required")
+        print()
+        print("Usage: {} <project_directory>".format(sys.argv[0]))
+        print()
+        print("This tool can analyze ANY Python codebase.")
+        print()
+        print("Examples:")
+        print("  {} /path/to/any/project".format(sys.argv[0]))
+        print("  {} /home/user/django-app".format(sys.argv[0]))
+        print()
+        sys.exit(1)
     
+    project_dir = sys.argv[1]
     print(f"🔍 Validating dictionary structures in: {project_dir}")
     print("=" * 80)
     

@@ -6,6 +6,11 @@ Validates that methods exist on classes, checking parent and base classes.
 
 Usage:
     python bin/validate_method_existence.py [project_dir] [--config CONFIG_FILE]
+
+This is a GENERAL PURPOSE tool that can analyze ANY Python codebase.
+
+Usage:
+    python validate_method_existence.py <project_directory>
 """
 
 import sys
@@ -20,18 +25,22 @@ from pipeline.analysis.method_existence_validator import MethodExistenceValidato
 
 def main():
     """Run method existence validation."""
-    project_dir = "."
-    config_file = None
+    # Require explicit project directory
+    if len(sys.argv) < 2:
+        print("ERROR: Project directory required")
+        print()
+        print("Usage: {} <project_directory>".format(sys.argv[0]))
+        print()
+        print("This tool can analyze ANY Python codebase.")
+        print()
+        print("Examples:")
+        print("  {} /path/to/any/project".format(sys.argv[0]))
+        print("  {} /home/user/django-app".format(sys.argv[0]))
+        print()
+        sys.exit(1)
     
-    # Parse arguments
-    i = 1
-    while i < len(sys.argv):
-        if sys.argv[i] == '--config' and i + 1 < len(sys.argv):
-            config_file = sys.argv[i + 1]
-            i += 2
-        else:
-            project_dir = sys.argv[i]
-            i += 1
+    project_dir = sys.argv[1]
+    config_file = None
     
     print(f"🔍 Validating method existence in: {project_dir}")
     if config_file:

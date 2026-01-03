@@ -7,6 +7,11 @@ Detects invalid enum member access like MessageType.INVALID_ATTRIBUTE.
 
 Usage:
     python bin/validate_enum_attributes.py [project_dir]
+
+This is a GENERAL PURPOSE tool that can analyze ANY Python codebase.
+
+Usage:
+    python validate_enum_attributes.py <project_directory>
 """
 
 import sys
@@ -21,12 +26,21 @@ from pipeline.analysis.enum_attribute_validator import EnumAttributeValidator
 
 def main():
     """Run enum attribute validation."""
-    project_dir = "."
+    # Require explicit project directory
+    if len(sys.argv) < 2:
+        print("ERROR: Project directory required")
+        print()
+        print("Usage: {} <project_directory>".format(sys.argv[0]))
+        print()
+        print("This tool can analyze ANY Python codebase.")
+        print()
+        print("Examples:")
+        print("  {} /path/to/any/project".format(sys.argv[0]))
+        print("  {} /home/user/django-app".format(sys.argv[0]))
+        print()
+        sys.exit(1)
     
-    # Parse arguments
-    if len(sys.argv) > 1:
-        project_dir = sys.argv[1]
-    
+    project_dir = sys.argv[1]
     print(f"🔍 Validating enum attributes in: {project_dir}")
     print("=" * 80)
     print()
