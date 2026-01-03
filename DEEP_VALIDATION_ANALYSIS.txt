@@ -1,0 +1,79 @@
+  Duplicate classes: 1
+================================================================================
+  ENHANCED COMPREHENSIVE CODE VALIDATION
+  (Using Shared Symbol Table)
+================================================================================
+
+📁 Project: .
+⏰ Started: 2026-01-03 17:44:42
+
+
+================================================================================
+  COMPREHENSIVE SUMMARY
+================================================================================
+
+📊 Symbol Table Statistics:
+   Classes: 651
+   Functions: 272
+   Methods: 2257
+   Enums: 19
+   Imports: 2704
+   Call graph edges: 12435
+   ⚠️  Duplicate classes: 1
+
+📈 Overall Statistics:
+   Total errors across all tools: 6
+
+   Breakdown by tool:
+      ✅ Type Usage: 0 errors
+      ❌ Method Existence: 6 errors
+      ✅ Function Calls: 0 errors
+      ✅ Enum Attributes: 0 errors
+      ✅ Method Signatures: 0 errors
+
+⚠️  DUPLICATE CLASS NAMES DETECTED:
+
+   TypeInfo: 2 definitions
+      - pipeline/analysis/type_usage_validator.py
+      - pipeline/analysis/symbol_table.py
+
+   ⚠️  This causes validation errors and production confusion!
+
+❌ DETAILED BREAKDOWN:
+
+   Method Existence Errors:
+      • critical: 6
+
+================================================================================
+  DETAILED ERROR LISTINGS
+================================================================================
+
+🔴 Method Existence Errors (6):
+
+   1. pipeline/tool_validator.py:230
+      Class: ToolRegistry
+      Method: get_all_tool_names
+
+   2. pipeline/coordinator.py:1830
+      Class: ArchitectureValidator
+      Method: validate
+
+   3. pipeline/phases/refactoring.py:2479
+      Class: DuplicateDetector
+      Method: detect_duplicates
+
+   4. pipeline/phases/refactoring.py:2493
+      Class: RefactoringArchitectureAnalyzer
+      Method: validate_file_placement
+
+   5. pipeline/phases/refactoring.py:2517
+      Class: DeadCodeDetector
+      Method: detect_dead_code
+
+   6. pipeline/phases/refactoring.py:2530
+      Class: IntegrationConflictDetector
+      Method: detect_conflicts
+
+================================================================================
+📄 Detailed report saved to: VALIDATION_REPORT_ENHANCED.txt
+

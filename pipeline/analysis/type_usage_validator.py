@@ -30,14 +30,14 @@ class TypeUsageError:
 
 
 @dataclass
-class TypeInfo:
+class LegacyTypeInfo:
     """Information about a variable's type (legacy - for backward compatibility)."""
     type_name: str
     is_dataclass: bool
     is_dict: bool
     is_list: bool
     is_string: bool
-    attributes: Dict[str, 'TypeInfo'] = None
+    attributes: Dict[str, 'LegacyTypeInfo'] = None
     
     def __post_init__(self):
         if self.attributes is None:
@@ -66,7 +66,7 @@ class TypeTracker(ast.NodeVisitor):
         # Track current scope
         self.current_function = None
         
-    def get_type(self, var_name: str) -> Optional[TypeInfo]:
+    def get_type(self, var_name: str) -> Optional[LegacyTypeInfo]:
         """Get type of a variable, checking local then global scope."""
         if var_name in self.local_types:
             return self.local_types[var_name]
@@ -74,7 +74,7 @@ class TypeTracker(ast.NodeVisitor):
             return self.global_types[var_name]
         return None
     
-    def set_type(self, var_name: str, type_info: TypeInfo):
+    def set_type(self, var_name: str, type_info: LegacyTypeInfo):
         """Set type of a variable in current scope."""
         if self.current_function:
             self.local_types[var_name] = type_info
@@ -156,13 +156,13 @@ class TypeTracker(ast.NodeVisitor):
         
         self.generic_visit(node)
     
-    def _infer_type(self, node: ast.AST) -> TypeInfo:
+    def _infer_type(self, node: ast.AST) -> LegacyTypeInfo:
         """Infer type from an AST node."""
         # Direct instantiation: ClassName()
         if isinstance(node, ast.Call):
             if isinstance(node.func, ast.Name):
                 class_name = node.func.id
-                return TypeInfo(
+                return LegacyTypeInfo(
                     type_name=class_name,
                     is_dataclass=class_name in self.dataclasses,
                     is_dict=False,
@@ -190,7 +190,7 @@ class TypeTracker(ast.NodeVisitor):
         
         # Dictionary literal: {}
         if isinstance(node, ast.Dict):
-            return TypeInfo(
+            return LegacyTypeInfo(
                 type_name='dict',
                 is_dataclass=False,
                 is_dict=True,
@@ -200,7 +200,7 @@ class TypeTracker(ast.NodeVisitor):
         
         # List literal: []
         if isinstance(node, ast.List):
-            return TypeInfo(
+            return LegacyTypeInfo(
                 type_name='list',
                 is_dataclass=False,
                 is_dict=False,
@@ -210,7 +210,7 @@ class TypeTracker(ast.NodeVisitor):
         
         # String literal: "..."
         if isinstance(node, (ast.Str, ast.Constant)) and isinstance(getattr(node, 'value', None), str):
-            return TypeInfo(
+            return LegacyTypeInfo(
                 type_name='str',
                 is_dataclass=False,
                 is_dict=False,
@@ -239,7 +239,7 @@ class TypeTracker(ast.NodeVisitor):
                             return attrs[attr_name]
         
         # Unknown type
-        return TypeInfo(
+        return LegacyTypeInfo(
             type_name='unknown',
             is_dataclass=False,
             is_dict=False,
@@ -247,12 +247,12 @@ class TypeTracker(ast.NodeVisitor):
             is_string=False
         )
     
-    def _infer_element_type(self, container_type: TypeInfo) -> TypeInfo:
+    def _infer_element_type(self, container_type: LegacyTypeInfo) -> LegacyTypeInfo:
         """Infer type of elements in a container."""
         if container_type.is_list:
             # For now, assume unknown element type
             # Could be enhanced with more sophisticated analysis
-            return TypeInfo(
+            return LegacyTypeInfo(
                 type_name='unknown',
                 is_dataclass=False,
                 is_dict=False,
@@ -260,7 +260,7 @@ class TypeTracker(ast.NodeVisitor):
                 is_string=False
             )
         
-        return TypeInfo(
+        return LegacyTypeInfo(
             type_name='unknown',
             is_dataclass=False,
             is_dict=False,
@@ -268,11 +268,11 @@ class TypeTracker(ast.NodeVisitor):
             is_string=False
         )
     
-    def _get_annotation_type(self, annotation: ast.AST) -> TypeInfo:
+    def _get_annotation_type(self, annotation: ast.AST) -> LegacyTypeInfo:
         """Get type from type annotation."""
         if isinstance(annotation, ast.Name):
             type_name = annotation.id
-            return TypeInfo(
+            return LegacyTypeInfo(
                 type_name=type_name,
                 is_dataclass=type_name in self.dataclasses,
                 is_dict=type_name in ('dict', 'Dict'),
@@ -284,7 +284,7 @@ class TypeTracker(ast.NodeVisitor):
             # Handle Dict[str, int], List[str], etc.
             if isinstance(annotation.value, ast.Name):
                 type_name = annotation.value.id
-                return TypeInfo(
+                return LegacyTypeInfo(
                     type_name=type_name,
                     is_dataclass=False,
                     is_dict=type_name in ('Dict', 'dict'),
@@ -292,7 +292,7 @@ class TypeTracker(ast.NodeVisitor):
                     is_string=False,
                 )
         
-        return TypeInfo(
+        return LegacyTypeInfo(
             type_name='unknown',
             is_dataclass=False,
             is_dict=False,

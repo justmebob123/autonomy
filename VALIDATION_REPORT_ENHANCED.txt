@@ -3,22 +3,14 @@
 ================================================================================
 
 Project: .
-Started: 2026-01-03 17:40:20
+Started: 2026-01-03 17:49:31
 
-Total errors: 6
+Total errors: 0
 
 Symbol Table Statistics:
-  Classes: 651
+  Classes: 652
   Functions: 272
-  Methods: 2257
+  Methods: 2258
   Enums: 19
-  Call graph edges: 12435
-
-Method Existence Errors (6):
-  pipeline/tool_validator.py:230 - Method 'get_all_tool_names' does not exist on class 'ToolRegistry'
-  pipeline/coordinator.py:1830 - Method 'validate' does not exist on class 'ArchitectureValidator'
-  pipeline/phases/refactoring.py:2479 - Method 'detect_duplicates' does not exist on class 'DuplicateDetector'
-  pipeline/phases/refactoring.py:2493 - Method 'validate_file_placement' does not exist on class 'RefactoringArchitectureAnalyzer'
-  pipeline/phases/refactoring.py:2517 - Method 'detect_dead_code' does not exist on class 'DeadCodeDetector'
-  pipeline/phases/refactoring.py:2530 - Method 'detect_conflicts' does not exist on class 'IntegrationConflictDetector'
+  Call graph edges: 12437
 

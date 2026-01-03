@@ -2476,8 +2476,8 @@ Please select ONE reliable tool and try again."""
                 # Re-run duplicate detection on target files
                 self.logger.debug(f"  🔍 Verifying duplicate resolution for {task.target_files}")
                 
-                duplicates = self.duplicate_detector.detect_duplicates(
-                    files=task.target_files
+                duplicates = self.duplicate_detector.find_duplicates(
+                    scope="project"
                 )
                 
                 if duplicates:
@@ -2490,9 +2490,9 @@ Please select ONE reliable tool and try again."""
                 # Re-run architecture validation
                 self.logger.debug(f"  🔍 Verifying architecture fix for {task.target_files}")
                 
-                violations = self.architecture_analyzer.validate_file_placement(
-                    files=task.target_files
-                )
+                # Check architecture consistency
+                consistency = self.architecture_analyzer.analyze_consistency()
+                violations = consistency.issues
                 
                 if violations:
                     return False, f"Files still have {len(violations)} architecture violation(s)"
@@ -2514,7 +2514,8 @@ Please select ONE reliable tool and try again."""
                 if task.analysis_data and 'name' in task.analysis_data:
                     item_name = task.analysis_data['name']
                     # Re-run dead code detection
-                    dead_code = self.dead_code_detector.detect_dead_code()
+                    result = self.dead_code_detector.analyze()
+                    dead_code = result.to_dict()
                     
                     # Check if this specific item is still in the dead code list
                     for item in dead_code.get('unused_functions', []) + dead_code.get('unused_methods', []):
@@ -2527,9 +2528,9 @@ Please select ONE reliable tool and try again."""
                 # Re-run integration conflict detection
                 self.logger.debug(f"  🔍 Verifying integration conflict resolution for {task.target_files}")
                 
-                conflicts = self.conflict_detector.detect_conflicts(
-                    files=task.target_files
-                )
+                # Re-run integration conflict detection
+                result = self.conflict_detector.analyze()
+                conflicts = result.conflicts
                 
                 if conflicts:
                     return False, f"Files still have {len(conflicts)} integration conflict(s)"

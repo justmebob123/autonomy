@@ -370,6 +370,15 @@ class ToolRegistry:
             }
         }
     
+    def get_all_tool_names(self) -> List[str]:
+        """
+        Get list of all registered tool names.
+        
+        Returns:
+            List of tool names
+        """
+        return list(self.tools.keys())
+    
     def list_tools(self) -> List[Dict]:
         """
         List all registered tools with metadata.

@@ -1826,8 +1826,8 @@ class PhaseCoordinator:
         try:
             from pipeline.analysis.architecture_validator import ArchitectureValidator
             
-            validator = ArchitectureValidator(self.project_dir)
-            results = validator.validate()
+            validator = ArchitectureValidator(self.project_dir, self.logger)
+            results = validator.validate_all()
             
             # Check if any violations found
             violations = results.get('violations', [])
