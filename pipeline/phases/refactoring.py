@@ -583,8 +583,9 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             for tc in tool_calls
         )
         
-        # HARD LIMIT: If 3+ tools used without resolution, FORCE request_developer_review
-        if tool_call_count >= 3 and not has_resolving_tool:
+        # HARD LIMIT: If 2+ tools used without resolution, FORCE request_developer_review
+        # LOWERED from 3 to 2 because AI was getting stuck reading files repeatedly
+        if tool_call_count >= 2 and not has_resolving_tool:
             self.logger.warning(
                 f"🚨 Task {task.task_id}: {tool_call_count} tools used without resolution, "
                 f"FORCING request_developer_review"
@@ -800,6 +801,10 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                     )
                 
                 self.logger.warning(f"  ⚠️  Task {task.task_id}: Read files but didn't resolve - RETRYING (attempt {task.attempts + 1})")
+                
+                # CRITICAL FIX: Reset TaskAnalysisTracker state so step detection works on retry
+                self._analysis_tracker.reset_state(task.task_id)
+                self.logger.info(f"  🔄 Reset analysis tracker state for task {task.task_id}")
                 
                 # Reset task to NEW status for retry
                 task.status = TaskStatus.NEW
@@ -1591,200 +1596,68 @@ merge_file_implementations(
 """
     
     def _get_integration_conflict_prompt(self, task: Any, context: str) -> str:
-        """Prompt for integration conflicts - STEP-AWARE to prevent multiple tool outputs"""
+        """
+        ULTRA-SIMPLIFIED prompt for integration conflicts.
+        
+        STRATEGY: Just escalate immediately to DEVELOPER PHASE.
+        Integration conflicts are too complex for refactoring AI.
+        """
         
         # Get target files from task
         target_files = task.target_files if task.target_files else []
         file1 = target_files[0] if len(target_files) > 0 else "file1"
         file2 = target_files[1] if len(target_files) > 1 else "file2"
         
-        # FIXED: Use TaskAnalysisTracker to check actual tool executions
-        # instead of checking assistant message content
-        state = self._analysis_tracker.get_or_create_state(task.task_id)
-        
-        # Count what's been done by looking at ACTUAL tool executions
-        files_read = set()
-        architecture_read = state.checkpoints['read_architecture'].completed
-        comparison_done = False
-        
-        for tool_call in state.tool_calls_history:
-            tool_name = tool_call['tool']
-            arguments = tool_call.get('arguments', {})
-            
-            if tool_name == 'read_file':
-                filepath = arguments.get('filepath') or arguments.get('file_path', '')
-                # Check if target files were read
-                if file1 in filepath:
-                    files_read.add(file1)
-                if file2 in filepath:
-                    files_read.add(file2)
-            
-            if tool_name == 'compare_file_implementations':
-                comparison_done = True
-        
-        # Determine next step
-        if file1 not in files_read:
-            # Step 1: Read first file
-            step_num = 1
-            next_tool = f'read_file(filepath="{file1}")'
-            step_description = f"READ THE FIRST FILE: {file1}"
-            
-        elif file2 not in files_read:
-            # Step 2: Read second file
-            step_num = 2
-            next_tool = f'read_file(filepath="{file2}")'
-            step_description = f"READ THE SECOND FILE: {file2}"
-            
-        elif not architecture_read:
-            # Step 3: Read architecture
-            step_num = 3
-            next_tool = 'read_file(filepath="ARCHITECTURE.md")'
-            step_description = "READ ARCHITECTURE.md to see where files should be"
-            
-        elif not comparison_done:
-            # Step 4: Compare
-            step_num = 4
-            next_tool = f'compare_file_implementations(file1="{file1}", file2="{file2}")'
-            step_description = "COMPARE the two implementations"
-            
-        else:
-            # Step 5: FORCE RESOLUTION - Analysis is complete!
-            step_num = 5
-            
-            # CRITICAL: Make prompt even MORE forceful on retry attempts
-            attempt_warning = ""
-            if task.attempts >= 2:
-                attempt_warning = f"""
-╔═══════════════════════════════════════════════════════════════╗
-║  THIS IS ATTEMPT {task.attempts} - YOU MUST RESOLVE NOW!                    ║
-║  You have FAILED {task.attempts - 1} times to resolve this task.            ║
-║  You keep ANALYZING instead of RESOLVING.                     ║
-║  NO MORE READING FILES                                        ║
-║  NO MORE COMPARING FILES                                      ║
-║  NO MORE ANALYSIS OF ANY KIND                                 ║
-║  USE A RESOLUTION TOOL IN YOUR NEXT RESPONSE                  ║
-║  OR THIS TASK WILL BE MARKED AS FAILED                        ║
-╚═══════════════════════════════════════════════════════════════╝
-"""
-            
-            # CRITICAL: Return a completely different prompt that FORBIDS analysis
-            return f"""🚨 CRITICAL: ANALYSIS COMPLETE - TAKE ACTION NOW! 🚨
+        # SIMPLIFIED: Just tell AI to escalate immediately
+        return f"""🚨 INTEGRATION CONFLICT - ESCALATE TO DEVELOPER PHASE 🚨
 
 {context}
 
-{attempt_warning}
+═══════════════════════════════════════════════════════════════
+⚠️ CRITICAL: INTEGRATION CONFLICTS ARE TOO COMPLEX ⚠️
+
+Integration conflicts between files require careful analysis and
+decision-making that is best handled by the DEVELOPER PHASE.
+
+Files in conflict:
+• {file1}
+• {file2}
 
 ═══════════════════════════════════════════════════════════════
-⛔ ANALYSIS PHASE IS COMPLETE ⛔
+🎯 YOUR ACTION: ESCALATE TO DEVELOPER PHASE 🎯
 
-You have already completed ALL analysis steps:
-✅ Read {file1}
-✅ Read {file2}
-✅ Read ARCHITECTURE.md
-✅ Compared implementations
-
-🚫 DO NOT READ ANY MORE FILES - Analysis is done!
-🚫 DO NOT COMPARE AGAIN - You already compared!
-🚫 DO NOT DO ANY MORE ANALYSIS - Time to act!
-
-═══════════════════════════════════════════════════════════════
-🎯 YOU MUST NOW RESOLVE THE CONFLICT 🎯
-
-This is attempt {task.attempts}. You've analyzed enough!
-
-Choose ONE resolution tool and use it NOW:
-
-1️⃣ merge_file_implementations - Merge the duplicate files
-2️⃣ move_file - Move file to correct location  
-3️⃣ rename_file - Rename file to match architecture
-4️⃣ request_developer_review - Escalate to DEVELOPER PHASE (orchestrator)
-
-═══════════════════════════════════════════════════════════════
-⚠️ TOOL CALL FORMAT ⚠️
-
-Use JSON format for merge_file_implementations:
+Use the request_developer_review tool to escalate this task:
 
 {{{{
-    "name": "merge_file_implementations",
+    "name": "request_developer_review",
     "arguments": {{{{
-        "source_files": ["{file1}", "{file2}"],
-        "target_file": "{file1}",
-        "strategy": "ai_merge"
-    }}}}
-}}}}
-
-OR for move_file:
-
-{{{{
-    "name": "move_file",
-    "arguments": {{{{
-        "source_path": "{file2}",
-        "destination_path": "correct/path/file.py",
-        "reason": "Moving to match architecture"
+        "task_id": "{task.task_id}",
+        "reason": "Integration conflict between {file1} and {file2}. These files have conflicting implementations that need careful review and resolution by the DEVELOPER PHASE orchestrator.",
+        "priority": "high",
+        "context": {{{{
+            "files": ["{file1}", "{file2}"],
+            "issue_type": "integration_conflict",
+            "description": "{task.description if hasattr(task, 'description') else 'Integration conflict detected'}"
+        }}}}
     }}}}
 }}}}
 
 ═══════════════════════════════════════════════════════════════
 
-⚠️ IF YOU USE read_file OR compare_file_implementations AGAIN,
-   THE TASK WILL FAIL AND YOU'LL BE STUCK IN AN INFINITE LOOP!
-
-🎯 OUTPUT YOUR RESOLUTION TOOL CALL NOW:
-"""
-            
-            # This code path should never be reached now
-            step_num = 5
-            next_tool = "RESOLUTION TOOL REQUIRED"
-            step_description = "RESOLVE THE CONFLICT"
-        
-        return f"""🎯 INTEGRATION CONFLICT - STEP {step_num} OF 5
-
-{context}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️  CRITICAL SYSTEM CONSTRAINT ⚠️
-
-THE SYSTEM CAN ONLY EXECUTE **ONE** TOOL CALL PER ITERATION.
-
-If you output multiple tool calls, ONLY THE FIRST ONE will execute.
-The rest will be IGNORED and you'll be stuck in an infinite loop.
-
-YOU MUST OUTPUT EXACTLY ONE TOOL CALL. THEN STOP.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-📍 YOU ARE ON STEP {step_num} OF 5
-
-🎯 YOUR NEXT ACTION:
-{step_description}
-
-💻 CALL THIS ONE TOOL:
-{next_tool}
-
-⛔ DO NOT:
-- Output multiple tool calls
-- Call any other tools
-- Plan ahead for future steps
-- Output JSON arrays
+⚠️ DO NOT:
+- Try to read the files
+- Try to compare the files
+- Try to merge the files yourself
+- Do any analysis
 
 ✅ DO:
-- Output EXACTLY ONE tool call
-- Use the exact tool shown above
-- Then STOP and wait
+- Use request_developer_review tool IMMEDIATELY
+- Let the DEVELOPER PHASE handle this complex task
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+═══════════════════════════════════════════════════════════════
 
-📊 PROGRESS TRACKER:
-Step 1: Read {file1} {'✅' if file1 in files_read else '⏳ ← YOU ARE HERE' if step_num == 1 else '⬜'}
-Step 2: Read {file2} {'✅' if file2 in files_read else '⏳ ← YOU ARE HERE' if step_num == 2 else '⬜'}
-Step 3: Read ARCHITECTURE.md {'✅' if architecture_read else '⏳ ← YOU ARE HERE' if step_num == 3 else '⬜'}
-Step 4: Compare implementations {'✅' if comparison_done else '⏳ ← YOU ARE HERE' if step_num == 4 else '⬜'}
-Step 5: Resolve conflict {'⏳ ← YOU ARE HERE' if step_num == 5 else '⬜'}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🎯 OUTPUT YOUR ONE TOOL CALL NOW:
+🎯 OUTPUT THE request_developer_review TOOL CALL NOW:
 """
-    
     
     def _get_dead_code_prompt(self, task: Any, context: str) -> str:
         """Prompt for dead code tasks - check usage then decide"""

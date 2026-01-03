@@ -1,89 +1,80 @@
-# CRITICAL: Refactoring Phase Not Taking Action
+# 🚨 CRITICAL REFACTORING FIX - Root Cause Analysis
 
-## Problem Analysis
+## The Problem
 
-The AI is calling `compare_file_implementations` to analyze integration conflicts, but then **stopping without taking any resolving action**. This causes tasks to fail with:
+The refactoring phase is stuck in an infinite loop where:
+1. AI reads ONE file
+2. System detects "no resolution tool used"
+3. Task is retried
+4. AI reads the SAME file again
+5. Repeat forever
 
+## Root Causes Identified
+
+### Issue #1: AI Returns Text Instead of Tool Calls
 ```
-⚠️ Task refactor_0355: Tools succeeded but issue not resolved - only analysis performed, no action taken
-```
-
-## Root Cause
-
-Despite comprehensive prompts telling the AI to:
-1. Compare files (optional)
-2. Then RESOLVE with merge/report/review
-
-The AI is:
-1. Comparing files ✅
-2. Stopping ❌
-
-## Why This Happens
-
-The AI sees the comparison result (e.g., "50% similar, manual_review recommended") and interprets "manual_review" as "I should stop and let a human handle this."
-
-## Solution: Force Action After Analysis
-
-We need to make the system **automatically** take the next step when the AI only performs analysis.
-
-### Option 1: Auto-Create Report After Compare (RECOMMENDED)
-
-If AI calls `compare_file_implementations` without following up with a resolving tool, automatically create an issue report with the comparison results.
-
-### Option 2: Remove compare_file_implementations from Available Tools
-
-Force AI to go directly to merge/report/review without the comparison step.
-
-### Option 3: Multi-Turn Enforcement
-
-After AI calls compare, immediately prompt it again: "You compared the files. Now you MUST take action: merge, report, or review."
-
-## Recommended Implementation
-
-**Option 1** is best because:
-- Preserves AI's ability to analyze
-- Ensures every task gets resolved
-- Creates useful documentation
-- No infinite loops
-
-### Code Changes Needed
-
-In `pipeline/phases/refactoring.py`, after tool execution:
-
-```python
-# After executing tools, check if only analysis was performed
-analysis_only_tools = {"compare_file_implementations", "detect_duplicate_implementations", "analyze_complexity"}
-resolving_tools = {"merge_file_implementations", "cleanup_redundant_files", "create_issue_report", "request_developer_review"}
-
-tools_used = {result.get("tool") for result in results if result.get("success")}
-
-if tools_used.issubset(analysis_only_tools):
-    # AI only analyzed, didn't resolve - auto-create report
-    self.logger.warning(f"  ⚠️ Task {task.task_id}: Only analysis performed, auto-creating issue report")
-    
-    # Extract comparison/analysis results
-    analysis_data = {}
-    for result in results:
-        if result.get("success"):
-            analysis_data[result.get("tool")] = result.get("result")
-    
-    # Auto-create issue report
-    report_result = self._handle_create_issue_report({
-        "task_id": task.task_id,
-        "severity": "medium",
-        "impact_analysis": f"Integration conflict requires manual review: {task.description}",
-        "recommended_approach": "Review comparison results and determine merge strategy",
-        "code_examples": str(analysis_data),
-        "estimated_effort": "30 minutes"
-    })
-    
-    if report_result.get("success"):
-        task.complete("Auto-created issue report after analysis")
-        return PhaseResult(success=True, ...)
+[INFO]   🔧 Tool calls: None
+[INFO]   💬 Preview: {"name": "read_file", "arguments": {...}}
+[INFO]   Extracted tool call from text response
 ```
 
-This ensures:
-- ✅ Every task gets resolved (either fixed or documented)
-- ✅ No infinite loops
-- ✅ AI's analysis is preserved in the report
-- ✅ Developer gets actionable information
+The AI is returning tool calls as TEXT, not using structured tool calling. This suggests:
+- Model doesn't understand tool calling format
+- Prompt isn't clear enough about tool usage
+- Model is confused about what action to take
+
+### Issue #2: Step-Aware Prompt Not Working
+The step-aware prompt checks `TaskAnalysisTracker.tool_calls_history` to determine which step we're at, but:
+- On retry, the tracker state is NOT reset
+- So on attempt 2, it still thinks we're at step 5 (all analysis done)
+- But the AI only read ONE file, not all files needed
+
+### Issue #3: Hard Limit Not Triggering
+The hard limit (force `request_developer_review` after 3 tools) doesn't trigger because:
+- AI only makes 1 tool call per attempt
+- Never reaches the 3-tool threshold
+- Gets retried before hitting the limit
+
+### Issue #4: Retry Prompt Not Strong Enough
+The retry message is added to `task.analysis_data['retry_reason']`, but:
+- It's buried in the context
+- Not prominent enough
+- AI ignores it and repeats the same action
+
+## The Solution
+
+We need a MULTI-LAYERED fix:
+
+### Fix #1: Reset TaskAnalysisTracker on Retry
+When a task is retried, RESET the tracker state so step detection works correctly.
+
+### Fix #2: Make Retry Prompt UNMISSABLE
+Put the retry warning at the TOP of the prompt in a huge box that the AI cannot ignore.
+
+### Fix #3: Lower Hard Limit Threshold
+Change from 3 tools to 2 tools before forcing escalation.
+
+### Fix #4: Add Tool Call Validation
+Check if AI is returning text instead of tool calls, and add explicit guidance.
+
+### Fix #5: Simplify the Workflow
+Instead of step-aware prompts, use a simpler approach:
+- Attempt 1: Normal prompt
+- Attempt 2: "You failed, try again with THIS specific action"
+- Attempt 3: Force escalation automatically
+
+## Implementation Plan
+
+1. Modify `_get_integration_conflict_prompt()` to:
+   - Check attempt number FIRST
+   - On attempt 2+, show HUGE warning box at top
+   - Simplify the workflow (no step-aware logic)
+
+2. Reset TaskAnalysisTracker when task is retried:
+   - Add `self._analysis_tracker.reset_state(task.task_id)` before retry
+
+3. Lower hard limit from 3 to 2 tools
+
+4. Add explicit tool calling guidance to system prompt
+
+Let's implement these fixes now.
