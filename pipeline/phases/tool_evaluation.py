@@ -168,8 +168,8 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
             self.logger.info("   ✓ Tool implementation loaded successfully")
         else:
             evaluation['tests_failed'].append('load_implementation')
-            self.logger.error(f"   ✗ Failed to load implementation: {impl_result['error']}")
-            return self._create_failure_result(evaluation, impl_result['error'])
+            self.logger.error(f"   ✗ Failed to load implementation: {impl_result.get('error', None)}")
+            return self._create_failure_result(evaluation, impl_result.get('error', None))
         
         # Test 2: Validate function signature
         self.logger.info("🔍 Test 2: Validating function signature...")
@@ -179,8 +179,8 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
             self.logger.info("   ✓ Function signature valid")
         else:
             evaluation['tests_failed'].append('function_signature')
-            evaluation['warnings'].append(sig_result['error'])
-            self.logger.warning(f"   ⚠ Signature issue: {sig_result['error']}")
+            evaluation['warnings'].append(sig_result.get('error', None))
+            self.logger.warning(f"   ⚠ Signature issue: {sig_result.get('error', None)}")
         
         # Test 3: Security validation
         self.logger.info("🔒 Test 3: Security validation...")
@@ -190,8 +190,8 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
             self.logger.info(f"   ✓ Security level: {spec.get('security_level', 'unknown')}")
         else:
             evaluation['tests_failed'].append('security_validation')
-            self.logger.error(f"   ✗ Security issue: {security_result['error']}")
-            return self._create_failure_result(evaluation, security_result['error'])
+            self.logger.error(f"   ✗ Security issue: {security_result.get('error', None)}")
+            return self._create_failure_result(evaluation, security_result.get('error', None))
         
         if security_result.get('warnings'):
             for warning in security_result['warnings']:
@@ -210,9 +210,9 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
             self.logger.info(f"   ✓ Executed {exec_result['tests_run']} test(s) successfully")
         else:
             evaluation['tests_failed'].append('execution')
-            self.logger.error(f"   ✗ Execution failed: {exec_result['error']}")
+            self.logger.error(f"   ✗ Execution failed: {exec_result.get('error', None)}")
             # Don't fail completely - execution issues might be due to test inputs
-            evaluation['warnings'].append(f"Execution test failed: {exec_result['error']}")
+            evaluation['warnings'].append(f"Execution test failed: {exec_result.get('error', None)}")
         
         # Test 5: Integration with ToolCallHandler
         self.logger.info("🔗 Test 5: Testing ToolCallHandler integration...")
@@ -222,8 +222,8 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
             self.logger.info("   ✓ ToolCallHandler integration successful")
         else:
             evaluation['tests_failed'].append('handler_integration')
-            evaluation['warnings'].append(integration_result['error'])
-            self.logger.warning(f"   ⚠ Integration issue: {integration_result['error']}")
+            evaluation['warnings'].append(integration_result.get('error', None))
+            self.logger.warning(f"   ⚠ Integration issue: {integration_result.get('error', None)}")
         
         # Test 6: Registry integration
         self.logger.info("📚 Test 6: Testing ToolRegistry integration...")
@@ -233,8 +233,8 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
             self.logger.info("   ✓ ToolRegistry integration successful")
         else:
             evaluation['tests_failed'].append('registry_integration')
-            evaluation['warnings'].append(registry_result['error'])
-            self.logger.warning(f"   ⚠ Registry issue: {registry_result['error']}")
+            evaluation['warnings'].append(registry_result.get('error', None))
+            self.logger.warning(f"   ⚠ Registry issue: {registry_result.get('error', None)}")
         
         # Generate evaluation report
         report = self._generate_evaluation_report(evaluation)

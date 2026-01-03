@@ -2213,12 +2213,12 @@ class ToolCallHandler:
             result = self.system_analyzer.analyze_connectivity()
             
             self.logger.info(f"📊 Connectivity Analysis:")
-            self.logger.info(f"   Connected: {result['connected_vertices']}/{result['total_vertices']} phases")
-            self.logger.info(f"   Edges: {result['total_edges']}")
-            self.logger.info(f"   Avg Reachability: {result['avg_reachability']:.1f} phases")
+            self.logger.info(f"   Connected: {result.get('connected_vertices', 0)}/{result.get('total_vertices', 0)} phases")
+            self.logger.info(f"   Edges: {result.get('total_edges', 0)}")
+            self.logger.info(f"   Avg Reachability: {result.get('avg_reachability', 0.0):.1f} phases")
             
-            if result['isolated_phases']:
-                self.logger.warning(f"   Isolated: {', '.join(result['isolated_phases'])}")
+            if result.get('isolated_phases', []):
+                self.logger.warning(f"   Isolated: {', '.join(result.get('isolated_phases', []))}")
             
             return {
                 "tool": "analyze_connectivity",
@@ -2255,7 +2255,7 @@ class ToolCallHandler:
             
             if 'error' not in result:
                 self.logger.info(f"🔗 Integration Analysis for {phase_name}:")
-                self.logger.info(f"   Total Points: {result['total_integration_points']}")
+                self.logger.info(f"   Total Points: {result.get('total_integration_points', 0)}")
                 self.logger.info(f"   Complexity: {result['complexity_level']}")
             
             return {
@@ -2291,14 +2291,14 @@ class ToolCallHandler:
         try:
             result = self.system_analyzer.trace_variable_flow(variable_name)
             
-            if result['found']:
+            if result.get('found', False):
                 self.logger.info(f"🌊 Variable Flow for '{variable_name}':")
-                self.logger.info(f"   Flows through: {result['flows_through']} functions")
-                self.logger.info(f"   Criticality: {result['criticality']}")
+                self.logger.info(f"   Flows through: {result.get('flows_through', [])} functions")
+                self.logger.info(f"   Criticality: {result.get('criticality', 'unknown')}")
             
             return {
                 "tool": "trace_variable_flow",
-                "success": result['found'],
+                "success": result.get('found', False),
                 "result": result
             }
         
@@ -2318,10 +2318,10 @@ class ToolCallHandler:
             result = self.system_analyzer.find_recursive_patterns()
             
             self.logger.info(f"🔄 Recursive Pattern Analysis:")
-            self.logger.info(f"   Direct recursion: {result['total_recursive']} functions")
-            self.logger.info(f"   Circular calls: {result['total_circular']} functions")
+            self.logger.info(f"   Direct recursion: {result.get('total_recursive', 0)} functions")
+            self.logger.info(f"   Circular calls: {result.get('total_circular', 0)} functions")
             
-            if result['warning']:
+            if result.get('warning', None):
                 self.logger.warning("   ⚠️  High number of recursive patterns detected")
             
             return {
@@ -2360,9 +2360,9 @@ class ToolCallHandler:
             
             if 'error' not in result:
                 self.logger.info(f"✨ Code Quality for {filepath}:")
-                self.logger.info(f"   Quality Score: {result['quality_score']:.1f}/100")
-                self.logger.info(f"   Lines: {result['lines']}, Functions: {result['functions']}")
-                self.logger.info(f"   Comment Ratio: {result['comment_ratio']:.1f}%")
+                self.logger.info(f"   Quality Score: {result.get('quality_score', 0.0):.1f}/100")
+                self.logger.info(f"   Lines: {result.get('lines', 0)}, Functions: {result['functions']}")
+                self.logger.info(f"   Comment Ratio: {result.get('comment_ratio', 0.0):.1f}%")
             
             return {
                 "tool": "assess_code_quality",
@@ -3499,7 +3499,7 @@ class ToolCallHandler:
             
             self.logger.info(f"✅ Found {len(duplicate_sets)} duplicate sets")
             if duplicate_sets:
-                self.logger.info(f"   Estimated reduction: ~{result['estimated_reduction']} lines")
+                self.logger.info(f"   Estimated reduction: ~{result.get('estimated_reduction', 0)} lines")
             
             return {
                 "tool": "detect_duplicate_implementations",
@@ -3579,7 +3579,7 @@ class ToolCallHandler:
             }
             
             self.logger.info(f"✅ Extracted {len(extracted)} features")
-            self.logger.info(f"   Total lines: {result['total_lines']}")
+            self.logger.info(f"   Total lines: {result.get('total_lines', 0)}")
             
             return {
                 "tool": "extract_file_features",
@@ -3845,7 +3845,7 @@ class ToolCallHandler:
                 'syntax_errors': syntax_errors
             }
             
-            self.logger.info(f"✅ Validation {'passed' if result['valid'] else 'found issues'}")
+            self.logger.info(f"✅ Validation {'passed' if result.get('valid', False) else 'found issues'}")
             
             return {
                 "tool": "validate_refactoring",

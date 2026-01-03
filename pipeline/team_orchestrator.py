@@ -447,7 +447,7 @@ class TeamOrchestrator:
             for wave_results in all_results.values():
                 for result in wave_results.values():
                     if result.get('findings'):
-                        findings.extend(result['findings'])
+                        findings.extend(result.get('findings', []))
             
             # Count agreement
             finding_counts = defaultdict(int)

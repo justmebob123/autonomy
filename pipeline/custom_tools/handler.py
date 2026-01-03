@@ -134,7 +134,7 @@ class CustomToolHandler:
             # Process result
             processed_result = self._process_result(tool_name, result, metadata)
             
-            if processed_result['success']:
+            if processed_result.get('success', False):
                 self.logger.info(f"Custom tool {tool_name} executed successfully")
             else:
                 self.logger.warning(f"Custom tool {tool_name} failed: {processed_result.get('error')}")

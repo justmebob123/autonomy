@@ -699,7 +699,7 @@ Example BAD response (asking instead of deciding):
         # Count decisions by action
         action_counts = {}
         for decision in self.decision_history:
-            action = decision["decision"].get("action", "unknown")
+            action = decision.get('decision', None).get("action", "unknown")
             action_counts[action] = action_counts.get(action, 0) + 1
         
         return {
