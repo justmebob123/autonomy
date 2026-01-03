@@ -643,6 +643,21 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 tool_name = result.get("tool", "")
                 if tool_name in resolving_tools:
                     task_resolved = True
+                    
+                    # CRITICAL: If escalated to developer, record it
+                    if tool_name == "request_developer_review":
+                        state.refactoring_manager.record_resolution(
+                            issue_type=str(task.issue_type.value) if hasattr(task.issue_type, 'value') else str(task.issue_type),
+                            target_files=task.target_files,
+                            resolution_type='escalated',
+                            task_id=task.task_id,
+                            details={
+                                'escalated_at': datetime.now().isoformat(),
+                                'reason': 'Too complex for autonomous refactoring'
+                            }
+                        )
+                        self.logger.info(f"  📝 Recorded escalation in history to prevent re-detection")
+                    
                     break
         
         if task_resolved:
@@ -653,6 +668,19 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 # Task actually resolved AND verified
                 task.complete(content)
                 self.logger.info(f"  ✅ Task {task.task_id} completed and verified: {verification_msg}")
+                
+                # CRITICAL: Record resolution in history to prevent re-detection
+                state.refactoring_manager.record_resolution(
+                    issue_type=str(task.issue_type.value) if hasattr(task.issue_type, 'value') else str(task.issue_type),
+                    target_files=task.target_files,
+                    resolution_type='resolved',
+                    task_id=task.task_id,
+                    details={
+                        'verification_msg': verification_msg,
+                        'resolved_at': datetime.now().isoformat()
+                    }
+                )
+                self.logger.info(f"  📝 Recorded resolution in history to prevent re-detection")
                 
                 # Update ARCHITECTURE.md if needed
                 self._update_architecture_after_task(task)
@@ -2103,6 +2131,22 @@ DO NOT create reports for integration conflicts - you can resolve them yourself!
                             # Use short paths for title (parent/filename)
                             file1_short = f"{Path(file1_path).parent.name}/{Path(file1_path).name}" if file1_path != 'unknown' else 'unknown'
                             file2_short = f"{Path(file2_path).parent.name}/{Path(file2_path).name}" if file2_path != 'unknown' else 'unknown'
+                            
+                            # CRITICAL: Check resolution history FIRST
+                            is_handled, reason = manager.is_issue_already_handled('duplicate', files)
+                            if is_handled:
+                                self.logger.debug(f"  ⏭️  Skipping duplicate - {reason}: {files}")
+                                continue
+                            
+                            # Increment detection count for false positive detection
+                            detection_count = manager.increment_detection_count('duplicate', files)
+                            
+                            # Check if should mark as false positive
+                            if manager.should_mark_as_false_positive('duplicate', files):
+                                self.logger.info(f"  🚫 Marking as false positive (detected {detection_count} times, never resolved): {files}")
+                                manager.record_resolution('duplicate', files, 'false_positive', 
+                                                        details={'detection_count': detection_count})
+                                continue
                             
                             # CRITICAL FIX: Improved deduplication
                             # Check if task already exists (including recently completed)

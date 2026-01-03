@@ -201,6 +201,16 @@ class RefactoringTaskManager:
     def __init__(self):
         self.tasks: Dict[str, RefactoringTask] = {}
         self._next_id = 1
+        
+        # CRITICAL: Track resolved issues to prevent re-detection
+        self.resolution_history: Dict[str, Dict[str, Any]] = {
+            'resolved': {},  # Issues that were successfully fixed
+            'escalated': {},  # Issues that were escalated to coding phase
+            'false_positives': {}  # Issues marked as false positives
+        }
+        
+        # Track detection counts for false positive detection
+        self.detection_counts: Dict[str, int] = {}
     
     def create_task(
         self,
@@ -400,6 +410,102 @@ class RefactoringTaskManager:
         
         return len(completed_ids)
     
+    def get_issue_key(self, issue_type: str, target_files: List[str]) -> str:
+        """
+        Generate a unique key for an issue based on type and files.
+        
+        This is used to track if the same issue has been seen before.
+        """
+        # Sort files for consistent key generation
+        sorted_files = sorted(target_files)
+        files_str = ':'.join(sorted_files)
+        return f"{issue_type}:{files_str}"
+    
+    def is_issue_already_handled(self, issue_type: str, target_files: List[str]) -> tuple[bool, str]:
+        """
+        Check if an issue has already been handled.
+        
+        Returns:
+            (is_handled, reason) tuple
+        """
+        issue_key = self.get_issue_key(issue_type, target_files)
+        
+        # Check if resolved
+        if issue_key in self.resolution_history['resolved']:
+            return (True, 'already_resolved')
+        
+        # Check if escalated
+        if issue_key in self.resolution_history['escalated']:
+            return (True, 'already_escalated')
+        
+        # Check if false positive
+        if issue_key in self.resolution_history['false_positives']:
+            return (True, 'false_positive')
+        
+        return (False, '')
+    
+    def record_resolution(self, issue_type: str, target_files: List[str], 
+                         resolution_type: str, task_id: str = None, 
+                         details: Dict[str, Any] = None):
+        """
+        Record that an issue has been resolved.
+        
+        Args:
+            issue_type: Type of issue
+            target_files: Files involved
+            resolution_type: 'resolved', 'escalated', or 'false_positive'
+            task_id: Associated task ID (if any)
+            details: Additional details about the resolution
+        """
+        issue_key = self.get_issue_key(issue_type, target_files)
+        
+        record = {
+            'issue_type': issue_type,
+            'target_files': target_files,
+            'timestamp': datetime.now().isoformat(),
+            'task_id': task_id,
+            'details': details or {}
+        }
+        
+        if resolution_type == 'resolved':
+            self.resolution_history['resolved'][issue_key] = record
+        elif resolution_type == 'escalated':
+            self.resolution_history['escalated'][issue_key] = record
+        elif resolution_type == 'false_positive':
+            self.resolution_history['false_positives'][issue_key] = record
+    
+    def increment_detection_count(self, issue_type: str, target_files: List[str]) -> int:
+        """
+        Increment detection count for an issue.
+        
+        Returns the new count. Used for false positive detection.
+        """
+        issue_key = self.get_issue_key(issue_type, target_files)
+        current_count = self.detection_counts.get(issue_key, 0)
+        new_count = current_count + 1
+        self.detection_counts[issue_key] = new_count
+        return new_count
+    
+    def should_mark_as_false_positive(self, issue_type: str, target_files: List[str]) -> bool:
+        """
+        Check if an issue should be marked as a false positive.
+        
+        Criteria: Detected 3+ times but never successfully resolved.
+        """
+        issue_key = self.get_issue_key(issue_type, target_files)
+        
+        # Check detection count
+        count = self.detection_counts.get(issue_key, 0)
+        if count < 3:
+            return False
+        
+        # Check if ever resolved
+        if issue_key in self.resolution_history['resolved']:
+            return False
+        
+        # Detected multiple times but never resolved = likely false positive
+        return True
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
         return {
@@ -407,7 +513,9 @@ class RefactoringTaskManager:
                 task_id: task.to_dict()
                 for task_id, task in self.tasks.items()
             },
-            "next_id": self._next_id
+            "next_id": self._next_id,
+            "resolution_history": self.resolution_history,
+            "detection_counts": self.detection_counts
         }
     
     @classmethod
@@ -419,5 +527,13 @@ class RefactoringTaskManager:
         for task_id, task_data in data.get("tasks", {}).items():
             task = RefactoringTask.from_dict(task_data)
             manager.tasks[task_id] = task
+        
+        # Load resolution history
+        manager.resolution_history = data.get("resolution_history", {
+            'resolved': {},
+            'escalated': {},
+            'false_positives': {}
+        })
+        manager.detection_counts = data.get("detection_counts", {})
         
         return manager
