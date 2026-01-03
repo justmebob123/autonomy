@@ -606,7 +606,13 @@ class ResponseParser:
         self.logger.debug("    Layer 1: Trying Python function call syntax")
         result = self._extract_function_call_syntax(text)
         if result:
-            return result
+            # CRITICAL: Validate tool name BEFORE returning
+            tool_name = result.get("function", {}).get("name")
+            if tool_name in self.VALID_TOOLS:
+                return result
+            else:
+                self.logger.debug(f"    ✗ Skipping invalid tool from function syntax: {tool_name}")
+                # Don't return, continue to next extraction method
         
         # Layer 2: Try to extract from markdown code blocks (with various preambles)
         self.logger.debug("    Layer 2: Trying markdown code blocks")
