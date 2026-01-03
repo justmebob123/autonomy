@@ -56,6 +56,16 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
             custom_tools_dir=str(Path(__file__).parent.parent / "tools" / "custom")
         )
         
+        # MESSAGE BUS: Subscribe to relevant events
+        if self.message_bus:
+            from ..messaging import MessageType
+            self._subscribe_to_messages([
+                MessageType.PHASE_ERROR,
+                MessageType.TASK_FAILED,
+                MessageType.SYSTEM_ALERT,
+            ])
+            self.logger.info("  📡 Subscribed to 3 message types")
+        
         self.logger.info("Enhanced ToolDesignPhase initialized with ToolAnalyzer and IPC integration")
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:

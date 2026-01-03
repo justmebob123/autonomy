@@ -44,6 +44,17 @@ class PromptDesignPhase(LoopDetectionMixin, BasePhase):
         from ..architecture_parser import get_architecture_config
         self.architecture_config = get_architecture_config(self.project_dir)
         self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
+        
+        # MESSAGE BUS: Subscribe to relevant events
+        if self.message_bus:
+            from ..messaging import MessageType
+            self._subscribe_to_messages([
+                MessageType.PHASE_COMPLETED,
+                MessageType.TASK_FAILED,
+                MessageType.SYSTEM_ALERT,
+            ])
+            self.logger.info("  📡 Subscribed to 3 message types")
+        
         self.logger.info("  ✍️ Prompt Design phase initialized with IPC integration")
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:

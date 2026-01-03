@@ -53,6 +53,16 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         # FILENAME VALIDATION - Prevent problematic filenames
         self.filename_validator = FilenameValidator(strict_mode=True)
         
+        # MESSAGE BUS: Subscribe to relevant events
+        if self.message_bus:
+            from ..messaging import MessageType
+            self._subscribe_to_messages([
+                MessageType.TASK_STARTED,
+                MessageType.ISSUE_FOUND,
+                MessageType.PHASE_COMPLETED,
+            ])
+            self.logger.info("  📡 Subscribed to 3 message types")
+        
         self.logger.info("  💻 Coding phase initialized with analysis capabilities")
     
     def execute(self, state: PipelineState, 
