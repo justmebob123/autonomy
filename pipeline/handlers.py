@@ -227,7 +227,7 @@ class ToolCallHandler:
         if tool_registry:
             tool_registry.set_handler(self)
             self.logger.info(f"Registered {len(tool_registry.tools)} custom tools from ToolRegistry")
-        self.syntax_validator = SyntaxValidator()
+        self.syntax_validator = SyntaxValidator(project_root=str(self.project_dir))
         self.system_analyzer = SystemAnalyzer(self.project_dir)
 
     def reset(self):
@@ -4041,7 +4041,7 @@ class ToolCallHandler:
             
             # Use existing syntax validator
             from pipeline.syntax_validator import SyntaxValidator
-            validator = SyntaxValidator()
+            validator = SyntaxValidator(project_root=str(self.project_dir))
             
             is_valid, errors = validator.validate_python_code(code, filename)
             

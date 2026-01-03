@@ -51,7 +51,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger, self.architecture_config)
         
         # FILENAME VALIDATION - Prevent problematic filenames
-        self.filename_validator = FilenameValidator(strict_mode=True)
+        self.filename_validator = FilenameValidator(strict_mode=True, project_root=str(self.project_dir))
         
         # MESSAGE BUS: Subscribe to relevant events
         if self.message_bus:

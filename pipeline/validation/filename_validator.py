@@ -54,14 +54,16 @@ class FilenameValidator:
     for correction. It can operate in strict mode (blocking) or advisory mode.
     """
     
-    def __init__(self, strict_mode: bool = True):
+    def __init__(self, strict_mode: bool = True, project_root: str = "."):
         """
         Initialize the filename validator.
         
         Args:
             strict_mode: If True, CRITICAL issues block file creation
+            project_root: Root directory of the project (for pattern recognition)
         """
         self.strict_mode = strict_mode
+        self.project_root = Path(project_root)
         
         # Patterns for different issue types
         self.patterns = {

@@ -23,9 +23,10 @@ from pipeline.polytopic.dimensional_space import DimensionalSpace
 class SyntaxValidator:
     """Validates Python code syntax before file operations."""
     
-    def __init__(self):
+    def __init__(self, project_root: str = "."):
         self.logger = get_logger()
         self.html_decoder = HTMLEntityDecoder()
+        self.project_root = project_root
     
         # Polytopic Integration
         self.message_bus = MessageBus()

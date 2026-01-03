@@ -35,8 +35,9 @@ from pipeline.polytopic.dimensional_space import DimensionalSpace
 class ToolMetrics:
     """Metrics for a single tool."""
     
-    def __init__(self, tool_name: str):
+    def __init__(self, tool_name: str, project_root: str = "."):
         self.tool_name = tool_name
+        self.project_root = project_root
         self.total_calls = 0
         self.successful_calls = 0
         self.failed_calls = 0
