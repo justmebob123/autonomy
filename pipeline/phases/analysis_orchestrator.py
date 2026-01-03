@@ -153,18 +153,42 @@ class AnalysisOrchestrator:
             short_paths = [str(Path(f).parent / Path(f).name) for f in files[:2]]
             title = f"Merge duplicates: {short_paths[0]} ↔ {short_paths[1]}"
             
-            # Check resolution history
-            if manager.was_recently_resolved(
+            # Check if issue was already handled (resolved, escalated, or false positive)
+            is_handled, reason = manager.is_issue_already_handled(
                 issue_type='duplicate',
                 target_files=files
-            ):
+            )
+            if is_handled:
+                self.logger.info(f"  ⏭️  Skipping duplicate {short_paths[0]} ↔ {short_paths[1]}: {reason}")
                 continue
             
-            # Check if task already exists
-            if manager.task_exists(
-                issue_type=RefactoringIssueType.DUPLICATE,
-                target_files=files
-            ):
+            # Increment detection count for false positive tracking
+            count = manager.increment_detection_count('duplicate', files)
+            
+            # Check if should mark as false positive (detected 3+ times but never resolved)
+            if manager.should_mark_as_false_positive('duplicate', files):
+                self.logger.warning(
+                    f"  ⚠️  Duplicate detected {count} times but never resolved - "
+                    f"marking as false positive"
+                )
+                manager.record_resolution(
+                    issue_type='duplicate',
+                    target_files=files,
+                    resolution_type='false_positive',
+                    details={'detection_count': count, 'reason': 'Never successfully resolved'}
+                )
+                continue
+            
+            # Check if task already exists for this issue
+            from pipeline.state.refactoring_task import TaskStatus
+            existing_tasks = [
+                t for t in manager.tasks.values()
+                if t.issue_type == RefactoringIssueType.DUPLICATE
+                and set(t.target_files) == set(files)
+                and t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]
+            ]
+            if existing_tasks:
+                self.logger.info(f"  ⏭️  Task already exists: {existing_tasks[0].task_id}")
                 continue
             
             # Create task
@@ -193,11 +217,52 @@ class AnalysisOrchestrator:
         critical_functions = result_data.get('critical_functions', [])
         
         for func_info in critical_functions[:5]:  # Limit to top 5
+            file_path = func_info.get('file', 'unknown')
+            func_name = func_info.get('name', 'unknown')
+            
+            # Check if issue was already handled
+            is_handled, reason = manager.is_issue_already_handled(
+                issue_type='complexity',
+                target_files=[file_path]
+            )
+            if is_handled:
+                self.logger.info(f"  ⏭️  Skipping complexity in {func_name}: {reason}")
+                continue
+            
+            # Increment detection count
+            count = manager.increment_detection_count('complexity', [file_path])
+            
+            # Check for false positive
+            if manager.should_mark_as_false_positive('complexity', [file_path]):
+                self.logger.warning(
+                    f"  ⚠️  Complexity issue detected {count} times but never resolved - "
+                    f"marking as false positive"
+                )
+                manager.record_resolution(
+                    issue_type='complexity',
+                    target_files=[file_path],
+                    resolution_type='false_positive',
+                    details={'detection_count': count, 'function': func_name}
+                )
+                continue
+            
+            # Check for existing tasks
+            from pipeline.state.refactoring_task import TaskStatus
+            existing_tasks = [
+                t for t in manager.tasks.values()
+                if t.issue_type == RefactoringIssueType.COMPLEXITY
+                and set(t.target_files) == set([file_path])
+                and t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]
+            ]
+            if existing_tasks:
+                self.logger.info(f"  ⏭️  Task already exists: {existing_tasks[0].task_id}")
+                continue
+            
             task = manager.create_task(
                 issue_type=RefactoringIssueType.COMPLEXITY,
-                title=f"Reduce complexity: {func_info.get('name', 'unknown')}",
+                title=f"Reduce complexity: {func_name}",
                 description=f"Function has complexity {func_info.get('complexity', 0)}",
-                target_files=[func_info.get('file', 'unknown')],
+                target_files=[file_path],
                 priority=RefactoringPriority.LOW,
                 fix_approach=RefactoringApproach.AUTONOMOUS,
                 estimated_effort=30,
@@ -214,11 +279,52 @@ class AnalysisOrchestrator:
         dead_code = result_data.get('unused_items', [])
         
         for item in dead_code[:10]:  # Limit to top 10
+            file_path = item.get('file', 'unknown')
+            item_name = item.get('name', 'unknown')
+            
+            # Check if issue was already handled
+            is_handled, reason = manager.is_issue_already_handled(
+                issue_type='dead_code',
+                target_files=[file_path]
+            )
+            if is_handled:
+                self.logger.info(f"  ⏭️  Skipping dead code {item_name}: {reason}")
+                continue
+            
+            # Increment detection count
+            count = manager.increment_detection_count('dead_code', [file_path])
+            
+            # Check for false positive
+            if manager.should_mark_as_false_positive('dead_code', [file_path]):
+                self.logger.warning(
+                    f"  ⚠️  Dead code detected {count} times but never resolved - "
+                    f"marking as false positive"
+                )
+                manager.record_resolution(
+                    issue_type='dead_code',
+                    target_files=[file_path],
+                    resolution_type='false_positive',
+                    details={'detection_count': count, 'item': item_name}
+                )
+                continue
+            
+            # Check for existing tasks
+            from pipeline.state.refactoring_task import TaskStatus
+            existing_tasks = [
+                t for t in manager.tasks.values()
+                if t.issue_type == RefactoringIssueType.DEAD_CODE
+                and set(t.target_files) == set([file_path])
+                and t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]
+            ]
+            if existing_tasks:
+                self.logger.info(f"  ⏭️  Task already exists: {existing_tasks[0].task_id}")
+                continue
+            
             task = manager.create_task(
                 issue_type=RefactoringIssueType.DEAD_CODE,
-                title=f"Review dead code: {item.get('name', 'unknown')}",
-                description=f"Unused {item.get('type', 'code')} in {item.get('file', 'unknown')}",
-                target_files=[item.get('file', 'unknown')],
+                title=f"Review dead code: {item_name}",
+                description=f"Unused {item.get('type', 'code')} in {file_path}",
+                target_files=[file_path],
                 priority=RefactoringPriority.LOW,
                 fix_approach=RefactoringApproach.REPORT,
                 estimated_effort=15,
@@ -235,11 +341,52 @@ class AnalysisOrchestrator:
         violations = result_data.get('violations', [])
         
         for violation in violations:
+            files = violation.get('files', [])
+            violation_type = violation.get('type', 'unknown')
+            
+            # Check if issue was already handled
+            is_handled, reason = manager.is_issue_already_handled(
+                issue_type='architecture',
+                target_files=files
+            )
+            if is_handled:
+                self.logger.info(f"  ⏭️  Skipping architecture {violation_type}: {reason}")
+                continue
+            
+            # Increment detection count
+            count = manager.increment_detection_count('architecture', files)
+            
+            # Check for false positive
+            if manager.should_mark_as_false_positive('architecture', files):
+                self.logger.warning(
+                    f"  ⚠️  Architecture issue detected {count} times but never resolved - "
+                    f"marking as false positive"
+                )
+                manager.record_resolution(
+                    issue_type='architecture',
+                    target_files=files,
+                    resolution_type='false_positive',
+                    details={'detection_count': count, 'violation_type': violation_type}
+                )
+                continue
+            
+            # Check for existing tasks
+            from pipeline.state.refactoring_task import TaskStatus
+            existing_tasks = [
+                t for t in manager.tasks.values()
+                if t.issue_type == RefactoringIssueType.ARCHITECTURE
+                and set(t.target_files) == set(files)
+                and t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]
+            ]
+            if existing_tasks:
+                self.logger.info(f"  ⏭️  Task already exists: {existing_tasks[0].task_id}")
+                continue
+            
             task = manager.create_task(
                 issue_type=RefactoringIssueType.ARCHITECTURE,
-                title=f"Fix architecture: {violation.get('type', 'unknown')}",
+                title=f"Fix architecture: {violation_type}",
                 description=violation.get('description', 'Architecture violation'),
-                target_files=violation.get('files', []),
+                target_files=files,
                 priority=RefactoringPriority.MEDIUM,
                 fix_approach=RefactoringApproach.AUTONOMOUS,
                 estimated_effort=25,
@@ -257,11 +404,52 @@ class AnalysisOrchestrator:
         # Handle unused classes
         unused_classes = result_data.get('unused_classes', [])
         for cls_info in unused_classes:
+            file_path = cls_info.get('file', 'unknown')
+            class_name = cls_info.get('class', 'unknown')
+            
+            # Check if issue was already handled
+            is_handled, reason = manager.is_issue_already_handled(
+                issue_type='integration',
+                target_files=[file_path]
+            )
+            if is_handled:
+                self.logger.info(f"  ⏭️  Skipping unused class {class_name}: {reason}")
+                continue
+            
+            # Increment detection count
+            count = manager.increment_detection_count('integration', [file_path])
+            
+            # Check for false positive
+            if manager.should_mark_as_false_positive('integration', [file_path]):
+                self.logger.warning(
+                    f"  ⚠️  Integration issue detected {count} times but never resolved - "
+                    f"marking as false positive"
+                )
+                manager.record_resolution(
+                    issue_type='integration',
+                    target_files=[file_path],
+                    resolution_type='false_positive',
+                    details={'detection_count': count, 'class': class_name}
+                )
+                continue
+            
+            # Check for existing tasks
+            from pipeline.state.refactoring_task import TaskStatus
+            existing_tasks = [
+                t for t in manager.tasks.values()
+                if t.issue_type == RefactoringIssueType.INTEGRATION
+                and set(t.target_files) == set([file_path])
+                and t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]
+            ]
+            if existing_tasks:
+                self.logger.info(f"  ⏭️  Task already exists: {existing_tasks[0].task_id}")
+                continue
+            
             task = manager.create_task(
                 issue_type=RefactoringIssueType.INTEGRATION,
-                title=f"Review unused class: {cls_info.get('class', 'unknown')}",
-                description=f"Class never instantiated in {cls_info.get('file', 'unknown')}",
-                target_files=[cls_info.get('file', 'unknown')],
+                title=f"Review unused class: {class_name}",
+                description=f"Class never instantiated in {file_path}",
+                target_files=[file_path],
                 priority=RefactoringPriority.LOW,
                 fix_approach=RefactoringApproach.REPORT,
                 estimated_effort=20,
@@ -273,18 +461,44 @@ class AnalysisOrchestrator:
         classes_with_unused = result_data.get('classes_with_unused_methods', [])
         for cls_info in classes_with_unused:
             unused_methods = cls_info.get('unused_methods', [])
-            if unused_methods:
-                task = manager.create_task(
-                    issue_type=RefactoringIssueType.INTEGRATION,
-                    title=f"Review unused methods in {cls_info.get('class', 'unknown')}",
-                    description=f"{len(unused_methods)} unused methods",
-                    target_files=[cls_info.get('file', 'unknown')],
-                    priority=RefactoringPriority.LOW,
-                    fix_approach=RefactoringApproach.REPORT,
-                    estimated_effort=15,
-                    analysis_data=cls_info
-                )
-                tasks_created += 1
+            if not unused_methods:
+                continue
+            
+            file_path = cls_info.get('file', 'unknown')
+            class_name = cls_info.get('class', 'unknown')
+            
+            # Check if issue was already handled
+            is_handled, reason = manager.is_issue_already_handled(
+                issue_type='integration',
+                target_files=[file_path]
+            )
+            if is_handled:
+                self.logger.info(f"  ⏭️  Skipping unused methods in {class_name}: {reason}")
+                continue
+            
+            # Check for existing tasks
+            from pipeline.state.refactoring_task import TaskStatus
+            existing_tasks = [
+                t for t in manager.tasks.values()
+                if t.issue_type == RefactoringIssueType.INTEGRATION
+                and set(t.target_files) == set([file_path])
+                and t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]
+            ]
+            if existing_tasks:
+                self.logger.info(f"  ⏭️  Task already exists: {existing_tasks[0].task_id}")
+                continue
+            
+            task = manager.create_task(
+                issue_type=RefactoringIssueType.INTEGRATION,
+                title=f"Review unused methods in {class_name}",
+                description=f"{len(unused_methods)} unused methods",
+                target_files=[file_path],
+                priority=RefactoringPriority.LOW,
+                fix_approach=RefactoringApproach.REPORT,
+                estimated_effort=15,
+                analysis_data=cls_info
+            )
+            tasks_created += 1
         
         return tasks_created
     
@@ -298,6 +512,44 @@ class AnalysisOrchestrator:
             cycle_path = cycle.get('path', [])
             cycle_files = cycle.get('files', [])
             cycle_desc = cycle.get('description', 'Circular import detected')
+            
+            # Check if issue was already handled
+            is_handled, reason = manager.is_issue_already_handled(
+                issue_type='architecture',  # Circular imports are architecture issues
+                target_files=cycle_files
+            )
+            if is_handled:
+                self.logger.info(f"  ⏭️  Skipping circular import ({len(cycle_files)} files): {reason}")
+                continue
+            
+            # Increment detection count
+            count = manager.increment_detection_count('architecture', cycle_files)
+            
+            # Check for false positive
+            if manager.should_mark_as_false_positive('architecture', cycle_files):
+                self.logger.warning(
+                    f"  ⚠️  Circular import detected {count} times but never resolved - "
+                    f"marking as false positive"
+                )
+                manager.record_resolution(
+                    issue_type='architecture',
+                    target_files=cycle_files,
+                    resolution_type='false_positive',
+                    details={'detection_count': count, 'cycle_length': len(cycle_path)}
+                )
+                continue
+            
+            # Check for existing tasks
+            from pipeline.state.refactoring_task import TaskStatus
+            existing_tasks = [
+                t for t in manager.tasks.values()
+                if t.issue_type == RefactoringIssueType.ARCHITECTURE
+                and set(t.target_files) == set(cycle_files)
+                and t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]
+            ]
+            if existing_tasks:
+                self.logger.info(f"  ⏭️  Task already exists: {existing_tasks[0].task_id}")
+                continue
             
             task = manager.create_task(
                 issue_type=RefactoringIssueType.ARCHITECTURE,
