@@ -101,6 +101,15 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
             'optimization': optimization
         })
         
+        # DIMENSION TRACKING: Track initial dimensions
+        start_time = datetime.now()
+        self.track_dimensions({
+            'temporal': 0.4,  # Coding is relatively fast
+            'functional': 0.8,  # High functionality
+            'data': 0.5,  # Medium data handling
+            'integration': 0.6  # Integrates with system
+        })
+        
         # ========== INTEGRATION: READ ARCHITECTURE AND OBJECTIVES ==========
         # Read architecture to understand where files should be placed
         architecture = self._read_architecture()
@@ -529,6 +538,16 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
             'task_id': task.task_id,
             'files_created': len(files_created),
             'files_modified': len(files_modified)
+        })
+        
+        # DIMENSION TRACKING: Update dimensions based on execution
+        execution_duration = (datetime.now() - start_time).total_seconds()
+        total_files = len(files_created) + len(files_modified)
+        self.track_dimensions({
+            'temporal': min(1.0, execution_duration / 120.0),
+            'functional': 0.8,
+            'data': min(1.0, total_files / 10.0),
+            'integration': 0.6
         })
         
         return PhaseResult(

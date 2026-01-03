@@ -533,6 +533,15 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             'optimization': optimization
         })
         
+        # DIMENSION TRACKING: Track initial dimensions
+        start_time = datetime.now()
+        self.track_dimensions({
+            'temporal': 0.6,  # Debugging takes time
+            'error': 0.9,  # High error focus
+            'functional': 0.7,  # Fixes functionality
+            'context': 0.8  # Needs context
+        })
+        
         # ARCHITECTURE INTEGRATION: Read architecture for design context
         architecture = self._read_architecture()
         if architecture:
@@ -1841,6 +1850,15 @@ Apply the fix immediately.""",
                 'filepath': filepath,
                 'attempts': thread.current_attempt,
                 'task_id': task.task_id if task else None
+            })
+            
+            # DIMENSION TRACKING: Update dimensions based on successful fix
+            execution_duration = (datetime.now() - start_time).total_seconds()
+            self.track_dimensions({
+                'temporal': min(1.0, execution_duration / 180.0),
+                'error': 0.1,
+                'functional': 0.7,
+                'context': 0.8
             })
             
             return PhaseResult(

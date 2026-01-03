@@ -900,3 +900,41 @@ class BasePhase(ABC):
         except Exception as e:
             self.logger.warning(f"  ⚠️  Error getting optimization: {e}")
             return {}
+    
+    def track_dimensions(self, dimension_updates: Dict[str, float]):
+        """
+        Track and update dimensional values for polytopic structure.
+        
+        This method enables phases to dynamically update their position in the
+        8-dimensional hyperdimensional space based on execution characteristics.
+        
+        Args:
+            dimension_updates: Dict of dimension -> value (0.0-1.0)
+                Supported dimensions:
+                - temporal: Execution time, duration, frequency
+                - functional: Complexity, call depth, functionality
+                - data: Data flow, transformations, volume
+                - state: State transitions, consistency, history
+                - error: Error patterns, recovery, correlation
+                - context: Context switches, preservation, dependencies
+                - integration: Integration points, health, dependencies
+                - architecture: Consistency, drift, evolution
+        """
+        if not hasattr(self, 'coordinator') or not self.coordinator:
+            return
+        
+        try:
+            # Update dimensions in coordinator's polytopic structure
+            if hasattr(self.coordinator, 'polytope') and self.coordinator.polytope:
+                phase_vertex = self.coordinator.polytope['vertices'].get(self.phase_name)
+                if phase_vertex and 'dimensions' in phase_vertex:
+                    for dim, value in dimension_updates.items():
+                        if dim in phase_vertex['dimensions']:
+                            # Blend old and new values (exponential moving average)
+                            # This creates smooth transitions and prevents sudden jumps
+                            old_value = phase_vertex['dimensions'][dim]
+                            phase_vertex['dimensions'][dim] = 0.7 * old_value + 0.3 * value
+                    
+                    self.logger.debug(f"  📐 Updated {len(dimension_updates)} dimensions for {self.phase_name}")
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error tracking dimensions: {e}")

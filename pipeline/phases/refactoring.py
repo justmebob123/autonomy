@@ -174,6 +174,15 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             'optimization': optimization
         })
         
+        # DIMENSION TRACKING: Track initial dimensions
+        start_time = datetime.now()
+        self.track_dimensions({
+            'temporal': 0.7,  # Refactoring takes time
+            'data': 0.8,  # Analyzes code data
+            'integration': 0.9,  # High integration with codebase
+            'architecture': 0.9  # High architecture focus
+        })
+        
         # ========== INTEGRATION: READ ARCHITECTURE AND OBJECTIVES ==========
         # Read architecture to understand design intent
         architecture = self._read_architecture()
@@ -2065,6 +2074,15 @@ Please select ONE reliable tool and try again."""
             'timestamp': datetime.now().isoformat(),
             'success': True,
             'task_id': task.task_id if task else None
+        })
+        
+        # DIMENSION TRACKING: Update dimensions based on analysis
+        execution_duration = (datetime.now() - start_time).total_seconds()
+        self.track_dimensions({
+            'temporal': min(1.0, execution_duration / 300.0),
+            'data': 0.8,
+            'integration': 0.9,
+            'architecture': 0.9
         })
         
         return PhaseResult(

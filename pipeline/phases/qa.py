@@ -101,6 +101,15 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             'optimization': optimization
         })
         
+        # DIMENSION TRACKING: Track initial dimensions
+        start_time = datetime.now()
+        self.track_dimensions({
+            'temporal': 0.3,  # QA is relatively fast
+            'functional': 0.6,  # Moderate functionality
+            'error': 0.3,  # Low error rate (QA finds errors, doesn't create them)
+            'context': 0.9   # High context needs (needs to understand code)
+        })
+        
         # Initialize context
         context = self._initialize_qa_context(state, filepath, task)
         
@@ -291,6 +300,15 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 'task_id': task.task_id if task else None
             })
             
+            # DIMENSION TRACKING: Update dimensions based on successful review
+            execution_duration = (datetime.now() - start_time).total_seconds()
+            self.track_dimensions({
+                'temporal': min(1.0, execution_duration / 60.0),
+                'functional': 0.6,
+                'error': 0.1,
+                'context': 0.9
+            })
+            
             return PhaseResult(
                 success=True,
                 phase=self.phase_name,
@@ -448,6 +466,15 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 'filepath': filepath,
                 'issues_found': len(handler.issues),
                 'task_id': task.task_id if task else None
+            })
+            
+            # DIMENSION TRACKING: Update dimensions based on issues found
+            execution_duration = (datetime.now() - start_time).total_seconds()
+            self.track_dimensions({
+                'temporal': min(1.0, execution_duration / 60.0),
+                'functional': 0.6,
+                'error': min(1.0, len(handler.issues) / 10.0),
+                'context': 0.9
             })
             
             return PhaseResult(
