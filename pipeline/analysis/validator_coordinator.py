@@ -60,10 +60,10 @@ class ValidatorCoordinator:
         self.collector = SymbolCollector(self.symbol_table, self.logger)
         
         # Initialize validators
-        # Note: Some validators will be re-initialized after symbol collection
-        self.type_validator = TypeUsageValidator(str(self.project_root), config_file)
-        self.method_validator = MethodExistenceValidator(str(self.project_root), config_file)
-        self.call_validator = FunctionCallValidator(str(self.project_root), config_file)
+        # Note: All validators will be initialized after symbol collection
+        self.type_validator = None  # Will be initialized with SymbolTable
+        self.method_validator = None  # Will be initialized with SymbolTable
+        self.call_validator = None  # Will be initialized with SymbolTable
         self.enum_validator = None  # Will be initialized with SymbolTable
         self.signature_validator = None  # Will be initialized with SymbolTable
     
@@ -93,7 +93,10 @@ class ValidatorCoordinator:
         self.logger.info(f"  ✓ Built call graph with {stats['total_call_edges']} edges")
         self.logger.info("")
         
-        # Initialize validators that use SymbolTable
+        # Initialize all validators with SymbolTable
+        self.type_validator = TypeUsageValidator(str(self.project_root), self.config_file, self.symbol_table)
+        self.method_validator = MethodExistenceValidator(str(self.project_root), self.config_file, self.symbol_table)
+        self.call_validator = FunctionCallValidator(str(self.project_root), self.config_file, self.symbol_table)
         self.enum_validator = EnumAttributeValidator(str(self.project_root), self.symbol_table)
         self.signature_validator = MethodSignatureValidator(str(self.project_root), self.symbol_table)
         

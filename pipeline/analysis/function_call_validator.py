@@ -7,6 +7,8 @@ Improvements over original:
 3. Context-aware validation (distinguishes module.func from obj.method)
 4. Decorator awareness
 5. Import resolution
+
+Now uses shared SymbolTable for improved accuracy.
 """
 
 import ast
@@ -16,6 +18,7 @@ from dataclasses import dataclass
 import sys
 
 from .validation_config import ValidationConfig
+from .symbol_table import SymbolTable
 
 
 @dataclass
@@ -53,9 +56,10 @@ class FunctionCallValidator:
         'lru_cache', 'wraps', 'contextmanager', 'abstractmethod',
     }
     
-    def __init__(self, project_root: str, config_file: Optional[str] = None):
+    def __init__(self, project_root: str, config_file: Optional[str] = None, symbol_table: Optional[SymbolTable] = None):
         self.project_root = Path(project_root)
         self.errors: List[FunctionCallError] = []
+        self.symbol_table = symbol_table
         
         # Load configuration
         config_path = Path(config_file) if config_file else None
@@ -76,11 +80,31 @@ class FunctionCallValidator:
         """
         self.errors = []
         
-        # First pass: collect function signatures and imports
-        self._collect_function_signatures()
-        self._collect_imports()
+        # Use SymbolTable if available, otherwise collect ourselves
+        if self.symbol_table:
+            # Extract function signatures from SymbolTable
+            for func_info in self.symbol_table.functions.values():
+                sig_data = {
+                    'required': func_info.required_params,
+                    'optional': func_info.optional_params,
+                    'has_varargs': func_info.has_varargs,
+                    'has_kwargs': func_info.has_kwargs,
+                    'qualified_name': func_info.qualified_name
+                }
+                self.function_signatures[func_info.qualified_name] = sig_data
+            
+            # Extract imports from SymbolTable
+            for file, imports in self.symbol_table.file_imports.items():
+                import_dict = {}
+                for imp in imports:
+                    import_dict[imp.local_name] = f"{imp.module}.{imp.name}"
+                self.file_imports[file] = import_dict
+        else:
+            # Fallback: collect function signatures and imports ourselves
+            self._collect_function_signatures()
+            self._collect_imports()
         
-        # Second pass: validate function calls
+        # Validate function calls
         for py_file in self.project_root.rglob("*.py"):
             if py_file.name.startswith('.'):
                 continue

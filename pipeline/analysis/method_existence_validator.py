@@ -4,6 +4,8 @@ Method Existence Validator
 Validates that methods exist on classes, checking parent and base classes.
 Properly handles inheritance, stdlib classes, and function patterns.
 Project-agnostic with configurable validation rules.
+
+Now uses shared SymbolTable for improved accuracy.
 """
 
 import ast
@@ -12,6 +14,7 @@ from pathlib import Path
 from dataclasses import dataclass
 
 from .validation_config import ValidationConfig, get_project_root, detect_project_name
+from .symbol_table import SymbolTable
 
 
 @dataclass
@@ -28,9 +31,10 @@ class MethodExistenceError:
 class MethodExistenceValidator:
     """Validates method existence with inheritance and stdlib awareness."""
     
-    def __init__(self, project_root: str, config_file: Optional[str] = None):
+    def __init__(self, project_root: str, config_file: Optional[str] = None, symbol_table: Optional[SymbolTable] = None):
         self.project_root = Path(project_root)
         self.errors: List[MethodExistenceError] = []
+        self.symbol_table = symbol_table
         
         # Load configuration (project-agnostic)
         config_path = Path(config_file) if config_file else None
@@ -56,13 +60,31 @@ class MethodExistenceValidator:
         """
         self.errors = []
         
-        # First pass: collect all class definitions and their methods
-        self._collect_class_definitions()
+        # Use SymbolTable if available, otherwise collect ourselves
+        if self.symbol_table:
+            # Extract class methods from SymbolTable
+            for class_info in self.symbol_table.classes.values():
+                if ':' in class_info.name:  # Skip qualified names
+                    continue
+                
+                # Store methods
+                self.class_methods[class_info.name] = set(class_info.methods.keys())
+                
+                # Store parent classes
+                self.class_parents[class_info.name] = class_info.parent_classes
+                
+                # Track locations
+                if class_info.name not in self.class_locations:
+                    self.class_locations[class_info.name] = []
+                self.class_locations[class_info.name].append(class_info.file)
+        else:
+            # Fallback: collect class definitions ourselves
+            self._collect_class_definitions()
         
         # Detect duplicate class names
         duplicates = self._detect_duplicate_classes()
         
-        # Second pass: validate method calls
+        # Validate method calls
         for py_file in self.project_root.rglob("*.py"):
             if py_file.name.startswith('.'):
                 continue

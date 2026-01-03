@@ -4,6 +4,8 @@ Type Usage Validator
 Validates that objects are used according to their types with proper type inference.
 Detects using dict methods on dataclasses, accessing attributes on dicts, etc.
 Project-agnostic with configurable validation rules.
+
+Now uses shared SymbolTable for improved accuracy.
 """
 
 import ast
@@ -12,6 +14,7 @@ from pathlib import Path
 from dataclasses import dataclass
 
 from .validation_config import ValidationConfig
+from .symbol_table import SymbolTable
 
 
 @dataclass
@@ -348,9 +351,10 @@ class TypeUsageChecker(ast.NodeVisitor):
 class TypeUsageValidator:
     """Validates that objects are used according to their types with proper type inference."""
     
-    def __init__(self, project_root: str, config_file: Optional[str] = None):
+    def __init__(self, project_root: str, config_file: Optional[str] = None, symbol_table: Optional[SymbolTable] = None):
         self.project_root = Path(project_root)
         self.errors: List[TypeUsageError] = []
+        self.symbol_table = symbol_table
         self.dataclasses: Set[str] = set()
         self.regular_classes: Set[str] = set()
         
@@ -367,10 +371,22 @@ class TypeUsageValidator:
         """
         self.errors = []
         
-        # First pass: identify dataclasses and regular classes
-        self._collect_class_types()
+        # Use SymbolTable if available, otherwise collect ourselves
+        if self.symbol_table:
+            # Extract class types from SymbolTable
+            for class_info in self.symbol_table.classes.values():
+                if ':' in class_info.name:  # Skip qualified names
+                    continue
+                
+                if class_info.is_dataclass:
+                    self.dataclasses.add(class_info.name)
+                else:
+                    self.regular_classes.add(class_info.name)
+        else:
+            # Fallback: identify dataclasses and regular classes ourselves
+            self._collect_class_types()
         
-        # Second pass: validate type usage with enhanced tracking
+        # Validate type usage with enhanced tracking
         for py_file in self.project_root.rglob("*.py"):
             if py_file.name.startswith('.'):
                 continue
