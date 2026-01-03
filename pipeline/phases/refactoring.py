@@ -101,8 +101,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 MessageType.FILE_CREATED,        # New files to analyze for duplicates
                 MessageType.FILE_MODIFIED,       # Modified files to check for conflicts
                 MessageType.ISSUE_FOUND,         # Issues from other phases that may need refactoring
-                MessageType.ARCHITECTURE_CHANGE, # Architecture updates requiring refactoring
-                MessageType.SYSTEM_ALERT,        # System-level alerts
+                MessageType.SYSTEM_ALERT,        # System-level alerts including architecture changes
             ])
             self.logger.info("  📡 Message bus subscriptions configured")
         
@@ -404,7 +403,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         # MESSAGE BUS: Publish analysis started event
         if self.message_bus:
             from ..messaging import MessageType
-            self.message_bus.publish(MessageType.ANALYSIS_STARTED, {
+            self.message_bus.publish(MessageType.PHASE_STARTED, {
                 'phase': self.phase_name,
                 'analysis_type': 'comprehensive',
                 'timestamp': datetime.now().isoformat()
@@ -454,7 +453,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             # MESSAGE BUS: Publish analysis complete event
             if self.message_bus:
                 from ..messaging import MessageType
-                self.message_bus.publish(MessageType.ANALYSIS_COMPLETE, {
+                self.message_bus.publish(MessageType.PHASE_COMPLETED, {
                     'phase': self.phase_name,
                     'issues_found': len(pending),
                     'tasks_created': tasks_created + placement_tasks,
@@ -473,7 +472,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             # MESSAGE BUS: Publish analysis complete event
             if self.message_bus:
                 from ..messaging import MessageType
-                self.message_bus.publish(MessageType.ANALYSIS_COMPLETE, {
+                self.message_bus.publish(MessageType.PHASE_COMPLETED, {
                     'phase': self.phase_name,
                     'issues_found': 0,
                     'tasks_created': 0,
@@ -579,7 +578,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         # MESSAGE BUS: Publish refactoring started event
         if self.message_bus:
             from ..messaging import MessageType
-            self.message_bus.publish(MessageType.REFACTORING_STARTED, {
+            self.message_bus.publish(MessageType.TASK_STARTED, {
                 'phase': self.phase_name,
                 'task_id': task.task_id,
                 'issue_type': task.issue_type.value,
@@ -792,7 +791,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 # MESSAGE BUS: Publish refactoring complete event
                 if self.message_bus:
                     from ..messaging import MessageType
-                    self.message_bus.publish(MessageType.REFACTORING_COMPLETE, {
+                    self.message_bus.publish(MessageType.TASK_COMPLETED, {
                         'phase': self.phase_name,
                         'task_id': task.task_id,
                         'issue_type': task.issue_type.value,

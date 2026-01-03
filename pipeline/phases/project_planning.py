@@ -60,7 +60,7 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
             self._subscribe_to_messages([
                 MessageType.TASK_COMPLETED,
                 MessageType.OBJECTIVE_ACTIVATED,
-                MessageType.ARCHITECTURE_CHANGE,
+                MessageType.SYSTEM_ALERT,  # Use SYSTEM_ALERT for architecture changes
             ])
             self.logger.info("  📡 Message bus subscriptions configured")
         

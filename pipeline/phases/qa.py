@@ -719,7 +719,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         if self.message_bus:
             from ..messaging import MessageType
             self._publish_message(
-                MessageType.FILE_NOT_FOUND,
+                MessageType.SYSTEM_WARNING,  # Use SYSTEM_WARNING for file not found
                 {
                     'file': filepath,
                     'task_id': task.task_id if task else None,
@@ -782,7 +782,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                         if self.message_bus:
                             from ..messaging import MessageType
                             self._publish_message(
-                                MessageType.ANALYSIS_COMPLETE,
+                                MessageType.PHASE_COMPLETED,  # Use PHASE_COMPLETED for analysis complete
                                 {
                                     'file': filepath,
                                     'issues_found': len(analysis_issues),

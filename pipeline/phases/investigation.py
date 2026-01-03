@@ -59,7 +59,7 @@ class InvestigationPhase(BasePhase):
             from ..messaging import MessageType
             self._subscribe_to_messages([
                 MessageType.ISSUE_FOUND,
-                MessageType.DEBUG_STARTED,
+                MessageType.PHASE_STARTED,  # Use PHASE_STARTED instead of DEBUG_STARTED
                 MessageType.SYSTEM_ALERT,
             ])
             self.logger.info("  📡 Message bus subscriptions configured")

@@ -50,7 +50,7 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
                 MessageType.TASK_COMPLETED,
                 MessageType.FILE_CREATED,
                 MessageType.FILE_MODIFIED,
-                MessageType.ARCHITECTURE_CHANGE,
+                MessageType.SYSTEM_ALERT,  # Use SYSTEM_ALERT for architecture changes
             ])
             self.logger.info("  📡 Message bus subscriptions configured")
         
