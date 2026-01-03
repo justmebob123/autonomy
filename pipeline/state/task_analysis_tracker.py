@@ -274,6 +274,17 @@ class TaskAnalysisTracker:
         )
         
         if is_resolving:
+            # CRITICAL: If using request_developer_review, ALLOW IT without validation
+            # This is escalation - the developer/orchestrator will handle it
+            is_escalating = any(
+                tc.get("function", {}).get("name") == "request_developer_review"
+                for tc in tool_calls
+            )
+            
+            if is_escalating:
+                # Allow escalation without validation
+                return True, None
+            
             # Get completion status
             missing = state.get_missing_checkpoints()
             completed_count = len(state.checkpoints) - len(missing)
