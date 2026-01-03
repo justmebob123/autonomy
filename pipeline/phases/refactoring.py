@@ -537,7 +537,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 
                 # Create task
                 task = state.refactoring_manager.create_task(
-                    issue_type=RefactoringIssueType.MISPLACED_FILE,
+                    issue_type=RefactoringIssueType.STRUCTURE,  # Use STRUCTURE instead of MISPLACED_FILE
                     title=f"File in wrong location: {misplaced.file}",
                     description=f"File should be moved from {misplaced.current_location} to {misplaced.suggested_location}. "
                                f"Reason: {misplaced.reason}. "

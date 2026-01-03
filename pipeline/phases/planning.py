@@ -730,7 +730,7 @@ Please address these architectural integration issues.
             completed_tasks = len([t for t in state.tasks.values() 
                                   if t.status == TaskStatus.COMPLETED])
             pending_tasks = len([t for t in state.tasks.values() 
-                               if t.status in (TaskStatus.PENDING, TaskStatus.IN_PROGRESS)])
+                               if t.status in (TaskStatus.NEW, TaskStatus.IN_PROGRESS)])  # Use NEW instead of PENDING
             
             # Create completion status section
             completion_section = f"""

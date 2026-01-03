@@ -326,7 +326,7 @@ class AnalysisOrchestrator:
                 description=f"Unused {item.get('type', 'code')} in {file_path}",
                 target_files=[file_path],
                 priority=RefactoringPriority.LOW,
-                fix_approach=RefactoringApproach.REPORT,
+                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,  # Use DEVELOPER_REVIEW instead of REPORT
                 estimated_effort=15,
                 analysis_data=item
             )
@@ -451,7 +451,7 @@ class AnalysisOrchestrator:
                 description=f"Class never instantiated in {file_path}",
                 target_files=[file_path],
                 priority=RefactoringPriority.LOW,
-                fix_approach=RefactoringApproach.REPORT,
+                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,  # Use DEVELOPER_REVIEW instead of REPORT
                 estimated_effort=20,
                 analysis_data=cls_info
             )
@@ -494,7 +494,7 @@ class AnalysisOrchestrator:
                 description=f"{len(unused_methods)} unused methods",
                 target_files=[file_path],
                 priority=RefactoringPriority.LOW,
-                fix_approach=RefactoringApproach.REPORT,
+                fix_approach=RefactoringApproach.DEVELOPER_REVIEW,  # Use DEVELOPER_REVIEW instead of REPORT
                 estimated_effort=15,
                 analysis_data=cls_info
             )

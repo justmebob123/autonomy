@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from pipeline.analysis.type_usage_validator import TypeUsageValidator
 from pipeline.analysis.method_existence_validator import MethodExistenceValidator
 from pipeline.analysis.function_call_validator import FunctionCallValidator
+from pipeline.analysis.enum_attribute_validator import EnumAttributeValidator
 
 
 def main():
@@ -82,6 +83,17 @@ def main():
     print(f"   ✓ Completed: {result3['total_errors']} errors found")
     print()
     
+    # 4. Enum Attribute Validation
+    print("=" * 80)
+    print("  4. ENUM ATTRIBUTE VALIDATION")
+    print("=" * 80)
+    validator4 = EnumAttributeValidator(project_dir)
+    result4 = validator4.validate_all()
+    all_results['enum_attributes'] = result4
+    total_errors += result4['total_errors']
+    print(f"   ✓ Completed: {result4['total_errors']} errors found")
+    print()
+    
     # Summary
     print("=" * 80)
     print("  COMPREHENSIVE SUMMARY")
@@ -110,6 +122,11 @@ def main():
         print(f"      ❌ Function Calls: {result3['total_errors']} errors")
     else:
         print(f"      ✅ Function Calls: 0 errors")
+    
+    if result4['total_errors'] > 0:
+        print(f"      ❌ Enum Attributes: {result4['total_errors']} errors")
+    else:
+        print(f"      ✅ Enum Attributes: 0 errors")
     print()
     
     # Show duplicate classes warning
@@ -149,6 +166,14 @@ def main():
             print(f"   Function Call Errors:")
             for error_type, count in result3['by_type'].items():
                 print(f"      • {error_type}: {count}")
+            print()
+        
+        # Enum Attribute Errors
+        if result4['total_errors'] > 0:
+            print(f"   Enum Attribute Errors:")
+            for severity, count in result4['by_severity'].items():
+                if count > 0:
+                    print(f"      • {severity}: {count}")
             print()
     
     # Detailed error listings
@@ -198,6 +223,20 @@ def main():
             if result3['total_errors'] > 20:
                 print(f"   ... and {result3['total_errors'] - 20} more")
                 print()
+        
+        # Enum Attribute Errors
+        if result4['total_errors'] > 0:
+            print(f"🔴 Enum Attribute Errors ({result4['total_errors']}):")
+            print()
+            for i, err in enumerate(result4['errors'][:20], 1):  # Limit to 20
+                print(f"   {i}. {err['file']}:{err['line']}")
+                print(f"      Enum: {err['enum_name']}")
+                print(f"      Invalid attribute: {err['attribute']}")
+                print(f"      Message: {err['message']}")
+                print()
+            if result4['total_errors'] > 20:
+                print(f"   ... and {result4['total_errors'] - 20} more")
+                print()
     
     print("=" * 80)
     
@@ -227,6 +266,12 @@ def main():
         if result3['total_errors'] > 0:
             f.write(f"Function Call Errors ({result3['total_errors']}):\n")
             for err in result3['errors']:
+                f.write(f"  {err['file']}:{err['line']} - {err['message']}\n")
+            f.write("\n")
+        
+        if result4['total_errors'] > 0:
+            f.write(f"Enum Attribute Errors ({result4['total_errors']}):\n")
+            for err in result4['errors']:
                 f.write(f"  {err['file']}:{err['line']} - {err['message']}\n")
             f.write("\n")
     

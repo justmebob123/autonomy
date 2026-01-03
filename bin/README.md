@@ -15,67 +15,81 @@ The scripts in this directory form a **unified deep analysis subsystem** that in
 ## 📁 Directory Structure
 
 ```
-scripts/
-├── deep_analyze.py              # Main CLI tool (START HERE)
-├── analysis/                    # Deep Analysis Framework v2.0
-│   ├── core/                   # Core analysis modules
-│   │   ├── analyzer.py        # Main orchestrator
-│   │   ├── complexity.py      # Complexity analysis
-│   │   ├── dataflow.py        # Data flow analysis (finds use-before-def bugs)
-│   │   ├── integration.py     # Integration analysis (finds miswiring)
-│   │   ├── patterns.py        # Pattern detection
-│   │   └── runtime.py         # Runtime behavior analysis
-│   ├── detectors/              # Specific bug detectors
-│   │   ├── bugs.py            # Bug pattern detection (8 patterns)
-│   │   ├── antipatterns.py    # Anti-pattern detection
-│   │   ├── deadcode.py        # Dead code detection
-│   │   └── parallel.py        # Parallel implementation detection
-│   ├── reporters/              # Report generators
-│   │   ├── markdown.py        # Comprehensive markdown reports
-│   │   └── json.py            # Machine-readable JSON reports
-│   ├── utils/                  # Utility modules
-│   │   ├── ast_helpers.py     # AST manipulation utilities
-│   │   └── graph.py           # Call graph builder
-│   └── README.md              # Framework documentation
-└── README.md                   # This file
+bin/
+├── validate_all.py              # Main validation tool (START HERE)
+├── validate_enum_attributes.py  # Enum attribute validator (NEW!)
+├── validate_type_usage.py       # Type usage validator
+├── validate_method_existence.py # Method existence validator
+├── validate_function_calls.py   # Function call validator
+├── validate_imports.py          # Import validator
+├── validate_dict_structure.py   # Dict structure validator
+├── deep_analyze.py              # Deep code analysis
+├── fix_html_entities.py         # HTML entity fixer
+└── README.md                    # This file
 ```
 
 ## 🚀 Quick Start
 
-### 1. Analyze a Single File
+### 1. Run All Validators (Recommended)
 
 ```bash
-# Basic analysis
-python scripts/deep_analyze.py pipeline/phases/qa.py
+# Validate entire project
+python bin/validate_all.py .
 
-# With output file
-python scripts/deep_analyze.py pipeline/phases/qa.py --output QA_ANALYSIS.md
+# Validate specific directory
+python bin/validate_all.py pipeline/phases/
 ```
 
-### 2. Analyze Entire Directory
+### 2. Run Individual Validators
 
 ```bash
-# Recursive analysis with summary
-python scripts/deep_analyze.py pipeline/ --recursive --summary
+# Enum attribute validation (catches MessageType.INVALID_ATTR errors)
+python bin/validate_enum_attributes.py pipeline/
 
-# Show only critical issues
-python scripts/deep_analyze.py pipeline/ --recursive --severity CRITICAL
+# Type usage validation (catches dict methods on dataclasses)
+python bin/validate_type_usage.py pipeline/
+
+# Method existence validation (catches missing methods)
+python bin/validate_method_existence.py pipeline/
+
+# Function call validation (catches invalid function calls)
+python bin/validate_function_calls.py pipeline/
 ```
 
-### 3. Generate Reports
+### 3. Deep Code Analysis
 
 ```bash
-# Markdown report (default)
-python scripts/deep_analyze.py pipeline/phases/qa.py --output report.md
+# Analyze a single file
+python bin/deep_analyze.py pipeline/phases/qa.py
 
-# JSON report for CI/CD
-python scripts/deep_analyze.py pipeline/phases/qa.py --format json --output report.json
-
-# Simple text output
-python scripts/deep_analyze.py pipeline/phases/qa.py --format text
+# Analyze entire directory
+python bin/deep_analyze.py pipeline/ --recursive --summary
 ```
 
 ## 🎯 What This Framework Detects
+
+### 0. Enum Attribute Errors 🆕 (NEW!)
+
+The framework now detects **invalid enum attribute access**:
+
+#### Invalid Enum Members
+```python
+# DETECTED:
+MessageType.DEBUG_STARTED  # Doesn't exist!
+MessageType.ARCHITECTURE_CHANGE  # Doesn't exist!
+RefactoringApproach.REPORT  # Doesn't exist!
+
+# VALID:
+MessageType.PHASE_STARTED  # ✅ Exists
+MessageType.SYSTEM_ALERT  # ✅ Exists
+RefactoringApproach.DEVELOPER_REVIEW  # ✅ Exists
+```
+
+**Features:**
+- Detects all invalid enum attribute access
+- Provides suggestions for similar valid attributes
+- Lists all valid attributes for the enum
+- Critical severity (causes AttributeError at runtime)
 
 ### 1. Critical Bugs 🔴
 
