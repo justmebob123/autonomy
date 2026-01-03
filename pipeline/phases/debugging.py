@@ -32,8 +32,6 @@ from ..debugging_utils import (
     TaskPriority
 )
 from ..user_proxy import UserProxyAgent
-from .shared.status_formatter import StatusFormatter
-from .debugging_prompt_builder import DebuggingPromptBuilder
 
 
 class DebuggingPhase(LoopDetectionMixin, BasePhase):
@@ -76,10 +74,6 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         self.conflict_detector = IntegrationConflictDetector(str(self.project_dir), self.logger)
         
         self.logger.info("  🔧 Debugging phase initialized with ALL analysis capabilities")
-        
-        # EXTRACTED COMPONENTS - Initialize new modular components
-        self.prompt_builder = DebuggingPromptBuilder(str(self.project_dir))
-        self.logger.info("  🔧 Debugging modular components initialized")
         
         # MESSAGE BUS: Subscribe to relevant events
         if self.message_bus:
@@ -2049,11 +2043,39 @@ The debugging attempt was unsuccessful. The issue may require manual interventio
     
     def _format_status_for_write(self, issue: Dict, filepath: str, 
                                  fix_applied: bool, files_modified: List[str]) -> str:
-        """Format status for DEBUG_WRITE.md - delegates to StatusFormatter"""
-        return StatusFormatter.format_debugging_status(
-            issue=issue,
-            filepath=filepath,
-            fix_applied=fix_applied,
-            files_modified=files_modified,
-            timestamp=self.format_timestamp()
-        )
+        """Format status for DEBUG_WRITE.md"""
+        status = f"""# Debugging Phase Status
+
+**Timestamp**: {self.format_timestamp()}
+**File**: {filepath}
+**Status**: {'✅ Fix Applied' if fix_applied else '❌ Fix Failed'}
+
+## Issue Details
+
+**Type**: {issue.get('type', 'N/A')}
+**Description**: {issue.get('description', 'N/A')}
+**Line**: {issue.get('line', 'N/A')}
+**Severity**: {issue.get('severity', 'N/A')}
+
+"""
+        
+        if fix_applied:
+            status += f"## Fix Summary\n\n"
+            status += f"**Files Modified**: {len(files_modified)}\n\n"
+            for filepath in files_modified:
+                status += f"- `{filepath}`\n"
+            
+            status += "\n## Verification Needed\n\n"
+            status += "- Fix has been applied to the code\n"
+            status += "- File marked for QA re-review\n"
+            status += "- Please verify the fix resolves the issue\n"
+            status += "- Check for any potential regressions\n"
+        else:
+            status += "## Fix Attempt Failed\n\n"
+            status += "The debugging attempt was unsuccessful. Possible reasons:\n"
+            status += "- Issue requires manual intervention\n"
+            status += "- More context needed to understand the problem\n"
+            status += "- Architectural changes required\n"
+            status += "\n**Recommendation**: Review the issue manually or provide additional context.\n"
+        
+        return status
