@@ -895,7 +895,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 target_file=filepath,
                 status=TaskStatus.NEEDS_FIXES,
                 priority=priority,
-                created_at=datetime.now()
+                created_at=datetime.now().isoformat()
             )
             
             # Store issue data in task for debugging phase
