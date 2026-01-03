@@ -642,7 +642,18 @@ class BasePhase(ABC):
         if not self.message_bus:
             return
         
-        from ..messaging import MessagePriority
+        from ..messaging import MessagePriority, MessageType
+        
+        # Convert string to MessageType enum if needed
+        if isinstance(message_type, str):
+            try:
+                message_type = MessageType(message_type.lower())
+            except ValueError:
+                # If not a valid enum value, try to find it by name
+                try:
+                    message_type = MessageType[message_type.upper()]
+                except KeyError:
+                    self.logger.warning(f"Unknown message type: {message_type}, using as-is")
         
         if priority is None:
             priority = MessagePriority.NORMAL
