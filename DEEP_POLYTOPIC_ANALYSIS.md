@@ -1,277 +1,577 @@
-# 🔍 Deep Polytopic Architecture Analysis
-
-## Executive Summary
-
-After comprehensive bidirectional analysis of the entire codebase, I've identified significant architectural issues and opportunities for modularization. The system has grown organically but lacks proper separation of concerns, leading to code duplication, inconsistent integration patterns, and maintenance challenges.
-
-## 📊 Current State Analysis
-
-### File Size Distribution
-```
-refactoring.py:        4,179 lines (27% of all phase code)
-debugging.py:          2,082 lines (14%)
-planning.py:           1,069 lines (7%)
-qa.py:                 1,057 lines (7%)
-coding.py:             976 lines (6%)
-base.py:               847 lines (6%)
-project_planning.py:   795 lines (5%)
-Other 8 phases:        4,359 lines (28%)
-─────────────────────────────────────────
-TOTAL:                 15,364 lines
-```
-
-**Critical Issue**: Refactoring phase is 4x larger than average phase (285 lines). This indicates poor modularization.
-
-### Integration Coverage
-
-| Feature | Coverage | Status |
-|---------|----------|--------|
-| Architecture Integration | 15/15 (100%) | ✅ Complete |
-| IPC Integration | 15/15 (100%) | ✅ Complete |
-| Adaptive Prompts | 5/15 (33%) | ⚠️ Incomplete |
-| Pattern Recognition | 1/15 (6%) | ❌ Barely Used |
-| State Management | 3/15 (20%) | ⚠️ Inconsistent |
-
-**Critical Issue**: Only BasePhase uses pattern recognition. The learning system is not integrated into actual phase behavior.
-
-### Prompt Quality Analysis
-
-| Phase | Lines | Mission | Workflow | Tools | Warnings | Examples | Grade |
-|-------|-------|---------|----------|-------|----------|----------|-------|
-| coding | 198 | ✅ | ❌ | ✅ | ✅ | ✅ | B+ |
-| qa | 63 | ✅ | ✅ | ✅ | ✅ | ✅ | A |
-| debugging | 65 | ✅ | ✅ | ❌ | ✅ | ✅ | A- |
-| investigation | 142 | ✅ | ✅ | ✅ | ✅ | ❌ | A- |
-| refactoring | 107 | ✅ | ✅ | ✅ | ✅ | ❌ | A- |
-| planning | 130 | ✅ | ✅ | ❌ | ✅ | ✅ | A- |
-| project_planning | 53 | ✅ | ❌ | ❌ | ✅ | ✅ | B |
-| documentation | 29 | ✅ | ❌ | ❌ | ✅ | ❌ | C+ |
-| prompt_design | 11 | ✅ | ❌ | ❌ | ✅ | ❌ | C |
-| prompt_improvement | 11 | ✅ | ❌ | ❌ | ✅ | ❌ | C |
-| tool_design | 11 | ✅ | ❌ | ✅ | ✅ | ❌ | C+ |
-| tool_evaluation | 11 | ✅ | ❌ | ❌ | ✅ | ❌ | C |
-| role_design | 11 | ✅ | ❌ | ❌ | ✅ | ❌ | C |
-| role_improvement | 11 | ✅ | ❌ | ❌ | ✅ | ❌ | C |
-
-**Critical Issue**: 8 phases have minimal prompts (11-29 lines). Specialized phases lack workflow guidance and examples.
-
-## 🔍 Detailed Findings
-
-### 1. Refactoring Phase Bloat
-
-**Problem**: RefactoringPhase has 54 methods and 4,179 lines - it's doing too much.
-
-**Method Breakdown**:
-- Task Management: 13 methods, ~1,761 lines (42%)
-- Analysis: 8 methods, ~361 lines (9%)
-- Prompt Generation: 10 methods, ~348 lines (8%)
-- Utility: 13 methods, ~1,263 lines (30%)
-- IPC Integration: 5 methods, ~145 lines (3%)
-- Resolution: 2 methods, ~23 lines (1%)
-- State Management: 1 method, ~61 lines (1%)
-- Initialization: 2 methods, ~48 lines (1%)
-
-**Key Issues**:
-1. `_auto_create_tasks_from_analysis`: 555 lines - should be split
-2. `_work_on_task`: 416 lines - too complex
-3. `_format_analysis_data`: 502 lines - utility bloat
-4. `_get_generic_task_prompt`: 264 lines - prompt generation bloat
-
-### 2. Code Duplication Across Phases
-
-**Common Patterns Found**:
-- `_read_relevant_phase_outputs`: Used in 4 phases (coding, debugging, qa, refactoring)
-- `_send_phase_messages`: Used in 3 phases (coding, debugging, qa)
-- `_format_status_for_write`: Used in 3 phases (coding, debugging, qa)
-
-**Impact**: ~300-400 lines of duplicated code that should be in BasePhase or a shared mixin.
-
-### 3. Inconsistent Tool Usage
-
-**Direct Tool Calls** (bypassing tool registry):
-- base.py: read_file, write_file
-- coding.py: read_file
-- debugging.py: read_file
-- investigation.py: read_file
-- planning.py: read_file, deep_analysis
-- qa.py: read_file
-- refactoring.py: analyze_complexity, search_code, create_issue_report, generate_call_graph, find_integration_gaps
-
-**Issue**: No centralized tool management. Each phase calls tools differently.
-
-### 4. Weak Polytopic Relationships
-
-**Phase Transition Analysis**:
-```
-documentation:     5 transitions (most common)
-planning:          4 transitions
-qa:                3 transitions
-coding:            2 transitions
-refactoring:       1 transition
-debugging:         1 transition
-project_planning:  1 transition
-```
-
-**Issue**: Only 7 of 15 phases have explicit transitions in coordinator. The polytopic structure is not fully utilized.
-
-### 5. Underutilized Learning System
-
-**Pattern Recognition Usage**:
-- Only BasePhase references pattern_recognition
-- No phases actively query learned patterns for decision-making
-- Pattern database exists but is write-only
-
-**Adaptive Prompts Usage**:
-- Only 5/15 phases use adaptive prompts
-- No phases customize behavior based on self-awareness level
-- Adaptation system exists but is passive
-
-### 6. Specialized Phase Weakness
-
-**Design/Improvement Phases** (6 phases):
-- prompt_design, prompt_improvement
-- tool_design, tool_evaluation  
-- role_design, role_improvement
-
-**Issues**:
-- All have minimal prompts (11 lines each)
-- No workflow guidance
-- No examples
-- Rarely activated (disabled in coordinator)
-- Unclear integration with main development flow
-
-## 🎯 Critical Questions
-
-### Architecture Questions
-
-1. **Why is refactoring.py 4x larger than average?**
-   - What functionality could be extracted?
-   - Should analysis be a separate module?
-   - Should prompt generation be centralized?
-
-2. **Why do only 5/15 phases use adaptive prompts?**
-   - Is the adaptation system working?
-   - Should all phases adapt?
-   - What prevents integration?
-
-3. **Why is pattern recognition only in BasePhase?**
-   - Should phases query patterns for decisions?
-   - How should patterns influence behavior?
-   - What prevents active usage?
-
-### Polytopic Structure Questions
-
-4. **Are all 15 phases necessary?**
-   - Could some be merged?
-   - Are specialized phases (design/improvement) worth the complexity?
-   - What's the activation frequency of each phase?
-
-5. **How do phases actually relate?**
-   - What are the common workflows?
-   - Which phases depend on each other?
-   - Are there missing connections?
-
-6. **Why are only 7 phases in transition logic?**
-   - Should all phases be in coordinator?
-   - Are some phases dead code?
-   - What's the actual polytopic graph?
-
-### Integration Questions
-
-7. **Why is tool usage inconsistent?**
-   - Should there be a ToolManager?
-   - Why do phases call tools directly?
-   - How to enforce consistent patterns?
-
-8. **Why is code duplicated across phases?**
-   - What should be in BasePhase?
-   - Should there be more mixins?
-   - How to share common functionality?
-
-9. **Why is IPC integration incomplete?**
-   - All phases have IPC methods but use them differently
-   - Should there be an IPCMixin?
-   - How to standardize communication?
-
-### Prompt System Questions
-
-10. **Why do specialized phases have minimal prompts?**
-    - Are they actually used?
-    - Should they be removed?
-    - How to improve them?
-
-11. **Why is prompt quality inconsistent?**
-    - Should all prompts follow same structure?
-    - Who maintains prompt quality?
-    - How to ensure completeness?
-
-12. **Should prompts be in phases or centralized?**
-    - Current: All in prompts.py
-    - Alternative: Each phase owns its prompts
-    - Which is better for maintenance?
-
-## 📋 Preliminary Recommendations
-
-### Immediate Actions (High Priority)
-
-1. **Extract Refactoring Modules**
-   - Create `refactoring/analysis.py` for analysis methods
-   - Create `refactoring/task_manager.py` for task management
-   - Create `refactoring/prompts.py` for prompt generation
-   - Keep core logic in `refactoring/phase.py`
-
-2. **Create Shared Mixins**
-   - `IPCMixin`: Standardize IPC operations
-   - `AnalysisMixin`: Share analysis tools
-   - `ToolManagerMixin`: Centralize tool calling
-
-3. **Consolidate Duplicated Code**
-   - Move `_read_relevant_phase_outputs` to BasePhase
-   - Move `_send_phase_messages` to IPCMixin
-   - Move `_format_status_for_write` to IPCMixin
-
-### Medium-Term Actions
-
-4. **Standardize Prompt Structure**
-   - Create prompt template
-   - Ensure all prompts have: Mission, Workflow, Tools, Warnings, Examples
-   - Upgrade C-grade prompts to A-grade
-
-5. **Activate Learning System**
-   - Make pattern recognition queryable
-   - Integrate patterns into phase decisions
-   - Use self-awareness for adaptation
-
-6. **Evaluate Specialized Phases**
-   - Measure activation frequency
-   - Improve prompts or remove phases
-   - Clarify integration with main flow
-
-### Long-Term Actions
-
-7. **Redesign Polytopic Structure**
-   - Map actual phase relationships
-   - Simplify phase graph
-   - Ensure all phases are reachable
-
-8. **Create Tool Management System**
-   - Centralize tool registry
-   - Standardize tool calling
-   - Add tool usage analytics
-
-9. **Implement Adaptive Behavior**
-   - All phases use adaptive prompts
-   - Phases query patterns for decisions
-   - Self-awareness influences strategy
-
-## 🔄 Next Steps
-
-I need your input on these questions to create a detailed refactoring proposal:
-
-1. **Scope**: Should we refactor everything or focus on critical issues first?
-2. **Priorities**: Which problems are most painful right now?
-3. **Constraints**: Are there parts of the system that must not change?
-4. **Timeline**: How aggressive should the refactoring be?
-5. **Testing**: How do we ensure nothing breaks during refactoring?
-
-Please provide guidance on these questions so I can create a detailed, actionable refactoring plan.
+# 🔬 Deep Polytopic Structure Analysis Report
+
+**Generated**: /workspace/autonomy
+
+---
+
+## 📊 Executive Summary
+
+- **Total Phases Analyzed**: 20
+- **Average Integration Score**: 3.50/6
+- **Improvement Opportunities**: 40
+- **Symbol Table Size**: 4259 components
+
+## 🎯 Phase Integration Scores
+
+| Phase | Score | Message Bus | Adaptive | Pattern | Correlation | Analytics | Optimizer |
+|-------|-------|-------------|----------|---------|-------------|-----------|----------|
+| analysis_orchestrator | 0/6 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| coding | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| debugging | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| documentation | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| investigation | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| loop_detection_mixin | 0/6 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| phase_builder | 0/6 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| phase_dependencies | 0/6 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| planning | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| project_planning | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| prompt_builder | 0/6 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| prompt_design | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| prompt_improvement | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| qa | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| refactoring | 5/6 | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| refactoring_context_builder | 0/6 | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| role_design | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| role_improvement | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| tool_design | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| tool_evaluation | 5/6 | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+
+## 🔗 Integration Patterns
+
+### Message Bus Usage
+
+- **prompt_improvement**: 5 calls
+  - Methods: publish_event
+- **tool_evaluation**: 2 calls
+  - Methods: publish_event
+- **tool_design**: 3 calls
+  - Methods: publish_event
+- **role_design**: 2 calls
+  - Methods: publish_event
+- **prompt_design**: 2 calls
+  - Methods: publish_event
+- **role_improvement**: 2 calls
+  - Methods: publish_event
+
+### Cross-Phase Communication
+
+- **tool_design**: 2 cross-phase calls
+- **documentation**: 2 cross-phase calls
+- **qa**: 2 cross-phase calls
+- **coding**: 1 cross-phase calls
+- **project_planning**: 1 cross-phase calls
+- **planning**: 3 cross-phase calls
+- **investigation**: 1 cross-phase calls
+- **refactoring**: 3 cross-phase calls
+- **debugging**: 3 cross-phase calls
+
+## 🧠 Learning System Usage
+
+### Adaptive Prompts
+
+- **prompt_improvement**: 1 calls
+- **tool_evaluation**: 1 calls
+- **tool_design**: 1 calls
+- **role_design**: 1 calls
+- **prompt_design**: 1 calls
+- **documentation**: 1 calls
+- **qa**: 1 calls
+- **coding**: 1 calls
+- **project_planning**: 1 calls
+- **planning**: 1 calls
+- **investigation**: 1 calls
+- **refactoring**: 1 calls
+- **debugging**: 1 calls
+- **role_improvement**: 1 calls
+
+### Pattern Recognition
+
+- **prompt_improvement**: 4 calls
+- **tool_evaluation**: 1 calls
+- **tool_design**: 2 calls
+- **role_design**: 1 calls
+- **prompt_design**: 1 calls
+- **documentation**: 1 calls
+- **qa**: 1 calls
+- **coding**: 1 calls
+- **project_planning**: 1 calls
+- **planning**: 1 calls
+- **investigation**: 1 calls
+- **refactoring**: 1 calls
+- **debugging**: 1 calls
+- **role_improvement**: 1 calls
+
+### Correlation
+
+- **prompt_improvement**: 1 calls
+- **tool_evaluation**: 1 calls
+- **tool_design**: 1 calls
+- **role_design**: 1 calls
+- **prompt_design**: 1 calls
+- **documentation**: 1 calls
+- **qa**: 1 calls
+- **coding**: 1 calls
+- **project_planning**: 1 calls
+- **planning**: 1 calls
+- **investigation**: 1 calls
+- **refactoring**: 1 calls
+- **debugging**: 1 calls
+- **role_improvement**: 1 calls
+
+## 📐 Polytopic Dimension Coverage
+
+| Dimension | Phases Aware | Total References |
+|-----------|--------------|------------------|
+| Architecture | 0 | 0 |
+| Context | 0 | 0 |
+| Data | 0 | 0 |
+| Error | 0 | 0 |
+| Functional | 0 | 0 |
+| Integration | 0 | 0 |
+| State | 0 | 0 |
+| Temporal | 0 | 0 |
+
+## 💡 Improvement Opportunities
+
+### 🔴 High Priority (26)
+
+#### Low Integration
+- **Phase**: loop_detection_mixin
+- **Current Score**: 0/6
+- **Missing**: message_bus, adaptive_prompts, pattern_recognition, correlation_engine, analytics, pattern_optimizer
+
+#### Low Integration
+- **Phase**: phase_builder
+- **Current Score**: 0/6
+- **Missing**: message_bus, adaptive_prompts, pattern_recognition, correlation_engine, analytics, pattern_optimizer
+
+#### Low Integration
+- **Phase**: analysis_orchestrator
+- **Current Score**: 0/6
+- **Missing**: message_bus, adaptive_prompts, pattern_recognition, correlation_engine, analytics, pattern_optimizer
+
+#### Low Integration
+- **Phase**: phase_dependencies
+- **Current Score**: 0/6
+- **Missing**: message_bus, adaptive_prompts, pattern_recognition, correlation_engine, analytics, pattern_optimizer
+
+#### Low Integration
+- **Phase**: refactoring_context_builder
+- **Current Score**: 0/6
+- **Missing**: message_bus, adaptive_prompts, pattern_recognition, correlation_engine, analytics, pattern_optimizer
+
+#### Low Integration
+- **Phase**: prompt_builder
+- **Current Score**: 0/6
+- **Missing**: message_bus, adaptive_prompts, pattern_recognition, correlation_engine, analytics, pattern_optimizer
+
+#### No Adaptive Prompts
+- **Phase**: loop_detection_mixin
+- **Suggestion**: Add update_system_prompt_with_adaptation() call
+
+#### No Adaptive Prompts
+- **Phase**: phase_builder
+- **Suggestion**: Add update_system_prompt_with_adaptation() call
+
+#### No Adaptive Prompts
+- **Phase**: analysis_orchestrator
+- **Suggestion**: Add update_system_prompt_with_adaptation() call
+
+#### No Adaptive Prompts
+- **Phase**: phase_dependencies
+- **Suggestion**: Add update_system_prompt_with_adaptation() call
+
+#### No Adaptive Prompts
+- **Phase**: refactoring_context_builder
+- **Suggestion**: Add update_system_prompt_with_adaptation() call
+
+#### No Adaptive Prompts
+- **Phase**: prompt_builder
+- **Suggestion**: Add update_system_prompt_with_adaptation() call
+
+#### No Message Bus
+- **Phase**: loop_detection_mixin
+- **Suggestion**: Add publish_event() calls for key events
+
+#### No Message Bus
+- **Phase**: documentation
+- **Suggestion**: Add publish_event() calls for key events
+
+#### No Message Bus
+- **Phase**: phase_builder
+- **Suggestion**: Add publish_event() calls for key events
+
+#### No Message Bus
+- **Phase**: qa
+- **Suggestion**: Add publish_event() calls for key events
+
+#### No Message Bus
+- **Phase**: coding
+- **Suggestion**: Add publish_event() calls for key events
+
+#### No Message Bus
+- **Phase**: analysis_orchestrator
+- **Suggestion**: Add publish_event() calls for key events
+
+#### No Message Bus
+- **Phase**: phase_dependencies
+- **Suggestion**: Add publish_event() calls for key events
+
+#### No Message Bus
+- **Phase**: refactoring_context_builder
+- **Suggestion**: Add publish_event() calls for key events
+
+#### No Message Bus
+- **Phase**: project_planning
+- **Suggestion**: Add publish_event() calls for key events
+
+#### No Message Bus
+- **Phase**: planning
+- **Suggestion**: Add publish_event() calls for key events
+
+#### No Message Bus
+- **Phase**: investigation
+- **Suggestion**: Add publish_event() calls for key events
+
+#### No Message Bus
+- **Phase**: refactoring
+- **Suggestion**: Add publish_event() calls for key events
+
+#### No Message Bus
+- **Phase**: debugging
+- **Suggestion**: Add publish_event() calls for key events
+
+#### No Message Bus
+- **Phase**: prompt_builder
+- **Suggestion**: Add publish_event() calls for key events
+
+### 🟡 Medium Priority (6)
+
+#### No Pattern Recognition
+- **Phase**: loop_detection_mixin
+- **Suggestion**: Add record_execution_pattern() calls
+
+#### No Pattern Recognition
+- **Phase**: phase_builder
+- **Suggestion**: Add record_execution_pattern() calls
+
+#### No Pattern Recognition
+- **Phase**: analysis_orchestrator
+- **Suggestion**: Add record_execution_pattern() calls
+
+#### No Pattern Recognition
+- **Phase**: phase_dependencies
+- **Suggestion**: Add record_execution_pattern() calls
+
+#### No Pattern Recognition
+- **Phase**: refactoring_context_builder
+- **Suggestion**: Add record_execution_pattern() calls
+
+#### No Pattern Recognition
+- **Phase**: prompt_builder
+- **Suggestion**: Add record_execution_pattern() calls
+
+### 🟢 Low Priority (8)
+
+#### Low Dimension Coverage
+- **Dimension**: temporal
+- **Phases Aware**: 0
+- **Suggestion**: Increase temporal dimension awareness across phases
+
+#### Low Dimension Coverage
+- **Dimension**: functional
+- **Phases Aware**: 0
+- **Suggestion**: Increase functional dimension awareness across phases
+
+#### Low Dimension Coverage
+- **Dimension**: data
+- **Phases Aware**: 0
+- **Suggestion**: Increase data dimension awareness across phases
+
+#### Low Dimension Coverage
+- **Dimension**: state
+- **Phases Aware**: 0
+- **Suggestion**: Increase state dimension awareness across phases
+
+#### Low Dimension Coverage
+- **Dimension**: error
+- **Phases Aware**: 0
+- **Suggestion**: Increase error dimension awareness across phases
+
+#### Low Dimension Coverage
+- **Dimension**: context
+- **Phases Aware**: 0
+- **Suggestion**: Increase context dimension awareness across phases
+
+#### Low Dimension Coverage
+- **Dimension**: integration
+- **Phases Aware**: 0
+- **Suggestion**: Increase integration dimension awareness across phases
+
+#### Low Dimension Coverage
+- **Dimension**: architecture
+- **Phases Aware**: 0
+- **Suggestion**: Increase architecture dimension awareness across phases
+
+## 📋 Detailed Phase Analysis
+
+### analysis_orchestrator
+
+- **Integration Score**: 0/6
+- **Methods**: 8
+- **Message Bus Calls**: 0
+- **Adaptive Prompts Calls**: 0
+- **Pattern Recognition Calls**: 0
+- **Correlation Calls**: 0
+- **Analytics Calls**: 0
+- **Optimizer Calls**: 0
+- **Cross-Phase Calls**: 0
+- **Dimension Awareness**: 0
+
+### coding
+
+- **Integration Score**: 5/6
+- **Methods**: 13
+- **Message Bus Calls**: 0
+- **Adaptive Prompts Calls**: 1
+- **Pattern Recognition Calls**: 1
+- **Correlation Calls**: 1
+- **Analytics Calls**: 1
+- **Optimizer Calls**: 1
+- **Cross-Phase Calls**: 1
+- **Dimension Awareness**: 0
+
+### debugging
+
+- **Integration Score**: 5/6
+- **Methods**: 17
+- **Message Bus Calls**: 0
+- **Adaptive Prompts Calls**: 1
+- **Pattern Recognition Calls**: 1
+- **Correlation Calls**: 1
+- **Analytics Calls**: 1
+- **Optimizer Calls**: 1
+- **Cross-Phase Calls**: 3
+- **Dimension Awareness**: 0
+
+### documentation
+
+- **Integration Score**: 5/6
+- **Methods**: 10
+- **Message Bus Calls**: 0
+- **Adaptive Prompts Calls**: 1
+- **Pattern Recognition Calls**: 1
+- **Correlation Calls**: 1
+- **Analytics Calls**: 1
+- **Optimizer Calls**: 1
+- **Cross-Phase Calls**: 2
+- **Dimension Awareness**: 0
+
+### investigation
+
+- **Integration Score**: 5/6
+- **Methods**: 8
+- **Message Bus Calls**: 0
+- **Adaptive Prompts Calls**: 1
+- **Pattern Recognition Calls**: 1
+- **Correlation Calls**: 1
+- **Analytics Calls**: 1
+- **Optimizer Calls**: 1
+- **Cross-Phase Calls**: 1
+- **Dimension Awareness**: 0
+
+### loop_detection_mixin
+
+- **Integration Score**: 0/6
+- **Methods**: 3
+- **Message Bus Calls**: 0
+- **Adaptive Prompts Calls**: 0
+- **Pattern Recognition Calls**: 0
+- **Correlation Calls**: 0
+- **Analytics Calls**: 0
+- **Optimizer Calls**: 0
+- **Cross-Phase Calls**: 0
+- **Dimension Awareness**: 0
+
+### phase_builder
+
+- **Integration Score**: 0/6
+- **Methods**: 3
+- **Message Bus Calls**: 0
+- **Adaptive Prompts Calls**: 0
+- **Pattern Recognition Calls**: 0
+- **Correlation Calls**: 0
+- **Analytics Calls**: 0
+- **Optimizer Calls**: 0
+- **Cross-Phase Calls**: 0
+- **Dimension Awareness**: 0
+
+### phase_dependencies
+
+- **Integration Score**: 0/6
+- **Methods**: 0
+- **Message Bus Calls**: 0
+- **Adaptive Prompts Calls**: 0
+- **Pattern Recognition Calls**: 0
+- **Correlation Calls**: 0
+- **Analytics Calls**: 0
+- **Optimizer Calls**: 0
+- **Cross-Phase Calls**: 0
+- **Dimension Awareness**: 0
+
+### planning
+
+- **Integration Score**: 5/6
+- **Methods**: 18
+- **Message Bus Calls**: 0
+- **Adaptive Prompts Calls**: 1
+- **Pattern Recognition Calls**: 1
+- **Correlation Calls**: 1
+- **Analytics Calls**: 1
+- **Optimizer Calls**: 1
+- **Cross-Phase Calls**: 3
+- **Dimension Awareness**: 0
+
+### project_planning
+
+- **Integration Score**: 5/6
+- **Methods**: 14
+- **Message Bus Calls**: 0
+- **Adaptive Prompts Calls**: 1
+- **Pattern Recognition Calls**: 1
+- **Correlation Calls**: 1
+- **Analytics Calls**: 1
+- **Optimizer Calls**: 1
+- **Cross-Phase Calls**: 1
+- **Dimension Awareness**: 0
+
+### prompt_builder
+
+- **Integration Score**: 0/6
+- **Methods**: 18
+- **Message Bus Calls**: 0
+- **Adaptive Prompts Calls**: 0
+- **Pattern Recognition Calls**: 0
+- **Correlation Calls**: 0
+- **Analytics Calls**: 0
+- **Optimizer Calls**: 0
+- **Cross-Phase Calls**: 0
+- **Dimension Awareness**: 0
+
+### prompt_design
+
+- **Integration Score**: 5/6
+- **Methods**: 3
+- **Message Bus Calls**: 2
+- **Adaptive Prompts Calls**: 1
+- **Pattern Recognition Calls**: 1
+- **Correlation Calls**: 1
+- **Analytics Calls**: 0
+- **Optimizer Calls**: 1
+- **Cross-Phase Calls**: 0
+- **Dimension Awareness**: 0
+
+### prompt_improvement
+
+- **Integration Score**: 5/6
+- **Methods**: 8
+- **Message Bus Calls**: 5
+- **Adaptive Prompts Calls**: 1
+- **Pattern Recognition Calls**: 4
+- **Correlation Calls**: 1
+- **Analytics Calls**: 0
+- **Optimizer Calls**: 1
+- **Cross-Phase Calls**: 0
+- **Dimension Awareness**: 0
+
+### qa
+
+- **Integration Score**: 5/6
+- **Methods**: 15
+- **Message Bus Calls**: 0
+- **Adaptive Prompts Calls**: 1
+- **Pattern Recognition Calls**: 1
+- **Correlation Calls**: 1
+- **Analytics Calls**: 1
+- **Optimizer Calls**: 1
+- **Cross-Phase Calls**: 2
+- **Dimension Awareness**: 0
+
+### refactoring
+
+- **Integration Score**: 5/6
+- **Methods**: 42
+- **Message Bus Calls**: 0
+- **Adaptive Prompts Calls**: 1
+- **Pattern Recognition Calls**: 1
+- **Correlation Calls**: 1
+- **Analytics Calls**: 1
+- **Optimizer Calls**: 1
+- **Cross-Phase Calls**: 3
+- **Dimension Awareness**: 0
+
+### refactoring_context_builder
+
+- **Integration Score**: 0/6
+- **Methods**: 10
+- **Message Bus Calls**: 0
+- **Adaptive Prompts Calls**: 0
+- **Pattern Recognition Calls**: 0
+- **Correlation Calls**: 0
+- **Analytics Calls**: 0
+- **Optimizer Calls**: 0
+- **Cross-Phase Calls**: 0
+- **Dimension Awareness**: 0
+
+### role_design
+
+- **Integration Score**: 5/6
+- **Methods**: 3
+- **Message Bus Calls**: 2
+- **Adaptive Prompts Calls**: 1
+- **Pattern Recognition Calls**: 1
+- **Correlation Calls**: 1
+- **Analytics Calls**: 0
+- **Optimizer Calls**: 1
+- **Cross-Phase Calls**: 0
+- **Dimension Awareness**: 0
+
+### role_improvement
+
+- **Integration Score**: 5/6
+- **Methods**: 10
+- **Message Bus Calls**: 2
+- **Adaptive Prompts Calls**: 1
+- **Pattern Recognition Calls**: 1
+- **Correlation Calls**: 1
+- **Analytics Calls**: 0
+- **Optimizer Calls**: 1
+- **Cross-Phase Calls**: 0
+- **Dimension Awareness**: 0
+
+### tool_design
+
+- **Integration Score**: 5/6
+- **Methods**: 12
+- **Message Bus Calls**: 3
+- **Adaptive Prompts Calls**: 1
+- **Pattern Recognition Calls**: 2
+- **Correlation Calls**: 1
+- **Analytics Calls**: 0
+- **Optimizer Calls**: 1
+- **Cross-Phase Calls**: 2
+- **Dimension Awareness**: 0
+
+### tool_evaluation
+
+- **Integration Score**: 5/6
+- **Methods**: 13
+- **Message Bus Calls**: 2
+- **Adaptive Prompts Calls**: 1
+- **Pattern Recognition Calls**: 1
+- **Correlation Calls**: 1
+- **Analytics Calls**: 0
+- **Optimizer Calls**: 1
+- **Cross-Phase Calls**: 0
+- **Dimension Awareness**: 0
+

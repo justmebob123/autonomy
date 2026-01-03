@@ -75,6 +75,25 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
             PhaseResult with success status and analysis results
         """
         
+        # POLYTOPIC INTEGRATION: Adaptive prompts
+        self.update_system_prompt_with_adaptation({
+            'phase': self.phase_name,
+            'state': state,
+            'context': 'tool_design_execution'
+        })
+        
+        # POLYTOPIC INTEGRATION: Get correlations and optimizations
+        correlations = self.get_cross_phase_correlation()
+        optimization = self.get_optimization_suggestion()
+        
+        # MESSAGE BUS: Publish phase start event
+        self.publish_event('PHASE_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'correlations': correlations,
+            'optimization': optimization
+        })
+        
         # ARCHITECTURE INTEGRATION: Read architecture for tool context
         architecture = self._read_architecture()
         if architecture:
@@ -152,6 +171,21 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
             return self._handle_create_new(tool_name, analysis, state, kwargs)
         
         else:
+            # MESSAGE BUS: Publish phase completion (failure)
+            self.publish_event('PHASE_COMPLETED', {
+                'phase': self.phase_name,
+                'timestamp': datetime.now().isoformat(),
+                'success': False
+            })
+            
+            # PATTERN RECOGNITION: Record phase completion
+            self.record_execution_pattern({
+                'phase': self.phase_name,
+                'action': 'phase_complete',
+                'success': False,
+                'timestamp': datetime.now().isoformat()
+            })
+            
             return PhaseResult(
                 success=False,
                 phase=self.phase_name,
@@ -190,6 +224,24 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
                              state: PipelineState) -> PhaseResult:
         """Handle case where tool already exists."""
         self.logger.info(f"✓ Tool '{analysis.existing_tool_name}' already exists - no action needed")
+        
+        # MESSAGE BUS: Publish phase completion
+        self.publish_event('PHASE_COMPLETED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'success': True,
+            'action': 'use_existing',
+            'tool_name': analysis.existing_tool_name
+        })
+        
+        # PATTERN RECOGNITION: Record phase completion
+        self.record_execution_pattern({
+            'phase': self.phase_name,
+            'action': 'use_existing_tool',
+            'tool_name': analysis.existing_tool_name,
+            'success': True,
+            'timestamp': datetime.now().isoformat()
+        })
         
         return PhaseResult(
             success=True,

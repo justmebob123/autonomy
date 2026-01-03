@@ -58,6 +58,25 @@ class PromptDesignPhase(LoopDetectionMixin, BasePhase):
             PhaseResult with success status and created prompt info
         """
         
+        # POLYTOPIC INTEGRATION: Adaptive prompts
+        self.update_system_prompt_with_adaptation({
+            'phase': self.phase_name,
+            'state': state,
+            'context': 'prompt_design_execution'
+        })
+        
+        # POLYTOPIC INTEGRATION: Get correlations and optimizations
+        correlations = self.get_cross_phase_correlation()
+        optimization = self.get_optimization_suggestion()
+        
+        # MESSAGE BUS: Publish phase start event
+        self.publish_event('PHASE_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'correlations': correlations,
+            'optimization': optimization
+        })
+        
         # ARCHITECTURE INTEGRATION: Read architecture for prompt context
         architecture = self._read_architecture()
         if architecture:
@@ -233,6 +252,23 @@ class PromptDesignPhase(LoopDetectionMixin, BasePhase):
                             f"Created prompt: {spec['name']}",
                             f"Prompt Design: Added {spec['name']} for {spec.get('purpose', 'general use')}"
                         )
+                    
+                    # MESSAGE BUS: Publish phase completion
+                    self.publish_event('PHASE_COMPLETED', {
+                        'phase': self.phase_name,
+                        'timestamp': datetime.now().isoformat(),
+                        'success': True,
+                        'prompt_name': spec['name']
+                    })
+                    
+                    # PATTERN RECOGNITION: Record phase completion
+                    self.record_execution_pattern({
+                        'phase': self.phase_name,
+                        'action': 'phase_complete',
+                        'prompt_name': spec['name'],
+                        'success': True,
+                        'timestamp': datetime.now().isoformat()
+                    })
                     
                     return PhaseResult(
                         success=True,

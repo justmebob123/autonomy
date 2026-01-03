@@ -58,6 +58,25 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
             PhaseResult with improvement outcomes
         """
         
+        # POLYTOPIC INTEGRATION: Adaptive prompts
+        self.update_system_prompt_with_adaptation({
+            'phase': self.phase_name,
+            'state': state,
+            'context': 'prompt_improvement_execution'
+        })
+        
+        # POLYTOPIC INTEGRATION: Get correlations and optimizations
+        correlations = self.get_cross_phase_correlation()
+        optimization = self.get_optimization_suggestion()
+        
+        # MESSAGE BUS: Publish phase start event
+        self.publish_event('PHASE_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'correlations': correlations,
+            'optimization': optimization
+        })
+        
         # ARCHITECTURE INTEGRATION: Read architecture for prompt context
         architecture = self._read_architecture()
         if architecture:
@@ -93,6 +112,15 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
         
         if not custom_prompts:
             self.logger.info("  No custom prompts found to improve")
+            
+            # MESSAGE BUS: Publish phase completion
+            self.publish_event('PHASE_COMPLETED', {
+                'phase': self.phase_name,
+                'timestamp': datetime.now().isoformat(),
+                'success': True,
+                'prompts_found': 0
+            })
+            
             return PhaseResult(
                 success=True,
                 phase=self.phase_name,
@@ -101,6 +129,13 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
         
         self.logger.info(f"  Found {len(custom_prompts)} custom prompts to analyze")
         
+        # MESSAGE BUS: Publish analysis start
+        self.publish_event('ANALYSIS_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'prompts_count': len(custom_prompts)
+        })
+        
         # Analyze and improve each prompt
         improvement_results = []
         prompts_improved = []
@@ -108,14 +143,47 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
         for prompt_name in custom_prompts:
             self.logger.info(f"\n  📝 Analyzing prompt: {prompt_name}")
             
+            # PATTERN RECOGNITION: Record analysis start
+            self.record_execution_pattern({
+                'phase': self.phase_name,
+                'action': 'analyze_prompt',
+                'prompt_name': prompt_name,
+                'timestamp': datetime.now().isoformat()
+            })
+            
             result = self._analyze_and_improve_prompt(prompt_name)
             improvement_results.append(result)
             
             if result['improved']:
                 prompts_improved.append(prompt_name)
                 self.logger.info(f"    ✅ Prompt improved")
+                
+                # MESSAGE BUS: Publish improvement event
+                self.publish_event('PROMPT_IMPROVED', {
+                    'phase': self.phase_name,
+                    'prompt_name': prompt_name,
+                    'timestamp': datetime.now().isoformat()
+                })
+                
+                # PATTERN RECOGNITION: Record successful improvement
+                self.record_execution_pattern({
+                    'phase': self.phase_name,
+                    'action': 'improve_prompt',
+                    'prompt_name': prompt_name,
+                    'success': True,
+                    'timestamp': datetime.now().isoformat()
+                })
             else:
                 self.logger.info(f"    ℹ️  Prompt already optimal")
+                
+                # PATTERN RECOGNITION: Record no improvement needed
+                self.record_execution_pattern({
+                    'phase': self.phase_name,
+                    'action': 'analyze_prompt',
+                    'prompt_name': prompt_name,
+                    'already_optimal': True,
+                    'timestamp': datetime.now().isoformat()
+                })
         
         # Save improvement results
         self._save_improvement_results(improvement_results)
@@ -141,6 +209,26 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
                 f"Improved {improved} prompts",
                 f"Prompt Improvement: Enhanced {', '.join(prompts_improved)}"
             )
+        
+        # MESSAGE BUS: Publish phase completion
+        self.publish_event('PHASE_COMPLETED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'success': True,
+            'total_prompts': len(custom_prompts),
+            'improved': improved,
+            'unchanged': unchanged
+        })
+        
+        # PATTERN RECOGNITION: Record phase completion
+        self.record_execution_pattern({
+            'phase': self.phase_name,
+            'action': 'phase_complete',
+            'total_prompts': len(custom_prompts),
+            'improved': improved,
+            'success': True,
+            'timestamp': datetime.now().isoformat()
+        })
         
         return PhaseResult(
             success=True,

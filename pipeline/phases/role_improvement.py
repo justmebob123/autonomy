@@ -59,6 +59,25 @@ class RoleImprovementPhase(LoopDetectionMixin, BasePhase):
             PhaseResult with improvement outcomes
         """
         
+        # POLYTOPIC INTEGRATION: Adaptive prompts
+        self.update_system_prompt_with_adaptation({
+            'phase': self.phase_name,
+            'state': state,
+            'context': 'role_improvement_execution'
+        })
+        
+        # POLYTOPIC INTEGRATION: Get correlations and optimizations
+        correlations = self.get_cross_phase_correlation()
+        optimization = self.get_optimization_suggestion()
+        
+        # MESSAGE BUS: Publish phase start event
+        self.publish_event('PHASE_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'correlations': correlations,
+            'optimization': optimization
+        })
+        
         # ARCHITECTURE INTEGRATION: Read architecture
         architecture = self._read_architecture()
         if architecture:
@@ -142,6 +161,25 @@ class RoleImprovementPhase(LoopDetectionMixin, BasePhase):
                 f"Improved {improved} roles",
                 f"Role Improvement: Enhanced {', '.join(roles_improved)}"
             )
+        
+        # MESSAGE BUS: Publish phase completion
+        self.publish_event('PHASE_COMPLETED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'success': True,
+            'total_roles': len(custom_roles),
+            'improved': improved
+        })
+        
+        # PATTERN RECOGNITION: Record phase completion
+        self.record_execution_pattern({
+            'phase': self.phase_name,
+            'action': 'phase_complete',
+            'total_roles': len(custom_roles),
+            'improved': improved,
+            'success': True,
+            'timestamp': datetime.now().isoformat()
+        })
         
         return PhaseResult(
             success=True,

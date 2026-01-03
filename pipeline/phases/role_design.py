@@ -60,6 +60,25 @@ class RoleDesignPhase(LoopDetectionMixin, BasePhase):
             PhaseResult with success status and created role info
         """
         
+        # POLYTOPIC INTEGRATION: Adaptive prompts
+        self.update_system_prompt_with_adaptation({
+            'phase': self.phase_name,
+            'state': state,
+            'context': 'role_design_execution'
+        })
+        
+        # POLYTOPIC INTEGRATION: Get correlations and optimizations
+        correlations = self.get_cross_phase_correlation()
+        optimization = self.get_optimization_suggestion()
+        
+        # MESSAGE BUS: Publish phase start event
+        self.publish_event('PHASE_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'correlations': correlations,
+            'optimization': optimization
+        })
+        
         # ARCHITECTURE INTEGRATION: Read architecture
         architecture = self._read_architecture()
         if architecture:
@@ -247,6 +266,23 @@ class RoleDesignPhase(LoopDetectionMixin, BasePhase):
                             f"Created role: {spec['name']}",
                             f"Role Design: Added {spec['name']} specialist"
                         )
+                    
+                    # MESSAGE BUS: Publish phase completion
+                    self.publish_event('PHASE_COMPLETED', {
+                        'phase': self.phase_name,
+                        'timestamp': datetime.now().isoformat(),
+                        'success': True,
+                        'role_name': spec['name']
+                    })
+                    
+                    # PATTERN RECOGNITION: Record phase completion
+                    self.record_execution_pattern({
+                        'phase': self.phase_name,
+                        'action': 'phase_complete',
+                        'role_name': spec['name'],
+                        'success': True,
+                        'timestamp': datetime.now().isoformat()
+                    })
                     
                     return PhaseResult(
                         success=True,

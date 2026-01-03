@@ -68,6 +68,25 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
             PhaseResult with evaluation results
         """
         
+        # POLYTOPIC INTEGRATION: Adaptive prompts
+        self.update_system_prompt_with_adaptation({
+            'phase': self.phase_name,
+            'state': state,
+            'context': 'tool_evaluation_execution'
+        })
+        
+        # POLYTOPIC INTEGRATION: Get correlations and optimizations
+        correlations = self.get_cross_phase_correlation()
+        optimization = self.get_optimization_suggestion()
+        
+        # MESSAGE BUS: Publish phase start event
+        self.publish_event('PHASE_STARTED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'correlations': correlations,
+            'optimization': optimization
+        })
+        
         # ARCHITECTURE INTEGRATION: Read architecture
         architecture = self._read_architecture()
         if architecture:
@@ -243,6 +262,25 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
                 f"Evaluated tool: {evaluation.get('tool_name', 'unknown')}",
                 f"Tool Evaluation: {success_rate:.0%} success rate"
             )
+        
+        # MESSAGE BUS: Publish phase completion
+        self.publish_event('PHASE_COMPLETED', {
+            'phase': self.phase_name,
+            'timestamp': datetime.now().isoformat(),
+            'success': True,
+            'success_rate': success_rate,
+            'tests_passed': len(evaluation.get('tests_passed', [])),
+            'tests_failed': len(evaluation.get('tests_failed', []))
+        })
+        
+        # PATTERN RECOGNITION: Record phase completion
+        self.record_execution_pattern({
+            'phase': self.phase_name,
+            'action': 'phase_complete',
+            'success': True,
+            'success_rate': success_rate,
+            'timestamp': datetime.now().isoformat()
+        })
         
         return PhaseResult(
             success=True,
