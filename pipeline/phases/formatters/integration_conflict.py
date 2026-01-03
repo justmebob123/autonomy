@@ -112,24 +112,49 @@ ACTION REQUIRED:
 """
     
     def _format_regular_conflict(self, data: dict) -> str:
-        """Format regular integration conflict."""
+        """Format regular integration conflict with detailed action steps."""
         files = data.get('files', []) if isinstance(data, dict) else []
         description = data.get('description', 'Unknown conflict') if isinstance(data, dict) else str(data)
         conflict_type = data.get('type', 'unknown') if isinstance(data, dict) else 'unknown'
         
+        # Build specific file list
         file_list = "\n".join(f"- {f}" for f in files) if files else "- (files not specified)"
+        
+        # Build read commands for files
+        read_commands = "\n".join(f'read_file(filepath="{f}")' for f in files[:3]) if files else 'read_file(filepath="<file>")'
+        
+        # Build compare command
+        if len(files) >= 2:
+            compare_cmd = f'compare_file_implementations(file1="{files[0]}", file2="{files[1]}")'
+        else:
+            compare_cmd = 'compare_file_implementations(file1="<file1>", file2="<file2>")'
         
         return f"""
 INTEGRATION CONFLICT DETECTED:
 Type: {conflict_type}
 Description: {description}
 
-Files involved:
+FILES INVOLVED:
 {file_list}
 
-ACTION REQUIRED:
-1. Read ARCHITECTURE.md to understand design intent
-2. Compare the conflicting implementations
-3. Merge or resolve the conflict
-4. Update architecture if needed
+SPECIFIC ACTIONS TO TAKE:
+
+Step 1: READ the conflicting files to understand what they do
+{read_commands}
+
+Step 2: READ ARCHITECTURE.md to understand where they should be
+read_file(filepath="ARCHITECTURE.md")
+
+Step 3: COMPARE the implementations to see if they're duplicates
+{compare_cmd}
+
+Step 4: MAKE A DECISION based on what you found:
+- If files are >80% similar → merge_file_implementations
+- If one is misplaced → move_file to correct location
+- If both are misplaced → move both files
+- If names conflict → rename_file to clarify
+
+Step 5: EXECUTE your decision (merge, move, or rename)
+
+⚠️ DO NOT just analyze and stop - you MUST take action to resolve the conflict!
 """
