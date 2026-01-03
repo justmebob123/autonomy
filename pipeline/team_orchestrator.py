@@ -409,6 +409,66 @@ class TeamOrchestrator:
         
         return waves
     
+    def _normalize_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Normalize a result dictionary to have consistent structure.
+        
+        This method handles UNKNOWN input structures from different sources
+        (specialists, validators, etc.) and converts them to a standard format.
+        
+        NOTE: The .get() calls and conditional checks in this method are INTENTIONAL
+        and SAFE. This method is designed to handle inconsistent input structures.
+        Any dict_structure_validator warnings here are expected and can be ignored.
+        
+        All normalized results will have:
+        - success: bool (guaranteed to exist)
+        - error: Optional[str] (guaranteed to exist, may be None)
+        - findings: List (guaranteed to exist, may be empty)
+        - data: Dict (guaranteed to exist, contains other fields)
+        
+        Args:
+            result: Raw result dictionary with unknown structure
+            
+        Returns:
+            Normalized result dictionary with guaranteed structure
+        """
+        # If already has 'success' key, assume it's normalized
+        if 'success' in result:
+            # Ensure all required keys exist
+            normalized = {
+                'success': result.get('success', True),
+                'error': result.get('error'),
+                'findings': result.get('findings', []),
+                'data': {k: v for k, v in result.items() if k not in ['success', 'error', 'findings']}
+            }
+            return normalized
+        
+        # Handle validation result format (role_name, valid, issues, timestamp)
+        if 'valid' in result:
+            return {
+                'success': result.get('valid', False),
+                'error': None if result.get('valid') else ', '.join(result.get('issues', [])),
+                'findings': result.get('issues', []),
+                'data': {k: v for k, v in result.items() if k not in ['valid', 'issues']}
+            }
+        
+        # Handle error-only format
+        if 'error' in result and len(result) == 1:
+            return {
+                'success': False,
+                'error': result['error'],
+                'findings': [],
+                'data': {}
+            }
+        
+        # Default: assume success if no error
+        return {
+            'success': 'error' not in result,
+            'error': result.get('error'),
+            'findings': result.get('findings', []),
+            'data': {k: v for k, v in result.items() if k not in ['error', 'findings']}
+        }
+    
     def _synthesize_results(
         self,
         plan: OrchestrationPlan,
@@ -426,41 +486,51 @@ class TeamOrchestrator:
         """
         strategy = plan.synthesis_strategy
         
+        # Normalize all results first
+        normalized_results = {}
+        for wave_id, wave_results in all_results.items():
+            normalized_results[wave_id] = {
+                task_id: self._normalize_result(result)
+                for task_id, result in wave_results.items()
+            }
+        
         if strategy == 'merge_all':
             # Merge all results into single dictionary
             merged = {}
-            for wave_results in all_results.values():
+            for wave_results in normalized_results.values():
                 merged.update(wave_results)
             return {'success': True, 'merged_results': merged}
         
         elif strategy == 'use_first_result':
-            # Use first successful result
-            for wave_results in all_results.values():
-                for result in wave_results.values():
-                    if not result.get('error'):
-                        return {'success': True, 'result': result}
+            # Use first successful result (normalized results have guaranteed structure: success, error, findings, data)
+            for wave_results in normalized_results.values():
+                for normalized_result in wave_results.values():
+                    # Safe to use direct access - structure is guaranteed by _normalize_result()
+                    if normalized_result['success'] and not normalized_result['error']:
+                        return {'success': True, 'result': normalized_result}
             return {'success': False, 'error': 'No successful results'}
         
         elif strategy == 'consensus':
-            # Build consensus from multiple results
-            findings = []
-            for wave_results in all_results.values():
-                for result in wave_results.values():
-                    if result.get('findings'):
-                        findings.extend(result.get('findings', []))
+            # Build consensus from multiple results (normalized results have guaranteed structure: success, error, findings, data)
+            all_findings = []
+            for wave_results in normalized_results.values():
+                for normalized_result in wave_results.values():
+                    # Safe to use direct access - structure is guaranteed by _normalize_result()
+                    if normalized_result['success'] and normalized_result['findings']:
+                        all_findings.extend(normalized_result['findings'])
             
             # Count agreement
             finding_counts = defaultdict(int)
-            for finding in findings:
+            for finding in all_findings:
                 finding_counts[finding] += 1
             
             # Return findings with majority agreement
             consensus = [f for f, count in finding_counts.items() if count >= 2]
-            return {'success': True, 'consensus': consensus}
+            return {'success': True, 'consensus': consensus, 'all_findings': all_findings}
         
         else:
             # Default: return all results
-            return {'success': True, 'all_results': all_results}
+            return {'success': True, 'all_results': normalized_results}
     
     def _update_statistics(self, plan: OrchestrationPlan, total_duration: float):
         """Update execution statistics"""
