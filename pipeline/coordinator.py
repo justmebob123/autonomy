@@ -93,7 +93,7 @@ class PhaseCoordinator:
         self.analysis_specialist = create_analysis_specialist(self.analysis_tool)
         self.logger.info("🤖 Shared specialists initialized (coding, reasoning, analysis)")
         
-        # CRITICAL: Initialize pattern recognition and adaptive prompts BEFORE phases
+        # CRITICAL: Initialize ALL 6 engines BEFORE phases
         # Pattern Recognition System
         from .pattern_recognition import PatternRecognitionSystem
         self.pattern_recognition = PatternRecognitionSystem(self.project_dir)
@@ -108,6 +108,34 @@ class PhaseCoordinator:
             self.logger
         )
         self.logger.info("🎯 Adaptive prompt system initialized")
+        
+        # Correlation engine for cross-phase analysis
+        from .correlation_engine import CorrelationEngine
+        self.correlation_engine = CorrelationEngine()
+        self.logger.info("🔗 Correlation engine initialized")
+        
+        # Analytics integration for predictive analytics, anomaly detection, and optimization
+        try:
+            from .coordinator_analytics_integration import AnalyticsIntegration
+            self.analytics = AnalyticsIntegration(
+                enabled=True,
+                config={
+                    'anomaly_window_size': 100,
+                    'optimization_interval': 100,
+                    'max_history_size': 1000,
+                    'cleanup_interval': 500
+                }
+            )
+            self.logger.info("📊 Analytics integration initialized")
+        except Exception as e:
+            self.logger.warning(f"Analytics integration not available: {e}")
+            self.analytics = None
+        
+        # Pattern Optimizer
+        from .pattern_optimizer import PatternOptimizer
+        self.pattern_optimizer = PatternOptimizer(self.project_dir)
+        self.execution_count = 0  # Track executions for periodic optimization
+        self.logger.info("⚡ Pattern optimizer initialized")
         
         # Initialize phases (lazy import to avoid circular deps)
         self.phases = self._init_phases()
@@ -134,33 +162,6 @@ class PhaseCoordinator:
         
         # Initialize polytopic structure from phases
         self._initialize_polytopic_structure()
-        
-        # Correlation engine for cross-phase analysis
-        from .correlation_engine import CorrelationEngine
-        self.correlation_engine = CorrelationEngine()
-        
-        # Analytics integration for predictive analytics, anomaly detection, and optimization
-        try:
-            from .coordinator_analytics_integration import AnalyticsIntegration
-            self.analytics = AnalyticsIntegration(
-                enabled=True,
-                config={
-                    'anomaly_window_size': 100,
-                    'optimization_interval': 100,
-                    'max_history_size': 1000,
-                    'cleanup_interval': 500
-                }
-            )
-            self.logger.info("📊 Analytics integration initialized")
-        except Exception as e:
-            self.logger.warning(f"Analytics integration not available: {e}")
-            self.analytics = None
-        
-        # INTEGRATION: Pattern Optimizer
-        from .pattern_optimizer import PatternOptimizer
-        self.pattern_optimizer = PatternOptimizer(self.project_dir)
-        self.execution_count = 0  # Track executions for periodic optimization
-        self.logger.info("⚡ Pattern optimizer initialized")
         
         # INTEGRATION: Tool Creator
         from .tool_creator import ToolCreator
