@@ -84,6 +84,45 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         })
         if optimization and optimization.get('suggestions'):
             self.logger.debug(f"  💡 Optimization suggestions available")
+        # ========== ARCHITECTURE MAINTENANCE ==========
+        # 1. READ INTENDED ARCHITECTURE from MASTER_PLAN.md
+        intended_arch = self.arch_manager._read_intended_architecture()
+        self.logger.info(f"  📋 Intended architecture: {len(intended_arch.get('components', {}))} components defined")
+        
+        # 2. ANALYZE CURRENT ARCHITECTURE using validation tools
+        current_arch = self.arch_manager.analyze_current_architecture()
+        self.logger.info(f"  🔍 Current architecture: {len(current_arch.components)} components found")
+        
+        # 3. VALIDATE CONSISTENCY between intended and current
+        validation = self.arch_manager.validate_architecture_consistency(intended_arch)
+        self.logger.info(f"  ✅ Architecture validation: {'CONSISTENT' if validation.is_consistent else 'DRIFT DETECTED'}")
+        
+        if not validation.is_consistent:
+            if validation.missing_components:
+                self.logger.warning(f"    ⚠️  Missing {len(validation.missing_components)} components")
+            if validation.integration_gaps:
+                self.logger.warning(f"    ⚠️  Found {len(validation.integration_gaps)} integration gaps")
+        
+        # 4. GET ARCHITECTURE DIFF since last update
+        diff = self.arch_manager.get_architecture_diff()
+        if diff.has_changes():
+            self.logger.info(f"  📊 Architecture changes: +{len(diff.added)} -{len(diff.removed)} ~{len(diff.modified)}")
+        
+        # 5. UPDATE ARCHITECTURE.MD with comprehensive view
+        self.arch_manager.update_architecture_document(
+            intended=intended_arch,
+            current=current_arch,
+            diff=diff,
+            validation=validation
+        )
+        
+        # 6. ALERT IF SIGNIFICANT DRIFT
+        if validation.severity.value == 'critical':
+            self._alert_architecture_drift(validation)
+        
+        # Store validation for later use
+        self._current_validation = validation
+        
         # ARCHITECTURE INTEGRATION: Read architecture for documentation context
         architecture = self._read_architecture()
         if architecture:
@@ -97,7 +136,8 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         # IPC INTEGRATION: Write status at start
         self._write_status({
             "status": "Starting documentation review",
-            "action": "start"
+            "action": "start",
+            "architecture_status": "consistent" if validation.is_consistent else "drift_detected"
         })
         
         # CHECK IF README EXISTS - if not, complete documentation task anyway
@@ -629,3 +669,113 @@ This project uses an AI-assisted development pipeline that:
 
 (Updates are logged in the pipeline output)
 """
+    
+    # ========== ARCHITECTURE MAINTENANCE METHODS ==========
+    
+    def _alert_architecture_drift(self, validation):
+        """
+        Alert about significant architecture drift.
+        
+        Publishes:
+        - SYSTEM_ALERT event via message bus
+        - Updates DOCUMENTATION_WRITE.md with alert
+        - Writes to PLANNING_READ.md to request fix
+        
+        Args:
+            validation: ValidationReport with drift details
+        """
+        if not self.message_bus:
+            return
+        
+        from ..messaging import MessageType
+        
+        # Publish SYSTEM_ALERT
+        self.message_bus.publish(
+            MessageType.SYSTEM_ALERT,
+            source=self.phase_name,
+            payload={
+                'type': 'critical_architecture_drift',
+                'severity': validation.severity.value,
+                'missing_components': validation.missing_components,
+                'integration_gaps': len(validation.integration_gaps),
+                'message': 'Critical architecture drift detected - planning phase should address'
+            }
+        )
+        
+        # Write to DOCUMENTATION_WRITE.md
+        alert_message = f"""
+## ⚠️ CRITICAL ARCHITECTURE DRIFT DETECTED
+
+**Timestamp**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+**Severity**: {validation.severity.value.upper()}
+
+### Issues Found
+
+"""
+        
+        if validation.missing_components:
+            alert_message += f"**Missing Components** ({len(validation.missing_components)}):\n"
+            for comp in validation.missing_components:
+                alert_message += f"- {comp}\n"
+            alert_message += "\n"
+        
+        if validation.integration_gaps:
+            alert_message += f"**Integration Gaps** ({len(validation.integration_gaps)}):\n"
+            for gap in validation.integration_gaps[:5]:
+                alert_message += f"- {gap.component}: {gap.reason}\n"
+            if len(validation.integration_gaps) > 5:
+                alert_message += f"- ...and {len(validation.integration_gaps) - 5} more\n"
+            alert_message += "\n"
+        
+        alert_message += """
+### Recommended Actions
+
+1. Planning phase should create tasks to fix missing components
+2. Refactoring phase should address integration gaps
+3. All phases should validate against ARCHITECTURE.md before making changes
+
+**This alert has been sent to the planning phase for action.**
+"""
+        
+        # Append to DOCUMENTATION_WRITE.md
+        doc_write_path = self.project_dir / "DOCUMENTATION_WRITE.md"
+        if doc_write_path.exists():
+            current_content = doc_write_path.read_text(encoding='utf-8')
+            doc_write_path.write_text(current_content + "\n" + alert_message, encoding='utf-8')
+        else:
+            doc_write_path.write_text(alert_message, encoding='utf-8')
+        
+        # Write to PLANNING_READ.md to request fix
+        planning_read_path = self.project_dir / "PLANNING_READ.md"
+        planning_message = f"""
+## Architecture Validation Alert
+
+**From**: Documentation Phase
+**Timestamp**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+**Priority**: CRITICAL
+
+### Architecture Drift Detected
+
+The documentation phase has detected critical architecture drift:
+
+- **Missing Components**: {len(validation.missing_components)}
+- **Integration Gaps**: {len(validation.integration_gaps)}
+- **Severity**: {validation.severity.value.upper()}
+
+### Required Actions
+
+Please create tasks to:
+1. Implement missing components: {', '.join(validation.missing_components[:3])}
+2. Fix integration gaps in components with low integration scores
+3. Validate all changes against ARCHITECTURE.md
+
+See ARCHITECTURE.md for detailed analysis.
+"""
+        
+        if planning_read_path.exists():
+            current_content = planning_read_path.read_text(encoding='utf-8')
+            planning_read_path.write_text(current_content + "\n" + planning_message, encoding='utf-8')
+        else:
+            planning_read_path.write_text(planning_message, encoding='utf-8')
+        
+        self.logger.warning("  🚨 Critical architecture drift alert sent to planning phase")

@@ -89,6 +89,50 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         })
         if optimization and optimization.get('suggestions'):
             self.logger.debug(f"  💡 Optimization suggestions available")
+        
+        # ========== ARCHITECTURE VALIDATION ==========
+        # 1. READ INTENDED ARCHITECTURE from MASTER_PLAN.md
+        intended_arch = self.arch_manager._read_intended_architecture()
+        self.logger.info(f"  📋 Intended architecture: {len(intended_arch.get('components', {}))} components defined")
+        
+        # 2. ANALYZE CURRENT ARCHITECTURE using validation tools
+        current_arch = self.arch_manager.analyze_current_architecture()
+        self.logger.info(f"  🔍 Current architecture: {len(current_arch.components)} components found")
+        
+        # 3. VALIDATE CONSISTENCY between intended and current
+        validation = self.arch_manager.validate_architecture_consistency(intended_arch)
+        self.logger.info(f"  ✅ Architecture validation: {'CONSISTENT' if validation.is_consistent else 'DRIFT DETECTED'}")
+        
+        if not validation.is_consistent:
+            if validation.missing_components:
+                self.logger.warning(f"    ⚠️  Missing {len(validation.missing_components)} components")
+            if validation.integration_gaps:
+                self.logger.warning(f"    ⚠️  Found {len(validation.integration_gaps)} integration gaps")
+        
+        # 4. GET ARCHITECTURE DIFF (if we have previous analysis)
+        diff = self.arch_manager.get_architecture_diff()
+        if diff.has_changes():
+            self.logger.info(f"  📊 Architecture changes: +{len(diff.added)} -{len(diff.removed)} ~{len(diff.modified)}")
+        
+        # 5. UPDATE ARCHITECTURE.MD with comprehensive view
+        self.arch_manager.update_architecture_document(
+            intended=intended_arch,
+            current=current_arch,
+            diff=diff,
+            validation=validation
+        )
+        
+        # 6. PUBLISH ARCHITECTURE EVENTS via message bus
+        self._publish_architecture_events(validation, diff)
+        
+        # 7. CREATE ARCHITECTURE-AWARE TASKS
+        arch_tasks = self._create_architecture_tasks(validation, diff)
+        if arch_tasks:
+            self.logger.info(f"  📝 Created {len(arch_tasks)} architecture tasks")
+        
+        # Store validation in state for other phases
+        state.architecture_validation = validation
+        
         # ========== INTEGRATION: READ ARCHITECTURE AND OBJECTIVES ==========
         # Read architecture to understand project structure
         architecture = self._read_architecture()
@@ -447,7 +491,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
     
     def _build_planning_message(self, master_plan: str, existing_files: List[str], analysis_context: str = "") -> str:
         """
-        Build a simple, focused planning message.
+        Build a simple, focused planning message with architecture context.
         
         The conversation history provides context, so we keep this simple.
         """
@@ -455,6 +499,21 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         
         # Master plan
         parts.append(f"Master Plan:\n{master_plan}")
+        
+        # Architecture context (if available in state)
+        if hasattr(self, '_current_validation'):
+            validation = self._current_validation
+            parts.append("\n## Architecture Context\n")
+            parts.append(f"**Status**: {'✅ CONSISTENT' if validation.is_consistent else '⚠️ DRIFT DETECTED'}")
+            
+            if validation.missing_components:
+                parts.append(f"\n**Missing Components**: {', '.join(validation.missing_components[:5])}")
+            
+            if validation.integration_gaps:
+                parts.append(f"\n**Integration Gaps**: {len(validation.integration_gaps)} components need integration")
+            
+            if not validation.is_consistent:
+                parts.append("\n⚠️ **CRITICAL**: Architecture tasks MUST be prioritized before feature development.")
         
         # Existing files context
         if existing_files:
@@ -469,6 +528,8 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         # Instructions
         parts.append("\nPlease create a detailed task plan using the create_task tool for each task needed.")
         parts.append("Break down the master plan into specific, actionable tasks.")
+        if hasattr(self, '_current_validation') and not self._current_validation.is_consistent:
+            parts.append("PRIORITIZE architecture consistency tasks before feature development.")
         if analysis_context:
             parts.append("Consider the analysis findings when planning tasks.")
         
@@ -1100,3 +1161,135 @@ Please address these architectural integration issues.
                 lines.append("")
         
             return "\n".join(lines)
+    
+    # ========== ARCHITECTURE-AWARE PLANNING METHODS ==========
+    
+    def _publish_architecture_events(self, validation, diff):
+        """
+        Publish architecture events via message bus.
+        
+        Args:
+            validation: ValidationReport
+            diff: ArchitectureDiff
+        """
+        if not self.message_bus:
+            return
+        
+        from ..messaging import MessageType
+        
+        # Publish validation event
+        self.message_bus.publish(
+            MessageType.SYSTEM_ALERT,  # Use SYSTEM_ALERT for architecture validation
+            source=self.phase_name,
+            payload={
+                'type': 'architecture_validated',
+                'is_consistent': validation.is_consistent,
+                'severity': validation.severity.value,
+                'missing_components': validation.missing_components,
+                'integration_gaps': len(validation.integration_gaps)
+            }
+        )
+        
+        # Publish drift detection if not consistent
+        if not validation.is_consistent:
+            self.message_bus.publish(
+                MessageType.SYSTEM_ALERT,
+                source=self.phase_name,
+                payload={
+                    'type': 'architecture_drift_detected',
+                    'severity': validation.severity.value,
+                    'missing_components': validation.missing_components,
+                    'integration_gaps': len(validation.integration_gaps)
+                }
+            )
+        
+        # Publish component events
+        for component in validation.missing_components:
+            self.message_bus.publish(
+                MessageType.SYSTEM_ALERT,
+                source=self.phase_name,
+                payload={
+                    'type': 'architecture_component_missing',
+                    'component': component
+                }
+            )
+        
+        # Publish architecture update event
+        if diff.has_changes():
+            self.message_bus.publish(
+                MessageType.SYSTEM_ALERT,
+                source=self.phase_name,
+                payload={
+                    'type': 'architecture_updated',
+                    'added': len(diff.added),
+                    'removed': len(diff.removed),
+                    'modified': len(diff.modified),
+                    'moved': len(diff.moved)
+                }
+            )
+    
+    def _create_architecture_tasks(self, validation, diff):
+        """
+        Create tasks to fix architecture issues.
+        
+        Priority order:
+        1. CRITICAL: Missing required components
+        2. HIGH: Misplaced components
+        3. MEDIUM: Integration gaps
+        4. LOW: Naming violations
+        
+        Args:
+            validation: ValidationReport
+            diff: ArchitectureDiff
+            
+        Returns:
+            List of TaskState objects
+        """
+        from ..state.manager import TaskState, TaskStatus
+        from ..state.priority import TaskPriority
+        
+        tasks = []
+        
+        # 1. CRITICAL: Missing components
+        for component in validation.missing_components:
+            task = TaskState(
+                id=f"arch_missing_{component}",
+                description=f"Create missing component: {component}",
+                target_file=f"{component.replace('.', '/')}.py",
+                status=TaskStatus.NEW,
+                priority=TaskPriority.CRITICAL,
+                created_at=datetime.now(),
+                phase='planning'
+            )
+            tasks.append(task)
+        
+        # 2. HIGH: Misplaced components
+        for issue in validation.misplaced_components:
+            task = TaskState(
+                id=f"arch_misplaced_{issue.component}",
+                description=f"Move {issue.component} to correct location: {issue.expected_location}",
+                target_file=issue.current_location,
+                status=TaskStatus.NEW,
+                priority=TaskPriority.HIGH,
+                created_at=datetime.now(),
+                phase='refactoring'
+            )
+            tasks.append(task)
+        
+        # 3. MEDIUM: Integration gaps (limit to top 5)
+        for gap in validation.integration_gaps[:5]:
+            task = TaskState(
+                id=f"arch_integration_{gap.component}",
+                description=f"Integrate component {gap.component}: {gap.reason}",
+                target_file=f"{gap.component.replace('.', '/')}.py",
+                status=TaskStatus.NEW,
+                priority=TaskPriority.MEDIUM,
+                created_at=datetime.now(),
+                phase='refactoring'
+            )
+            tasks.append(task)
+        
+        # Store validation for use in message building
+        self._current_validation = validation
+        
+        return tasks

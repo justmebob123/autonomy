@@ -49,6 +49,13 @@ class DocumentIPC:
             'TERTIARY_OBJECTIVES.md',
             'ARCHITECTURE.md'
         ]
+        
+        # Architecture-specific documents
+        self.architecture_documents = [
+            'ARCHITECTURE_STATUS.md',
+            'ARCHITECTURE_CHANGES.md',
+            'ARCHITECTURE_ALERTS.md'
+        ]
     
     def initialize_documents(self):
         """Create all IPC documents if they don't exist."""
@@ -61,6 +68,9 @@ class DocumentIPC:
         
         # Create strategic documents
         self._create_strategic_documents()
+        
+        # Create architecture-specific documents
+        self._create_architecture_documents()
         
         self.logger.info("✅ Document IPC system initialized")
     
@@ -685,3 +695,272 @@ Directories containing test code:
                 pass
         
         return None
+    
+    # ========== ARCHITECTURE-SPECIFIC DOCUMENT METHODS ==========
+    
+    def _create_architecture_documents(self):
+        """Create architecture-specific IPC documents."""
+        from datetime import datetime
+        
+        # ARCHITECTURE_STATUS.md
+        status_path = self.project_dir / 'ARCHITECTURE_STATUS.md'
+        if not status_path.exists():
+            template = f"""# Architecture Status
+
+> **Purpose**: Current architecture validation status and metrics
+> **Updated By**: Planning and Documentation phases
+> **Read By**: All phases
+> **Created**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+## Current Status
+
+**Last Validated**: Not yet validated
+**Consistency**: Unknown
+**Severity**: N/A
+
+## Validation Metrics
+
+- **Missing Components**: 0
+- **Extra Components**: 0
+- **Misplaced Components**: 0
+- **Integration Gaps**: 0
+- **Naming Violations**: 0
+
+## Component Integration Scores
+
+(Will be populated after first validation)
+
+## Recent Validation History
+
+(Validation history will appear here)
+
+---
+*This document is automatically updated by planning and documentation phases.*
+"""
+            try:
+                status_path.write_text(template)
+                self.logger.info("  ✅ Created ARCHITECTURE_STATUS.md")
+            except Exception as e:
+                self.logger.error(f"  ❌ Failed to create ARCHITECTURE_STATUS.md: {e}")
+        
+        # ARCHITECTURE_CHANGES.md
+        changes_path = self.project_dir / 'ARCHITECTURE_CHANGES.md'
+        if not changes_path.exists():
+            template = f"""# Architecture Changes Log
+
+> **Purpose**: Log of all architecture changes over time
+> **Updated By**: Planning and Documentation phases
+> **Read By**: All phases
+> **Created**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+## Change History
+
+### {datetime.now().strftime('%Y-%m-%d')}
+
+**Initial architecture baseline established**
+
+(Future changes will be logged here)
+
+---
+*This document is automatically updated when architecture changes are detected.*
+"""
+            try:
+                changes_path.write_text(template)
+                self.logger.info("  ✅ Created ARCHITECTURE_CHANGES.md")
+            except Exception as e:
+                self.logger.error(f"  ❌ Failed to create ARCHITECTURE_CHANGES.md: {e}")
+        
+        # ARCHITECTURE_ALERTS.md
+        alerts_path = self.project_dir / 'ARCHITECTURE_ALERTS.md'
+        if not alerts_path.exists():
+            template = f"""# Architecture Alerts
+
+> **Purpose**: Critical architecture issues requiring immediate attention
+> **Updated By**: Planning and Documentation phases
+> **Read By**: All phases (especially Planning)
+> **Created**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+## Active Alerts
+
+(No active alerts)
+
+## Resolved Alerts
+
+(Resolved alerts will be moved here)
+
+---
+*This document is automatically updated when critical architecture issues are detected.*
+"""
+            try:
+                alerts_path.write_text(template)
+                self.logger.info("  ✅ Created ARCHITECTURE_ALERTS.md")
+            except Exception as e:
+                self.logger.error(f"  ❌ Failed to create ARCHITECTURE_ALERTS.md: {e}")
+    
+    def update_architecture_status(self, validation_report: Dict):
+        """
+        Update ARCHITECTURE_STATUS.md with latest validation results.
+        
+        Args:
+            validation_report: Dict with validation results
+        """
+        from datetime import datetime
+        
+        status_path = self.project_dir / 'ARCHITECTURE_STATUS.md'
+        
+        content = f"""# Architecture Status
+
+> **Purpose**: Current architecture validation status and metrics
+> **Updated By**: Planning and Documentation phases
+> **Read By**: All phases
+> **Last Updated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+## Current Status
+
+**Last Validated**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+**Consistency**: {'✅ CONSISTENT' if validation_report.get('is_consistent') else '⚠️ DRIFT DETECTED'}
+**Severity**: {validation_report.get('severity', 'N/A').upper()}
+
+## Validation Metrics
+
+- **Missing Components**: {len(validation_report.get('missing_components', []))}
+- **Extra Components**: {len(validation_report.get('extra_components', []))}
+- **Misplaced Components**: {len(validation_report.get('misplaced_components', []))}
+- **Integration Gaps**: {len(validation_report.get('integration_gaps', []))}
+- **Naming Violations**: {len(validation_report.get('naming_violations', []))}
+
+## Issues Summary
+
+"""
+        
+        if validation_report.get('missing_components'):
+            content += "### Missing Components\n\n"
+            for comp in validation_report['missing_components'][:5]:
+                content += f"- {comp}\n"
+            if len(validation_report['missing_components']) > 5:
+                content += f"- ...and {len(validation_report['missing_components']) - 5} more\n"
+            content += "\n"
+        
+        if validation_report.get('integration_gaps'):
+            content += "### Integration Gaps\n\n"
+            for gap in validation_report['integration_gaps'][:5]:
+                content += f"- {gap.get('component', 'Unknown')}: {gap.get('reason', 'No reason')}\n"
+            if len(validation_report['integration_gaps']) > 5:
+                content += f"- ...and {len(validation_report['integration_gaps']) - 5} more\n"
+            content += "\n"
+        
+        content += """
+---
+*This document is automatically updated by planning and documentation phases.*
+"""
+        
+        try:
+            status_path.write_text(content)
+            self.logger.debug("  📊 Updated ARCHITECTURE_STATUS.md")
+        except Exception as e:
+            self.logger.error(f"  ❌ Failed to update ARCHITECTURE_STATUS.md: {e}")
+    
+    def log_architecture_change(self, change_type: str, details: Dict):
+        """
+        Log an architecture change to ARCHITECTURE_CHANGES.md.
+        
+        Args:
+            change_type: Type of change (added, removed, modified, moved)
+            details: Dict with change details
+        """
+        from datetime import datetime
+        
+        changes_path = self.project_dir / 'ARCHITECTURE_CHANGES.md'
+        
+        if not changes_path.exists():
+            self._create_architecture_documents()
+        
+        change_entry = f"""
+### {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - {change_type.upper()}
+
+"""
+        
+        if change_type == 'added':
+            change_entry += f"**Component Added**: {details.get('component', 'Unknown')}\n"
+            change_entry += f"- Path: `{details.get('path', 'Unknown')}`\n"
+            change_entry += f"- Classes: {details.get('classes', 0)}\n"
+            change_entry += f"- Functions: {details.get('functions', 0)}\n"
+        
+        elif change_type == 'removed':
+            change_entry += f"**Component Removed**: {details.get('component', 'Unknown')}\n"
+        
+        elif change_type == 'modified':
+            change_entry += f"**Component Modified**: {details.get('component', 'Unknown')}\n"
+            if details.get('classes_added'):
+                change_entry += f"- Classes added: {', '.join(details['classes_added'])}\n"
+            if details.get('classes_removed'):
+                change_entry += f"- Classes removed: {', '.join(details['classes_removed'])}\n"
+        
+        elif change_type == 'moved':
+            change_entry += f"**Component Moved**: {details.get('component', 'Unknown')}\n"
+            change_entry += f"- From: `{details.get('old_location', 'Unknown')}`\n"
+            change_entry += f"- To: `{details.get('new_location', 'Unknown')}`\n"
+        
+        change_entry += "\n"
+        
+        try:
+            current_content = changes_path.read_text(encoding='utf-8')
+            # Insert after "## Change History" header
+            insert_pos = current_content.find('## Change History\n\n')
+            if insert_pos != -1:
+                insert_pos += len('## Change History\n\n')
+                new_content = current_content[:insert_pos] + change_entry + current_content[insert_pos:]
+                changes_path.write_text(new_content, encoding='utf-8')
+                self.logger.debug(f"  📝 Logged architecture change: {change_type}")
+            else:
+                # Append if header not found
+                changes_path.write_text(current_content + change_entry, encoding='utf-8')
+        except Exception as e:
+            self.logger.error(f"  ❌ Failed to log architecture change: {e}")
+    
+    def add_architecture_alert(self, alert_type: str, message: str, severity: str = 'warning'):
+        """
+        Add a critical architecture alert to ARCHITECTURE_ALERTS.md.
+        
+        Args:
+            alert_type: Type of alert (drift, missing_component, etc.)
+            message: Alert message
+            severity: Severity level (critical, warning, info)
+        """
+        from datetime import datetime
+        
+        alerts_path = self.project_dir / 'ARCHITECTURE_ALERTS.md'
+        
+        if not alerts_path.exists():
+            self._create_architecture_documents()
+        
+        severity_emoji = {
+            'critical': '🚨',
+            'warning': '⚠️',
+            'info': 'ℹ️'
+        }.get(severity, '⚠️')
+        
+        alert_entry = f"""
+### {severity_emoji} {alert_type.upper()} - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+**Severity**: {severity.upper()}
+
+{message}
+
+---
+"""
+        
+        try:
+            current_content = alerts_path.read_text(encoding='utf-8')
+            # Insert after "## Active Alerts" header
+            insert_pos = current_content.find('## Active Alerts\n\n')
+            if insert_pos != -1:
+                insert_pos += len('## Active Alerts\n\n')
+                new_content = current_content[:insert_pos] + alert_entry + current_content[insert_pos:]
+                alerts_path.write_text(new_content, encoding='utf-8')
+                self.logger.warning(f"  🚨 Added architecture alert: {alert_type}")
+            else:
+                # Append if header not found
+                alerts_path.write_text(current_content + alert_entry, encoding='utf-8')
+        except Exception as e:
+            self.logger.error(f"  ❌ Failed to add architecture alert: {e}")

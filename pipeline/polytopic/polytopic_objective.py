@@ -18,7 +18,7 @@ class PolytopicObjective(Objective):
     """
     Enhanced objective with 7D dimensional profile.
     
-    The 7 dimensions represent different aspects of objective complexity:
+    The 8 dimensions represent different aspects of objective complexity:
     1. D1: Temporal - Time constraints, deadlines, urgency (0.0 = no urgency, 1.0 = critical deadline)
     2. D2: Functional - Capabilities required, feature complexity (0.0 = simple, 1.0 = highly complex)
     3. D3: Data - Data dependencies, information flow (0.0 = self-contained, 1.0 = many dependencies)
@@ -26,9 +26,10 @@ class PolytopicObjective(Objective):
     5. D5: Error - Error handling needs, risk level (0.0 = low risk, 1.0 = high risk)
     6. D6: Context - Contextual dependencies, environment (0.0 = context-free, 1.0 = context-heavy)
     7. D7: Integration - Cross-component dependencies (0.0 = isolated, 1.0 = highly integrated)
+    8. D8: Architecture - Architecture awareness/consistency (0.0 = no arch impact, 1.0 = critical arch change)
     """
     
-    # 7D Dimensional Profile
+    # 8D Dimensional Profile (added architecture dimension)
     dimensional_profile: Dict[str, float] = field(default_factory=lambda: {
         "temporal": 0.5,      # Time urgency
         "functional": 0.5,    # Feature complexity
@@ -36,11 +37,12 @@ class PolytopicObjective(Objective):
         "state": 0.5,         # State complexity
         "error": 0.5,         # Risk level
         "context": 0.5,       # Context dependencies
-        "integration": 0.5    # Integration complexity
+        "integration": 0.5,   # Integration complexity
+        "architecture": 0.5   # Architecture awareness/consistency
     })
     
     # Polytopic Properties
-    polytopic_position: Optional[List[float]] = None  # Position in 7D space
+    polytopic_position: Optional[List[float]] = None  # Position in 8D space
     adjacent_objectives: List[str] = field(default_factory=list)  # Connected objectives
     dimensional_velocity: Dict[str, float] = field(default_factory=dict)  # Rate of change per dimension
     
@@ -68,29 +70,34 @@ class PolytopicObjective(Objective):
             self.dimensional_velocity = {dim: 0.0 for dim in self.dimensional_profile.keys()}
     
     def _calculate_position(self) -> List[float]:
-        """Calculate position in 7D space from dimensional profile."""
+        """Calculate position in 8D space from dimensional profile."""
         return [self.dimensional_profile[dim] for dim in sorted(self.dimensional_profile.keys())]
     
     def _update_metrics(self) -> None:
         """Update intelligence metrics based on dimensional profile."""
-        # Complexity score: weighted average of functional, data, state, and integration
+        # Complexity score: weighted average of functional, data, state, integration, and architecture
         self.complexity_score = (
-            self.dimensional_profile["functional"] * 0.3 +
-            self.dimensional_profile["data"] * 0.2 +
-            self.dimensional_profile["state"] * 0.2 +
-            self.dimensional_profile["integration"] * 0.3
+            self.dimensional_profile["functional"] * 0.25 +
+            self.dimensional_profile["data"] * 0.15 +
+            self.dimensional_profile["state"] * 0.15 +
+            self.dimensional_profile["integration"] * 0.25 +
+            self.dimensional_profile["architecture"] * 0.20  # Architecture adds to complexity
         )
         
-        # Risk score: weighted average of error, temporal, and complexity
+        # Risk score: weighted average of error, temporal, architecture, and complexity
         self.risk_score = (
-            self.dimensional_profile["error"] * 0.5 +
-            self.dimensional_profile["temporal"] * 0.3 +
+            self.dimensional_profile["error"] * 0.4 +
+            self.dimensional_profile["temporal"] * 0.2 +
+            self.dimensional_profile["architecture"] * 0.2 +  # Architecture changes are risky
             self.complexity_score * 0.2
         )
         
-        # Readiness score: inverse of dependencies and context requirements
-        dependency_factor = 1.0 - (self.dimensional_profile["data"] * 0.5 + 
-                                   self.dimensional_profile["context"] * 0.5)
+        # Readiness score: inverse of dependencies, context, and architecture requirements
+        dependency_factor = 1.0 - (
+            self.dimensional_profile["data"] * 0.4 + 
+            self.dimensional_profile["context"] * 0.4 +
+            self.dimensional_profile["architecture"] * 0.2  # Architecture validation needed
+        )
         
         # Adjust for task completion
         completion_factor = len([t for t in self.tasks if t.endswith(" ✓")]) / max(len(self.tasks), 1)
@@ -130,18 +137,18 @@ class PolytopicObjective(Objective):
         self._update_metrics()
     
     def get_dimensional_vector(self) -> List[float]:
-        """Get the 7D dimensional vector in canonical order."""
+        """Get the 8D dimensional vector in canonical order."""
         return self.polytopic_position or self._calculate_position()
     
     def calculate_distance_to(self, other: 'PolytopicObjective') -> float:
         """
-        Calculate Euclidean distance to another objective in 7D space.
+        Calculate Euclidean distance to another objective in 8D space.
         
         Args:
             other: Another polytopic objective
             
         Returns:
-            Distance in 7D space (0.0 to sqrt(7))
+            Distance in 8D space (0.0 to sqrt(8))
         """
         v1 = self.get_dimensional_vector()
         v2 = other.get_dimensional_vector()

@@ -15,22 +15,24 @@ from .polytopic_objective import PolytopicObjective
 
 class DimensionalSpace:
     """
-    7D hyperdimensional space for objective navigation.
+    8D hyperdimensional space for objective navigation.
     
     Provides algorithms for:
-    - Positioning objectives in 7D space
+    - Positioning objectives in 8D space
     - Finding nearest neighbors
     - Calculating trajectories
     - Clustering similar objectives
     - Visualizing dimensional space
+    
+    The 8th dimension (architecture) enables architecture-aware objective selection.
     """
     
-    def __init__(self, dimensions: int = 7):
+    def __init__(self, dimensions: int = 8):
         """
         Initialize dimensional space.
         
         Args:
-            dimensions: Number of dimensions (default 7)
+            dimensions: Number of dimensions (default 8, including architecture)
         """
         self.dimensions = dimensions
         self.objectives: Dict[str, PolytopicObjective] = {}
@@ -94,19 +96,19 @@ class DimensionalSpace:
     
     def calculate_position(self, objective: PolytopicObjective) -> List[float]:
         """
-        Calculate position in 7D space.
+        Calculate position in 8D space.
         
         Args:
             objective: Objective to position
             
         Returns:
-            7D position vector
+            8D position vector
         """
         return objective.get_dimensional_vector()
     
     def find_nearest_neighbors(self, objective: PolytopicObjective, k: int = 3) -> List[Tuple[PolytopicObjective, float]]:
         """
-        Find k nearest objectives in 7D space.
+        Find k nearest objectives in 8D space.
         
         Args:
             objective: Reference objective
@@ -274,7 +276,7 @@ class DimensionalSpace:
             return {}
         
         dimension_names = ["temporal", "functional", "data", "state", 
-                          "error", "context", "integration"]
+                          "error", "context", "integration", "architecture"]
         
         stats = {}
         

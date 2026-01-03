@@ -1214,6 +1214,9 @@ class PhaseCoordinator:
             # Load current state
             state = self.state_manager.load()
             
+            # ARCHITECTURE VALIDATION: Check architecture before each iteration
+            self._validate_architecture_before_iteration(state)
+            
             # Determine next phase decision (NEVER returns None)
             phase_decision = self._determine_next_action(state)
             
@@ -2584,3 +2587,91 @@ class PhaseCoordinator:
             
         except Exception as e:
             self.logger.error(f"Failed to visualize dimensional space: {e}")
+    
+    # ========== ARCHITECTURE VALIDATION METHODS ==========
+    
+    def _validate_architecture_before_iteration(self, state):
+        """
+        Validate architecture before each iteration.
+        
+        If critical drift is detected, force planning phase.
+        
+        Args:
+            state: Current pipeline state
+        """
+        try:
+            # Only validate every 5 iterations to avoid overhead
+            if self._current_iteration % 5 != 0:
+                return
+            
+            # Get architecture manager from any phase
+            arch_manager = None
+            for phase in self.phases.values():
+                if hasattr(phase, 'arch_manager'):
+                    arch_manager = phase.arch_manager
+                    break
+            
+            if not arch_manager:
+                return
+            
+            # Quick validation check
+            validation = arch_manager.validate_architecture_consistency()
+            
+            # Store in state for phases to use
+            state.architecture_validation = validation
+            
+            # If critical drift, log warning
+            if validation.severity.value == 'critical':
+                self.logger.warning("  🚨 Critical architecture drift detected")
+                self.logger.warning(f"    Missing components: {len(validation.missing_components)}")
+                self.logger.warning(f"    Integration gaps: {len(validation.integration_gaps)}")
+                self.logger.info("    Planning phase will address architecture issues")
+        
+        except Exception as e:
+            # Don't fail iteration on validation error
+            self.logger.debug(f"  Architecture validation skipped: {e}")
+    
+    def should_transition_for_architecture(self, current_phase: str, state) -> Optional[str]:
+        """
+        Determine if architecture issues require phase transition.
+        
+        Rules:
+        - If CRITICAL drift detected → transition to planning
+        - If missing components → transition to planning
+        - If misplaced components → transition to refactoring
+        - If integration gaps → transition to refactoring
+        
+        Args:
+            current_phase: Current phase name
+            state: Pipeline state with architecture_validation
+            
+        Returns:
+            Next phase name or None
+        """
+        if not hasattr(state, 'architecture_validation'):
+            return None
+        
+        validation = state.architecture_validation
+        
+        # Critical drift → planning
+        if validation.severity.value == 'critical':
+            if current_phase != 'planning':
+                self.logger.info("  🏗️ Critical architecture drift → forcing planning phase")
+                return 'planning'
+        
+        # Missing components → planning
+        if validation.missing_components and current_phase != 'planning':
+            self.logger.info(f"  🏗️ {len(validation.missing_components)} missing components → planning phase")
+            return 'planning'
+        
+        # Misplaced components → refactoring
+        if validation.misplaced_components and current_phase not in ('planning', 'refactoring'):
+            self.logger.info(f"  🔧 {len(validation.misplaced_components)} misplaced components → refactoring phase")
+            return 'refactoring'
+        
+        # Many integration gaps → refactoring
+        if len(validation.integration_gaps) > 5 and current_phase not in ('planning', 'refactoring'):
+            self.logger.info(f"  🔧 {len(validation.integration_gaps)} integration gaps → refactoring phase")
+            return 'refactoring'
+        
+        return None
