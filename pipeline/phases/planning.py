@@ -1004,7 +1004,14 @@ Please address these architectural integration issues.
         try:
             arch_path = self.project_dir / 'ARCHITECTURE.md'
             
-            content = f"""# Architecture Document
+            # Read existing content if it exists to preserve it
+            existing_content = ""
+            if arch_path.exists():
+                existing_content = arch_path.read_text()
+            
+            # Only create new content if file is empty or too small (< 500 bytes)
+            if len(existing_content) < 500:
+                content = f"""# Architecture Document
 
 **Last Updated**: {self.format_timestamp()}
 
@@ -1012,6 +1019,19 @@ Please address these architectural integration issues.
 
 ### Code Quality Metrics
 """
+            else:
+                # Preserve existing content, just update the timestamp
+                import re
+                content = re.sub(
+                    r'\*\*Last Updated\*\*:.*',
+                    f'**Last Updated**: {self.format_timestamp()}',
+                    existing_content
+                )
+                # Append new analysis to the end
+                content += f"\n\n## Analysis Update - {self.format_timestamp()}\n\n"
+            
+            # Import integration point checker
+            from pipeline.analysis.integration_points import is_integration_point
             
             # Add complexity summary
             if analysis_results.get('complexity_issues'):
@@ -1022,30 +1042,45 @@ Please address these architectural integration issues.
                     for issue in high_complexity[:5]:
                         content += f"- `{issue['file']}::{issue['function']}` (complexity: {issue['complexity']})\n"
             
-            # Add dead code summary
+            # Add dead code summary (filtered for integration points)
             if analysis_results.get('dead_code'):
-                content += f"\n**Dead Code Items**: {len(analysis_results['dead_code'])}\n"
-                if analysis_results['dead_code']:
+                # Filter out integration points
+                real_dead_code = []
+                for issue in analysis_results['dead_code']:
+                    if not is_integration_point(issue['file'], issue['type'], issue['name']):
+                        real_dead_code.append(issue)
+                
+                if real_dead_code:
+                    content += f"\n**Dead Code Items**: {len(real_dead_code)}\n"
                     content += "\nUnused components:\n"
-                    for issue in analysis_results['dead_code'][:5]:
+                    for issue in real_dead_code[:5]:
                         content += f"- `{issue['file']}::{issue['name']}` ({issue['type']})\n"
             
-            # Add integration gaps summary
+            # Add integration gaps summary (filtered for known integration points)
             if analysis_results.get('integration_gaps'):
-                content += f"\n**Integration Gaps**: {len(analysis_results['integration_gaps'])}\n"
-                if analysis_results['integration_gaps']:
+                # Filter out known integration points
+                real_gaps = []
+                for issue in analysis_results['integration_gaps']:
+                    if not is_integration_point(issue['file'], 'class', issue.get('class', '')):
+                        real_gaps.append(issue)
+                
+                if real_gaps:
+                    content += f"\n**Integration Gaps**: {len(real_gaps)} (filtered from {len(analysis_results['integration_gaps'])} total)\n"
                     content += "\nUnintegrated components:\n"
-                    for issue in analysis_results['integration_gaps'][:5]:
+                    for issue in real_gaps[:5]:
                         content += f"- `{issue['file']}::{issue['class']}` (line {issue['line']})\n"
             
             content += "\n## Priority Issues\n\n"
             
-            # Prioritize issues
+            # Prioritize issues (filtered)
             all_issues = []
             if analysis_results.get('complexity_issues'):
                 all_issues.extend([('complexity', i) for i in analysis_results['complexity_issues'][:3]])
             if analysis_results.get('integration_gaps'):
-                all_issues.extend([('integration', i) for i in analysis_results['integration_gaps'][:3]])
+                # Only include real gaps, not integration points
+                real_gaps = [i for i in analysis_results['integration_gaps'] 
+                           if not is_integration_point(i['file'], 'class', i.get('class', ''))]
+                all_issues.extend([('integration', i) for i in real_gaps[:3]])
             
             if all_issues:
                 for issue_type, issue in all_issues:
@@ -1057,7 +1092,7 @@ Please address these architectural integration issues.
                 content += "No critical issues found.\n"
             
             arch_path.write_text(content)
-            self.logger.info("  📝 Updated ARCHITECTURE.md")
+            self.logger.info("  📝 Updated ARCHITECTURE.md (preserved existing content)")
             
         except Exception as e:
             self.logger.error(f"  ❌ Failed to update ARCHITECTURE: {e}")

@@ -177,9 +177,16 @@ class IntegrationGapFinder:
     
     def get_unused_classes(self) -> List[Tuple[str, str, int]]:
         """Get classes that are defined but never instantiated."""
+        from pipeline.analysis.integration_points import is_integration_point
+        
         unused = []
         for class_name, (file, line) in self.all_classes_defined.items():
             if class_name not in self.all_classes_instantiated:
+                # Skip if this is a known integration point
+                if is_integration_point(file, 'class', class_name):
+                    self.logger.info(f"Skipping integration point: {class_name} in {file}")
+                    continue
+                
                 # Skip base classes and abstract classes
                 if not class_name.startswith('Base') and not class_name.startswith('Abstract'):
                     unused.append((class_name, file, line))

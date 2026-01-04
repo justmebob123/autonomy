@@ -895,10 +895,18 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 self.logger.info(f"  🔍 Detecting dead code...")
                 dead_code_result = self.dead_code_detector.analyze(target=filepath)
                 
+                # Import integration point checker
+                from pipeline.analysis.integration_points import is_integration_point
+                
                 # Check for unused functions
                 if dead_code_result.unused_functions:
                     for func_name, file, line in dead_code_result.unused_functions:
                         if file == filepath or filepath in file:
+                            # Skip if this is a known integration point
+                            if is_integration_point(file, 'function', func_name):
+                                self.logger.info(f"  ⏭️  Skipping integration point: {func_name} in {file}")
+                                continue
+                            
                             issues.append({
                                 'type': 'dead_code',
                                 'severity': 'medium',
