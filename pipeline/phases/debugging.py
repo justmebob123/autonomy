@@ -402,6 +402,9 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         """
         Analyze buggy code to understand the issue better.
         
+        CRITICAL FIX: Only analyze the SPECIFIC file, not entire codebase.
+        Let AI use tools to explore further if needed.
+        
         Returns:
             Analysis summary as formatted string
         """
@@ -409,19 +412,19 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         analysis_parts.append("\n## Code Analysis\n")
         
         try:
-            # Complexity analysis
+            # Complexity analysis - ONLY for this specific file
             complexity_result = self.complexity_analyzer.analyze(filepath)
             if complexity_result.max_complexity >= 20:
-                analysis_parts.append(f"**High Complexity Detected:**")
+                analysis_parts.append(f"**High Complexity in {filepath}:**")
                 analysis_parts.append(f"- Maximum complexity: {complexity_result.max_complexity}")
                 analysis_parts.append(f"- Average complexity: {complexity_result.average_complexity:.1f}")
                 analysis_parts.append(f"- High complexity may be contributing to the bug\n")
             
-            # Call graph analysis (for understanding code flow)
+            # Call graph analysis - ONLY for this specific file
             try:
                 call_graph_result = self.call_graph.analyze(filepath)
                 if call_graph_result.total_functions > 0:
-                    analysis_parts.append(f"**Code Structure:**")
+                    analysis_parts.append(f"**Functions in {filepath}:**")
                     analysis_parts.append(f"- Total functions: {call_graph_result.total_functions}")
                     analysis_parts.append(f"- Call relationships: {call_graph_result.total_calls}")
                     if call_graph_result.orphaned_functions:
@@ -430,47 +433,20 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             except Exception as e:
                 self.logger.debug(f"  Call graph analysis failed: {e}")
             
-            # Integration gap analysis (for understanding missing connections)
-            try:
-                gap_result = self.gap_finder.analyze()
-                if gap_result.unused_classes or gap_result.missing_integrations:
-                    analysis_parts.append(f"**Integration Issues:**")
-                    if gap_result.unused_classes:
-                        analysis_parts.append(f"- Unused classes: {len(gap_result.unused_classes)}")
-                    if gap_result.missing_integrations:
-                        analysis_parts.append(f"- Missing integrations: {len(gap_result.missing_integrations)}")
-                    analysis_parts.append("")
-            except Exception as e:
-                self.logger.debug(f"  Integration gap analysis failed: {e}")
+            # DO NOT analyze entire codebase - that creates 1.47MB prompts!
+            # The AI has tools to explore further if needed:
+            # - read_file: Read other files
+            # - execute_command: Run grep, find, etc.
+            # - analyze_missing_import: Check imports
+            # - get_function_signature: Check function details
             
-            # Dead code detection (for identifying unused code)
-            try:
-                dead_code_result = self.dead_code_detector.analyze()
-                if dead_code_result.total_unused_functions > 0 or dead_code_result.total_unused_methods > 0:
-                    analysis_parts.append(f"**Dead Code Detected:**")
-                    if dead_code_result.total_unused_functions > 0:
-                        analysis_parts.append(f"- Unused functions: {dead_code_result.total_unused_functions}")
-                    if dead_code_result.total_unused_methods > 0:
-                        analysis_parts.append(f"- Unused methods: {dead_code_result.total_unused_methods}")
-                    if dead_code_result.total_unused_imports > 0:
-                        analysis_parts.append(f"- Unused imports: {dead_code_result.total_unused_imports}")
-                    analysis_parts.append("")
-            except Exception as e:
-                self.logger.debug(f"  Dead code detection failed: {e}")
-            
-            # Integration conflict detection (for identifying conflicts)
-            try:
-                conflict_result = self.conflict_detector.analyze()
-                if conflict_result.total_conflicts > 0:
-                    analysis_parts.append(f"**Integration Conflicts:**")
-                    analysis_parts.append(f"- Total conflicts: {conflict_result.total_conflicts}")
-                    if conflict_result.duplicate_definitions:
-                        analysis_parts.append(f"- Duplicate definitions: {len(conflict_result.duplicate_definitions)}")
-                    if conflict_result.circular_dependencies:
-                        analysis_parts.append(f"- Circular dependencies: {len(conflict_result.circular_dependencies)}")
-                    analysis_parts.append("")
-            except Exception as e:
-                self.logger.debug(f"  Conflict detection failed: {e}")
+            # Add note about available tools
+            analysis_parts.append("**Note:** Use available tools to explore further:")
+            analysis_parts.append("- `read_file`: Read other files")
+            analysis_parts.append("- `execute_command`: Search codebase (grep, find)")
+            analysis_parts.append("- `analyze_missing_import`: Check import issues")
+            analysis_parts.append("- `get_function_signature`: Check function details")
+            analysis_parts.append("")
                 
         except Exception as e:
             self.logger.warning(f"  Code analysis failed: {e}")
