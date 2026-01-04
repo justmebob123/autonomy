@@ -673,14 +673,26 @@ Recent architectural changes will be recorded here automatically by phases.
         missing_components = list(intended_components - current_components)
         extra_components = list(current_components - intended_components)
         
-        # Check integration gaps
+        # Check integration gaps (filter out known integration points)
+        from pipeline.analysis.integration_points import is_integration_point
+        
         for module, status in current.integration_status.items():
             if not status.is_integrated:
-                integration_gaps.append(IntegrationGap(
-                    component=module,
-                    missing_integration="Component not integrated",
-                    reason=f"Component has {len(status.unused_classes)} unused classes"
-                ))
+                # Filter out known integration points from unused classes
+                real_unused = []
+                for cls in status.unused_classes:
+                    if not is_integration_point(module, 'class', cls):
+                        real_unused.append(cls)
+                
+                # Only report as gap if there are real unused classes (not integration points)
+                if real_unused:
+                    integration_gaps.append(IntegrationGap(
+                        component=module,
+                        missing_integration="Component not integrated",
+                        reason=f"Component has {len(real_unused)} unused classes"
+                    ))
+                else:
+                    self.logger.info(f"  ⏭️  Skipping integration point module: {module}")
         
         # Determine severity
         severity = ValidationSeverity.INFO

@@ -21,6 +21,88 @@ INTEGRATION_POINTS = {
         'reason': 'Service endpoint for recommendations - will be integrated with planning phase'
     },
     
+    # API endpoints waiting for integration
+    'api/ollama_servers.py': {
+        'classes': ['OllamaServersAPI'],
+        'reason': 'API endpoint class - will be registered with Flask app during integration'
+    },
+    'api/charts.py': {
+        'classes': ['ChartsAPI'],
+        'reason': 'API endpoint class - will be registered with Flask app during integration'
+    },
+    'api/reports.py': {
+        'classes': ['ReportsAPI'],
+        'reason': 'API endpoint class - will be registered with Flask app during integration'
+    },
+    
+    # Models waiting for integration
+    'models/prompt.py': {
+        'classes': ['Prompt'],
+        'reason': 'Data model - will be instantiated by services during integration'
+    },
+    'models/ollama_server.py': {
+        'classes': ['OllamaServer'],
+        'reason': 'Data model - will be instantiated by services during integration'
+    },
+    
+    # Core components waiting for integration
+    'core/config.py': {
+        'classes': ['ConfigLoader'],
+        'reason': 'Configuration loader - will be instantiated at application startup'
+    },
+    
+    # Monitors waiting for integration
+    'monitors/base.py': {
+        'classes': ['BaseMonitor'],
+        'reason': 'Abstract base class - not meant to be instantiated directly'
+    },
+    'monitors/system.py': {
+        'classes': ['SystemMonitor'],
+        'reason': 'Monitor class - will be instantiated by monitoring service during integration'
+    },
+    'monitors/network.py': {
+        'classes': ['NetworkMonitor'],
+        'reason': 'Monitor class - will be instantiated by monitoring service during integration'
+    },
+    
+    # Handlers waiting for integration
+    'handlers/alerts.py': {
+        'classes': ['AlertHandler'],
+        'reason': 'Handler class - will be instantiated by alert service during integration'
+    },
+    
+    # Analysis tools waiting for integration
+    'analysis/semantic_analysis.py': {
+        'classes': ['SemanticAnalysis'],
+        'reason': 'Analysis tool - will be used by planning phase during integration'
+    },
+    'analysis/dependency_graph.py': {
+        'classes': ['DependencyGraphBuilder'],
+        'reason': 'Analysis tool - will be used by planning phase during integration'
+    },
+    
+    # Planning tools waiting for integration
+    'planning/timeline_generator.py': {
+        'classes': ['TimelineGenerator'],
+        'reason': 'Planning tool - will be used by project planning phase during integration'
+    },
+    'planning/resource_estimator.py': {
+        'classes': ['ResourceEstimator'],
+        'reason': 'Planning tool - will be used by project planning phase during integration'
+    },
+    
+    # Tools waiting for integration
+    'tools/technology_research.py': {
+        'classes': ['TechnologyResearch'],
+        'reason': 'Research tool - will be used by investigation phase during integration'
+    },
+    
+    # Services waiting for integration
+    'services/progress_service.py': {
+        'classes': ['ProgressService'],
+        'reason': 'Service class - will be instantiated by application during integration'
+    },
+    
     # Add more integration points as they are identified
 }
 
