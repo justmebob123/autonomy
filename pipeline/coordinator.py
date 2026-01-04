@@ -811,17 +811,15 @@ class PhaseCoordinator:
             # Start fresh - DELETE old state completely
             self.logger.info("  Starting fresh (deleting all saved state)...")
             
-            # Delete state file
-            if self.state_manager.state_file.exists():
-                self.state_manager.state_file.unlink()
-                self.logger.info("  ✓ Deleted state file")
-            
             # Delete entire .pipeline directory to ensure clean start
             pipeline_dir = self.project_dir / ".pipeline"
             if pipeline_dir.exists():
                 import shutil
                 shutil.rmtree(pipeline_dir)
                 self.logger.info("  ✓ Deleted .pipeline directory")
+            
+            # Recreate .pipeline directory for new state
+            pipeline_dir.mkdir(parents=True, exist_ok=True)
             
             # Create fresh state
             state = PipelineState()
