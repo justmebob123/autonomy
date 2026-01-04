@@ -145,7 +145,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             files = state.get_files_needing_qa()
             if not files:
                 # Increment no-update counter
-                count = state_manager.increment_no_update_count(state, self.phase_name)
+                count = self.state_manager.increment_no_update_count(state, self.phase_name)
                 self.logger.info(f"  No files need QA review (count: {count}/3)")
                 
                 # After 2 "no files", suggest moving on
@@ -165,7 +165,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             filepath = files[0]
             
             # If we got a file to review, reset counter (making progress)
-            state_manager.reset_no_update_count(state, self.phase_name)
+            self.state_manager.reset_no_update_count(state, self.phase_name)
         
         # Normalize filepath
         filepath = filepath.lstrip('/').replace('\\', '/')

@@ -213,13 +213,13 @@ class PromptDesignPhase(LoopDetectionMixin, BasePhase):
                 message="Loop detected - stopping to prevent infinite cycle"
             )
         
-        # Track tool calls for loop detection
-        self.track_tool_calls(tool_calls, results)
-        
         # Process tool calls
         from ..handlers import ToolCallHandler
         handler = ToolCallHandler(self.project_dir, verbose=self.config.verbose, tool_registry=self.tool_registry)
         results = handler.process_tool_calls(tool_calls)
+        
+        # Track tool calls for loop detection
+        self.track_tool_calls(tool_calls, results)
         
         # Check if prompt was created
         created_files = [r.get("filepath") for r in results if r.get("success")]

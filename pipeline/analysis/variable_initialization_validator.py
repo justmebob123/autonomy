@@ -59,15 +59,24 @@ class VariableInitializationValidator(ast.NodeVisitor):
         
         self.current_function = old_function
     
+    def visit_Lambda(self, node):
+        """Visit lambda (parameters are definitions in lambda scope)."""
+        # Lambda parameters should not be tracked as usages
+        if self.current_function:
+            for arg in node.args.args:
+                # Mark lambda parameters as defined
+                if arg.arg not in self.function_vars[self.current_function]['definitions']:
+                    self.function_vars[self.current_function]['definitions'][arg.arg] = []
+                self.function_vars[self.current_function]['definitions'][arg.arg].append(node.lineno)
+        
+        self.generic_visit(node)
+    
     def visit_Assign(self, node):
         """Visit assignment (variable definition)."""
         if self.current_function:
             for target in node.targets:
-                if isinstance(target, ast.Name):
-                    var_name = target.id
-                    if var_name not in self.function_vars[self.current_function]['definitions']:
-                        self.function_vars[self.current_function]['definitions'][var_name] = []
-                    self.function_vars[self.current_function]['definitions'][var_name].append(node.lineno)
+                # Handle tuple unpacking: a, b = func()
+                self._track_target_as_definition(target, node.lineno)
         
         self.generic_visit(node)
     
@@ -82,22 +91,54 @@ class VariableInitializationValidator(ast.NodeVisitor):
         
         self.generic_visit(node)
     
+    def _track_target_as_definition(self, target, lineno):
+        """Track a target (from for loop, comprehension, etc.) as a definition."""
+        if isinstance(target, ast.Name):
+            var_name = target.id
+            if var_name not in self.function_vars[self.current_function]['definitions']:
+                self.function_vars[self.current_function]['definitions'][var_name] = []
+            self.function_vars[self.current_function]['definitions'][var_name].append(lineno)
+        elif isinstance(target, ast.Tuple):
+            for elt in target.elts:
+                if isinstance(elt, ast.Name):
+                    var_name = elt.id
+                    if var_name not in self.function_vars[self.current_function]['definitions']:
+                        self.function_vars[self.current_function]['definitions'][var_name] = []
+                    self.function_vars[self.current_function]['definitions'][var_name].append(lineno)
+    
     def visit_For(self, node):
         """Visit for loop (loop variable is a definition)."""
         if self.current_function:
-            if isinstance(node.target, ast.Name):
-                var_name = node.target.id
-                if var_name not in self.function_vars[self.current_function]['definitions']:
-                    self.function_vars[self.current_function]['definitions'][var_name] = []
-                self.function_vars[self.current_function]['definitions'][var_name].append(node.lineno)
-            elif isinstance(node.target, ast.Tuple):
-                for elt in node.target.elts:
-                    if isinstance(elt, ast.Name):
-                        var_name = elt.id
-                        if var_name not in self.function_vars[self.current_function]['definitions']:
-                            self.function_vars[self.current_function]['definitions'][var_name] = []
-                        self.function_vars[self.current_function]['definitions'][var_name].append(node.lineno)
+            self._track_target_as_definition(node.target, node.lineno)
         
+        self.generic_visit(node)
+    
+    def visit_ListComp(self, node):
+        """Visit list comprehension."""
+        if self.current_function:
+            for generator in node.generators:
+                self._track_target_as_definition(generator.target, node.lineno)
+        self.generic_visit(node)
+    
+    def visit_DictComp(self, node):
+        """Visit dict comprehension."""
+        if self.current_function:
+            for generator in node.generators:
+                self._track_target_as_definition(generator.target, node.lineno)
+        self.generic_visit(node)
+    
+    def visit_SetComp(self, node):
+        """Visit set comprehension."""
+        if self.current_function:
+            for generator in node.generators:
+                self._track_target_as_definition(generator.target, node.lineno)
+        self.generic_visit(node)
+    
+    def visit_GeneratorExp(self, node):
+        """Visit generator expression."""
+        if self.current_function:
+            for generator in node.generators:
+                self._track_target_as_definition(generator.target, node.lineno)
         self.generic_visit(node)
     
     def visit_With(self, node):
