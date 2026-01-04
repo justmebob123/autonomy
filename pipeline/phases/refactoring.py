@@ -71,6 +71,8 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         )
         from ..analysis.dead_code import DeadCodeDetector
         from ..analysis.integration_conflicts import IntegrationConflictDetector
+        from ..analysis.complexity import ComplexityAnalyzer
+        from ..analysis.integration_gaps import IntegrationGapFinder
         
         self.duplicate_detector = DuplicateDetector(str(self.project_dir), self.logger)
         self.file_comparator = FileComparator(str(self.project_dir), self.logger)
@@ -78,6 +80,10 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         self.architecture_analyzer = RefactoringArchitectureAnalyzer(str(self.project_dir), self.logger)
         self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger, self.architecture_config)
         self.conflict_detector = IntegrationConflictDetector(str(self.project_dir), self.logger)
+        
+        # ADDED: Tools for handling high_complexity and integration_gap issues
+        self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
+        self.gap_finder = IntegrationGapFinder(str(self.project_dir), self.logger)
         
         # CONTEXT BUILDER - Provides full context for informed refactoring decisions
         self.context_builder = RefactoringContextBuilder(self.project_dir, self.logger)

@@ -1074,18 +1074,37 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         if not issues:
             return
         
-        # Separate issues by type
-        bug_issues = []
-        architectural_issues = []
+        # Classify issues by resolution requirements
+        # Based on comprehensive polytopic analysis and phase capabilities
+        bug_issues = []              # → Debugging (NEEDS_FIXES)
+        refactoring_issues = []      # → Refactoring (PENDING)
+        planning_issues = []         # → Planning (PENDING)
+        investigation_issues = []    # → Investigation (PENDING)
         
         for issue in issues:
             issue_type = issue.get('type', 'other')
-            if issue_type in ['dead_code', 'integration_gap', 'incomplete']:
-                architectural_issues.append(issue)
-            else:
+            
+            # DEBUGGING: Actual bugs that need immediate fixing
+            if issue_type in ['syntax_error', 'import_error', 'type_error', 'logic_error', 'runtime_error']:
                 bug_issues.append(issue)
+            
+            # REFACTORING: Code structure issues (has DuplicateCodeDetector, high integration)
+            elif issue_type in ['dead_code', 'dead_code_review', 'high_complexity', 'duplicate_code', 'integration_gap', 'incomplete']:
+                refactoring_issues.append(issue)
+            
+            # PLANNING: Architectural decisions (has ArchitectureManager, IntegrationConflictDetector)
+            elif issue_type in ['integration_conflict', 'architecture_violation', 'missing_functionality']:
+                planning_issues.append(issue)
+            
+            # INVESTIGATION: Deep analysis needed (has all analysis tools, highest context)
+            elif issue_type in ['performance', 'security']:
+                investigation_issues.append(issue)
+            
+            # Default: Low priority architectural review
+            else:
+                refactoring_issues.append(issue)
         
-        self.logger.info(f"  🔧 Creating tasks: {len(bug_issues)} bugs (debugging), {len(architectural_issues)} architectural (planning/refactoring)")
+        self.logger.info(f"  🔧 Creating tasks: {len(bug_issues)} bugs (debugging), {len(refactoring_issues)} refactoring, {len(planning_issues)} planning, {len(investigation_issues)} investigation")
         
         # Process bug issues (go to debugging)
         for idx, issue in enumerate(bug_issues):
@@ -1131,49 +1150,101 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             state.tasks[task_id] = task
             self.logger.info(f"    ✅ Created NEEDS_FIXES task {task_id} (priority {priority})")
         
-        # Process architectural issues (go to planning/refactoring)
-        for idx, issue in enumerate(architectural_issues):
-            # Create unique task ID
-            task_id = f"qa_arch_{filepath.replace('/', '_')}_{issue.get('line_number', idx)}"
+        # Process refactoring issues (go to refactoring phase)
+        for idx, issue in enumerate(refactoring_issues):
+            task_id = f"qa_refactor_{filepath.replace('/', '_')}_{issue.get('line_number', idx)}"
             
-            # Check if task already exists
             if task_id in state.tasks:
                 self.logger.debug(f"    ⏭️  Task {task_id} already exists, skipping")
                 continue
             
-            # Architectural issues are lower priority
-            priority = 50
-            
-            # Create task with PENDING status (goes to planning/refactoring)
             from ..state.manager import TaskState
             task = TaskState(
                 task_id=task_id,
-                description=f"Architectural review for {filepath}: {issue.get('description', 'No description')}",
+                description=f"Refactoring needed for {filepath}: {issue.get('description', 'No description')}",
                 target_file=filepath,
-                status=TaskStatus.PENDING,  # NOT NEEDS_FIXES
-                priority=priority,
+                status=TaskStatus.PENDING,
+                priority=50,
                 created_at=datetime.now().isoformat()
             )
             
-            # Store issue data in task
             task.metadata = {
                 'issue_type': issue.get('type'),
                 'line_number': issue.get('line_number'),
                 'severity': issue.get('severity', 'low'),
                 'description': issue.get('description'),
                 'source': 'qa_phase',
-                'requires_architectural_review': True  # Flag for planning/refactoring
+                'requires_refactoring': True  # Route to refactoring phase
             }
             
-            # Add to state
             state.tasks[task_id] = task
-            self.logger.info(f"    ✅ Created PENDING task {task_id} for architectural review")
+            self.logger.info(f"    ✅ Created PENDING task {task_id} for refactoring")
+        
+        # Process planning issues (go to planning phase)
+        for idx, issue in enumerate(planning_issues):
+            task_id = f"qa_plan_{filepath.replace('/', '_')}_{issue.get('line_number', idx)}"
+            
+            if task_id in state.tasks:
+                self.logger.debug(f"    ⏭️  Task {task_id} already exists, skipping")
+                continue
+            
+            from ..state.manager import TaskState
+            task = TaskState(
+                task_id=task_id,
+                description=f"Planning needed for {filepath}: {issue.get('description', 'No description')}",
+                target_file=filepath,
+                status=TaskStatus.PENDING,
+                priority=40,  # Higher priority than refactoring
+                created_at=datetime.now().isoformat()
+            )
+            
+            task.metadata = {
+                'issue_type': issue.get('type'),
+                'line_number': issue.get('line_number'),
+                'severity': issue.get('severity', 'medium'),
+                'description': issue.get('description'),
+                'source': 'qa_phase',
+                'requires_planning': True  # Route to planning phase
+            }
+            
+            state.tasks[task_id] = task
+            self.logger.info(f"    ✅ Created PENDING task {task_id} for planning")
+        
+        # Process investigation issues (go to investigation phase)
+        for idx, issue in enumerate(investigation_issues):
+            task_id = f"qa_investigate_{filepath.replace('/', '_')}_{issue.get('line_number', idx)}"
+            
+            if task_id in state.tasks:
+                self.logger.debug(f"    ⏭️  Task {task_id} already exists, skipping")
+                continue
+            
+            from ..state.manager import TaskState
+            task = TaskState(
+                task_id=task_id,
+                description=f"Investigation needed for {filepath}: {issue.get('description', 'No description')}",
+                target_file=filepath,
+                status=TaskStatus.PENDING,
+                priority=30,  # Higher priority - performance/security
+                created_at=datetime.now().isoformat()
+            )
+            
+            task.metadata = {
+                'issue_type': issue.get('type'),
+                'line_number': issue.get('line_number'),
+                'severity': issue.get('severity', 'high'),
+                'description': issue.get('description'),
+                'source': 'qa_phase',
+                'requires_investigation': True  # Route to investigation phase
+            }
+            
+            state.tasks[task_id] = task
+            self.logger.info(f"    ✅ Created PENDING task {task_id} for investigation")
         
         # Save state immediately so coordinator sees the tasks
         from ..state.manager import StateManager
         state_manager = StateManager(self.project_dir)
         state_manager.save(state)
-        self.logger.info(f"  💾 Saved state: {len(bug_issues)} NEEDS_FIXES tasks, {len(architectural_issues)} PENDING tasks")
+        self.logger.info(f"  💾 Saved state: {len(bug_issues)} debugging, {len(refactoring_issues)} refactoring, {len(planning_issues)} planning, {len(investigation_issues)} investigation")
     
     def _send_phase_messages(self, filepath: str, issues_found: List[Dict]):
         """Send messages to other phases' READ documents"""
