@@ -48,11 +48,11 @@ class ArchitectureValidator:
         
         # Polytopic Integration
         self.message_bus = MessageBus()
-        self.pattern_recognition = PatternRecognitionSystem(self.project_root)
+        self.pattern_recognition = PatternRecognitionSystem(self.project_dir)
         self.correlation_engine = CorrelationEngine()
         self.optimizer = OptimizationEngine()
         self.adaptive_prompts = AdaptivePromptSystem(
-            self.project_root,
+            self.project_dir,
             self.pattern_recognition
         )
         self.dimensional_space = DimensionalSpace()
