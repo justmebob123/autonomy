@@ -747,10 +747,10 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             # Get guidance from AI specialist
             guidance_result = user_proxy.get_guidance(
                 error_info={
-                    'type': error_type,
-                    'message': error_message,
+                    'type': issue.get('type', 'unknown'),
+                    'message': issue.get('description', 'No description'),
                     'file': filepath,
-                    'line': line_number
+                    'line': issue.get('line', 0)
                 },
                 loop_info={
                     'type': intervention.get('type', 'Unknown'),
@@ -1040,10 +1040,10 @@ Remember:
             # Get guidance from AI specialist
             guidance_result = user_proxy.get_guidance(
                 error_info={
-                    'type': error_type,
-                    'message': error_message,
+                    'type': issue.get('type', 'unknown'),
+                    'message': issue.get('description', 'No description'),
                     'file': filepath,
-                    'line': line_number
+                    'line': issue.get('line', 0)
                 },
                 loop_info={
                     'type': intervention.get('type', 'Unknown'),
@@ -1577,7 +1577,7 @@ Apply the fix immediately.""",
                     # Get guidance from AI specialist
                     guidance_result = user_proxy.get_guidance(
                         error_info={
-                            'type': error_type,
+                            'type': issue.get('type', 'unknown'),
                             'message': issue.get('message', 'Unknown error'),
                             'file': filepath,
                             'line': issue.get('line_number')
