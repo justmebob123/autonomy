@@ -388,8 +388,19 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         if analysis_context:
             parts.append(analysis_context)
         
-        # Current code
-        parts.append(f"\nCurrent code:\n```\n{content}\n```")
+        # Current code or summary
+        if content.startswith("[File is"):
+            # File too large - provide guidance
+            parts.append(f"\n{content}")
+            parts.append("\n## Available Tools")
+            parts.append("- read_file(filepath) - Read specific file")
+            parts.append("- execute_command(cmd) - Run shell commands to examine file")
+            parts.append("- analyze_complexity(project_dir, filepath) - Check complexity")
+            parts.append("- analyze_call_graph(project_dir, filepath) - Check function calls")
+            parts.append("- detect_dead_code(project_dir, filepath) - Check for unused code")
+        else:
+            # File small enough to include
+            parts.append(f"\nCurrent code:\n```\n{content}\n```")
         
         # Instructions
         parts.append("\nPlease fix the issue using the appropriate tools.")
@@ -646,9 +657,20 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                 files_modified=[],
             )
         
+        # CRITICAL: Don't include massive files in prompt
+        # If file > 50KB, provide summary instead
+        if len(content) > 50000:
+            content_summary = f"[File is {len(content)} bytes - too large to include]\n"
+            content_summary += f"Use read_file('{filepath}') to examine the file.\n"
+            content_summary += f"Use execute_command('head -50 {filepath}') to see first 50 lines.\n"
+            content_summary += f"Use execute_command('grep -n <pattern> {filepath}') to search."
+            content_for_prompt = content_summary
+        else:
+            content_for_prompt = content
+        
         # Build debugging message with minimal context
         # AI will use tools to analyze on-demand if needed
-        user_message = self._build_debug_message(filepath, content, issue, "")
+        user_message = self._build_debug_message(filepath, content_for_prompt, issue, "")
         
         # Log prompt in verbose mode
         if hasattr(self, 'config') and self.config.verbose:
