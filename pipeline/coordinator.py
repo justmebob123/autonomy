@@ -1956,10 +1956,15 @@ class PhaseCoordinator:
             project_phase = state.get_project_phase()
             completion = state.calculate_completion_percentage()
             
-            # Foundation phase (0-25%): Defer QA, continue building codebase
+            # Foundation phase (0-25%): Run QA if we have 10+ tasks OR if we're stuck in planning loop
             if project_phase == 'foundation':
-                self.logger.info(f"  📊 Foundation phase ({completion:.1f}%), deferring QA - continue building codebase")
-                # Don't return - fall through to planning
+                # Check if we're stuck in planning loop (no pending tasks, only QA tasks)
+                if not pending and len(qa_pending) >= 10:
+                    self.logger.info(f"  📊 Foundation phase ({completion:.1f}%), running QA to break planning loop ({len(qa_pending)} tasks)")
+                    return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'Breaking planning loop with QA: {len(qa_pending)} tasks ready'}
+                else:
+                    self.logger.info(f"  📊 Foundation phase ({completion:.1f}%), deferring QA - continue building codebase ({len(qa_pending)} tasks waiting)")
+                    # Don't return - fall through to planning
             
             # Integration phase (25-50%): Batch QA (wait for 5+ tasks)
             elif project_phase == 'integration':
@@ -2057,11 +2062,17 @@ class PhaseCoordinator:
         
         if current_phase == 'planning':
             state._consecutive_planning_count += 1
-            if state._consecutive_planning_count >= 3:
+            if state._consecutive_planning_count >= 2:  # Changed from 3 to 2 - be more aggressive
                 self.logger.warning(f"  ⚠️ Planning loop detected ({state._consecutive_planning_count} consecutive iterations)")
                 state._consecutive_planning_count = 0
-                # Force move to documentation to break loop
-                return {'phase': 'documentation', 'reason': 'Breaking planning loop'}
+                
+                # If we have QA tasks waiting, run QA to break the loop
+                if qa_pending:
+                    self.logger.info(f"  🔧 Breaking planning loop by running QA ({len(qa_pending)} tasks)")
+                    return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'Breaking planning loop with QA: {len(qa_pending)} tasks'}
+                else:
+                    # Force move to documentation to break loop
+                    return {'phase': 'documentation', 'reason': 'Breaking planning loop'}
         else:
             state._consecutive_planning_count = 0
         
