@@ -657,20 +657,8 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                 files_modified=[],
             )
         
-        # CRITICAL: Don't include massive files in prompt
-        # If file > 50KB, provide summary instead
-        if len(content) > 50000:
-            content_summary = f"[File is {len(content)} bytes - too large to include]\n"
-            content_summary += f"Use read_file('{filepath}') to examine the file.\n"
-            content_summary += f"Use execute_command('head -50 {filepath}') to see first 50 lines.\n"
-            content_summary += f"Use execute_command('grep -n <pattern> {filepath}') to search."
-            content_for_prompt = content_summary
-        else:
-            content_for_prompt = content
-        
-        # Build debugging message with minimal context
-        # AI will use tools to analyze on-demand if needed
-        user_message = self._build_debug_message(filepath, content_for_prompt, issue, "")
+        # Build debugging message with full file content
+        user_message = self._build_debug_message(filepath, content, issue, "")
         
         # Log prompt in verbose mode
         if hasattr(self, 'config') and self.config.verbose:
