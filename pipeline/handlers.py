@@ -221,6 +221,12 @@ class ToolCallHandler:
             "find_all_related_files": self._handle_find_all_related_files,
             "analyze_file_purpose": self._handle_analyze_file_purpose,
             "compare_multiple_files": self._handle_compare_multiple_files,
+            # On-demand analysis tools (NEW - flexible scope)
+            "analyze_complexity": self._handle_analyze_complexity_on_demand,
+            "analyze_call_graph": self._handle_analyze_call_graph_on_demand,
+            "detect_dead_code": self._handle_detect_dead_code_on_demand,
+            "find_integration_gaps": self._handle_find_integration_gaps_on_demand,
+            "find_integration_conflicts": self._handle_find_integration_conflicts_on_demand,
         }
         
         # Register custom tools from registry (Integration Fix #1)
@@ -5606,6 +5612,126 @@ class ToolCallHandler:
             self.logger.error(f"Compare multiple files failed: {e}")
             return {
                 "tool": "compare_multiple_files",
+                "success": False,
+                "error": str(e)
+            }
+    # =========================================================================
+    # ON-DEMAND ANALYSIS TOOL HANDLERS
+    # =========================================================================
+    
+    def _handle_analyze_complexity_on_demand(self, args: Dict) -> Dict:
+        """Handle on-demand complexity analysis with flexible scope"""
+        try:
+            from .tool_modules.analysis_tools import analyze_complexity
+            
+            project_dir = str(self.project_dir)
+            filepath = args.get('filepath')
+            directory = args.get('directory')
+            
+            result = analyze_complexity(project_dir, filepath, directory)
+            
+            return {
+                "tool": "analyze_complexity",
+                "success": True,
+                "result": result
+            }
+        except Exception as e:
+            self.logger.error(f"Complexity analysis failed: {e}")
+            return {
+                "tool": "analyze_complexity",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_analyze_call_graph_on_demand(self, args: Dict) -> Dict:
+        """Handle on-demand call graph analysis with flexible scope"""
+        try:
+            from .tool_modules.analysis_tools import analyze_call_graph
+            
+            project_dir = str(self.project_dir)
+            filepath = args.get('filepath')
+            directory = args.get('directory')
+            
+            result = analyze_call_graph(project_dir, filepath, directory)
+            
+            return {
+                "tool": "analyze_call_graph",
+                "success": True,
+                "result": result
+            }
+        except Exception as e:
+            self.logger.error(f"Call graph analysis failed: {e}")
+            return {
+                "tool": "analyze_call_graph",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_detect_dead_code_on_demand(self, args: Dict) -> Dict:
+        """Handle on-demand dead code detection with flexible scope"""
+        try:
+            from .tool_modules.analysis_tools import detect_dead_code
+            
+            project_dir = str(self.project_dir)
+            filepath = args.get('filepath')
+            directory = args.get('directory')
+            
+            result = detect_dead_code(project_dir, filepath, directory)
+            
+            return {
+                "tool": "detect_dead_code",
+                "success": True,
+                "result": result
+            }
+        except Exception as e:
+            self.logger.error(f"Dead code detection failed: {e}")
+            return {
+                "tool": "detect_dead_code",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_find_integration_gaps_on_demand(self, args: Dict) -> Dict:
+        """Handle on-demand integration gap finding with flexible scope"""
+        try:
+            from .tool_modules.analysis_tools import find_integration_gaps
+            
+            project_dir = str(self.project_dir)
+            directory = args.get('directory')
+            
+            result = find_integration_gaps(project_dir, directory)
+            
+            return {
+                "tool": "find_integration_gaps",
+                "success": True,
+                "result": result
+            }
+        except Exception as e:
+            self.logger.error(f"Integration gap finding failed: {e}")
+            return {
+                "tool": "find_integration_gaps",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_find_integration_conflicts_on_demand(self, args: Dict) -> Dict:
+        """Handle on-demand integration conflict detection"""
+        try:
+            from .tool_modules.analysis_tools import find_integration_conflicts
+            
+            project_dir = str(self.project_dir)
+            
+            result = find_integration_conflicts(project_dir)
+            
+            return {
+                "tool": "find_integration_conflicts",
+                "success": True,
+                "result": result
+            }
+        except Exception as e:
+            self.logger.error(f"Integration conflict detection failed: {e}")
+            return {
+                "tool": "find_integration_conflicts",
                 "success": False,
                 "error": str(e)
             }

@@ -16,6 +16,7 @@ from .tool_modules.refactoring_tools import TOOLS_REFACTORING
 from .tool_modules.validation_tools import TOOLS_VALIDATION
 from .tool_modules.file_operations import TOOLS_FILE_OPERATIONS, TOOLS_IMPORT_OPERATIONS
 from .tool_modules.codebase_analysis_tools import TOOLS_CODEBASE_ANALYSIS
+from .tool_modules.analysis_tools import ANALYSIS_TOOLS
 
 
 # =============================================================================
@@ -959,6 +960,21 @@ def get_tools_for_phase(phase: str, tool_registry=None) -> List[Dict]:
     
     # Get base tools for this phase
     tools = phase_tools.get(phase, PIPELINE_TOOLS)
+    
+    # Add on-demand analysis tools based on phase
+    # Debugging: File-level analysis only
+    if phase in ["debugging", "debug"]:
+        analysis_tools = [t for t in ANALYSIS_TOOLS 
+                         if t["function"]["name"] in ["analyze_complexity", "analyze_call_graph", "detect_dead_code"]]
+        tools = tools + analysis_tools
+    # Refactoring: Directory-level analysis
+    elif phase == "refactoring":
+        analysis_tools = [t for t in ANALYSIS_TOOLS 
+                         if t["function"]["name"] != "find_integration_conflicts"]
+        tools = tools + analysis_tools
+    # Planning/Investigation: All analysis tools
+    elif phase in ["planning", "project_planning", "investigation"]:
+        tools = tools + ANALYSIS_TOOLS
     
     # Add monitoring tools to all phases for resource awareness
     tools = tools + TOOLS_MONITORING
