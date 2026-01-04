@@ -57,7 +57,8 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         self.threads_dir = self.project_dir / "conversation_threads"
         self.threads_dir.mkdir(exist_ok=True)
         
-        # Loop detection is initialized by LoopDetectionMixin
+        # CRITICAL FIX: Initialize loop detection from LoopDetectionMixin
+        self.init_loop_detection()
         
         # ARCHITECTURE CONFIG - Load project architecture configuration
         from ..architecture_parser import get_architecture_config
