@@ -233,6 +233,10 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         # Build simple planning message with analysis context
         user_message = self._build_planning_message(master_plan, existing_files, analysis_context)
         
+        # Log prompt size for monitoring
+        if hasattr(self, 'config') and self.config.verbose:
+            self.logger.info(f"  Planning prompt length: {len(user_message)} chars")
+        
         # Get tools for planning phase
         tools = get_tools_for_phase("planning")
         
