@@ -134,7 +134,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             if not filepath or filepath.strip() == "":
                 self.logger.warning(f"  ⚠️ Task {task.task_id} has empty target_file, marking as SKIPPED")
                 task.status = TaskStatus.SKIPPED
-                state_manager.save(state)
+                self.state_manager.save(state)
                 return PhaseResult(
                     success=True,
                     phase=self.phase_name,

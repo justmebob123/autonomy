@@ -1340,7 +1340,7 @@ Remember:
                 context={
                     'filepath': filepath,
                     'conversation_history': thread.get_conversation_history(),
-                    'attempt': attempt
+                    'attempt': attempt_num
                 }
             )
             
@@ -1592,9 +1592,9 @@ Apply the fix immediately.""",
                     guidance_result = user_proxy.get_guidance(
                         error_info={
                             'type': error_type,
-                            'message': error_message,
+                            'message': issue.get('message', 'Unknown error'),
                             'file': filepath,
-                            'line': line_number
+                            'line': issue.get('line_number')
                         },
                         loop_info={
                             'type': intervention.get('type', 'Unknown'),
