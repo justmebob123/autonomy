@@ -4607,10 +4607,11 @@ class ToolCallHandler:
             destination_path = args['destination_path']
             update_imports = args.get('update_imports', True)
             create_directories = args.get('create_directories', True)
-            reason = args['reason']
+            reason = args.get('reason', 'No reason provided')
             
             self.logger.info(f"📦 Moving file: {source_path} → {destination_path}")
-            self.logger.info(f"   Reason: {reason}")
+            if reason != 'No reason provided':
+                self.logger.info(f"   Reason: {reason}")
             
             # Import analysis components
             from .analysis.import_impact import ImportImpactAnalyzer
