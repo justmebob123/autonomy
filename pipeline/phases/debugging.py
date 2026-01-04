@@ -745,7 +745,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         
         # Check for loops
         intervention = self._check_for_loops()
-        if intervention.get('requires_user_input'):
+        if intervention and intervention.get('requires_user_input'):
             # AUTONOMOUS: Consult AI UserProxy specialist instead of blocking
             self.logger.info("\n" + "="*80)
             self.logger.info("🤖 AUTONOMOUS USER PROXY CONSULTATION")
@@ -1038,7 +1038,7 @@ Remember:
         
         # Check for loops
         intervention = self._check_for_loops()
-        if intervention.get('requires_user_input'):
+        if intervention and intervention.get('requires_user_input'):
             # AUTONOMOUS: Consult AI UserProxy specialist instead of blocking
             self.logger.info("\n" + "="*80)
             self.logger.info("🤖 AUTONOMOUS USER PROXY CONSULTATION")
