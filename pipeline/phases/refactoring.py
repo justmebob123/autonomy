@@ -2110,11 +2110,12 @@ Please select ONE reliable tool and try again."""
         next_phase = "refactoring"  # Continue refactoring to work on tasks
         
         # MESSAGE BUS: Publish phase completion
+        current_task = state.current_task if hasattr(state, 'current_task') else None
         self._publish_message('PHASE_COMPLETED', {
             'phase': self.phase_name,
             'timestamp': datetime.now().isoformat(),
             'success': True,
-            'task_id': task.task_id if task else None
+            'task_id': current_task.task_id if current_task else None
         })
         
         # DIMENSION TRACKING: Update dimensions based on analysis
