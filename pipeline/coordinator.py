@@ -1865,7 +1865,9 @@ class PhaseCoordinator:
         # Count tasks by status
         pending = [t for t in state.tasks.values() if t.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]]
         qa_pending = [t for t in state.tasks.values() if t.status == TaskStatus.QA_PENDING]
-        needs_fixes = [t for t in state.tasks.values() if t.status == TaskStatus.NEEDS_FIXES]
+        # CRITICAL FIX: TaskState.__post_init__ converts NEEDS_FIXES to QA_FAILED for compatibility
+        # So we need to check for BOTH statuses
+        needs_fixes = [t for t in state.tasks.values() if t.status in [TaskStatus.NEEDS_FIXES, TaskStatus.QA_FAILED]]
         completed = [t for t in state.tasks.values() if t.status == TaskStatus.COMPLETED]
         
         self.logger.info(f"📊 Task Status: {len(pending)} pending, {len(qa_pending)} QA, {len(needs_fixes)} fixes, {len(completed)} done")
