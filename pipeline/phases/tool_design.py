@@ -1,3 +1,5 @@
+import re
+import time
 """
 Tool Design Phase with Intelligent Analysis
 
@@ -8,6 +10,7 @@ and recommend abstractions.
 from pathlib import Path
 from typing import Dict, Any, Optional
 import json
+from datetime import datetime
 
 from .base import BasePhase, PhaseResult
 from .loop_detection_mixin import LoopDetectionMixin

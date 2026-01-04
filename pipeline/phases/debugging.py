@@ -6,6 +6,8 @@ Fixes code issues identified by QA.
 from __future__ import annotations
 from typing import Dict, List, Optional
 from datetime import datetime
+import re
+import time
 
 
 
@@ -16,6 +18,7 @@ from ..phase_resources import get_phase_tools, get_debugging_prompt, get_modific
 from ..conversation_thread import DebuggingConversationThread
 from .loop_detection_mixin import LoopDetectionMixin
 from ..team_coordination import TeamCoordinationFacade
+from ..tools import get_tools_for_phase
 from ..debugging_utils import (
     get_timestamp_iso,
     is_same_error,

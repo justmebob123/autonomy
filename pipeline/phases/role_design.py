@@ -1,3 +1,5 @@
+import re
+import time
 """
 Role Design Phase
 
@@ -7,6 +9,8 @@ Uses the RoleCreator meta-prompt to guide the design process.
 
 from pathlib import Path
 from typing import Dict
+from datetime import datetime
+import json
 
 from .base import BasePhase, PhaseResult
 from .loop_detection_mixin import LoopDetectionMixin
