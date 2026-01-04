@@ -34,6 +34,7 @@ class DeadCodeResult:
     """Result of dead code analysis."""
     unused_functions: List[Tuple[str, str, int]] = field(default_factory=list)
     unused_methods: List[Tuple[str, str, int]] = field(default_factory=list)
+    unused_classes: List[Tuple[str, str]] = field(default_factory=list)  # Added: (file, class_name)
     unused_imports: Dict[str, List[Tuple[str, int, str]]] = field(default_factory=dict)
     
     # Enhanced: Issues marked for review
@@ -46,6 +47,10 @@ class DeadCodeResult:
     @property
     def total_unused_methods(self) -> int:
         return len(self.unused_methods)
+    
+    @property
+    def total_unused_classes(self) -> int:
+        return len(self.unused_classes)
     
     @property
     def total_unused_imports(self) -> int:
@@ -66,6 +71,10 @@ class DeadCodeResult:
                 {'name': name, 'file': file, 'line': line}
                 for name, file, line in self.unused_methods
             ],
+            'unused_classes': [
+                {'name': cls, 'file': file}
+                for file, cls in self.unused_classes
+            ],
             'unused_imports': {
                 file: [
                     {'name': name, 'line': line, 'type': import_type}
@@ -76,6 +85,7 @@ class DeadCodeResult:
             'summary': {
                 'total_unused_functions': self.total_unused_functions,
                 'total_unused_methods': self.total_unused_methods,
+                'total_unused_classes': self.total_unused_classes,
                 'total_unused_imports': self.total_unused_imports
             }
         }
@@ -195,6 +205,8 @@ class DeadCodeDetector:
         self.all_functions_called: Set[str] = set()
         self.all_methods_defined: Dict[str, Tuple[str, int]] = {}
         self.all_methods_called: Set[str] = set()
+        self.all_classes_defined: Dict[str, Tuple[str, int]] = {}  # Added: class tracking
+        self.all_classes_used: Set[str] = set()  # Added: class usage tracking
         self.all_imports: Dict[str, List[Tuple[str, int, str]]] = defaultdict(list)
         self.all_imports_used: Dict[str, Set[str]] = defaultdict(set)
         
@@ -221,6 +233,12 @@ class DeadCodeDetector:
                 self.all_functions_defined[func_name] = (relative_path, line)
             
             self.all_functions_called.update(visitor.functions_called)
+            
+            for class_name, line in visitor.classes_defined.items():
+                self.all_classes_defined[class_name] = (relative_path, line)
+            
+            # Track class usage from function calls (instantiation)
+            self.all_classes_used.update(visitor.functions_called)
             
             for method_key, line in visitor.methods_defined.items():
                 self.all_methods_defined[method_key] = (relative_path, line)
@@ -271,6 +289,16 @@ class DeadCodeDetector:
             unused.append((method_key, file, line))
         return sorted(unused)
     
+    def get_unused_classes(self) -> List[Tuple[str, str]]:
+        """Get list of unused classes."""
+        unused = []
+        for class_name, (file, line) in self.all_classes_defined.items():
+            if class_name not in self.all_classes_used:
+                # Skip private classes
+                if not class_name.startswith('_'):
+                    unused.append((file, class_name))
+        return sorted(unused)
+    
     def get_unused_imports(self) -> Dict[str, List[Tuple[str, int, str]]]:
         """Get unused imports per file."""
         unused = {}
@@ -298,6 +326,8 @@ class DeadCodeDetector:
         self.all_functions_called.clear()
         self.all_methods_defined.clear()
         self.all_methods_called.clear()
+        self.all_classes_defined.clear()
+        self.all_classes_used.clear()
         self.all_imports.clear()
         self.all_imports_used.clear()
         
@@ -329,6 +359,7 @@ class DeadCodeDetector:
         result = DeadCodeResult(
             unused_functions=self.get_unused_functions(),
             unused_methods=self.get_unused_methods(),
+            unused_classes=self.get_unused_classes(),
             unused_imports=self.get_unused_imports()
         )
         
@@ -367,6 +398,13 @@ class DeadCodeDetector:
             lines.append(f"- {method_key} at {file}:{line}")
         lines.append("")
         
+        # Unused classes
+        lines.append(f"## UNUSED CLASSES ({result.total_unused_classes})")
+        lines.append("")
+        for file, class_name in result.unused_classes:
+            lines.append(f"- {class_name} in {file}")
+        lines.append("")
+        
         # Unused imports
         lines.append(f"## UNUSED IMPORTS ({result.total_unused_imports})")
         lines.append("")
@@ -383,6 +421,7 @@ class DeadCodeDetector:
         lines.append("=" * 80)
         lines.append(f"Total unused functions: {result.total_unused_functions}")
         lines.append(f"Total unused methods: {result.total_unused_methods}")
+        lines.append(f"Total unused classes: {result.total_unused_classes}")
         lines.append(f"Total unused imports: {result.total_unused_imports}")
         lines.append(f"Total files with unused imports: {len(result.unused_imports)}")
         lines.append("")
