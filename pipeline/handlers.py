@@ -3737,7 +3737,7 @@ class ToolCallHandler:
                     if ast.get_docstring(tree) and not module_docstring:
                         module_docstring = ast.get_docstring(tree)
                     
-                    for node in tree.body:
+                    for i, node in enumerate(tree.body):
                         if isinstance(node, (ast.Import, ast.ImportFrom)):
                             # Collect imports
                             all_imports.add(ast.unparse(node))
@@ -3749,6 +3749,10 @@ class ToolCallHandler:
                             # Collect functions (keep first occurrence)
                             if node.name not in all_functions:
                                 all_functions[node.name] = ast.unparse(node)
+                        elif i == 0 and isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                            # Skip module docstring (first node that's a string expression)
+                            # It's already captured by ast.get_docstring()
+                            continue
                         else:
                             # Collect other code (constants, etc.)
                             all_other_code.append(ast.unparse(node))
