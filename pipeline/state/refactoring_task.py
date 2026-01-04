@@ -143,8 +143,26 @@ class RefactoringTask:
         self.status = TaskStatus.BLOCKED
         self.error_message = reason
     
+    def _sanitize_for_json(self, obj):
+        """Recursively sanitize an object for JSON serialization."""
+        from pathlib import Path, PosixPath, WindowsPath
+        
+        if isinstance(obj, (Path, PosixPath, WindowsPath)):
+            return str(obj)
+        elif isinstance(obj, dict):
+            return {k: self._sanitize_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [self._sanitize_for_json(item) for item in obj]
+        elif isinstance(obj, set):
+            return [self._sanitize_for_json(item) for item in obj]
+        else:
+            return obj
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization"""
+        # Sanitize analysis_data to ensure JSON serializability
+        sanitized_analysis_data = self._sanitize_for_json(self.analysis_data)
+        
         return {
             "task_id": self.task_id,
             "issue_type": self.issue_type.value,
@@ -162,7 +180,7 @@ class RefactoringTask:
             "created_at": self.created_at.isoformat(),
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
-            "analysis_data": self.analysis_data,
+            "analysis_data": sanitized_analysis_data,
             "depends_on": self.depends_on,
             "blocks": self.blocks,
             "estimated_effort": self.estimated_effort,

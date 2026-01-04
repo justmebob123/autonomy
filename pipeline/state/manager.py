@@ -101,11 +101,27 @@ class TaskState:
             for e in self.errors
         ]
     
+    def _sanitize_for_json(self, obj):
+        """Recursively sanitize an object for JSON serialization."""
+        from pathlib import Path, PosixPath, WindowsPath
+        
+        if isinstance(obj, (Path, PosixPath, WindowsPath)):
+            return str(obj)
+        elif isinstance(obj, dict):
+            return {k: self._sanitize_for_json(v) for k, v in obj.items()}
+        elif isinstance(obj, (list, tuple)):
+            return [self._sanitize_for_json(item) for item in obj]
+        elif isinstance(obj, set):
+            return [self._sanitize_for_json(item) for item in obj]
+        else:
+            return obj
+    
     def to_dict(self) -> Dict:
         d = asdict(self)
         d["status"] = self.status.value
         d["errors"] = [e.to_dict() if hasattr(e, 'to_dict') else e for e in self.errors]
-        return d
+        # Sanitize the entire dict to ensure JSON serializability
+        return self._sanitize_for_json(d)
     
     @classmethod
     def from_dict(cls, data: Dict) -> "TaskState":
