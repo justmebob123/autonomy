@@ -1060,10 +1060,13 @@ class QAPhase(BasePhase, LoopDetectionMixin):
     
     def _create_fix_tasks_for_issues(self, state: PipelineState, filepath: str, issues: List[Dict]):
         """
-        Create NEEDS_FIXES tasks for each issue found.
+        Create appropriate tasks for each issue found.
         
-        This is CRITICAL for the coordinator to route to debugging phase.
-        Without this, issues are reported but never fixed.
+        CRITICAL CLASSIFICATION:
+        - Actual bugs (syntax, import, logic errors) → NEEDS_FIXES (debugging)
+        - Architectural issues (dead_code, integration_gap) → PENDING (planning/refactoring)
+        
+        This ensures issues go to the right phase for resolution.
         """
         from ..state.manager import TaskStatus
         from datetime import datetime
@@ -1071,9 +1074,21 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         if not issues:
             return
         
-        self.logger.info(f"  🔧 Creating {len(issues)} NEEDS_FIXES tasks for {filepath}")
+        # Separate issues by type
+        bug_issues = []
+        architectural_issues = []
         
-        for idx, issue in enumerate(issues):
+        for issue in issues:
+            issue_type = issue.get('type', 'other')
+            if issue_type in ['dead_code', 'integration_gap', 'incomplete']:
+                architectural_issues.append(issue)
+            else:
+                bug_issues.append(issue)
+        
+        self.logger.info(f"  🔧 Creating tasks: {len(bug_issues)} bugs (debugging), {len(architectural_issues)} architectural (planning/refactoring)")
+        
+        # Process bug issues (go to debugging)
+        for idx, issue in enumerate(bug_issues):
             # Create unique task ID
             task_id = f"qa_fix_{filepath.replace('/', '_')}_{issue.get('line_number', idx)}"
             
@@ -1114,13 +1129,51 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             
             # Add to state
             state.tasks[task_id] = task
-            self.logger.info(f"    ✅ Created task {task_id} (priority {priority})")
+            self.logger.info(f"    ✅ Created NEEDS_FIXES task {task_id} (priority {priority})")
+        
+        # Process architectural issues (go to planning/refactoring)
+        for idx, issue in enumerate(architectural_issues):
+            # Create unique task ID
+            task_id = f"qa_arch_{filepath.replace('/', '_')}_{issue.get('line_number', idx)}"
+            
+            # Check if task already exists
+            if task_id in state.tasks:
+                self.logger.debug(f"    ⏭️  Task {task_id} already exists, skipping")
+                continue
+            
+            # Architectural issues are lower priority
+            priority = 50
+            
+            # Create task with PENDING status (goes to planning/refactoring)
+            from ..state.manager import TaskState
+            task = TaskState(
+                task_id=task_id,
+                description=f"Architectural review for {filepath}: {issue.get('description', 'No description')}",
+                target_file=filepath,
+                status=TaskStatus.PENDING,  # NOT NEEDS_FIXES
+                priority=priority,
+                created_at=datetime.now().isoformat()
+            )
+            
+            # Store issue data in task
+            task.metadata = {
+                'issue_type': issue.get('type'),
+                'line_number': issue.get('line_number'),
+                'severity': issue.get('severity', 'low'),
+                'description': issue.get('description'),
+                'source': 'qa_phase',
+                'requires_architectural_review': True  # Flag for planning/refactoring
+            }
+            
+            # Add to state
+            state.tasks[task_id] = task
+            self.logger.info(f"    ✅ Created PENDING task {task_id} for architectural review")
         
         # Save state immediately so coordinator sees the tasks
         from ..state.manager import StateManager
         state_manager = StateManager(self.project_dir)
         state_manager.save(state)
-        self.logger.info(f"  💾 Saved state with {len(issues)} new NEEDS_FIXES tasks")
+        self.logger.info(f"  💾 Saved state: {len(bug_issues)} NEEDS_FIXES tasks, {len(architectural_issues)} PENDING tasks")
     
     def _send_phase_messages(self, filepath: str, issues_found: List[Dict]):
         """Send messages to other phases' READ documents"""
