@@ -1952,42 +1952,9 @@ class PhaseCoordinator:
         
         # 2. NOW check QA - only after coding-related work is done
         # QA validates completed work, not work-in-progress
-        if qa_pending:
-            project_phase = state.get_project_phase()
-            completion = state.calculate_completion_percentage()
-            
-            # Foundation phase (0-25%): Run QA if we have 10+ tasks OR if we're stuck in planning loop
-            if project_phase == 'foundation':
-                # Check if we're stuck in planning loop (no pending tasks, only QA tasks)
-                if not pending and len(qa_pending) >= 10:
-                    self.logger.info(f"  📊 Foundation phase ({completion:.1f}%), running QA to break planning loop ({len(qa_pending)} tasks)")
-                    return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'Breaking planning loop with QA: {len(qa_pending)} tasks ready'}
-                else:
-                    self.logger.info(f"  📊 Foundation phase ({completion:.1f}%), deferring QA - continue building codebase ({len(qa_pending)} tasks waiting)")
-                    # Don't return - fall through to planning
-            
-            # Integration phase (25-50%): Batch QA (wait for 5+ tasks)
-            elif project_phase == 'integration':
-                if len(qa_pending) >= 5:
-                    self.logger.info(f"  📊 Integration phase ({completion:.1f}%), running batch QA ({len(qa_pending)} tasks)")
-                    return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'Batch QA: {len(qa_pending)} tasks ready'}
-                else:
-                    self.logger.info(f"  📊 Integration phase ({completion:.1f}%), deferring QA ({len(qa_pending)}/5 tasks)")
-                    # Don't return - fall through to planning
-            
-            # Consolidation phase (50-75%): Regular QA (wait for 3+ tasks)
-            elif project_phase == 'consolidation':
-                if len(qa_pending) >= 3:
-                    self.logger.info(f"  📊 Consolidation phase ({completion:.1f}%), running QA ({len(qa_pending)} tasks)")
-                    return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'{len(qa_pending)} tasks awaiting QA'}
-                else:
-                    self.logger.info(f"  📊 Consolidation phase ({completion:.1f}%), deferring QA ({len(qa_pending)}/3 tasks)")
-                    # Don't return - fall through to planning
-            
-            # Completion phase (75-100%): Aggressive QA (every task)
-            else:  # completion phase
-                self.logger.info(f"  📊 Completion phase ({completion:.1f}%), running aggressive QA")
-                return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'{len(qa_pending)} tasks awaiting QA'}
+        # SIMPLIFIED: If we have QA tasks and no pending work, run QA
+        if qa_pending and not pending:
+            return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'{len(qa_pending)} tasks awaiting QA'}
         
         # 3. If we have tasks needing fixes (from QA failures), go to debugging
         if needs_fixes:
@@ -2056,25 +2023,7 @@ class PhaseCoordinator:
                 self.logger.info("  ✅ No pending work found, moving to documentation")
                 return {'phase': 'documentation', 'reason': 'No pending work, documenting progress'}
         
-        # 6b. Detect consecutive planning iterations (planning loop)
-        if not hasattr(state, '_consecutive_planning_count'):
-            state._consecutive_planning_count = 0
-        
-        if current_phase == 'planning':
-            state._consecutive_planning_count += 1
-            if state._consecutive_planning_count >= 2:  # Changed from 3 to 2 - be more aggressive
-                self.logger.warning(f"  ⚠️ Planning loop detected ({state._consecutive_planning_count} consecutive iterations)")
-                state._consecutive_planning_count = 0
-                
-                # If we have QA tasks waiting, run QA to break the loop
-                if qa_pending:
-                    self.logger.info(f"  🔧 Breaking planning loop by running QA ({len(qa_pending)} tasks)")
-                    return {'phase': 'qa', 'task': qa_pending[0], 'reason': f'Breaking planning loop with QA: {len(qa_pending)} tasks'}
-                else:
-                    # Force move to documentation to break loop
-                    return {'phase': 'documentation', 'reason': 'Breaking planning loop'}
-        else:
-            state._consecutive_planning_count = 0
+        # Removed artificial loop detection - natural flow handles this now
         
         # 7. Default: go to planning to create more tasks (or follow pattern)
         if pattern_override and pattern_override in self.phases:
