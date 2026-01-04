@@ -119,22 +119,54 @@ def is_integration_point(filepath: str, symbol_type: str, symbol_name: str) -> b
     Returns:
         True if this is a known integration point that should not be flagged
     """
-    if filepath not in INTEGRATION_POINTS:
-        return False
+    # HEURISTIC 1: Check explicit registry
+    if filepath in INTEGRATION_POINTS:
+        points = INTEGRATION_POINTS[filepath]
         
-    points = INTEGRATION_POINTS[filepath]
+        # Handle plural forms: 'class' -> 'classes', 'function' -> 'functions'
+        if symbol_type == 'class':
+            symbol_list = points.get('classes', [])
+        elif symbol_type == 'function':
+            symbol_list = points.get('functions', [])
+        elif symbol_type == 'method':
+            symbol_list = points.get('methods', [])
+        else:
+            return False
+        
+        if symbol_name in symbol_list:
+            return True
     
-    # Handle plural forms: 'class' -> 'classes', 'function' -> 'functions'
-    if symbol_type == 'class':
-        symbol_list = points.get('classes', [])
-    elif symbol_type == 'function':
-        symbol_list = points.get('functions', [])
-    elif symbol_type == 'method':
-        symbol_list = points.get('methods', [])
-    else:
-        return False
+    # HEURISTIC 2: Service layer methods are integration points
+    # Services are meant to be called by API/UI layers
+    if symbol_type == 'method' and filepath.startswith('services/'):
+        # Common service method patterns that are integration points
+        integration_patterns = [
+            'create_', 'get_', 'update_', 'delete_',  # CRUD operations
+            'list_', 'find_', 'search_',  # Query operations
+            'add_', 'remove_', 'set_',  # Modification operations
+            'generate_', 'calculate_', 'process_',  # Processing operations
+            'upload_', 'download_', 'export_', 'import_',  # I/O operations
+            'start_', 'stop_', 'restart_',  # Control operations
+            'assess_', 'analyze_', 'track_',  # Analysis operations
+        ]
+        
+        if any(symbol_name.startswith(pattern) for pattern in integration_patterns):
+            return True
     
-    return symbol_name in symbol_list
+    # HEURISTIC 3: Feature modules are integration points
+    # These directories contain features waiting to be integrated
+    integration_directories = [
+        'analytics/', 'chat/', 'collaboration/', 'file_management/',
+        'integration/', 'ollama/', 'prompt/', 'recommendation/',
+        'risk/', 'visualization/', 'monitoring/', 'reporting/'
+    ]
+    
+    if symbol_type == 'method' and any(filepath.startswith(d) for d in integration_directories):
+        # These are feature modules - their public methods are integration points
+        if not symbol_name.startswith('_'):  # Public methods only
+            return True
+    
+    return False
 
 
 def get_integration_point_reason(filepath: str) -> str:

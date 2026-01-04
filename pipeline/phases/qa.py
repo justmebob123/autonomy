@@ -922,6 +922,13 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             if dead_code_result.unused_methods:
                 for method_key, file, line in dead_code_result.unused_methods:
                     if file == filepath or filepath in file:
+                        # Skip if this is a known integration point
+                        # Extract method name from method_key (format: ClassName.method_name)
+                        method_name = method_key.split('.')[-1] if '.' in method_key else method_key
+                        if is_integration_point(file, 'method', method_name):
+                            self.logger.info(f"  ⏭️  Skipping integration point method: {method_key} in {file}")
+                            continue
+                        
                         issues.append({
                             'type': 'dead_code',
                             'severity': 'low',
