@@ -646,14 +646,9 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                 files_modified=[],
             )
         
-        # ANALYSIS INTEGRATION: Analyze buggy code before debugging
-        analysis_context = ""
-        if filepath.endswith('.py'):
-            self.logger.info(f"  📊 Analyzing buggy code: {filepath}...")
-            analysis_context = self._analyze_buggy_code(filepath, issue)
-        
-        # Build debugging message with analysis context
-        user_message = self._build_debug_message(filepath, content, issue, analysis_context)
+        # Build debugging message with minimal context
+        # AI will use tools to analyze on-demand if needed
+        user_message = self._build_debug_message(filepath, content, issue, "")
         
         # Log prompt in verbose mode
         if hasattr(self, 'config') and self.config.verbose:
