@@ -427,7 +427,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         # MESSAGE BUS: Publish analysis started event
         if self.message_bus:
-            from ..messaging import MessageType
+            from ..messaging import MessageType, Message, MessagePriority
             self.message_bus.publish(Message(
                 sender=self.phase_name,
                 recipient="broadcast",
@@ -483,7 +483,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             
             # MESSAGE BUS: Publish analysis complete event
             if self.message_bus:
-                from ..messaging import MessageType
+                from ..messaging import MessageType, Message, MessagePriority
                 self.message_bus.publish(Message(
                 sender=self.phase_name,
                 recipient="broadcast",
@@ -508,7 +508,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             
             # MESSAGE BUS: Publish analysis complete event
             if self.message_bus:
-                from ..messaging import MessageType
+                from ..messaging import MessageType, Message, MessagePriority
                 self.message_bus.publish(Message(
                 sender=self.phase_name,
                 recipient="broadcast",
@@ -620,7 +620,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         # MESSAGE BUS: Publish refactoring started event
         if self.message_bus:
-            from ..messaging import MessageType
+            from ..messaging import MessageType, Message, MessagePriority
             self.message_bus.publish(Message(
                 sender=self.phase_name,
                 recipient="broadcast",
@@ -839,7 +839,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 
                 # MESSAGE BUS: Publish refactoring complete event
                 if self.message_bus:
-                    from ..messaging import MessageType
+                    from ..messaging import MessageType, Message, MessagePriority
                     self.message_bus.publish(Message(
                 sender=self.phase_name,
                 recipient="broadcast",
