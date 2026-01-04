@@ -588,13 +588,13 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                     target_files=[misplaced.file],
                     priority=priority,
                     analysis_data={
-                        "current_location": misplaced.current_location,
-                        "suggested_location": misplaced.suggested_location,
-                        "reason": misplaced.reason,
-                        "confidence": misplaced.confidence,
-                        "affected_files": impact.affected_files,
-                        "risk_level": impact.risk_level.value,
-                        "estimated_changes": impact.estimated_changes
+                        "current_location": str(misplaced.current_location),
+                        "suggested_location": str(misplaced.suggested_location),
+                        "reason": str(misplaced.reason),
+                        "confidence": float(misplaced.confidence),
+                        "affected_files": [str(f) for f in impact.affected_files],
+                        "risk_level": str(impact.risk_level.value),
+                        "estimated_changes": int(impact.estimated_changes)
                     }
                 )
                 tasks_created += 1
