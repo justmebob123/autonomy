@@ -918,37 +918,104 @@ You have access to strategic documents that guide your implementation:
 - Your completion status will be automatically sent to QA phase for review
 """
     
-    filename_guidance = """
-🚨 CRITICAL FILENAME REQUIREMENTS:
-- NEVER use placeholder text in filenames (e.g., <version>, <timestamp>, <name>)
-- For migration files: Use actual version numbers (001_, 002_, etc.)
-  * Check existing files in the directory to determine the next version number
-  * If directory is empty, start with 001_
-- For timestamped files: Use actual timestamps (20240101_120000_)
-  * Format: YYYYMMDD_HHMMSS
-  * Use current date/time
-- Use underscores (_) not spaces in filenames
-- Avoid version iterators like (1), (2), _v2, etc.
+    multi_step_workflow = f"""
+🔄 MANDATORY MULTI-STEP WORKFLOW FOR FILE CREATION:
 
-EXAMPLES:
-❌ WRONG: storage/migrations/versions/<version>_projects_table.py
-✅ RIGHT: storage/migrations/versions/001_projects_table.py
-         (or 002_, 003_, etc. based on existing files)
+STEP 1: DISCOVERY (⚠️ ALWAYS DO THIS FIRST - DO NOT SKIP!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Before creating ANY file, you MUST check for similar files:
 
-❌ WRONG: backup_<timestamp>.sql
-✅ RIGHT: backup_20240101_120000.sql
+1. Call find_similar_files with your target filename:
+   find_similar_files(target_file="{target_file}")
 
-❌ WRONG: my file.py
-✅ RIGHT: my_file.py
+2. Review the results carefully:
+   - If similarity > 80%: Almost certainly should MODIFY existing file
+   - If similarity > 60%: Probably should MODIFY existing file  
+   - If similarity < 60%: Probably safe to CREATE new file
 
-IF VALIDATION FAILS:
-- You will receive detailed error context
-- Check existing files in the directory
-- Determine the correct filename based on context
-- Retry with the corrected filename
-- DO NOT ask for clarification - determine the correct name yourself
+3. For each similar file found (especially if similarity > 60%):
+   - Call read_file to examine its contents
+   - Determine if your functionality belongs in that file
+   - If YES: Use str_replace to modify the existing file instead
+   - If NO: Continue to STEP 2
 
-📦 FILE ORGANIZATION TOOLS AVAILABLE:
+⚠️ CRITICAL: Do NOT skip this step! Creating duplicate files causes:
+   - Maintenance nightmares (which file is correct?)
+   - Import confusion (which module to import?)
+   - Merge conflicts later
+   - Wasted refactoring time
+
+STEP 2: VALIDATION (⚠️ ALWAYS DO THIS SECOND - DO NOT SKIP!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+After deciding to create a new file, validate the filename:
+
+1. Call validate_filename with your target filename:
+   validate_filename(filename="{target_file}")
+
+2. Review validation results:
+   - If valid=True: Proceed to STEP 3
+   - If valid=False: Fix the filename based on suggestions
+     * Check existing files in the directory
+     * Use actual version numbers (001_, 002_, not <version>)
+     * Use actual timestamps (20240105_120000_, not <timestamp>)
+     * Use underscores not spaces
+     * Retry validation with corrected name
+
+⚠️ CRITICAL: Do NOT create files with invalid names! This causes:
+   - Import errors (Python can't import files with spaces)
+   - Confusion (placeholder text like <version> is not a real name)
+   - Validation failures in QA
+   - Manual cleanup required
+
+STEP 3: CREATION (✅ ONLY AFTER STEPS 1 &amp; 2 COMPLETE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Now you can create the file:
+
+1. Call create_python_file with validated filename and complete code:
+   create_python_file(filepath="{target_file}", code="...")
+
+2. Ensure code is:
+   - Syntactically valid Python
+   - Has all necessary imports
+   - Has proper docstrings
+   - Follows ARCHITECTURE.md patterns
+
+✅ SUCCESS: File created with confidence that:
+   - No duplicates exist
+   - Filename follows conventions
+   - Code is complete and valid
+
+EXAMPLE WORKFLOW (MODIFY EXISTING):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Task: Create storage/database.py
+
+Step 1: find_similar_files(target_file="storage/database.py")
+Result: Found storage/db_manager.py (similarity: 85%)
+
+Step 1b: read_file(filepath="storage/db_manager.py")
+Result: Already has database connection logic!
+
+Decision: MODIFY storage/db_manager.py instead of creating new file
+Action: str_replace(file_path="storage/db_manager.py", old_str="...", new_str="...")
+
+✅ Avoided duplicate file!
+
+EXAMPLE WORKFLOW (CREATE NEW):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Task: Create storage/cache.py
+
+Step 1: find_similar_files(target_file="storage/cache.py")
+Result: No similar files found (or similarity < 60%)
+
+Step 2: validate_filename(filename="storage/cache.py")
+Result: valid=True
+
+Step 3: create_python_file(filepath="storage/cache.py", code="...")
+
+✅ Created new file with confidence!
+
+📦 FILE ORGANIZATION TOOLS (Use when needed):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - move_file: Move files to correct locations (preserves git history, updates imports)
 - rename_file: Rename files (preserves git history, updates imports)
 - analyze_file_placement: Check if file is in correct location per ARCHITECTURE.md
@@ -967,13 +1034,13 @@ TASK: {task_description}
 TARGET FILE: {target_file}
 {error_section}
 {ipc_guidance}
-{filename_guidance}
+{multi_step_workflow}
 
 EXISTING CODE CONTEXT:
 {context if context else "(no existing code - create from scratch)"}
 
 Requirements:
-1. Use create_python_file to create the file at path: {target_file}
+1. FOLLOW THE 3-STEP WORKFLOW ABOVE (Discovery → Validation → Creation)
 2. Include all necessary imports
 3. Write complete, working code
 4. Add proper docstrings and type hints
@@ -981,7 +1048,7 @@ Requirements:
 6. Consider specific guidance from TERTIARY_OBJECTIVES
 7. ENSURE filename has NO placeholder text - use actual values
 
-Use create_python_file NOW to create {target_file}."""
+⚠️ REMINDER: Start with STEP 1 (find_similar_files) - DO NOT skip to creation!"""
 
 
 def get_qa_prompt(filepath: str, code: str) -> str:
@@ -1492,9 +1559,156 @@ TARGET FILES:
 {chr(10).join(f"- {f}" for f in target_files)}
 """
     
-    ipc_guidance = """
+    multi_step_refactoring_workflow = """
+🔄 MANDATORY MULTI-STEP WORKFLOW FOR FILE REFACTORING:
+
+STEP 1: CONFLICT DETECTION (⚠️ ALWAYS START HERE - DO NOT SKIP!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Identify all conflicting/duplicate files in the project:
+
+1. Call find_all_conflicts to get conflict groups:
+   find_all_conflicts(min_severity="medium")
+
+2. Review results:
+   - Each group contains files that conflict/overlap
+   - Severity indicates how urgent the conflict is:
+     * HIGH: >80% overlap - MUST merge immediately
+     * MEDIUM: 60-80% overlap - Should merge soon
+     * LOW: 40-60% overlap - Consider merging
+
+3. Prioritize groups:
+   - Start with HIGH severity
+   - Then MEDIUM severity
+   - Then LOW severity
+
+⚠️ If NO conflicts found: Refactoring complete! Say "No conflicts detected - refactoring complete"
+
+STEP 2: CONFLICT ANALYSIS (⚠️ FOR EACH GROUP - DO NOT SKIP!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Analyze each conflict group in detail:
+
+1. Call compare_files with the conflict group:
+   compare_files(files=["file1.py", "file2.py", "file3.py"])
+
+2. Review comparison results:
+   - Common classes: Which classes appear in multiple files?
+   - Common functions: Which functions are duplicated?
+   - Unique functionality: What's unique to each file?
+   - Overlap percentage: How much duplication exists?
+
+3. Make decision:
+   - If overlap > 80%: MERGE workflow (STEP 3A)
+   - If overlap 60-80%: MERGE or RENAME workflow (your choice)
+   - If overlap < 60%: RENAME workflow (STEP 3B)
+
+STEP 3A: MERGE WORKFLOW (✅ FOR HIGH OVERLAP FILES)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Merge multiple files into one canonical file:
+
+1. Read all files in the conflict group:
+   read_file(filepath="file1.py")
+   read_file(filepath="file2.py")
+   read_file(filepath="file3.py")
+
+2. Identify unique functionality:
+   - What does file1 have that others don't?
+   - What does file2 have that others don't?
+   - What does file3 have that others don't?
+
+3. Create merged file:
+   - Choose best filename (or create new one)
+   - Validate filename: validate_filename(filename="merged.py")
+   - Combine ALL unique functionality
+   - Remove duplicates
+   - Ensure all imports are included
+   - Test that merged file compiles
+
+4. Create the merged file:
+   create_python_file(filepath="merged.py", code="...")
+
+5. Archive old files (DO NOT DELETE):
+   archive_file(filepath="file1.py", reason="Merged into merged.py")
+   archive_file(filepath="file2.py", reason="Merged into merged.py")
+   archive_file(filepath="file3.py", reason="Merged into merged.py")
+
+✅ Merge complete! Imports are automatically updated.
+
+STEP 3B: RENAME WORKFLOW (✅ FOR LOW OVERLAP FILES)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Rename files to eliminate naming conflicts:
+
+For each file in the conflict group:
+
+1. Determine better name based on file's actual purpose:
+   - Read file to understand what it does
+   - Choose name that reflects its unique functionality
+   - Ensure name follows conventions
+
+2. Validate new name:
+   validate_filename(filename="new_name.py")
+
+3. Check import impact:
+   analyze_import_impact(old_path="old_name.py", new_path="new_name.py")
+   - Review which files import this file
+   - Understand the risk level
+
+4. Rename the file:
+   rename_file(old_path="old_name.py", new_path="new_name.py")
+   - Git history is preserved
+   - All imports are automatically updated
+
+✅ Rename complete! No manual import updates needed.
+
+STEP 4: VERIFICATION (⚠️ AFTER EACH MERGE/RENAME - MANDATORY!)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Verify the refactoring was successful:
+
+1. Check if more conflicts exist:
+   find_all_conflicts(min_severity="medium")
+
+2. If conflicts remain:
+   - Return to STEP 2 for next conflict group
+   - Continue until NO conflicts remain
+   - Say "Continuing refactoring - X conflict groups remain"
+
+3. If NO conflicts:
+   - Refactoring complete!
+   - Say "Refactoring complete - all conflicts resolved"
+   - Return to coding phase
+
+⚠️ CRITICAL: Refactoring is ITERATIVE. Keep going until all conflicts resolved!
+
+EXAMPLE WORKFLOW:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Step 1: find_all_conflicts(min_severity="medium")
+Result: Found 3 conflict groups:
+  - Group 1: [utils.py, utilities.py, util_functions.py] (HIGH - 90% overlap)
+  - Group 2: [config.py, configuration.py] (MEDIUM - 70% overlap)
+  - Group 3: [helper.py, helpers.py] (LOW - 50% overlap)
+
+Step 2: Start with Group 1 (highest severity)
+compare_files(files=["utils.py", "utilities.py", "util_functions.py"])
+Result: 90% overlap - all have same functions!
+
+Step 3A: MERGE workflow
+- Read all three files
+- Create utils.py with ALL functionality
+- Archive utilities.py and util_functions.py
+
+Step 4: Verify
+find_all_conflicts(min_severity="medium")
+Result: 2 conflict groups remain → Continue refactoring
+
+[Continue with Groups 2 and 3...]
+
+Final Step 4: Verify
+find_all_conflicts(min_severity="medium")
+Result: NO conflicts!
+
+✅ Refactoring complete! All conflicts resolved.
+
 📚 STRATEGIC CONTEXT AVAILABLE:
-You have access to strategic documents and phase outputs:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - MASTER_PLAN.md: Overall project architecture and objectives
 - ARCHITECTURE.md: Design patterns and structure guidelines
 - QA_WRITE.md: Quality issues and conflicts detected
@@ -1506,23 +1720,13 @@ You have access to strategic documents and phase outputs:
 - Check QA_WRITE for conflicts and duplicates
 - Consider INVESTIGATION_WRITE recommendations
 - Your refactoring results will be sent to appropriate phases
-- Always create backups before making changes
 
-📦 FILE ORGANIZATION TOOLS AVAILABLE:
+📦 ADDITIONAL FILE ORGANIZATION TOOLS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - move_file: Move files to correct locations (preserves git history, updates imports)
-- rename_file: Rename files (preserves git history, updates imports)
 - restructure_directory: Reorganize multiple files at once
 - analyze_file_placement: Check if files are in correct locations per ARCHITECTURE.md
-- analyze_import_impact: Check impact before moving/renaming files
 - build_import_graph: Visualize all import relationships
-
-💡 WHEN TO USE FILE OPERATIONS:
-- If file is in wrong location per ARCHITECTURE.md → use move_file
-- If file needs better name → use rename_file
-- For large reorganization → use restructure_directory
-- Before moving → ALWAYS use analyze_import_impact to check risk
-- All imports are automatically updated - no manual work needed!
-- Git history is preserved with git mv
 """
     
     if refactoring_type == "duplicate_detection":
@@ -1530,26 +1734,18 @@ You have access to strategic documents and phase outputs:
 
 REFACTORING TYPE: Duplicate Detection
 {files_section}
-{ipc_guidance}
+{multi_step_refactoring_workflow}
 
 CONTEXT:
 {context}
 
-Your Task:
-1. Use detect_duplicate_implementations to find duplicate/similar files
-2. Analyze the duplicates to understand their relationships
-3. Use compare_file_implementations to compare duplicates in detail
-4. Determine which files should be merged or consolidated
-5. Use suggest_refactoring_plan to create a plan for consolidation
+⚠️ FOLLOW THE 4-STEP WORKFLOW ABOVE:
+1. STEP 1: find_all_conflicts (detect duplicates)
+2. STEP 2: compare_files (analyze each group)
+3. STEP 3A/3B: Merge or rename (resolve conflicts)
+4. STEP 4: Verify (check for more conflicts)
 
-Requirements:
-- Identify all duplicate implementations (similarity >= 70%)
-- Compare duplicates to find conflicts and differences
-- Create a detailed refactoring plan
-- Prioritize based on impact and risk
-- Consider dependencies when planning merges
-
-Use the refactoring tools NOW to analyze duplicates."""
+⚠️ REMINDER: Start with STEP 1 (find_all_conflicts) - DO NOT skip!"""
 
     elif refactoring_type == "conflict_resolution":
         return f"""Resolve conflicts between different file implementations.
@@ -1632,7 +1828,7 @@ Use the refactoring tools NOW to extract features."""
         return f"""Perform comprehensive refactoring analysis.
 
 REFACTORING TYPE: Comprehensive Analysis
-{ipc_guidance}
+{multi_step_refactoring_workflow}
 
 CONTEXT:
 {context}
@@ -1644,26 +1840,31 @@ until all quality issues are fixed or documented. After each iteration:
 - If all fixed: Say "Refactoring complete - ready for coding"
 - If too complex: Say "Create issue report for developer review"
 
-Your Task:
-1. Use detect_duplicate_implementations to find duplicates
-2. Use analyze_complexity to check code complexity
-3. Use detect_dead_code to find unused code
-4. Use analyze_architecture_consistency to check MASTER_PLAN alignment
-5. Analyze results and determine next action
+⚠️ FOLLOW THE 4-STEP WORKFLOW ABOVE FOR FILE CONFLICTS:
+1. STEP 1: find_all_conflicts (detect duplicates/conflicts)
+2. STEP 2: compare_files (analyze each group)
+3. STEP 3A/3B: Merge or rename (resolve conflicts)
+4. STEP 4: Verify (check for more conflicts)
+
+THEN analyze other quality aspects:
+5. Use analyze_complexity to check code complexity
+6. Use detect_dead_code to find unused code
+7. Use analyze_architecture_consistency to check MASTER_PLAN alignment
 
 Requirements:
-- Analyze all aspects: duplicates, complexity, dead code, architecture
+- START with file conflict detection (STEP 1)
+- Resolve ALL file conflicts before other analysis
+- Then analyze: complexity, dead code, architecture
 - If issues found: Create tasks to fix them OR fix them directly
 - If issues fixed: Re-analyze to find more issues
 - Continue until NO issues remain
-- Provide clear recommendations for next steps
 
 CRITICAL: After analysis, you MUST indicate if more refactoring is needed:
 - "Continue refactoring" = More work remains, run another iteration
 - "Refactoring complete" = All issues fixed, return to coding
 - "Developer review needed" = Issues too complex for autonomous fixing
 
-Use the refactoring tools NOW for comprehensive analysis."""
+⚠️ REMINDER: Start with STEP 1 (find_all_conflicts) - DO NOT skip!"""
 
     else:
         return f"""Perform refactoring analysis.

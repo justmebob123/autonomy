@@ -140,7 +140,24 @@ class PhaseCoordinator:
         # Initialize phases (lazy import to avoid circular deps)
         self.phases = self._init_phases()
         
-        # INTEGRATION: Arbiter for intelligent multi-factor decision-making
+        # ============================================================================
+        # ARBITER INTEGRATION (Week 1 Enhancement #3)
+        # ============================================================================
+        # WHAT: Arbiter provides intelligent multi-factor decision-making for phase selection
+        # WHY: Considers all factors (patterns, analytics, dimensions, objectives) for optimal decisions
+        # WHEN: Used in _determine_next_action() for ALL phase transitions (except specialized phases)
+        # 
+        # FALLBACK: If Arbiter causes issues, can revert to strategic/tactical split:
+        #   1. Comment out lines 143-146 (Arbiter initialization)
+        #   2. In _determine_next_action(), replace call to _determine_next_action_with_arbiter()
+        #      with the old logic:
+        #      if state.objectives and any(state.objectives.values()):
+        #          return self._determine_next_action_strategic(state)
+        #      else:
+        #          return self._determine_next_action_tactical(state)
+        #   3. Keep _determine_next_action_strategic() and _determine_next_action_tactical() methods
+        #      (they are still present below for fallback)
+        # ============================================================================
         from .orchestration.arbiter import ArbiterModel
         self.arbiter = ArbiterModel(self.project_dir)
         self.logger.info("🎯 Arbiter initialized for intelligent decision-making")
@@ -419,8 +436,36 @@ class PhaseCoordinator:
         """
         Update phase dimensional profile based on execution result.
         
-        This enables the system to learn which phases are effective
-        in which dimensional contexts.
+        ============================================================================
+        DYNAMIC PHASE DIMENSIONAL PROFILES (Week 1 Enhancement #1)
+        ============================================================================
+        WHAT: Phases learn which dimensional contexts they excel in over time
+        WHY: Enables optimal phase selection based on objective's dimensional profile
+        HOW: Updates phase dimensions after each execution based on success/failure
+        
+        LEARNING MECHANISM:
+        - On SUCCESS: Strengthen dimensions (especially objective's dominant dimensions)
+          * Objective's dominant dimensions (>0.6): +0.02
+          * Files created: functional dimension +0.03
+          * Issues fixed: error dimension +0.03
+          * Integrations completed: integration dimension +0.03
+        
+        - On FAILURE: Weaken dimensions where phase failed
+          * Objective's dominant dimensions (>0.6): -0.02
+        
+        - NORMALIZATION: Prevents unbounded growth
+          * If sum > 5.0 (7 dimensions, avg ~0.7), scale down proportionally
+        
+        EXAMPLE:
+        - Coding phase succeeds with high-functional objective (functional=0.8)
+        - Coding's functional dimension increases: 0.5 → 0.52 → 0.54 → ...
+        - Over time, coding specializes in functional work
+        - When new high-functional objective appears, coding is selected
+        
+        INTEGRATION POINT: Called after each phase execution (line 1555)
+        
+        RELATED METHOD: _select_phase_by_dimensional_fit() uses these profiles
+        ============================================================================
         
         Args:
             phase_name: Name of the phase
@@ -1594,8 +1639,33 @@ class PhaseCoordinator:
         """
         Determine the next action using ARBITER for intelligent multi-factor decisions.
         
+        ============================================================================
+        ARBITER-BASED DECISION MAKING (Week 1 Enhancement #3)
+        ============================================================================
         NEW APPROACH: Arbiter considers all factors (objectives, patterns, analytics,
         dimensional profiles, phase history) for optimal phase selection.
+        
+        FACTORS CONSIDERED BY ARBITER:
+        - Phase execution history (last 10 phases)
+        - Phase statistics (success rates, durations, consecutive failures)
+        - Pattern recommendations (from pattern recognition system)
+        - Analytics predictions (anomalies, optimization suggestions)
+        - Optimal objective (with dimensional profile, complexity, risk, readiness)
+        - Dimensional health (overall health, concerns, recommendations)
+        - Phase dimensional profiles (strengths in each dimension)
+        - Trajectory warnings (will become urgent/risky)
+        
+        FALLBACK TO OLD LOGIC:
+        If Arbiter causes issues, replace the call to _determine_next_action_with_arbiter()
+        at line 1647 with:
+            if state.objectives and any(state.objectives.values()):
+                return self._determine_next_action_strategic(state)
+            else:
+                return self._determine_next_action_tactical(state)
+        
+        Both _determine_next_action_strategic() and _determine_next_action_tactical()
+        are still present below (lines 1659-1737) for fallback.
+        ============================================================================
         
         SPECIALIZED PHASES: Check for failure loops and capability gaps BEFORE
         normal phase selection. Specialized phases (tool_design, prompt_improvement,

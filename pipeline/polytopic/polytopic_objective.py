@@ -247,8 +247,37 @@ class PolytopicObjective(Objective):
         """
         Predict future dimensional states using velocity with damping.
         
-        Uses linear extrapolation with damping to prevent
-        unrealistic predictions.
+        ============================================================================
+        DIMENSIONAL VELOCITY PREDICTION (Week 1 Enhancement #2)
+        ============================================================================
+        WHAT: Predicts how objective's dimensions will change over time
+        WHY: Enables proactive management - anticipate urgent/risky objectives
+        HOW: Uses velocity with damping factor (0.9^t) for realistic predictions
+        
+        PREDICTION ALGORITHM:
+        1. Start with current dimensional profile
+        2. For each time step t:
+           - Apply damped velocity: velocity * (0.9^t)
+           - Update dimension: value + damped_velocity
+           - Clamp to [0.0, 1.0] range
+        3. Return list of predicted profiles
+        
+        DAMPING FACTOR (0.9):
+        - Prevents unrealistic predictions (velocity doesn't continue forever)
+        - Models natural deceleration over time
+        - At t=5: velocity is 0.9^5 = 0.59 of original (41% reduction)
+        
+        EXAMPLE:
+        Current: {temporal: 0.6, functional: 0.5, ...}
+        Velocity: {temporal: +0.1, functional: -0.02, ...}
+        
+        Predictions:
+        t=1: {temporal: 0.69, functional: 0.48, ...}  # velocity * 0.9
+        t=2: {temporal: 0.77, functional: 0.46, ...}  # velocity * 0.81
+        t=3: {temporal: 0.84, functional: 0.45, ...}  # velocity * 0.73
+        
+        INTEGRATION: Used by will_become_urgent() and will_become_risky()
+        ============================================================================
         
         Args:
             time_steps: Number of future time steps to predict
@@ -317,6 +346,39 @@ class PolytopicObjective(Objective):
     def get_trajectory_warnings(self) -> List[str]:
         """
         Get warnings about trajectory based on predictions.
+        
+        ============================================================================
+        PROACTIVE TRAJECTORY WARNINGS (Week 1 Enhancement #2)
+        ============================================================================
+        WHAT: Generates human-readable warnings about objective's trajectory
+        WHY: Alerts users to objectives that will become urgent/risky soon
+        HOW: Uses prediction methods to check future states
+        
+        WARNINGS GENERATED:
+        1. "Will become URGENT in next 3 iterations"
+           - Temporal dimension will exceed 0.8 within 3 time steps
+           - Enables proactive prioritization
+        
+        2. "Will become RISKY in next 3 iterations"
+           - Error dimension will exceed 0.7 within 3 time steps
+           - Enables early risk mitigation
+        
+        3. "{Dimension} dimension {increasing/decreasing} rapidly"
+           - Velocity magnitude > 0.2 (rapid change)
+           - Indicates unstable or volatile objective
+        
+        EXAMPLE OUTPUT:
+        [
+            "Will become URGENT in next 3 iterations",
+            "Temporal dimension increasing rapidly",
+            "Error dimension increasing rapidly"
+        ]
+        
+        INTEGRATION: Logged in _determine_next_action_strategic() (line 1725)
+        Appears in logs as:
+        ⚠️ Trajectory: Will become URGENT in next 3 iterations
+        ⚠️ Trajectory: Temporal dimension increasing rapidly
+        ============================================================================
         
         Returns:
             List of warning messages
