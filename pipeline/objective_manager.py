@@ -240,34 +240,7 @@ class ObjectiveManager:
         Returns dict: {level: {objective_id: Objective}}
         """
         
-        # STEP 1: Inspect state.objectives structure
-        self.logger.info(f"   state.objectives type: {type(state.objectives)}")
-        self.logger.info(f"   state.objectives keys: {list(state.objectives.keys())}")
-        
-        for level in ["primary", "secondary", "tertiary"]:
-            if level in state.objectives:
-                self.logger.info(f"\n   Level '{level}':")
-                self.logger.info(f"      Type: {type(state.objectives[level])}")
-                self.logger.info(f"      Count: {len(state.objectives[level])} objectives")
-                
-                for obj_id, obj_data in state.objectives[level].items():
-                    self.logger.info(f"\n      Objective '{obj_id}':")
-                    self.logger.info(f"         Type: {type(obj_data)}")
-                    if isinstance(obj_data, dict):
-                        self.logger.info(f"         Keys: {list(obj_data.keys())}")
-                        if 'tasks' in obj_data:
-                            tasks = obj_data['tasks']
-                            self.logger.info(f"         tasks type: {type(tasks)}")
-                            self.logger.info(f"         tasks length: {len(tasks) if isinstance(tasks, list) else 'NOT A LIST'}")
-                            self.logger.info(f"         tasks content: {tasks[:5] if isinstance(tasks, list) and len(tasks) > 5 else tasks}")
-                        else:
-                            self.logger.warning(f"         ✗ NO 'tasks' KEY FOUND")
-                    else:
-                        self.logger.warning(f"         ✗ NOT A DICT")
-            else:
-                self.logger.warning(f"   Level '{level}': NOT FOUND in state.objectives")
-        
-        # STEP 2: Parse markdown files
+        # Parse markdown files
         self.logger.info("\n" + "=" * 80)
         
         objectives = {
@@ -281,58 +254,32 @@ class ObjectiveManager:
                 self.logger.debug(f"No {level.value} objectives file found")
                 continue
             
-            self.logger.info(f"\n   Parsing {level.value} objectives from {filepath.name}")
             level_objectives = self._parse_objective_file(filepath, level)
             
+            # Merge task lists from state
             for obj_id, obj in level_objectives.items():
-                self.logger.info(f"      {obj_id}: tasks={obj.tasks} (length: {len(obj.tasks)})")
-            
-            # STEP 3: Merge task lists from state
-            
-            for obj_id, obj in level_objectives.items():
-                self.logger.info(f"         Before merge: obj.tasks = {obj.tasks} (length: {len(obj.tasks)})")
-                
                 # Check level exists
                 if level.value not in state.objectives:
-                    self.logger.warning(f"         ✗ Level '{level.value}' NOT in state.objectives")
-                    self.logger.info(f"         Available levels: {list(state.objectives.keys())}")
                     continue
-                
                 
                 # Check obj_id exists
                 if obj_id not in state.objectives[level.value]:
-                    self.logger.warning(f"         ✗ ID '{obj_id}' NOT in state.objectives[{level.value}]")
-                    self.logger.info(f"         Available IDs: {list(state.objectives[level.value].keys())}")
                     continue
-                
                 
                 # Get state data
                 state_data = state.objectives[level.value][obj_id]
-                self.logger.info(f"         state_data type: {type(state_data)}")
                 
                 if isinstance(state_data, dict):
-                    self.logger.info(f"         state_data keys: {list(state_data.keys())}")
-                    
                     # Get tasks
                     if 'tasks' in state_data:
                         tasks = state_data.get('tasks', [])
-                        self.logger.info(f"         tasks type: {type(tasks)}")
-                        self.logger.info(f"         tasks length: {len(tasks) if isinstance(tasks, list) else 'NOT A LIST'}")
-                        self.logger.info(f"         tasks content: {tasks[:5] if isinstance(tasks, list) and len(tasks) > 5 else tasks}")
                         
                         # MERGE
                         obj.tasks = tasks
                         obj.total_tasks = len(obj.tasks)
                         obj.completed_tasks = state_data.get('completed_tasks', [])
-                        
-                    else:
-                        self.logger.warning(f"         ✗ 'tasks' key NOT FOUND in state_data")
-                else:
-                    self.logger.warning(f"         ✗ state_data is NOT a dict")
             
             objectives[level.value] = level_objectives
-        
-        self.logger.info("\n" + "=" * 80)
         
         return objectives
     

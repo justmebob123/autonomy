@@ -251,7 +251,7 @@ class DuplicateDetector:
             # Skip __pycache__ and hidden directories
             if any(part.startswith('.') or part == '__pycache__' 
                    for part in filepath.parts):
-                       pass
+                pass
                 continue
             
             # Skip tests if not included
