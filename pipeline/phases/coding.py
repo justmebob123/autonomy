@@ -51,6 +51,13 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
         self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger, self.architecture_config)
         
+        # FILE MANAGEMENT - File discovery and naming conventions
+        from ..file_discovery import FileDiscovery
+        from ..naming_conventions import NamingConventionManager
+        
+        self.file_discovery = FileDiscovery(self.project_dir, self.logger)
+        self.naming_conventions = NamingConventionManager(self.project_dir, self.logger)
+        
         # FILENAME VALIDATION - Prevent problematic filenames
         self.filename_validator = FilenameValidator(strict_mode=True, project_root=str(self.project_dir))
         
@@ -711,6 +718,51 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
         """
         parts = []
         
+        # STEP 1: FILE DISCOVERY - Check for similar files
+        if task.target_file:
+            similar_files = self.file_discovery.find_similar_files(task.target_file)
+            
+            if similar_files:
+                parts.append("## ⚠️ Similar Files Found\n")
+                parts.append("Before creating a new file, please review these existing files:\n")
+                
+                for i, file_info in enumerate(similar_files[:5], 1):
+                    parts.append(f"\n### {i}. {file_info['path']}")
+                    parts.append(f"- **Similarity:** {file_info['similarity']:.0%}")
+                    parts.append(f"- **Size:** {file_info['size']} bytes")
+                    parts.append(f"- **Purpose:** {file_info['purpose']}")
+                    
+                    if file_info['classes']:
+                        parts.append(f"- **Classes:** {', '.join(file_info['classes'][:3])}")
+                    
+                    if file_info['functions']:
+                        funcs = ', '.join(file_info['functions'][:5])
+                        if len(file_info['functions']) > 5:
+                            funcs += f" ... and {len(file_info['functions']) - 5} more"
+                        parts.append(f"- **Functions:** {funcs}")
+                
+                parts.append("\n## 🤔 Decision Required\n")
+                parts.append("Please decide:")
+                parts.append("1. **Modify existing file** - If one of the above files should be updated")
+                parts.append("2. **Create new file** - If this is genuinely new functionality")
+                parts.append("3. **Use different name** - If the name conflicts with conventions")
+                parts.append("\nUse `read_file` to examine existing files before deciding.\n")
+        
+        # STEP 2: NAMING CONVENTIONS - Validate filename
+        if task.target_file:
+            validation = self.naming_conventions.validate_filename(task.target_file)
+            
+            if not validation['valid']:
+                parts.append("## ⚠️ Naming Convention Issues\n")
+                for issue in validation['issues']:
+                    parts.append(f"- {issue}")
+                
+                if validation['suggestions']:
+                    parts.append("\n**Suggestions:**")
+                    for suggestion in validation['suggestions']:
+                        parts.append(f"- {suggestion}")
+                parts.append("")
+        
         # Add strategic context from objectives documents
         strategic_docs = self.read_strategic_docs()
         if strategic_docs:
@@ -730,8 +782,9 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
                 parts.append(f"## Specific Implementation Steps (from TERTIARY_OBJECTIVES.md)\n{tertiary_objectives}\n")
         
         # Task description
-        parts.append(f"Task: {task.description}")
-        parts.append(f"Target file: {task.target_file}")
+        parts.append(f"## Task Details\n")
+        parts.append(f"**Description:** {task.description}")
+        parts.append(f"**Target file:** {task.target_file}")
         
         # CRITICAL FIX: Check if target file already exists
         if task.target_file:

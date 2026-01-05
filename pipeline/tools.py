@@ -68,6 +68,49 @@ TOOLS_PLANNING = [
     }
 ]
 
+# File discovery and naming convention tools
+TOOLS_FILE_DISCOVERY = [
+    {
+        "type": "function",
+        "function": {
+            "name": "find_similar_files",
+            "description": "Find files with similar names or functionality before creating new file. Use this to avoid creating duplicate files.",
+            "parameters": {
+                "type": "object",
+                "required": ["target_file"],
+                "properties": {
+                    "target_file": {
+                        "type": "string",
+                        "description": "Proposed filename to check for conflicts"
+                    },
+                    "similarity_threshold": {
+                        "type": "number",
+                        "description": "Similarity threshold (0.0-1.0, default 0.6)",
+                        "default": 0.6
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "validate_filename",
+            "description": "Validate proposed filename against project naming conventions from ARCHITECTURE.md",
+            "parameters": {
+                "type": "object",
+                "required": ["filename"],
+                "properties": {
+                    "filename": {
+                        "type": "string",
+                        "description": "Proposed filename to validate"
+                    }
+                }
+            }
+        }
+    }
+]
+
 TOOLS_CODING = [
     {
         "type": "function",
@@ -947,14 +990,14 @@ def get_tools_for_phase(phase: str, tool_registry=None) -> List[Dict]:
     """
     # Base tools for each phase
     phase_tools = {
-        "planning": TOOLS_PLANNING + TOOLS_ANALYSIS,  # Removed TOOLS_FILE_UPDATES - planning should only create tasks
-        "coding": TOOLS_CODING + TOOLS_ANALYSIS + TOOLS_FILE_OPERATIONS + TOOLS_IMPORT_OPERATIONS,
+        "planning": TOOLS_PLANNING + TOOLS_ANALYSIS + TOOLS_FILE_DISCOVERY,  # Added file discovery
+        "coding": TOOLS_CODING + TOOLS_FILE_DISCOVERY + TOOLS_ANALYSIS + TOOLS_FILE_OPERATIONS + TOOLS_IMPORT_OPERATIONS,  # Added file discovery
         "qa": TOOLS_QA + TOOLS_ANALYSIS + TOOLS_VALIDATION,
         "debugging": TOOLS_DEBUGGING + TOOLS_ANALYSIS + TOOLS_VALIDATION,
         "debug": TOOLS_DEBUGGING + TOOLS_ANALYSIS + TOOLS_VALIDATION,  # Alias
         "project_planning": TOOLS_PROJECT_PLANNING + TOOLS_ANALYSIS + TOOLS_FILE_UPDATES,
         "documentation": TOOLS_DOCUMENTATION + TOOLS_FILE_UPDATES,
-        "refactoring": TOOLS_REFACTORING + TOOLS_ANALYSIS + TOOLS_FILE_UPDATES + TOOLS_FILE_OPERATIONS + TOOLS_IMPORT_OPERATIONS + TOOLS_CODEBASE_ANALYSIS + TOOLS_CODING,
+        "refactoring": TOOLS_REFACTORING + TOOLS_FILE_DISCOVERY + TOOLS_ANALYSIS + TOOLS_FILE_UPDATES + TOOLS_FILE_OPERATIONS + TOOLS_IMPORT_OPERATIONS + TOOLS_CODEBASE_ANALYSIS + TOOLS_CODING,  # Added file discovery
         "investigation": TOOLS_ANALYSIS + TOOLS_VALIDATION,
     }
     

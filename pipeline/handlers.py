@@ -206,6 +206,9 @@ class ToolCallHandler:
             "validate_dict_access": self._handle_validate_dict_access,
             "validate_imports_comprehensive": self._handle_validate_imports_comprehensive,
             "fix_html_entities": self._handle_fix_html_entities,
+            # File discovery and naming convention tools
+            "find_similar_files": self._handle_find_similar_files,
+            "validate_filename": self._handle_validate_filename,
             # File operation tools (CRITICAL - Phase 2)
             "move_file": self._handle_move_file,
             "rename_file": self._handle_rename_file,
@@ -5737,6 +5740,55 @@ class ToolCallHandler:
             self.logger.error(f"Integration conflict detection failed: {e}")
             return {
                 "tool": "find_integration_conflicts",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_find_similar_files(self, args: Dict) -> Dict:
+        """Handle find_similar_files tool call"""
+        try:
+            from .file_discovery import FileDiscovery
+            
+            discovery = FileDiscovery(self.project_dir, self.logger)
+            
+            target_file = args.get('target_file')
+            threshold = args.get('similarity_threshold', 0.6)
+            
+            similar = discovery.find_similar_files(target_file, threshold)
+            
+            return {
+                "tool": "find_similar_files",
+                "success": True,
+                "similar_files": similar,
+                "count": len(similar)
+            }
+        except Exception as e:
+            self.logger.error(f"Find similar files failed: {e}")
+            return {
+                "tool": "find_similar_files",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_validate_filename(self, args: Dict) -> Dict:
+        """Handle validate_filename tool call"""
+        try:
+            from .naming_conventions import NamingConventionManager
+            
+            conventions = NamingConventionManager(self.project_dir, self.logger)
+            
+            filename = args.get('filename')
+            validation = conventions.validate_filename(filename)
+            
+            return {
+                "tool": "validate_filename",
+                "success": True,
+                "validation": validation
+            }
+        except Exception as e:
+            self.logger.error(f"Validate filename failed: {e}")
+            return {
+                "tool": "validate_filename",
                 "success": False,
                 "error": str(e)
             }
