@@ -1163,7 +1163,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 task_id=task_id,
                 description=f"Refactoring needed for {filepath}: {issue.get('description', 'No description')}",
                 target_file=filepath,
-                status=TaskStatus.PENDING,
+                status=TaskStatus.NEW,
                 priority=50,
                 created_at=datetime.now().isoformat()
             )
@@ -1193,7 +1193,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 task_id=task_id,
                 description=f"Planning needed for {filepath}: {issue.get('description', 'No description')}",
                 target_file=filepath,
-                status=TaskStatus.PENDING,
+                status=TaskStatus.NEW,
                 priority=40,  # Higher priority than refactoring
                 created_at=datetime.now().isoformat()
             )
@@ -1223,7 +1223,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 task_id=task_id,
                 description=f"Investigation needed for {filepath}: {issue.get('description', 'No description')}",
                 target_file=filepath,
-                status=TaskStatus.PENDING,
+                status=TaskStatus.NEW,
                 priority=30,  # Higher priority - performance/security
                 created_at=datetime.now().isoformat()
             )
