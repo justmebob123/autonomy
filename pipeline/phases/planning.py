@@ -353,13 +353,19 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                         state.objectives[objective_level] = {}
                     state.objectives[objective_level][objective_id] = objective.to_dict()
                 
-                # Add task to objective's task list
+                # Add task to objective's task list IN STATE
                 obj_data = state.objectives[objective_level][objective_id]
                 if 'tasks' not in obj_data:
                     obj_data['tasks'] = []
                 if task.task_id not in obj_data['tasks']:
                     obj_data['tasks'].append(task.task_id)
                     obj_data['total_tasks'] = len(obj_data['tasks'])
+                
+                # CRITICAL: Also update the objective OBJECT so it has the new task
+                # This ensures the objective passed to coordinator has current data
+                if task.task_id not in objective.tasks:
+                    objective.tasks.append(task.task_id)
+                    objective.total_tasks = len(objective.tasks)
             
             # MESSAGE BUS: Publish TASK_CREATED event
             from ..messaging import MessageType, MessagePriority
