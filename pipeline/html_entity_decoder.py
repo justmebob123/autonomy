@@ -178,18 +178,16 @@ class HTMLEntityDecoder:
             
             # Fix 1: Line starts with \&quot; (ALWAYS a syntax error)
             # Pattern: \&quot;\&quot;\&quot; -> """
-            # Replace ALL occurrences on lines that start with this pattern
-            # Note: \&quot; is 7 characters: backslash + ampersand + q + u + o + t + semicolon
-            pattern1 = '\\' + '&' + 'quot;'  # Literal: \ & q u o t ;
+            # The pattern is: backslash + &quot; (7 chars total)
+            pattern1 = '\\&quot;'
             if stripped.startswith(pattern1):
                 # Replace ALL \&quot; on this line
                 line = line.replace(pattern1, '"')
             
             # Fix 2: Line starts with \&apos; (ALWAYS a syntax error)
-            elif stripped.startswith('\\' + '&' + 'apos;'):  # Literal: \ & a p o s ;
+            elif stripped.startswith('\\&apos;'):
                 # Replace ALL \&apos; on this line
-                pattern2 = '\\' + '&' + 'apos;'
-                line = line.replace(pattern2, "'")
+                line = line.replace('\\&apos;', "'")
             
             # Fix 3: Line starts with &quot; (ALWAYS a syntax error)
             elif stripped.startswith(chr(92) + chr(34)):
