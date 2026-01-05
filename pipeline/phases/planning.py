@@ -1007,25 +1007,100 @@ Please address these architectural integration issues.
             except Exception as e:
                 self.logger.warning(f"  Failed to update TERTIARY_OBJECTIVES.md: {e}")
     def _update_architecture_doc(self, analysis_results: Dict):
-        """Update ARCHITECTURE.md with current state and priority issues"""
+        """Update ARCHITECTURE.md with INTENDED design and track drift from ACTUAL design"""
         try:
             arch_path = self.project_dir / 'ARCHITECTURE.md'
             
-            # Read existing content if it exists to preserve it
-            existing_content = ""
-            if arch_path.exists():
-                existing_content = arch_path.read_text()
+            # Read MASTER_PLAN to extract INTENDED architecture
+            master_plan_path = self.project_dir / 'MASTER_PLAN.md'
+            master_plan = ""
+            if master_plan_path.exists():
+                master_plan = master_plan_path.read_text()
             
-            # Always create fresh content - don't let it grow unbounded
-            # ARCHITECTURE.md should represent CURRENT state, not historical accumulation
+            # ARCHITECTURE.md is a strategic document tracking INTENDED vs ACTUAL design
             content = f"""# Architecture Document
 
-**Last Updated**: {self.format_timestamp()}
+> **Purpose**: Track INTENDED architectural design and monitor drift from ACTUAL implementation
+> **Updated By**: Planning phase (intended design), Refactoring phase (actual design adjustments)
+> **Last Updated**: {self.format_timestamp()}
 
-## Current State Analysis
+---
 
-### Code Quality Metrics
+## INTENDED Architecture
+
+> This section represents the DESIRED architectural design from MASTER_PLAN.
+> Planning phase updates this based on strategic objectives.
+> This is what we WANT the codebase to look like.
+
 """
+            
+            # Extract intended architecture from MASTER_PLAN
+            if master_plan:
+                import re
+                
+                # Look for architecture section
+                arch_match = re.search(r'##\s+Architecture\s*\n(.*?)(?=\n##|\Z)', master_plan, re.DOTALL | re.IGNORECASE)
+                if arch_match:
+                    intended_arch = arch_match.group(1).strip()
+                    content += intended_arch + "\n\n"
+                else:
+                    # Look for structure/design section
+                    structure_match = re.search(r'##\s+(?:Structure|Design|Components)\s*\n(.*?)(?=\n##|\Z)', master_plan, re.DOTALL | re.IGNORECASE)
+                    if structure_match:
+                        intended_arch = structure_match.group(1).strip()
+                        content += intended_arch + "\n\n"
+                    else:
+                        content += "### Components\n\n"
+                        content += "<!-- Define intended components and their responsibilities -->\n"
+                        content += "<!-- Planning phase will extract from MASTER_PLAN -->\n\n"
+                        
+                        content += "### Directory Structure\n\n"
+                        content += "<!-- Define intended directory organization -->\n"
+                        content += "<!-- Planning phase will extract from MASTER_PLAN -->\n\n"
+            else:
+                content += "### Components\n\n"
+                content += "<!-- No MASTER_PLAN.md found - define intended components -->\n\n"
+                
+                content += "### Directory Structure\n\n"
+                content += "<!-- No MASTER_PLAN.md found - define intended structure -->\n\n"
+            
+            content += """---
+
+## ACTUAL Architecture
+
+> This section represents the CURRENT implementation state.
+> Automatically analyzed from codebase.
+> This is what the codebase ACTUALLY looks like right now.
+
+### Current Components
+
+"""
+            
+            # Analyze actual architecture from codebase
+            from pathlib import Path
+            
+            # Get all Python files
+            py_files = list(self.project_dir.rglob("*.py"))
+            
+            # Group by top-level directory
+            components = {}
+            for py_file in py_files:
+                try:
+                    rel_path = py_file.relative_to(self.project_dir)
+                    parts = rel_path.parts
+                    if len(parts) > 0 and not parts[0].startswith('.'):
+                        component = parts[0]
+                        if component not in components:
+                            components[component] = []
+                        components[component].append(str(rel_path))
+                except ValueError:
+                    continue
+            
+            # List actual components
+            for component, files in sorted(components.items()):
+                content += f"**{component}/** ({len(files)} files)\n"
+            
+            content += "\n### Current Metrics\n\n"
             
             # Import integration point checker
             from pipeline.analysis.integration_points import is_integration_point
@@ -1033,11 +1108,12 @@ Please address these architectural integration issues.
             # Add complexity summary
             if analysis_results.get('complexity_issues'):
                 high_complexity = [i for i in analysis_results['complexity_issues'] if i['complexity'] >= 30]
-                content += f"\n**High Complexity Functions**: {len(high_complexity)}\n"
+                content += f"**High Complexity Functions**: {len(high_complexity)}\n"
                 if high_complexity:
                     content += "\nTop complexity issues:\n"
                     for issue in high_complexity[:5]:
                         content += f"- `{issue['file']}::{issue['function']}` (complexity: {issue['complexity']})\n"
+                    content += "\n"
             
             # Add dead code summary (filtered for integration points)
             if analysis_results.get('dead_code'):
@@ -1048,10 +1124,11 @@ Please address these architectural integration issues.
                         real_dead_code.append(issue)
                 
                 if real_dead_code:
-                    content += f"\n**Dead Code Items**: {len(real_dead_code)}\n"
+                    content += f"**Dead Code Items**: {len(real_dead_code)}\n"
                     content += "\nUnused components:\n"
                     for issue in real_dead_code[:5]:
                         content += f"- `{issue['file']}::{issue['name']}` ({issue['type']})\n"
+                    content += "\n"
             
             # Add integration gaps summary (filtered for known integration points)
             if analysis_results.get('integration_gaps'):
@@ -1062,34 +1139,43 @@ Please address these architectural integration issues.
                         real_gaps.append(issue)
                 
                 if real_gaps:
-                    content += f"\n**Integration Gaps**: {len(real_gaps)} (filtered from {len(analysis_results['integration_gaps'])} total)\n"
+                    content += f"**Integration Gaps**: {len(real_gaps)} (filtered from {len(analysis_results['integration_gaps'])} total)\n"
                     content += "\nUnintegrated components:\n"
                     for issue in real_gaps[:5]:
                         content += f"- `{issue['file']}::{issue['class']}` (line {issue['line']})\n"
+                    content += "\n"
             
-            content += "\n## Priority Issues\n\n"
+            content += """---
+
+## Architectural Drift
+
+> Differences between INTENDED and ACTUAL architecture.
+> These represent work needed to align implementation with design.
+
+"""
             
-            # Prioritize issues (filtered)
+            # Calculate drift - priority issues that need addressing
             all_issues = []
             if analysis_results.get('complexity_issues'):
-                all_issues.extend([('complexity', i) for i in analysis_results['complexity_issues'][:3]])
+                all_issues.extend([('complexity', i) for i in analysis_results['complexity_issues'][:5]])
             if analysis_results.get('integration_gaps'):
                 # Only include real gaps, not integration points
                 real_gaps = [i for i in analysis_results['integration_gaps'] 
                            if not is_integration_point(i['file'], 'class', i.get('class', ''))]
-                all_issues.extend([('integration', i) for i in real_gaps[:3]])
+                all_issues.extend([('integration', i) for i in real_gaps[:5]])
             
             if all_issues:
+                content += "### Priority Alignment Tasks\n\n"
                 for issue_type, issue in all_issues:
                     if issue_type == 'complexity':
-                        content += f"1. **Refactor**: `{issue['file']}::{issue['function']}` (complexity {issue['complexity']})\n"
+                        content += f"- **Refactor**: `{issue['file']}::{issue['function']}` (complexity {issue['complexity']})\n"
                     elif issue_type == 'integration':
-                        content += f"1. **Integrate**: `{issue['file']}::{issue['class']}` (line {issue['line']})\n"
+                        content += f"- **Integrate**: `{issue['file']}::{issue['class']}` (line {issue['line']})\n"
             else:
-                content += "No critical issues found.\n"
+                content += "✅ No significant drift detected - implementation aligns with intended design.\n"
             
             arch_path.write_text(content)
-            self.logger.info("  📝 Updated ARCHITECTURE.md (preserved existing content)")
+            self.logger.info("  📝 Updated ARCHITECTURE.md (INTENDED vs ACTUAL design)")
             
         except Exception as e:
             self.logger.error(f"  ❌ Failed to update ARCHITECTURE: {e}")
