@@ -1752,9 +1752,9 @@ class PhaseCoordinator:
                 'specialized': True  # Mark as specialized activation
             }
         
-        # USE ARBITER FOR INTELLIGENT DECISION-MAKING
-        # Arbiter considers all factors for optimal phase selection
-        return self._determine_next_action_with_arbiter(state)
+        # ARBITER DISABLED - causes infinite loops
+        # Use proven strategic/tactical decision-making instead
+        return self._determine_next_action_strategic(state)
     
     def _determine_next_action_strategic(self, state: PipelineState) -> Dict:
         """
