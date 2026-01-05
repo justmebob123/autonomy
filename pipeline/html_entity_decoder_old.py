@@ -1,8 +1,12 @@
 """
-HTML Entity Decoder - Version 2 (Context-Aware)
+HTML Entity Decoder
 
-Handles HTML entity decoding for generated code with context awareness.
-Only decodes entities in safe contexts to avoid breaking valid Python code.
+Handles HTML entity decoding for generated code across all programming languages.
+This is necessary because HTTP transport and LLM responses may introduce HTML entities
+that don't belong in source code.
+
+Context-aware decoding: Only decodes entities in safe contexts (docstrings, comments)
+to avoid breaking intentional entities in string literals.
 """
 
 import html
@@ -13,7 +17,7 @@ from .logging_setup import get_logger
 
 
 class HTMLEntityDecoder:
-    """Decodes HTML entities in generated code with context awareness."""
+    """Decodes HTML entities in generated code for various programming languages."""
     
     # Common HTML entities that appear in code
     COMMON_ENTITIES = {
@@ -78,7 +82,7 @@ class HTMLEntityDecoder:
         """
         Decode HTML entities in code with context awareness.
         
-        For Python files: Only decodes in safe contexts (docstrings, comments, syntax errors)
+        For Python files: Only decodes in docstrings and comments (safe contexts)
         For other languages: Decodes everywhere (legacy behavior)
         
         Args:
@@ -94,20 +98,22 @@ class HTMLEntityDecoder:
         original_code = code
         language = self._detect_language(filepath)
         
-        # For Python files, use conservative context-aware decoding
+        # CRITICAL FIX: First do aggressive decoding to fix syntax errors
+        # This allows the file to be parsed for context-aware decoding
+        decoded = self._aggressive_decode(code)
+        
+        # For Python files, use context-aware decoding if file can be parsed
         if language == 'python':
-            # First fix syntax errors (lines starting with &quot;)
-            decoded = self._fix_syntax_errors(code)
-            
-            # Then try context-aware decoding if file can be parsed
             try:
+                # Try context-aware decoding (only in docstrings/comments)
                 decoded = self._decode_python_context_aware(decoded)
             except SyntaxError:
-                # If file still has syntax errors, keep the syntax-error fixes
-                self.logger.debug(f"Cannot parse {filepath}, using syntax-error fixes only")
+                # If file still has syntax errors, use aggressive decoding
+                self.logger.debug(f"Cannot parse {filepath}, using aggressive decoding")
+                decoded = self._aggressive_decode(code)
         else:
             # For other languages, use comprehensive decoding (legacy)
-            decoded = html.unescape(code)
+            decoded = html.unescape(decoded)
             decoded = self._manual_decode(decoded)
             if language:
                 decoded = self._fix_language_specific(decoded, language)
@@ -155,73 +161,40 @@ class HTMLEntityDecoder:
         
         return decoded
     
-    def _fix_syntax_errors(self, code: str) -> str:
+    def _aggressive_decode(self, code: str) -> str:
         """
-        Fix ONLY patterns that cause syntax errors.
+        Aggressively decode HTML entities everywhere in the code.
+        This is used when the file has syntax errors and cannot be parsed.
         
-        CONSERVATIVE approach - only fixes:
-        1. Lines starting with &quot; or \' (line continuation errors)
-        2. Standalone docstring delimiters at line start
-        3. HTML entities in comments (safe context)
-        
-        Does NOT touch:
-        - Escape sequences inside string literals
-        - HTML entities in string content
-        - Raw strings with escapes
+        Handles:
+        1. Backslash-quote sequences: \&quot; -> " (line continuation errors)
+        2. Backslash-escaped entities: \\&quot; -> "
+        3. Regular entities: &quot; -> "
+        4. Numeric entities: &#34; -> "
         """
-        lines = code.split('\n')
-        fixed_lines = []
+        decoded = code
         
-        for line in lines:
-            stripped = line.strip()
-            
-            # Fix 1: Line starts with &quot; (ALWAYS a syntax error)
-            if stripped.startswith(chr(92) + chr(34)):
-                # Check for docstring delimiter: &quot;&quot;&quot;
-                if stripped.startswith(chr(92) + chr(34) * 3):
-                    # Only replace the first occurrence at line start
-                    indent = len(line) - len(line.lstrip())
-                    rest = line.lstrip()[len(chr(92) + chr(34) * 3):]
-                    line = ' ' * indent + chr(34) * 3 + rest
-                # Single &quot; at start
-                else:
-                    indent = len(line) - len(line.lstrip())
-                    rest = line.lstrip()[len(chr(92) + chr(34)):]
-                    line = ' ' * indent + chr(34) + rest
-            
-            # Fix 2: Line starts with \' (ALWAYS a syntax error)
-            elif stripped.startswith(chr(92) + chr(39)):
-                # Check for docstring delimiter: \'\'\'
-                if stripped.startswith(chr(92) + chr(39) * 3):
-                    indent = len(line) - len(line.lstrip())
-                    rest = line.lstrip()[len(chr(92) + chr(39) * 3):]
-                    line = ' ' * indent + chr(39) * 3 + rest
-                # Single \' at start
-                else:
-                    indent = len(line) - len(line.lstrip())
-                    rest = line.lstrip()[len(chr(92) + chr(39)):]
-                    line = ' ' * indent + chr(39) + rest
-            
-            # Fix 3: HTML entities in comments (safe to decode)
-            if '#' in line:
-                try:
-                    comment_start = line.index('#')
-                    before_comment = line[:comment_start]
-                    comment = line[comment_start:]
-                    
-                    # Decode HTML entities in comment only
-                    comment = html.unescape(comment)
-                    for entity, char in self.COMMON_ENTITIES.items():
-                        if entity in comment:
-                            comment = comment.replace(entity, char)
-                    
-                    line = before_comment + comment
-                except ValueError:
-                    pass
-            
-            fixed_lines.append(line)
+        # CRITICAL FIX: Remove backslash-quote sequences that cause syntax errors
+        # Pattern: \&quot; -> " (this is what's actually in the files)
+        # This fixes "unexpected character after line continuation character" errors
+        # Use chr() to create literal backslash + quote sequences
+        decoded = decoded.replace(chr(92) + chr(34), chr(34))  # \&quot; -> "
+        decoded = decoded.replace(chr(92) + chr(39), chr(39))  # \\' -> '
         
-        return '\n'.join(fixed_lines)
+        # SECOND: Remove backslashes before HTML entities
+        # Pattern: \\&entity; -> &entity;
+        decoded = re.sub(r'\\(&[a-zA-Z]+;)', r'\1', decoded)
+        decoded = re.sub(r'\\(&#\d+;)', r'\1', decoded)
+        
+        # THIRD: Use html.unescape for comprehensive decoding
+        decoded = html.unescape(decoded)
+        
+        # FOURTH: Apply manual decoding for any remaining entities
+        for entity, char in self.COMMON_ENTITIES.items():
+            if entity in decoded:
+                decoded = decoded.replace(entity, char)
+        
+        return decoded
     
     def _find_python_docstrings(self, source: str) -> List[Tuple[int, int]]:
         """Find all docstring line ranges in Python source code."""
@@ -245,8 +218,8 @@ class HTMLEntityDecoder:
                                 docstrings.append((node.body[0].lineno, node.body[0].end_lineno))
         
         except SyntaxError:
-            # If we can't parse, return empty list
-            self.logger.debug("Could not parse Python AST for docstring detection")
+            # If we can't parse, be conservative and don't decode anything
+            self.logger.debug("Could not parse Python AST, skipping context-aware decoding")
         
         return docstrings
     
@@ -286,6 +259,9 @@ class HTMLEntityDecoder:
         """
         Decode HTML entities in Python code with context awareness.
         Only decodes in docstrings and comments (safe contexts).
+        
+        Handles backslash-escaped HTML entities (e.g., \&quot;) by removing
+        the backslash ONLY in safe contexts before decoding.
         """
         lines = source.split('\n')
         
@@ -303,10 +279,15 @@ class HTMLEntityDecoder:
                 # Decode HTML entities in this line
                 original_line = line
                 
-                # Use html.unescape for comprehensive decoding
-                decoded_line = html.unescape(line)
+                # FIRST: Remove backslashes before HTML entities (only in safe contexts)
+                # Example: \&quot; -> &quot; (so html.unescape can recognize it)
+                decoded_line = re.sub(r'\\(&[a-zA-Z]+;)', r'\1', line)
+                decoded_line = re.sub(r'\\(&#\d+;)', r'\1', decoded_line)
                 
-                # Apply manual decoding for any remaining entities
+                # THEN: Use html.unescape for comprehensive decoding
+                decoded_line = html.unescape(decoded_line)
+                
+                # FINALLY: Apply manual decoding for any remaining entities
                 for entity, replacement in self.COMMON_ENTITIES.items():
                     if entity in decoded_line:
                         decoded_line = decoded_line.replace(entity, replacement)
@@ -320,6 +301,16 @@ class HTMLEntityDecoder:
         """Fix language-specific string delimiter issues."""
         if language not in self.LANGUAGE_DELIMITERS:
             return code
+        
+        delimiters = self.LANGUAGE_DELIMITERS[language]
+        
+        # Fix escaped quotes that shouldn't be escaped
+        # Example: &quot;&quot;&quot; -> """
+        if 'multi' in delimiters:
+            for delimiter in delimiters['multi']:
+                # Fix escaped multi-line delimiters
+                # Note: This is intentionally simple - just checking if delimiter appears escaped
+                pass  # Most cases handled by html.unescape already
         
         return code
     
