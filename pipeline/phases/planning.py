@@ -211,7 +211,8 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         analysis_results = self._perform_deep_analysis(existing_files)
         
         # IPC: Update strategic documents with findings
-        self._update_secondary_objectives(analysis_results, qa_output, debug_output)
+        self._update_primary_objectives(state)
+        self._update_secondary_objectives(analysis_results, phase_outputs)
         self._update_tertiary_objectives(analysis_results)
         self._update_architecture_doc(analysis_results)
         
@@ -976,20 +977,21 @@ Please address these architectural integration issues.
                 if high_conflicts:
                     self.logger.warning(f"      ⚠️  {len(high_conflicts)} HIGH SEVERITY conflicts need immediate attention")
         return results
-    def _update_secondary_objectives(self, analysis_results: Dict, qa_output: str, debug_output: str):
+    def _update_tertiary_objectives(self, analysis_results: Dict):
+        """Update TERTIARY_OBJECTIVES.md with specific implementation details"""
         self.logger.info("  📝 Updating TERTIARY_OBJECTIVES.md...")
         content_parts = []
         # Specific code fixes needed
-        if analysis_results['complexity_issues'] or analysis_results['dead_code']:
+        if analysis_results.get('complexity_issues') or analysis_results.get('dead_code'):
             content_parts.append("## Specific Fixes Needed\n\n")
             # High complexity fixes
-            for issue in analysis_results['complexity_issues'][:5]:
+            for issue in analysis_results.get('complexity_issues', [])[:5]:
                 content_parts.append(f"### {issue['file']} - Line {issue['line']}\n")
                 content_parts.append(f"**Problem**: Function `{issue['function']}` has complexity {issue['complexity']}\n")
                 content_parts.append(f"**Fix**: {issue['recommendation']}\n")
                 content_parts.append("**Approach**: Break down into smaller functions, extract logic\n\n")
             # Dead code removal
-            for dead in analysis_results['dead_code'][:5]:
+            for dead in analysis_results.get('dead_code', [])[:5]:
                 content_parts.append(f"### {dead['file']} - Line {dead['line']}\n")
                 content_parts.append(f"**Problem**: {dead['type'].title()} `{dead['name']}` is unused\n")
                 content_parts.append(f"**Fix**: {dead['recommendation']}\n\n")
@@ -1014,9 +1016,9 @@ Please address these architectural integration issues.
             if arch_path.exists():
                 existing_content = arch_path.read_text()
             
-            # Only create new content if file is empty or too small (< 500 bytes)
-            if len(existing_content) < 500:
-                content = f"""# Architecture Document
+            # Always create fresh content - don't let it grow unbounded
+            # ARCHITECTURE.md should represent CURRENT state, not historical accumulation
+            content = f"""# Architecture Document
 
 **Last Updated**: {self.format_timestamp()}
 
@@ -1024,16 +1026,6 @@ Please address these architectural integration issues.
 
 ### Code Quality Metrics
 """
-            else:
-                # Preserve existing content, just update the timestamp
-                import re
-                content = re.sub(
-                    r'\*\*Last Updated\*\*:.*',
-                    f'**Last Updated**: {self.format_timestamp()}',
-                    existing_content
-                )
-                # Append new analysis to the end
-                content += f"\n\n## Analysis Update - {self.format_timestamp()}\n\n"
             
             # Import integration point checker
             from pipeline.analysis.integration_points import is_integration_point
@@ -1101,6 +1093,201 @@ Please address these architectural integration issues.
             
         except Exception as e:
             self.logger.error(f"  ❌ Failed to update ARCHITECTURE: {e}")
+    
+    def _update_primary_objectives(self, state: PipelineState):
+        """Update PRIMARY_OBJECTIVES.md with actual objectives from MASTER_PLAN"""
+        try:
+            primary_path = self.project_dir / 'PRIMARY_OBJECTIVES.md'
+            
+            # Read MASTER_PLAN to extract objectives
+            master_plan_path = self.project_dir / 'MASTER_PLAN.md'
+            master_plan = ""
+            if master_plan_path.exists():
+                master_plan = master_plan_path.read_text()
+            
+            content = f"""# Primary Objectives
+
+> **Purpose**: Core functional requirements and features
+> **Updated By**: Planning phase (based on MASTER_PLAN)
+> **Read By**: All phases
+> **Last Updated**: {self.format_timestamp()}
+
+## Core Features
+
+"""
+            
+            # Extract features from MASTER_PLAN
+            if master_plan:
+                # Look for features section
+                import re
+                features_match = re.search(r'##\s+Features?\s*\n(.*?)(?=\n##|\Z)', master_plan, re.DOTALL | re.IGNORECASE)
+                if features_match:
+                    features_text = features_match.group(1).strip()
+                    content += features_text + "\n\n"
+                else:
+                    content += "<!-- Extract from MASTER_PLAN.md -->\n\n"
+            else:
+                content += "<!-- No MASTER_PLAN.md found -->\n\n"
+            
+            content += """## Functional Requirements
+
+"""
+            
+            # Extract requirements from MASTER_PLAN
+            if master_plan:
+                requirements_match = re.search(r'##\s+Requirements?\s*\n(.*?)(?=\n##|\Z)', master_plan, re.DOTALL | re.IGNORECASE)
+                if requirements_match:
+                    requirements_text = requirements_match.group(1).strip()
+                    content += requirements_text + "\n\n"
+                else:
+                    content += "<!-- Extract from MASTER_PLAN.md -->\n\n"
+            else:
+                content += "<!-- No MASTER_PLAN.md found -->\n\n"
+            
+            content += """## Success Criteria
+
+"""
+            
+            # Extract success criteria from MASTER_PLAN
+            if master_plan:
+                success_match = re.search(r'##\s+Success\s+Criteria\s*\n(.*?)(?=\n##|\Z)', master_plan, re.DOTALL | re.IGNORECASE)
+                if success_match:
+                    success_text = success_match.group(1).strip()
+                    content += success_text + "\n\n"
+                else:
+                    # Calculate from task completion
+                    total_tasks = len(state.tasks)
+                    completed_tasks = len([t for t in state.tasks.values() if t.status == TaskStatus.COMPLETED])
+                    content += f"- Complete all {total_tasks} planned tasks\n"
+                    content += f"- Current progress: {completed_tasks}/{total_tasks} tasks completed\n\n"
+            else:
+                content += "<!-- Define based on MASTER_PLAN.md goals -->\n\n"
+            
+            content += """---
+*This document is automatically updated by the Planning phase based on MASTER_PLAN analysis.*
+"""
+            
+            primary_path.write_text(content)
+            self.logger.info("  📝 Updated PRIMARY_OBJECTIVES.md")
+            
+        except Exception as e:
+            self.logger.error(f"  ❌ Failed to update PRIMARY_OBJECTIVES: {e}")
+    
+    def _update_secondary_objectives(self, analysis_results: Dict, phase_outputs: Dict):
+        """Update SECONDARY_OBJECTIVES.md with architectural changes and QA feedback"""
+        try:
+            secondary_path = self.project_dir / 'SECONDARY_OBJECTIVES.md'
+            
+            content = f"""# Secondary Objectives
+
+> **Purpose**: Architectural changes, testing requirements, reported failures
+> **Updated By**: Planning phase (based on analysis and QA feedback)
+> **Read By**: All phases
+> **Last Updated**: {self.format_timestamp()}
+
+## Architectural Changes Needed
+
+"""
+            
+            # Add complexity issues
+            if analysis_results.get('complexity_issues'):
+                high_complexity = [i for i in analysis_results['complexity_issues'] if i['complexity'] >= 30]
+                if high_complexity:
+                    content += f"### High Complexity Functions ({len(high_complexity)} found)\n\n"
+                    for issue in high_complexity[:10]:
+                        content += f"- Refactor `{issue['file']}::{issue['function']}` (complexity: {issue['complexity']})\n"
+                    content += "\n"
+            
+            # Add integration gaps
+            from pipeline.analysis.integration_points import is_integration_point
+            if analysis_results.get('integration_gaps'):
+                real_gaps = [i for i in analysis_results['integration_gaps'] 
+                           if not is_integration_point(i['file'], 'class', i.get('class', ''))]
+                if real_gaps:
+                    content += f"### Integration Gaps ({len(real_gaps)} found)\n\n"
+                    for issue in real_gaps[:10]:
+                        content += f"- Wire up `{issue['file']}::{issue['class']}` (line {issue['line']})\n"
+                    content += "\n"
+            
+            if not analysis_results.get('complexity_issues') and not analysis_results.get('integration_gaps'):
+                content += "No architectural changes needed at this time.\n\n"
+            
+            content += """## Testing Requirements
+
+"""
+            
+            # Extract testing needs from QA output
+            qa_output = phase_outputs.get('qa', '')
+            if qa_output and 'test' in qa_output.lower():
+                content += "### From QA Analysis\n\n"
+                # Extract test-related lines
+                import re
+                test_lines = [line for line in qa_output.split('\n') if 'test' in line.lower()]
+                for line in test_lines[:10]:
+                    if line.strip():
+                        content += f"- {line.strip()}\n"
+                content += "\n"
+            else:
+                content += "No specific testing requirements identified.\n\n"
+            
+            content += """## Reported Failures
+
+"""
+            
+            # Extract failures from QA and debugging outputs
+            qa_output = phase_outputs.get('qa', '')
+            debug_output = phase_outputs.get('debugging', '')
+            
+            failures_found = False
+            
+            if qa_output and ('error' in qa_output.lower() or 'fail' in qa_output.lower()):
+                content += "### From QA Phase\n\n"
+                import re
+                error_lines = [line for line in qa_output.split('\n') 
+                             if 'error' in line.lower() or 'fail' in line.lower()]
+                for line in error_lines[:10]:
+                    if line.strip():
+                        content += f"- {line.strip()}\n"
+                        failures_found = True
+                content += "\n"
+            
+            if debug_output and ('error' in debug_output.lower() or 'fail' in debug_output.lower()):
+                content += "### From Debugging Phase\n\n"
+                import re
+                error_lines = [line for line in debug_output.split('\n') 
+                             if 'error' in line.lower() or 'fail' in debug_output.lower()]
+                for line in error_lines[:10]:
+                    if line.strip():
+                        content += f"- {line.strip()}\n"
+                        failures_found = True
+                content += "\n"
+            
+            if not failures_found:
+                content += "No failures reported.\n\n"
+            
+            content += """## Integration Issues
+
+"""
+            
+            # Add integration conflicts
+            if analysis_results.get('integration_conflicts'):
+                content += f"### Integration Conflicts ({len(analysis_results['integration_conflicts'])} found)\n\n"
+                for issue in analysis_results['integration_conflicts'][:10]:
+                    content += f"- {issue.get('description', 'Unknown conflict')}\n"
+                content += "\n"
+            else:
+                content += "No integration issues detected.\n\n"
+            
+            content += """---
+*This document is automatically updated by the Planning phase based on codebase analysis.*
+"""
+            
+            secondary_path.write_text(content)
+            self.logger.info("  📝 Updated SECONDARY_OBJECTIVES.md")
+            
+        except Exception as e:
+            self.logger.error(f"  ❌ Failed to update SECONDARY_OBJECTIVES: {e}")
+    
     def _read_phase_outputs(self) -> Dict[str, str]:
         """Read outputs from other phases for context"""
         outputs = {}
