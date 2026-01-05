@@ -1875,6 +1875,45 @@ class PhaseCoordinator:
                 # Add dimensional health
                 health = self.objective_manager.analyze_dimensional_health(optimal_objective)
                 factors['dimensional_health'] = health
+                
+                # WEEK 2 PHASE 3: Add trajectory prediction data
+                try:
+                    # Get predictions using best model
+                    best_model = optimal_objective.select_best_model()
+                    predictions = optimal_objective.predict_with_model(best_model, time_steps=5)
+                    prediction_confidence = optimal_objective.get_prediction_confidence(predictions)
+                    
+                    # Get trajectory confidence per dimension
+                    trajectory_confidence = optimal_objective.calculate_trajectory_confidence()
+                    
+                    # Get intervention recommendations
+                    interventions = optimal_objective.get_intervention_recommendations()
+                    
+                    # Get mitigation strategies
+                    mitigations = optimal_objective.get_mitigation_strategies()
+                    
+                    factors['trajectory_data'] = {
+                        'model': best_model,
+                        'predictions': predictions,
+                        'prediction_confidence': prediction_confidence,
+                        'trajectory_confidence': trajectory_confidence,
+                        'interventions': interventions,
+                        'mitigations': mitigations,
+                        'warnings': optimal_objective.get_trajectory_warnings()
+                    }
+                    
+                    # Log trajectory insights
+                    if interventions:
+                        self.logger.info(f"  🎯 Trajectory interventions: {len(interventions)} recommended")
+                        for intervention in interventions[:2]:  # Top 2
+                            self.logger.info(f"    • {intervention['action']}: {intervention['reason']}")
+                    
+                    if prediction_confidence < 0.5:
+                        self.logger.warning(f"  ⚠️  Low prediction confidence: {prediction_confidence:.2f}")
+                    
+                except Exception as e:
+                    self.logger.debug(f"  ⚠️  Error getting trajectory data: {e}")
+                    factors['trajectory_data'] = None
         
         # Add phase dimensional profiles
         factors['phase_dimensions'] = {

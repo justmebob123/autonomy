@@ -449,3 +449,383 @@ class PolytopicObjective(Objective):
         return (f"PolytopicObjective(id={self.id}, level={self.level}, "
                 f"complexity={self.complexity_score:.2f}, risk={self.risk_score:.2f}, "
                 f"readiness={self.readiness_score:.2f})")
+    # ============================================================================
+    # WEEK 2 PHASE 3: ADVANCED TRAJECTORY PREDICTION ENHANCEMENTS
+    # ============================================================================
+    
+    def predict_with_model(self, model: str = "linear", time_steps: int = 5) -> List[Dict[str, float]]:
+        """
+        Predict future dimensional states using specified model.
+        
+        PREDICTION MODELS:
+        1. LINEAR: velocity * damping^t (default, good for stable trends)
+        2. EXPONENTIAL: value * (1 + velocity)^t (good for accelerating changes)
+        3. SIGMOID: asymptotic approach to limit (good for bounded growth)
+        
+        Args:
+            model: Prediction model ('linear', 'exponential', 'sigmoid')
+            time_steps: Number of future time steps to predict
+            
+        Returns:
+            List of predicted dimensional profiles at each time step
+        """
+        if not self.dimensional_velocity:
+            return [self.dimensional_profile.copy()] * time_steps
+        
+        predictions = []
+        current = self.dimensional_profile.copy()
+        
+        if model == "linear":
+            # Linear model with damping (existing implementation)
+            damping_factor = 0.9
+            for t in range(time_steps):
+                predicted = {}
+                for dim, value in current.items():
+                    velocity = self.dimensional_velocity.get(dim, 0.0)
+                    damped_velocity = velocity * (damping_factor ** t)
+                    predicted[dim] = max(0.0, min(1.0, value + damped_velocity))
+                predictions.append(predicted)
+                current = predicted
+                
+        elif model == "exponential":
+            # Exponential growth/decay model
+            for t in range(1, time_steps + 1):
+                predicted = {}
+                for dim, value in self.dimensional_profile.items():
+                    velocity = self.dimensional_velocity.get(dim, 0.0)
+                    # Exponential: value * (1 + velocity)^t
+                    growth_factor = 1.0 + velocity
+                    predicted[dim] = max(0.0, min(1.0, value * (growth_factor ** t)))
+                predictions.append(predicted)
+                
+        elif model == "sigmoid":
+            # Sigmoid model (asymptotic approach to limit)
+            for t in range(1, time_steps + 1):
+                predicted = {}
+                for dim, value in self.dimensional_profile.items():
+                    velocity = self.dimensional_velocity.get(dim, 0.0)
+                    # Sigmoid: approach 1.0 if velocity > 0, approach 0.0 if velocity < 0
+                    if velocity > 0:
+                        limit = 1.0
+                        k = 5.0  # Steepness factor
+                        predicted[dim] = limit - (limit - value) * math.exp(-k * velocity * t)
+                    elif velocity < 0:
+                        limit = 0.0
+                        k = 5.0
+                        predicted[dim] = limit + (value - limit) * math.exp(k * velocity * t)
+                    else:
+                        predicted[dim] = value
+                    predicted[dim] = max(0.0, min(1.0, predicted[dim]))
+                predictions.append(predicted)
+        else:
+            # Default to linear
+            return self.predict_dimensional_state(time_steps)
+        
+        return predictions
+    
+    def select_best_model(self) -> str:
+        """
+        Select best prediction model based on historical patterns.
+        
+        MODEL SELECTION CRITERIA:
+        1. LINEAR: Default, good for most cases
+        2. EXPONENTIAL: Use if velocity is accelerating (variance > 0.1)
+        3. SIGMOID: Use if approaching limits (value near 0.0 or 1.0)
+        
+        Returns:
+            Best model name ('linear', 'exponential', 'sigmoid')
+        """
+        if not self.dimensional_history or len(self.dimensional_history) < 3:
+            return "linear"  # Default for insufficient history
+        
+        # Analyze velocity patterns
+        velocity_variance = 0.0
+        near_limits = 0
+        total_dims = len(self.dimensional_profile)
+        
+        for dim in self.dimensional_profile.keys():
+            velocity = self.dimensional_velocity.get(dim, 0.0)
+            value = self.dimensional_profile[dim]
+            
+            # Check if near limits (0.0 or 1.0)
+            if value < 0.2 or value > 0.8:
+                near_limits += 1
+            
+            # Calculate velocity variance from history
+            if len(self.dimensional_history) >= 3:
+                recent_velocities = []
+                for i in range(len(self.dimensional_history) - 2):
+                    v1 = self.dimensional_history[i].get("profile", {}).get(dim, 0.0)
+                    v2 = self.dimensional_history[i + 1].get("profile", {}).get(dim, 0.0)
+                    recent_velocities.append(v2 - v1)
+                
+                if recent_velocities:
+                    mean_v = sum(recent_velocities) / len(recent_velocities)
+                    variance = sum((v - mean_v) ** 2 for v in recent_velocities) / len(recent_velocities)
+                    velocity_variance += variance
+        
+        velocity_variance /= total_dims
+        near_limit_ratio = near_limits / total_dims
+        
+        # Model selection logic
+        if near_limit_ratio > 0.5:
+            return "sigmoid"  # Many dimensions near limits
+        elif velocity_variance > 0.1:
+            return "exponential"  # High velocity variance (acceleration)
+        else:
+            return "linear"  # Stable, predictable changes
+    
+    def get_prediction_confidence(self, predictions: List[Dict[str, float]]) -> float:
+        """
+        Calculate confidence score for predictions (0.0 to 1.0).
+        
+        CONFIDENCE FACTORS:
+        1. Velocity stability (low variance = high confidence)
+        2. Historical accuracy (if available)
+        3. Time horizon (confidence decays with distance)
+        4. Data sufficiency (more history = higher confidence)
+        
+        Args:
+            predictions: List of predicted dimensional profiles
+            
+        Returns:
+            Confidence score (0.0 = no confidence, 1.0 = high confidence)
+        """
+        if not predictions:
+            return 0.0
+        
+        # Factor 1: Velocity stability
+        velocity_stability = 1.0
+        if self.dimensional_velocity:
+            velocities = list(self.dimensional_velocity.values())
+            if velocities:
+                mean_v = sum(abs(v) for v in velocities) / len(velocities)
+                variance = sum((abs(v) - mean_v) ** 2 for v in velocities) / len(velocities)
+                velocity_stability = max(0.0, 1.0 - variance * 10)  # Scale variance
+        
+        # Factor 2: Historical accuracy (placeholder - would need actual vs predicted comparison)
+        historical_accuracy = 0.8  # Default assumption
+        
+        # Factor 3: Time horizon decay
+        time_steps = len(predictions)
+        time_decay = 0.95 ** time_steps  # Confidence decays with distance
+        
+        # Factor 4: Data sufficiency
+        history_length = len(self.dimensional_history)
+        data_sufficiency = min(1.0, history_length / 10.0)  # Full confidence at 10+ history points
+        
+        # Weighted average
+        confidence = (
+            velocity_stability * 0.3 +
+            historical_accuracy * 0.2 +
+            time_decay * 0.3 +
+            data_sufficiency * 0.2
+        )
+        
+        return max(0.0, min(1.0, confidence))
+    
+    def calculate_trajectory_confidence(self) -> Dict[str, float]:
+        """
+        Calculate confidence for each dimension's trajectory.
+        
+        CONFIDENCE CALCULATION:
+        - Per-dimension confidence based on velocity stability
+        - Higher confidence for stable velocities
+        - Lower confidence for volatile dimensions
+        
+        Returns:
+            Dictionary mapping dimension name to confidence score
+        """
+        confidence = {}
+        
+        for dim in self.dimensional_profile.keys():
+            velocity = abs(self.dimensional_velocity.get(dim, 0.0))
+            
+            # Calculate stability from history
+            stability = 1.0
+            if len(self.dimensional_history) >= 3:
+                recent_values = []
+                for entry in self.dimensional_history[-5:]:
+                    recent_values.append(entry.get("profile", {}).get(dim, 0.0))
+                
+                if len(recent_values) >= 2:
+                    diffs = [abs(recent_values[i+1] - recent_values[i]) 
+                            for i in range(len(recent_values)-1)]
+                    mean_diff = sum(diffs) / len(diffs)
+                    variance = sum((d - mean_diff) ** 2 for d in diffs) / len(diffs)
+                    stability = max(0.0, 1.0 - variance * 10)
+            
+            # Combine velocity magnitude and stability
+            # Low velocity + high stability = high confidence
+            # High velocity + low stability = low confidence
+            dim_confidence = stability * (1.0 - min(1.0, velocity * 2))
+            confidence[dim] = max(0.0, min(1.0, dim_confidence))
+        
+        return confidence
+    
+    def get_confidence_decay_factor(self, time_steps: int) -> float:
+        """
+        Calculate confidence decay over time.
+        
+        DECAY MODEL:
+        - Confidence = base_confidence * (0.9^time_steps)
+        - At t=1: 90% confidence
+        - At t=3: 73% confidence
+        - At t=5: 59% confidence
+        
+        Args:
+            time_steps: Number of time steps into future
+            
+        Returns:
+            Decay factor (0.0 to 1.0)
+        """
+        decay_rate = 0.9
+        return decay_rate ** time_steps
+    
+    def get_intervention_recommendations(self) -> List[Dict[str, Any]]:
+        """
+        Generate specific intervention recommendations based on trajectory.
+        
+        RECOMMENDATION TYPES:
+        1. INCREASE_PRIORITY: Objective will become urgent
+        2. RISK_MITIGATION: Objective will become risky
+        3. RESOURCE_ALLOCATION: Complex objective needs resources
+        4. DEPENDENCY_RESOLUTION: High data/context dependencies
+        5. ARCHITECTURE_REVIEW: High architecture impact
+        
+        Returns:
+            List of intervention dictionaries with action, reason, priority, phase
+        """
+        recommendations = []
+        predictions = self.predict_dimensional_state(3)
+        
+        if not predictions:
+            return recommendations
+        
+        # Check for urgency
+        if self.will_become_urgent(threshold=0.8, time_steps=3):
+            recommendations.append({
+                "action": "increase_priority",
+                "reason": "Will become urgent in next 3 iterations",
+                "priority": 0.9,
+                "phase": "planning",
+                "dimension": "temporal"
+            })
+        
+        # Check for risk
+        if self.will_become_risky(threshold=0.7, time_steps=3):
+            recommendations.append({
+                "action": "risk_mitigation",
+                "reason": "Will become risky in next 3 iterations",
+                "priority": 0.85,
+                "phase": "qa",
+                "dimension": "error"
+            })
+        
+        # Check for high complexity
+        future_complexity = (
+            predictions[0].get("functional", 0.0) * 0.25 +
+            predictions[0].get("data", 0.0) * 0.15 +
+            predictions[0].get("state", 0.0) * 0.15 +
+            predictions[0].get("integration", 0.0) * 0.25 +
+            predictions[0].get("architecture", 0.0) * 0.20
+        )
+        
+        if future_complexity > 0.7:
+            recommendations.append({
+                "action": "resource_allocation",
+                "reason": f"High complexity predicted ({future_complexity:.2f})",
+                "priority": 0.75,
+                "phase": "investigation",
+                "dimension": "functional"
+            })
+        
+        # Check for dependency issues
+        future_deps = max(
+            predictions[0].get("data", 0.0),
+            predictions[0].get("context", 0.0)
+        )
+        
+        if future_deps > 0.7:
+            recommendations.append({
+                "action": "dependency_resolution",
+                "reason": f"High dependencies predicted ({future_deps:.2f})",
+                "priority": 0.7,
+                "phase": "planning",
+                "dimension": "data"
+            })
+        
+        # Check for architecture impact
+        future_arch = predictions[0].get("architecture", 0.0)
+        if future_arch > 0.7:
+            recommendations.append({
+                "action": "architecture_review",
+                "reason": f"High architecture impact predicted ({future_arch:.2f})",
+                "priority": 0.8,
+                "phase": "refactoring",
+                "dimension": "architecture"
+            })
+        
+        # Sort by priority (highest first)
+        recommendations.sort(key=lambda x: x["priority"], reverse=True)
+        
+        return recommendations
+    
+    def get_mitigation_strategies(self) -> List[str]:
+        """
+        Get strategies to mitigate predicted risks.
+        
+        MITIGATION STRATEGIES:
+        1. Temporal: Break into smaller tasks, increase resources
+        2. Error: Add validation, increase testing, code review
+        3. Complexity: Simplify design, add documentation
+        4. Dependencies: Decouple, add interfaces, mock dependencies
+        5. Architecture: Review design, consult team, prototype
+        
+        Returns:
+            List of mitigation strategy descriptions
+        """
+        strategies = []
+        predictions = self.predict_dimensional_state(3)
+        
+        if not predictions:
+            return strategies
+        
+        future_state = predictions[0]
+        
+        # Temporal mitigation
+        if future_state.get("temporal", 0.0) > 0.7:
+            strategies.append("Break objective into smaller, time-boxed tasks")
+            strategies.append("Allocate additional resources to meet deadline")
+            strategies.append("Identify and remove blockers early")
+        
+        # Error mitigation
+        if future_state.get("error", 0.0) > 0.7:
+            strategies.append("Add comprehensive input validation")
+            strategies.append("Increase test coverage (unit + integration)")
+            strategies.append("Implement error handling and recovery")
+            strategies.append("Schedule code review with senior developer")
+        
+        # Complexity mitigation
+        if future_state.get("functional", 0.0) > 0.7:
+            strategies.append("Simplify design - apply SOLID principles")
+            strategies.append("Add detailed documentation and examples")
+            strategies.append("Create architectural diagrams")
+            strategies.append("Consider design patterns for complexity management")
+        
+        # Dependency mitigation
+        if future_state.get("data", 0.0) > 0.7 or future_state.get("context", 0.0) > 0.7:
+            strategies.append("Decouple components - reduce tight coupling")
+            strategies.append("Add abstraction layers (interfaces)")
+            strategies.append("Use dependency injection")
+            strategies.append("Create mock implementations for testing")
+        
+        # Architecture mitigation
+        if future_state.get("architecture", 0.0) > 0.7:
+            strategies.append("Review architectural design with team")
+            strategies.append("Create proof-of-concept prototype")
+            strategies.append("Document architectural decisions (ADRs)")
+            strategies.append("Validate against ARCHITECTURE.md")
+        
+        return strategies
+
