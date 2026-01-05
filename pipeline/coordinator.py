@@ -1774,15 +1774,10 @@ class PhaseCoordinator:
         # Don't switch objectives mid-work - causes infinite planning loop
         in_progress_objective = None
         
-        self.logger.info("🔍 Checking for active objectives...")
+        # Check for active objectives
         for level, level_objs in objectives_by_level.items():
-            self.logger.info(f"   Level '{level}': {len(level_objs)} objectives")
             for obj_id, obj in level_objs.items():
-                status_str = str(obj.status).lower() if hasattr(obj.status, 'value') else str(obj.status).lower()
-                self.logger.info(f"      {obj_id}: status='{status_str}', tasks={len(obj.tasks)}")
-                
                 # Check for active/in-progress/approved status (handle both enum and string)
-                # CRITICAL: Check for multiple status values that indicate "in progress"
                 is_active = False
                 if hasattr(obj.status, 'value'):
                     is_active = obj.status.value in ["active", "in_progress", "approved"]
@@ -1792,18 +1787,14 @@ class PhaseCoordinator:
                 if is_active and len(obj.tasks) > 0:
                     # Found an active objective with tasks - continue with it
                     in_progress_objective = obj
-                    self.logger.info(f"   ✅ FOUND ACTIVE: {obj.title} ({len(obj.tasks)} tasks, status='{status_str}')")
+                    self.logger.info(f"✅ Continuing with active objective: {obj.title} ({len(obj.tasks)} tasks)")
                     break
             if in_progress_objective:
                 break
         
-        if not in_progress_objective:
-            self.logger.info("   ❌ No active objectives found (will select new one)")
-        
         if in_progress_objective:
             # Continue with current objective
             optimal_objective = in_progress_objective
-            self.logger.info(f"🎯 Continuing with active objective: {optimal_objective.title}")
         else:
             # No active objective - use 7D navigation to find optimal objective
             # BUT: Only select objectives that already have tasks (don't keep creating new empty objectives)
@@ -1837,7 +1828,8 @@ class PhaseCoordinator:
                         break
             
             # Mark new objective as active
-            optimal_objective.status = "active"
+            from .objective_manager import ObjectiveStatus
+            optimal_objective.status = ObjectiveStatus.ACTIVE
             self.logger.info(f"🎯 Selected NEW objective: {optimal_objective.title} (marked as ACTIVE)")
             
             # CRITICAL: Save the status change to state
@@ -1875,7 +1867,8 @@ class PhaseCoordinator:
         
         if optimal_objective.completion_percentage >= 80.0 and is_active:
             self.logger.info(f"✅ Objective '{optimal_objective.title}' reached {optimal_objective.completion_percentage:.0f}% - marking as COMPLETED")
-            optimal_objective.status = "completed"
+            from .objective_manager import ObjectiveStatus
+            optimal_objective.status = ObjectiveStatus.COMPLETED
             
             # Save completed objective
             self.objective_manager.save_objective(optimal_objective, state)

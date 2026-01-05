@@ -122,8 +122,9 @@ class Objective:
         self.completion_percentage = (len(completed) / len(self.tasks)) * 100
         
         # Update status based on progress
+        # CRITICAL: Don't reset ACTIVE status - it means we're actively working on it
         if self.completion_percentage == 0:
-            if self.status not in [ObjectiveStatus.PROPOSED, ObjectiveStatus.APPROVED]:
+            if self.status not in [ObjectiveStatus.PROPOSED, ObjectiveStatus.APPROVED, ObjectiveStatus.ACTIVE]:
                 self.status = ObjectiveStatus.APPROVED
         elif self.completion_percentage == 100:
             if self.status != ObjectiveStatus.COMPLETED:
@@ -238,12 +239,8 @@ class ObjectiveManager:
         
         Returns dict: {level: {objective_id: Objective}}
         """
-        self.logger.info("=" * 80)
-        self.logger.info("🔍 LOAD_OBJECTIVES() - COMPREHENSIVE TRACE")
-        self.logger.info("=" * 80)
         
         # STEP 1: Inspect state.objectives structure
-        self.logger.info("\n📊 STEP 1: Inspecting state.objectives structure")
         self.logger.info(f"   state.objectives type: {type(state.objectives)}")
         self.logger.info(f"   state.objectives keys: {list(state.objectives.keys())}")
         
@@ -273,7 +270,6 @@ class ObjectiveManager:
         # STEP 2: Parse markdown files
         self.logger.info("\n" + "=" * 80)
         self.logger.info("📄 STEP 2: Parsing markdown files")
-        self.logger.info("=" * 80)
         
         objectives = {
             "primary": {},
@@ -345,8 +341,6 @@ class ObjectiveManager:
             objectives[level.value] = level_objectives
         
         self.logger.info("\n" + "=" * 80)
-        self.logger.info("✅ LOAD_OBJECTIVES() COMPLETE")
-        self.logger.info("=" * 80)
         
         return objectives
     
