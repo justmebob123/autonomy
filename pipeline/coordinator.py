@@ -1415,11 +1415,13 @@ class PhaseCoordinator:
             # Log project lifecycle context
             completion = state.calculate_completion_percentage()
             project_phase = state.get_project_phase()
+            self.logger.info(f"  📊 Project: {completion:.1f}% complete ({project_phase} phase)")
             
             # Log objective context if present
             objective = phase_decision.get("objective")
             if objective:
-                pass
+                self.logger.info(f"  🎯 Objective: {objective.title} ({objective.completion_percentage:.0f}% complete)")
+                self.logger.info(f"  📊 Metrics: Complexity={objective.complexity_score:.2f} Risk={objective.risk_score:.2f} Readiness={objective.readiness_score:.2f}")
                 
                 # Log dimensional metrics if available (polytopic objective)
                 if hasattr(objective, 'complexity_score'):
