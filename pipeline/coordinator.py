@@ -1773,15 +1773,30 @@ class PhaseCoordinator:
         # CRITICAL FIX: Check for IN-PROGRESS objective first
         # Don't switch objectives mid-work - causes infinite planning loop
         in_progress_objective = None
-        for level_objs in objectives_by_level.values():
-            for obj in level_objs.values():
-                if obj.status == "active" and len(obj.tasks) > 0:
+        
+        self.logger.info("🔍 Checking for active objectives...")
+        for level, level_objs in objectives_by_level.items():
+            self.logger.info(f"   Level '{level}': {len(level_objs)} objectives")
+            for obj_id, obj in level_objs.items():
+                status_str = str(obj.status).lower() if hasattr(obj.status, 'value') else str(obj.status).lower()
+                self.logger.info(f"      {obj_id}: status='{status_str}', tasks={len(obj.tasks)}")
+                
+                # Check for active status (handle both enum and string)
+                is_active = (
+                    (hasattr(obj.status, 'value') and obj.status.value == "active") or
+                    (isinstance(obj.status, str) and obj.status.lower() == "active")
+                )
+                
+                if is_active and len(obj.tasks) > 0:
                     # Found an active objective with tasks - continue with it
                     in_progress_objective = obj
-                    self.logger.info(f"🎯 Continuing with active objective: {obj.title} ({len(obj.tasks)} tasks)")
+                    self.logger.info(f"   ✅ FOUND ACTIVE: {obj.title} ({len(obj.tasks)} tasks)")
                     break
             if in_progress_objective:
                 break
+        
+        if not in_progress_objective:
+            self.logger.info("   ❌ No active objectives found")
         
         if in_progress_objective:
             # Continue with current objective
