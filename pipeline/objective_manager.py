@@ -231,7 +231,10 @@ class ObjectiveManager:
     
     def load_objectives(self, state: PipelineState) -> Dict[str, Dict[str, Objective]]:
         """
-        Load objectives from markdown files.
+        Load objectives from markdown files and merge with state data.
+        
+        CRITICAL: Markdown files contain objective metadata but NOT task lists.
+        Task lists are stored in state.objectives dict and must be merged.
         
         Returns dict: {level: {objective_id: Objective}}
         """
@@ -247,6 +250,17 @@ class ObjectiveManager:
                 continue
             
             level_objectives = self._parse_objective_file(filepath, level)
+            
+            # CRITICAL: Merge task lists from state
+            # Markdown files don't contain task IDs - those are in state.objectives
+            for obj_id, obj in level_objectives.items():
+                if level.value in state.objectives and obj_id in state.objectives[level.value]:
+                    state_data = state.objectives[level.value][obj_id]
+                    # Restore task list from state
+                    obj.tasks = state_data.get('tasks', [])
+                    obj.total_tasks = len(obj.tasks)
+                    obj.completed_tasks = state_data.get('completed_tasks', [])
+            
             objectives[level.value] = level_objectives
         
         return objectives
@@ -338,8 +352,22 @@ class ObjectiveManager:
                 state.objectives[level] = {}
             
             for obj_id, obj in level_objs.items():
+                # CRITICAL: Preserve task list from existing state
+                # Markdown files don't contain task IDs - those are in state
+                existing_tasks = []
+                if obj_id in state.objectives[level]:
+                    existing_data = state.objectives[level][obj_id]
+                    existing_tasks = existing_data.get('tasks', [])
+                
                 # Convert to dict for storage
-                state.objectives[level][obj_id] = obj.to_dict()
+                obj_dict = obj.to_dict()
+                
+                # Merge task list from state (don't overwrite with empty list from markdown)
+                if existing_tasks:
+                    obj_dict['tasks'] = existing_tasks
+                    obj_dict['total_tasks'] = len(existing_tasks)
+                
+                state.objectives[level][obj_id] = obj_dict
         
         self.state_manager.save(state)
         self.logger.info(f"Synced objectives to state: {sum(len(v) for v in state.objectives.values())} total")
