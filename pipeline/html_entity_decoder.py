@@ -161,8 +161,9 @@ class HTMLEntityDecoder:
         
         CONSERVATIVE approach - only fixes:
         1. Lines starting with &quot; or \' (line continuation errors)
-        2. Standalone docstring delimiters at line start
-        3. HTML entities in comments (safe context)
+        2. Lines starting with \&quot; or \&apos; (HTML entity line continuation errors)
+        3. Standalone docstring delimiters at line start
+        4. HTML entities in comments (safe context)
         
         Does NOT touch:
         - Escape sequences inside string literals
@@ -175,8 +176,23 @@ class HTMLEntityDecoder:
         for line in lines:
             stripped = line.strip()
             
-            # Fix 1: Line starts with &quot; (ALWAYS a syntax error)
-            if stripped.startswith(chr(92) + chr(34)):
+            # Fix 1: Line starts with \&quot; (ALWAYS a syntax error)
+            # Pattern: \&quot;\&quot;\&quot; -> """
+            # Replace ALL occurrences on lines that start with this pattern
+            # Note: \&quot; is 7 characters: backslash + ampersand + q + u + o + t + semicolon
+            pattern1 = '\\' + '&' + 'quot;'  # Literal: \ & q u o t ;
+            if stripped.startswith(pattern1):
+                # Replace ALL \&quot; on this line
+                line = line.replace(pattern1, '"')
+            
+            # Fix 2: Line starts with \&apos; (ALWAYS a syntax error)
+            elif stripped.startswith('\\' + '&' + 'apos;'):  # Literal: \ & a p o s ;
+                # Replace ALL \&apos; on this line
+                pattern2 = '\\' + '&' + 'apos;'
+                line = line.replace(pattern2, "'")
+            
+            # Fix 3: Line starts with &quot; (ALWAYS a syntax error)
+            elif stripped.startswith(chr(92) + chr(34)):
                 # Check for docstring delimiter: &quot;&quot;&quot;
                 if stripped.startswith(chr(92) + chr(34) * 3):
                     # Only replace the first occurrence at line start
@@ -189,7 +205,7 @@ class HTMLEntityDecoder:
                     rest = line.lstrip()[len(chr(92) + chr(34)):]
                     line = ' ' * indent + chr(34) + rest
             
-            # Fix 2: Line starts with \' (ALWAYS a syntax error)
+            # Fix 4: Line starts with \' (ALWAYS a syntax error)
             elif stripped.startswith(chr(92) + chr(39)):
                 # Check for docstring delimiter: \'\'\'
                 if stripped.startswith(chr(92) + chr(39) * 3):
@@ -202,7 +218,7 @@ class HTMLEntityDecoder:
                     rest = line.lstrip()[len(chr(92) + chr(39)):]
                     line = ' ' * indent + chr(39) + rest
             
-            # Fix 3: HTML entities in comments (safe to decode)
+            # Fix 5: HTML entities in comments (safe to decode)
             if '#' in line:
                 try:
                     comment_start = line.index('#')

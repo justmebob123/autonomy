@@ -192,7 +192,14 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 next_phase="coding"
             )
         
-        # Read file content
+        # CRITICAL: Auto-fix HTML entities BEFORE reading content
+        # This prevents syntax errors from blocking QA analysis
+        if filepath.endswith('.py'):
+            if self._auto_fix_html_entities(filepath):
+                self.logger.info(f"✅ HTML entities fixed, proceeding with QA")
+                # File is now fixed, continue with normal QA
+        
+        # Read file content (now fixed if it had HTML entities)
         content = self.read_file(filepath)
         if not content:
             return self._handle_file_not_found(state, task, filepath)
@@ -701,6 +708,65 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         lines.append("")
         
         return "\n".join(lines)
+    
+    def _auto_fix_html_entities(self, filepath: str) -> bool:
+        """
+        Automatically detect and fix HTML entity issues in a file.
+        
+        This runs BEFORE analysis to prevent syntax errors from blocking QA.
+        
+        Args:
+            filepath: Relative path to file
+            
+        Returns:
+            True if issues were found and fixed, False otherwise
+        """
+        full_path = self.project_dir / filepath
+        if not full_path.exists() or not full_path.is_file():
+            return False
+        
+        try:
+            # Read file content
+            content = full_path.read_text(encoding='utf-8')
+            
+            # Quick check for HTML entity patterns
+            has_backslash_quote = chr(92) + chr(34) in content  # &quot;
+            has_backslash_apos = chr(92) + chr(39) in content   # \'
+            has_backslash_entity_quote = chr(92) + '&quot;' in content  # \&quot;
+            has_backslash_entity_apos = chr(92) + '&apos;' in content   # \&apos;
+            has_html_entities = '&quot;' in content or '&#34;' in content or '&apos;' in content
+            
+            if not (has_backslash_quote or has_backslash_apos or has_backslash_entity_quote or has_backslash_entity_apos or has_html_entities):
+                return False
+            
+            self.logger.info(f"🔧 Auto-fixing HTML entities in {filepath}")
+            
+            # Use the HTMLEntityDecoder directly
+            from pipeline.html_entity_decoder import HTMLEntityDecoder
+            decoder = HTMLEntityDecoder()
+            
+            decoded, modified = decoder.decode_html_entities(content, str(filepath))
+            
+            if modified:
+                # Write fixed content
+                full_path.write_text(decoded, encoding='utf-8')
+                self.logger.info(f"✅ Fixed HTML entities in {filepath}")
+                
+                # Verify the fix worked
+                try:
+                    import ast
+                    ast.parse(decoded)
+                    self.logger.info(f"✅ File now compiles successfully")
+                except SyntaxError as e:
+                    self.logger.warning(f"⚠️  File still has syntax errors after fix: {e}")
+                
+                return True
+            
+            return False
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to auto-fix HTML entities in {filepath}: {e}")
+            return False
     
     def _initialize_qa_context(self, state: PipelineState, filepath: str, task: TaskState) -> Dict:
         """Initialize QA context with architecture, objectives, and messages"""
