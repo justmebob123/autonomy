@@ -215,6 +215,16 @@ class PolytopicObjectiveManager(ObjectiveManager):
         # Dependencies also indicate integration needs
         profile["integration"] = (dependency_factor * 0.5 + integration_factor * 0.5)
         
+        # D8: Architecture - Based on architecture keywords and structural complexity
+        architecture_keywords = ['architecture', 'design', 'structure', 'pattern', 'framework', 'system']
+        architecture_mentions = sum(1 for keyword in architecture_keywords 
+                                   if keyword in description_lower or keyword in tasks_lower)
+        
+        architecture_factor = min(1.0, architecture_mentions / 5.0)
+        
+        # More dependencies and integration = more architectural awareness needed
+        profile["architecture"] = (architecture_factor * 0.4 + dependency_factor * 0.3 + integration_factor * 0.3)
+        
         return profile
     
     def find_optimal_objective(self, current_state: PipelineState) -> Optional[PolytopicObjective]:

@@ -502,6 +502,7 @@ class ObjectiveFileGenerator:
                 f"- **Error**: {obj.dimensional_profile['error']:.2f} (Risk level)",
                 f"- **Context**: {obj.dimensional_profile['context']:.2f} (Context requirements)",
                 f"- **Integration**: {obj.dimensional_profile['integration']:.2f} (Integration complexity)",
+                f"- **Architecture**: {obj.dimensional_profile['architecture']:.2f} (Architecture awareness)",
                 "",
                 "### Tasks",
             ])
