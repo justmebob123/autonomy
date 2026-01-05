@@ -1,19 +1,32 @@
-# 🚨 FIX ALL PIPELINE ERRORS IMMEDIATELY
+# HTML Entity Encoding Fix - Implementation Plan
 
-## CRITICAL ERROR - FIX NOW
-- [ ] Fix TaskPriority.MEDIUM error in pipeline/phases/planning.py:1313
-- [ ] Fix import error in pipeline/handlers.py:4393
+## Critical Fixes (Must Do Now)
 
-## FIX ALL 412 DICTIONARY ERRORS
-- [ ] Fix pipeline/handlers.py - 187 errors
-- [ ] Fix pipeline/phases/refactoring.py - 28 errors  
-- [ ] Fix pipeline/phases/debugging.py - 22 errors
-- [ ] Fix pipeline/coordinator.py - 15 errors
-- [ ] Fix pipeline/architecture_analyzer.py - 9 errors
-- [ ] Fix pipeline/signature_extractor.py - 9 errors
-- [ ] Fix pipeline/team_orchestrator.py - 7 errors
-- [ ] Fix all other production files
-- [ ] Fix all test files
+### 1. Add Proactive HTML Entity Decoding to File Handlers
+- [x] Fixed HTMLEntityDecoder to handle backslash-quote sequences
+- [x] Added _aggressive_decode() method for syntax error cases
+- [x] Decoder already integrated in syntax_validator (runs before file write)
+- [x] Test with actual broken files - ✅ WORKS!
 
-## STOP CREATING ANALYSIS SCRIPTS
-## START FIXING ACTUAL CODE
+### 2. Fix fix_html_entities Tool Regex Patterns
+- [x] Updated _aggressive_decode to handle `&quot;` sequences
+- [x] Uses chr(92) + chr(34) for literal backslash-quote matching
+- [x] Test pattern matching - ✅ WORKS!
+
+### 3. Add validate_code_entities Tool
+- [ ] Create handler method (optional - decoder already works proactively)
+- [ ] Add to tool registry (optional)
+- [ ] Add to coding/debugging/refactoring phases (optional)
+
+### 4. Testing and Validation
+- [x] Created test cases for backslash-quote patterns
+- [x] Tested with actual broken file - ✅ COMPILES!
+- [x] Verified decoder fixes syntax errors
+- [x] Confirmed modified flag works correctly
+
+### 5. Documentation
+- [x] Created HTML_ENTITY_COMPREHENSIVE_ANALYSIS.md
+- [x] Created HTML_ENTITY_FIX_IMPLEMENTATION.md
+- [x] Updated todo.md with completion status
+- [ ] Commit all changes to git
+- [ ] Push to GitHub

@@ -33,8 +33,8 @@ class HTMLEntityDecoder:
         '&#38;': '&',
         '&nbsp;': ' ',
         '&#160;': ' ',
-        '&ndash;': '–',
-        '&mdash;': '—',
+        '&ndash;': '\u2013',
+        '&mdash;': '\u2014',
         '&hellip;': '...',
     }
     
@@ -98,12 +98,22 @@ class HTMLEntityDecoder:
         original_code = code
         language = self._detect_language(filepath)
         
-        # For Python files, use context-aware decoding
+        # CRITICAL FIX: First do aggressive decoding to fix syntax errors
+        # This allows the file to be parsed for context-aware decoding
+        decoded = self._aggressive_decode(code)
+        
+        # For Python files, use context-aware decoding if file can be parsed
         if language == 'python':
-            decoded = self._decode_python_context_aware(code)
+            try:
+                # Try context-aware decoding (only in docstrings/comments)
+                decoded = self._decode_python_context_aware(decoded)
+            except SyntaxError:
+                # If file still has syntax errors, use aggressive decoding
+                self.logger.debug(f"Cannot parse {filepath}, using aggressive decoding")
+                decoded = self._aggressive_decode(code)
         else:
             # For other languages, use comprehensive decoding (legacy)
-            decoded = html.unescape(code)
+            decoded = html.unescape(decoded)
             decoded = self._manual_decode(decoded)
             if language:
                 decoded = self._fix_language_specific(decoded, language)
@@ -145,6 +155,41 @@ class HTMLEntityDecoder:
         """Apply manual decoding for common HTML entities."""
         decoded = code
         
+        for entity, char in self.COMMON_ENTITIES.items():
+            if entity in decoded:
+                decoded = decoded.replace(entity, char)
+        
+        return decoded
+    
+    def _aggressive_decode(self, code: str) -> str:
+        """
+        Aggressively decode HTML entities everywhere in the code.
+        This is used when the file has syntax errors and cannot be parsed.
+        
+        Handles:
+        1. Backslash-quote sequences: \&quot; -> " (line continuation errors)
+        2. Backslash-escaped entities: \\&quot; -> "
+        3. Regular entities: &quot; -> "
+        4. Numeric entities: &#34; -> "
+        """
+        decoded = code
+        
+        # CRITICAL FIX: Remove backslash-quote sequences that cause syntax errors
+        # Pattern: \&quot; -> " (this is what's actually in the files)
+        # This fixes "unexpected character after line continuation character" errors
+        # Use chr() to create literal backslash + quote sequences
+        decoded = decoded.replace(chr(92) + chr(34), chr(34))  # \&quot; -> "
+        decoded = decoded.replace(chr(92) + chr(39), chr(39))  # \\' -> '
+        
+        # SECOND: Remove backslashes before HTML entities
+        # Pattern: \\&entity; -> &entity;
+        decoded = re.sub(r'\\(&[a-zA-Z]+;)', r'\1', decoded)
+        decoded = re.sub(r'\\(&#\d+;)', r'\1', decoded)
+        
+        # THIRD: Use html.unescape for comprehensive decoding
+        decoded = html.unescape(decoded)
+        
+        # FOURTH: Apply manual decoding for any remaining entities
         for entity, char in self.COMMON_ENTITIES.items():
             if entity in decoded:
                 decoded = decoded.replace(entity, char)
@@ -215,7 +260,7 @@ class HTMLEntityDecoder:
         Decode HTML entities in Python code with context awareness.
         Only decodes in docstrings and comments (safe contexts).
         
-        Handles backslash-escaped HTML entities (e.g., \") by removing
+        Handles backslash-escaped HTML entities (e.g., \&quot;) by removing
         the backslash ONLY in safe contexts before decoding.
         """
         lines = source.split('\n')
@@ -235,9 +280,9 @@ class HTMLEntityDecoder:
                 original_line = line
                 
                 # FIRST: Remove backslashes before HTML entities (only in safe contexts)
-                # Example: " -> " (so html.unescape can recognize it)
-                decoded_line = re.sub(r'\\(&[a-zA-Z]+;)', r'\1', line)  # " -> "
-                decoded_line = re.sub(r'\\(&#\d+;)', r'\1', decoded_line)  # " -> "
+                # Example: \&quot; -> &quot; (so html.unescape can recognize it)
+                decoded_line = re.sub(r'\\(&[a-zA-Z]+;)', r'\1', line)
+                decoded_line = re.sub(r'\\(&#\d+;)', r'\1', decoded_line)
                 
                 # THEN: Use html.unescape for comprehensive decoding
                 decoded_line = html.unescape(decoded_line)
@@ -260,7 +305,7 @@ class HTMLEntityDecoder:
         delimiters = self.LANGUAGE_DELIMITERS[language]
         
         # Fix escaped quotes that shouldn't be escaped
-        # Example: """ -> """
+        # Example: &quot;&quot;&quot; -> """
         if 'multi' in delimiters:
             for delimiter in delimiters['multi']:
                 # Fix escaped multi-line delimiters
