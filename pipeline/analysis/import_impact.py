@@ -81,7 +81,8 @@ class ImportImpactAnalyzer:
         report = ImpactReport(
             operation='move',
             source_file=source_path,
-            target_file=target_path
+            target_file=target_path,
+            risk_level=RiskLevel.LOW  # Will be updated based on analysis
         )
         
         # Check if source file exists in graph
@@ -169,7 +170,8 @@ class ImportImpactAnalyzer:
         report = ImpactReport(
             operation='delete',
             source_file=file_path,
-            target_file=None
+            target_file=None,
+            risk_level=RiskLevel.LOW  # Will be updated based on analysis
         )
         
         # Check if file exists in graph
