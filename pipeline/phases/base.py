@@ -164,11 +164,13 @@ class BasePhase(ABC):
         # CRITICAL: Initialize Architecture Manager and IPC Integration
         from ..architecture_manager import ArchitectureManager
         from ..ipc_integration import ObjectiveReader, StatusWriter, StatusReader
+        from ..document_updater import DocumentUpdater
         
         self.arch_manager = ArchitectureManager(self.project_dir, self.logger)
         self.objective_reader = ObjectiveReader(self.project_dir, self.logger)
         self.status_writer = StatusWriter(self.project_dir, self.logger)
         self.status_reader = StatusReader(self.project_dir, self.logger)
+        self.doc_updater = DocumentUpdater(self.project_dir, self.logger)
         
         # CRITICAL FIX: Add system prompt to conversation at initialization
         # This ensures the model always sees the system prompt with tool calling instructions

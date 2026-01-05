@@ -479,6 +479,32 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 "next_phase": "debugging"
             })
             
+            # BIDIRECTIONAL IPC: Update strategic documents with new issues
+            try:
+                for issue in handler.issues:
+                    # Add to SECONDARY_OBJECTIVES
+                    issue_desc = f"{issue.get('type', 'Error')}: {issue.get('description', 'Unknown issue')} in {filepath}"
+                    self.doc_updater.add_new_issue(
+                        'SECONDARY_OBJECTIVES.md',
+                        'Reported Failures',
+                        issue_desc,
+                        'QA',
+                        issue.get('type', 'Error')
+                    )
+                    
+                    # Add to TERTIARY_OBJECTIVES for specific tracking
+                    if issue.get('line_number'):
+                        specific_desc = f"{filepath} (Line {issue['line_number']}): {issue.get('description', 'Unknown issue')}"
+                        self.doc_updater.add_new_issue(
+                            'TERTIARY_OBJECTIVES.md',
+                            'Specific Fixes Needed',
+                            specific_desc,
+                            'QA',
+                            issue.get('type', 'Error')
+                        )
+            except Exception as e:
+                self.logger.debug(f"  Failed to update strategic documents: {e}")
+            
             # MESSAGE BUS: Publish phase completion (issues found)
             self._publish_message('PHASE_COMPLETED', {
                 'phase': self.phase_name,

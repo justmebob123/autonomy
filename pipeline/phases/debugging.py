@@ -906,6 +906,30 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         # IPC INTEGRATION: Send messages to other phases
         self._send_phase_messages(issue, filepath, fix_applied=True)
         
+        # BIDIRECTIONAL IPC: Update strategic documents
+        try:
+            # Remove fixed issue from SECONDARY_OBJECTIVES
+            issue_desc = issue.get('description', '')
+            if issue_desc:
+                self.doc_updater.remove_resolved_issue(
+                    'SECONDARY_OBJECTIVES.md',
+                    issue_desc,
+                    'Debugging',
+                    f"Fixed in {filepath}"
+                )
+            
+            # Remove from TERTIARY_OBJECTIVES
+            if filepath:
+                task_id = f"{filepath}"
+                self.doc_updater.mark_task_complete(
+                    'TERTIARY_OBJECTIVES.md',
+                    task_id,
+                    'Debugging',
+                    f"Fixed {issue.get('type', 'issue')}"
+                )
+        except Exception as e:
+            self.logger.debug(f"  Failed to update strategic documents: {e}")
+        
         return PhaseResult(
             success=True,
             phase=self.phase_name,

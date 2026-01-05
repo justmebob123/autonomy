@@ -477,6 +477,28 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
         
         task.failure_count = 0  # Reset failure count on success
         
+        # BIDIRECTIONAL IPC: Update strategic documents
+        try:
+            # Mark task complete in TERTIARY_OBJECTIVES
+            if task.target_file and task.description:
+                task_id = f"{task.target_file}"
+                self.doc_updater.mark_task_complete(
+                    'TERTIARY_OBJECTIVES.md',
+                    task_id,
+                    'Coding',
+                    f"Implemented: {task.description[:50]}"
+                )
+            
+            # If new files created, update ARCHITECTURE.md ACTUAL
+            for filepath in files_created:
+                self.doc_updater.update_actual_architecture(
+                    filepath,
+                    'IMPLEMENTED',
+                    'Coding'
+                )
+        except Exception as e:
+            self.logger.debug(f"  Failed to update strategic documents: {e}")
+        
         # Update file tracking in state
         for filepath in files_created + files_modified:
             file_hash = self.file_tracker.update_hash(filepath)
