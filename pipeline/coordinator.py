@@ -647,7 +647,7 @@ class PhaseCoordinator:
         
         # Use provided current_phase or get from state
         if current_phase is None:
-            current_phase = getattr(state, 'current_phase', self.last_phase)
+            current_phase = getattr(state, 'current_phase', None)
         
         # Build context from state
         context = {
@@ -1824,7 +1824,7 @@ class PhaseCoordinator:
         factors = {
             'state': state,
             'phase_history': state.phase_history[-10:] if hasattr(state, 'phase_history') else [],
-            'current_phase': getattr(state, 'current_phase', self.last_phase),
+            'current_phase': getattr(state, 'current_phase', None),
             'completion': state.calculate_completion_percentage(),
             'project_phase': state.get_project_phase(),
         }
@@ -1843,7 +1843,7 @@ class PhaseCoordinator:
         
         # Add pattern recommendations
         factors['pattern_recommendations'] = self.pattern_recognition.get_recommendations({
-            'phase': getattr(state, 'current_phase', self.last_phase),
+            'phase': getattr(state, 'current_phase', None),
             'state': state
         })
         
@@ -1940,7 +1940,7 @@ class PhaseCoordinator:
                 objectives_list = ['implement_features'] if state.tasks else []
                 recommendations = self.phase_correlation.recommend_phase_sequence(
                     objectives=objectives_list,
-                    current_phase=getattr(state, 'current_phase', self.last_phase)
+                    current_phase=getattr(state, 'current_phase', None)
                 )
                 factors['correlation_recommendations'] = recommendations[:3]  # Top 3
                 
