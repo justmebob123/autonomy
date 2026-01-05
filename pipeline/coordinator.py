@@ -1802,6 +1802,10 @@ class PhaseCoordinator:
         from .objective_manager import ObjectiveHealth, ObjectiveHealthStatus
         
         # Convert dimensional health to ObjectiveHealth format
+        # CRITICAL: Update objective progress BEFORE determining action
+        # This ensures we have current task counts and completion percentage
+        optimal_objective.update_progress(state)
+        
         base_health = ObjectiveHealth(
             status=ObjectiveHealthStatus[health['overall_health']],
             success_rate=optimal_objective.success_rate,
