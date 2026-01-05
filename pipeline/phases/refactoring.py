@@ -81,6 +81,13 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger, self.architecture_config)
         self.conflict_detector = IntegrationConflictDetector(str(self.project_dir), self.logger)
         
+        # FILE MANAGEMENT - File discovery and naming conventions
+        from ..file_discovery import FileDiscovery
+        from ..naming_conventions import NamingConventionManager
+        
+        self.file_discovery = FileDiscovery(self.project_dir, self.logger)
+        self.naming_conventions = NamingConventionManager(self.project_dir, self.logger)
+        
         # ADDED: Tools for handling high_complexity and integration_gap issues
         self.complexity_analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
         self.gap_finder = IntegrationGapFinder(str(self.project_dir), self.logger)

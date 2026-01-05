@@ -52,8 +52,16 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         self.conflict_detector = IntegrationConflictDetector(str(self.project_dir), self.logger, self.architecture_config)
         self.file_updater = FileUpdateTools(str(self.project_dir), self.logger)
         
+        # FILE MANAGEMENT - File discovery and naming conventions
+        from ..file_discovery import FileDiscovery
+        from ..naming_conventions import NamingConventionManager
+        
+        self.file_discovery = FileDiscovery(self.project_dir, self.logger)
+        self.naming_conventions = NamingConventionManager(self.project_dir, self.logger)
+        
         self.logger.info("  📊 Planning phase initialized with analysis capabilities")
         self.logger.info("  🔀 Integration conflict detection enabled")
+        self.logger.info("  📁 File management and naming conventions enabled")
         
         # MESSAGE BUS: Subscribe to relevant events
         if self.message_bus:

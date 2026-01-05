@@ -53,8 +53,16 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         self.call_graph = CallGraphGenerator(str(self.project_dir), self.logger)
         self.conflict_detector = IntegrationConflictDetector(str(self.project_dir), self.logger, self.architecture_config)
         
+        # FILE MANAGEMENT - File discovery and naming conventions
+        from ..file_discovery import FileDiscovery
+        from ..naming_conventions import NamingConventionManager
+        
+        self.file_discovery = FileDiscovery(self.project_dir, self.logger)
+        self.naming_conventions = NamingConventionManager(self.project_dir, self.logger)
+        
         self.logger.info("  🔍 QA phase initialized with comprehensive analysis capabilities")
         self.logger.info("  🔀 Integration conflict detection enabled")
+        self.logger.info("  📁 File management and naming conventions enabled")
         
         # MESSAGE BUS: Subscribe to relevant events
         if self.message_bus:

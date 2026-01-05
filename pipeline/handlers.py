@@ -209,6 +209,10 @@ class ToolCallHandler:
             # File discovery and naming convention tools
             "find_similar_files": self._handle_find_similar_files,
             "validate_filename": self._handle_validate_filename,
+            "compare_files": self._handle_compare_files,
+            "find_all_conflicts": self._handle_find_all_conflicts,
+            "archive_file": self._handle_archive_file,
+            "detect_naming_violations": self._handle_detect_naming_violations,
             # File operation tools (CRITICAL - Phase 2)
             "move_file": self._handle_move_file,
             "rename_file": self._handle_rename_file,
@@ -5789,6 +5793,161 @@ class ToolCallHandler:
             self.logger.error(f"Validate filename failed: {e}")
             return {
                 "tool": "validate_filename",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_compare_files(self, args: Dict) -> Dict:
+        """Handle compare_files tool call"""
+        try:
+            from .file_conflict_resolver import FileConflictResolver
+            from .file_discovery import FileDiscovery
+            
+            discovery = FileDiscovery(self.project_dir, self.logger)
+            resolver = FileConflictResolver(self.project_dir, self.logger, discovery)
+            
+            files = args.get('files', [])
+            comparison = resolver.compare_files(files)
+            
+            return {
+                "tool": "compare_files",
+                "success": True,
+                "comparison": comparison
+            }
+        except Exception as e:
+            self.logger.error(f"Compare files failed: {e}")
+            return {
+                "tool": "compare_files",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_find_all_conflicts(self, args: Dict) -> Dict:
+        """Handle find_all_conflicts tool call"""
+        try:
+            from .file_discovery import FileDiscovery
+            
+            discovery = FileDiscovery(self.project_dir, self.logger)
+            conflicts = discovery.find_conflicting_files()
+            
+            # Filter by severity
+            min_severity = args.get('min_severity', 'medium')
+            severity_order = {'low': 0, 'medium': 1, 'high': 2}
+            min_level = severity_order.get(min_severity, 1)
+            
+            filtered_conflicts = [
+                c for c in conflicts 
+                if severity_order.get(c['severity'], 0) >= min_level
+            ]
+            
+            return {
+                "tool": "find_all_conflicts",
+                "success": True,
+                "conflicts": filtered_conflicts,
+                "total_count": len(conflicts),
+                "filtered_count": len(filtered_conflicts)
+            }
+        except Exception as e:
+            self.logger.error(f"Find all conflicts failed: {e}")
+            return {
+                "tool": "find_all_conflicts",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_archive_file(self, args: Dict) -> Dict:
+        """Handle archive_file tool call"""
+        try:
+            from pathlib import Path
+            import shutil
+            from datetime import datetime
+            
+            filepath = args.get('filepath')
+            reason = args.get('reason', 'No reason provided')
+            
+            source = self.project_dir / filepath
+            if not source.exists():
+                return {
+                    "tool": "archive_file",
+                    "success": False,
+                    "error": f"File not found: {filepath}"
+                }
+            
+            # Create archive directory
+            archive_dir = self.project_dir / "archive" / "deprecated"
+            archive_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Preserve directory structure
+            rel_path = Path(filepath)
+            dest = archive_dir / rel_path
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Add timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            dest_with_timestamp = dest.parent / f"{dest.stem}_{timestamp}{dest.suffix}"
+            
+            # Move file
+            shutil.move(str(source), str(dest_with_timestamp))
+            
+            # Create README in archive
+            readme = archive_dir / "README.md"
+            with open(readme, 'a') as f:
+                f.write(f"\n## {filepath}\n")
+                f.write(f"- **Archived:** {datetime.now().isoformat()}\n")
+                f.write(f"- **Reason:** {reason}\n")
+                f.write(f"- **Location:** {dest_with_timestamp.relative_to(archive_dir)}\n")
+            
+            return {
+                "tool": "archive_file",
+                "success": True,
+                "archived_to": str(dest_with_timestamp.relative_to(self.project_dir)),
+                "reason": reason
+            }
+        except Exception as e:
+            self.logger.error(f"Archive file failed: {e}")
+            return {
+                "tool": "archive_file",
+                "success": False,
+                "error": str(e)
+            }
+    
+    def _handle_detect_naming_violations(self, args: Dict) -> Dict:
+        """Handle detect_naming_violations tool call"""
+        try:
+            from .naming_conventions import NamingConventionManager
+            
+            conventions = NamingConventionManager(self.project_dir, self.logger)
+            
+            directory = args.get('directory', '.')
+            search_dir = self.project_dir / directory
+            
+            violations = []
+            
+            # Find all Python files
+            for py_file in search_dir.rglob("*.py"):
+                if py_file.name == "__init__.py":
+                    continue
+                
+                rel_path = str(py_file.relative_to(self.project_dir))
+                validation = conventions.validate_filename(rel_path)
+                
+                if not validation['valid']:
+                    violations.append({
+                        'file': rel_path,
+                        'issues': validation['issues'],
+                        'suggestions': validation['suggestions']
+                    })
+            
+            return {
+                "tool": "detect_naming_violations",
+                "success": True,
+                "violations": violations,
+                "count": len(violations)
+            }
+        except Exception as e:
+            self.logger.error(f"Detect naming violations failed: {e}")
+            return {
+                "tool": "detect_naming_violations",
                 "success": False,
                 "error": str(e)
             }

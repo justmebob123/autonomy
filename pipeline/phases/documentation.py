@@ -45,6 +45,14 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         self.architecture_config = get_architecture_config(self.project_dir)
         self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
         
+        # FILE MANAGEMENT - File discovery and naming conventions
+        from ..file_discovery import FileDiscovery
+        from ..naming_conventions import NamingConventionManager
+        
+        self.file_discovery = FileDiscovery(self.project_dir, self.logger)
+        self.naming_conventions = NamingConventionManager(self.project_dir, self.logger)
+        self.logger.info("  📁 File management and naming conventions enabled")
+        
         # MESSAGE BUS: Subscribe to relevant events
         if self.message_bus:
             from ..messaging import MessageType

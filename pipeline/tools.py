@@ -108,6 +108,79 @@ TOOLS_FILE_DISCOVERY = [
                 }
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "compare_files",
+            "description": "Compare multiple files to identify duplicates and merge candidates. Shows overlap in classes and functions.",
+            "parameters": {
+                "type": "object",
+                "required": ["files"],
+                "properties": {
+                    "files": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of file paths to compare"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "find_all_conflicts",
+            "description": "Find all groups of conflicting/duplicate files in the project. Use this to identify files that should be merged.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "min_severity": {
+                        "type": "string",
+                        "enum": ["low", "medium", "high"],
+                        "description": "Minimum severity level to report",
+                        "default": "medium"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "archive_file",
+            "description": "Archive a deprecated file to archive/deprecated/ instead of deleting it. Preserves file with timestamp.",
+            "parameters": {
+                "type": "object",
+                "required": ["filepath", "reason"],
+                "properties": {
+                    "filepath": {
+                        "type": "string",
+                        "description": "File to archive"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "description": "Reason for archiving"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "detect_naming_violations",
+            "description": "Detect all files that violate naming conventions. Returns list of violations with suggestions.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "directory": {
+                        "type": "string",
+                        "description": "Directory to check (default: entire project)"
+                    }
+                }
+            }
+        }
     }
 ]
 
