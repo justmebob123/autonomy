@@ -232,10 +232,23 @@ Pattern: {loop_info.get('pattern', 'Unknown')}
         formatted = []
         for i, attempt in enumerate(history[-5:], 1):  # Last 5 attempts
             formatted.append(f"\nAttempt {i}:")
-            formatted.append(f"  Action: {attempt.get('action', 'Unknown')}")
-            formatted.append(f"  Result: {attempt.get('result', 'Unknown')}")
-            if 'error' in attempt:
-                formatted.append(f"  Error: {attempt['error']}")
+            
+            # Handle both Action objects and dicts
+            if hasattr(attempt, 'to_dict'):
+                # It's an Action object
+                attempt_dict = attempt.to_dict()
+                formatted.append(f"  Tool: {attempt_dict.get('tool', 'Unknown')}")
+                formatted.append(f"  File: {attempt_dict.get('file_path', 'Unknown')}")
+                formatted.append(f"  Success: {attempt_dict.get('success', False)}")
+                if attempt_dict.get('result'):
+                    result_str = str(attempt_dict['result'])[:100]
+                    formatted.append(f"  Result: {result_str}")
+            else:
+                # It's a dict
+                formatted.append(f"  Action: {attempt.get('action', 'Unknown')}")
+                formatted.append(f"  Result: {attempt.get('result', 'Unknown')}")
+                if 'error' in attempt:
+                    formatted.append(f"  Error: {attempt['error']}")
         
         return "\n".join(formatted)
     
