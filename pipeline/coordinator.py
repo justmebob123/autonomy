@@ -1761,6 +1761,8 @@ class PhaseCoordinator:
         Strategic decision-making based on objectives with 7D polytopic navigation.
         
         This is the NEW way - objectives drive everything using hyperdimensional intelligence.
+        
+        CRITICAL FIX: Stick with ONE objective until complete to prevent infinite switching.
         """
         # Load issues into tracker
         self.issue_tracker.load_issues(state)
@@ -1768,17 +1770,38 @@ class PhaseCoordinator:
         # Load objectives into polytopic space
         objectives_by_level = self.objective_manager.load_objectives(state)
         
-        # Use 7D navigation to find optimal objective
-        optimal_objective = self.objective_manager.find_optimal_objective(state)
+        # CRITICAL FIX: Check for IN-PROGRESS objective first
+        # Don't switch objectives mid-work - causes infinite planning loop
+        in_progress_objective = None
+        for level_objs in objectives_by_level.values():
+            for obj in level_objs.values():
+                if obj.status == "active" and len(obj.tasks) > 0:
+                    # Found an active objective with tasks - continue with it
+                    in_progress_objective = obj
+                    self.logger.info(f"🎯 Continuing with active objective: {obj.title} ({len(obj.tasks)} tasks)")
+                    break
+            if in_progress_objective:
+                break
         
-        if not optimal_objective:
-            # No active objective - need project planning to create objectives
-            self.logger.info("🎯 No active objectives - need project planning")
-            return {
-                'phase': 'project_planning',
-                'reason': 'No active objectives defined',
-                'objective': None
-            }
+        if in_progress_objective:
+            # Continue with current objective
+            optimal_objective = in_progress_objective
+        else:
+            # No active objective - use 7D navigation to find optimal objective
+            optimal_objective = self.objective_manager.find_optimal_objective(state)
+            
+            if not optimal_objective:
+                # No active objective - need project planning to create objectives
+                self.logger.info("🎯 No active objectives - need project planning")
+                return {
+                    'phase': 'project_planning',
+                    'reason': 'No active objectives defined',
+                    'objective': None
+                }
+            
+            # Mark new objective as active
+            optimal_objective.status = "active"
+            self.logger.info(f"🎯 Selected NEW objective: {optimal_objective.title} (marked as ACTIVE)")
         
         # Log polytopic information
         self.logger.info(f"🎯 Optimal objective (7D selection): {optimal_objective.title} ({optimal_objective.level.value})")
@@ -1805,6 +1828,30 @@ class PhaseCoordinator:
         # CRITICAL: Update objective progress BEFORE determining action
         # This ensures we have current task counts and completion percentage
         optimal_objective.update_progress(state)
+        
+        # Check if objective is complete (80%+ completion)
+        if optimal_objective.completion_percentage >= 80.0 and optimal_objective.status == "active":
+            self.logger.info(f"✅ Objective '{optimal_objective.title}' reached {optimal_objective.completion_percentage:.0f}% - marking as COMPLETED")
+            optimal_objective.status = "completed"
+            
+            # Save completed objective
+            self.objective_manager.save_objective(optimal_objective, state)
+            
+            # Select next objective
+            self.logger.info("🎯 Selecting next objective...")
+            next_objective = self.objective_manager.find_optimal_objective(state)
+            
+            if next_objective:
+                next_objective.status = "active"
+                self.logger.info(f"🎯 Selected NEW objective: {next_objective.title} (marked as ACTIVE)")
+                optimal_objective = next_objective
+            else:
+                self.logger.info("✅ All objectives complete!")
+                return {
+                    'phase': 'documentation',
+                    'reason': 'All objectives completed - final documentation',
+                    'objective': None
+                }
         
         base_health = ObjectiveHealth(
             status=ObjectiveHealthStatus[health['overall_health']],
