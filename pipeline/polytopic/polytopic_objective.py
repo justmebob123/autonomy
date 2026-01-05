@@ -243,6 +243,100 @@ class PolytopicObjective(Objective):
         
         return predicted
     
+    def predict_dimensional_state(self, time_steps: int = 5) -> List[Dict[str, float]]:
+        """
+        Predict future dimensional states using velocity with damping.
+        
+        Uses linear extrapolation with damping to prevent
+        unrealistic predictions.
+        
+        Args:
+            time_steps: Number of future time steps to predict
+            
+        Returns:
+            List of predicted dimensional profiles at each time step
+        """
+        if not self.dimensional_velocity:
+            return [self.dimensional_profile.copy()] * time_steps
+        
+        predictions = []
+        current = self.dimensional_profile.copy()
+        damping_factor = 0.9  # Reduce velocity over time
+        
+        for t in range(time_steps):
+            predicted = {}
+            for dim, value in current.items():
+                velocity = self.dimensional_velocity.get(dim, 0.0)
+                # Apply damped velocity
+                damped_velocity = velocity * (damping_factor ** t)
+                predicted[dim] = max(0.0, min(1.0, value + damped_velocity))
+            
+            predictions.append(predicted)
+            current = predicted
+        
+        return predictions
+    
+    def will_become_urgent(self, threshold: float = 0.8, time_steps: int = 3) -> bool:
+        """
+        Check if objective will become urgent soon.
+        
+        Args:
+            threshold: Temporal dimension threshold for urgency
+            time_steps: Number of time steps to look ahead
+            
+        Returns:
+            True if temporal dimension will exceed threshold
+        """
+        predictions = self.predict_dimensional_state(time_steps)
+        
+        for predicted in predictions:
+            if predicted.get('temporal', 0.0) > threshold:
+                return True
+        
+        return False
+    
+    def will_become_risky(self, threshold: float = 0.7, time_steps: int = 3) -> bool:
+        """
+        Check if objective will become risky soon.
+        
+        Args:
+            threshold: Error dimension threshold for risk
+            time_steps: Number of time steps to look ahead
+            
+        Returns:
+            True if error dimension will exceed threshold
+        """
+        predictions = self.predict_dimensional_state(time_steps)
+        
+        for predicted in predictions:
+            if predicted.get('error', 0.0) > threshold:
+                return True
+        
+        return False
+    
+    def get_trajectory_warnings(self) -> List[str]:
+        """
+        Get warnings about trajectory based on predictions.
+        
+        Returns:
+            List of warning messages
+        """
+        warnings = []
+        
+        if self.will_become_urgent(threshold=0.8, time_steps=3):
+            warnings.append("Will become URGENT in next 3 iterations")
+        
+        if self.will_become_risky(threshold=0.7, time_steps=3):
+            warnings.append("Will become RISKY in next 3 iterations")
+        
+        # Check for rapid dimensional changes
+        for dim, velocity in self.dimensional_velocity.items():
+            if abs(velocity) > 0.2:  # Rapid change
+                direction = "increasing" if velocity > 0 else "decreasing"
+                warnings.append(f"{dim.title()} dimension {direction} rapidly")
+        
+        return warnings
+    
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
         base_dict = super().to_dict()

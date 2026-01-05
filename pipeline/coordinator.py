@@ -140,11 +140,10 @@ class PhaseCoordinator:
         # Initialize phases (lazy import to avoid circular deps)
         self.phases = self._init_phases()
         
-        # NOTE: Arbiter is available but not currently used
-        # Using simple direct logic for phase transitions instead
-        # To enable: uncomment below and integrate with _determine_next_action
-        # from .orchestration.arbiter import ArbiterModel
-        # self.arbiter = ArbiterModel(self.project_dir)
+        # INTEGRATION: Arbiter for intelligent multi-factor decision-making
+        from .orchestration.arbiter import ArbiterModel
+        self.arbiter = ArbiterModel(self.project_dir)
+        self.logger.info("🎯 Arbiter initialized for intelligent decision-making")
         
         # Hyperdimensional polytopic structure
         self.polytope = {
@@ -415,6 +414,96 @@ class PhaseCoordinator:
         self.logger.info(f"Polytopic structure: {len(self.polytope['vertices'])} PRIMARY vertices, 7D")
         self.logger.info("Specialized phases (tool/prompt/role design) available on-demand only")
         self.logger.info("Refactoring phase integrated as 8th vertex with edges to planning/coding/qa/investigation/project_planning")
+    
+    def _update_phase_dimensions(self, phase_name: str, result, objective=None):
+        """
+        Update phase dimensional profile based on execution result.
+        
+        This enables the system to learn which phases are effective
+        in which dimensional contexts.
+        
+        Args:
+            phase_name: Name of the phase
+            result: PhaseResult from execution
+            objective: Optional PolytopicObjective that was being worked on
+        """
+        if phase_name not in self.polytope['vertices']:
+            return
+        
+        dimensions = self.polytope['vertices'][phase_name]['dimensions']
+        
+        # Update based on result success/failure
+        if result.success:
+            # Strengthen dimensions relevant to this execution
+            if objective:
+                # Increase strength in objective's dominant dimensions
+                for dim, value in objective.dimensional_profile.items():
+                    if value > 0.6:  # Dominant dimension
+                        dimensions[dim] = min(1.0, dimensions[dim] + 0.02)
+            
+            # Specific updates based on result type
+            if result.files_created:
+                dimensions['functional'] = min(1.0, dimensions['functional'] + 0.03)
+            
+            if hasattr(result, 'issues_fixed') and result.issues_fixed:
+                dimensions['error'] = min(1.0, dimensions['error'] + 0.03)
+            
+            if hasattr(result, 'integrations_completed') and result.integrations_completed:
+                dimensions['integration'] = min(1.0, dimensions['integration'] + 0.03)
+        
+        else:
+            # Weaken dimensions where phase failed
+            if objective:
+                for dim, value in objective.dimensional_profile.items():
+                    if value > 0.6:
+                        dimensions[dim] = max(0.0, dimensions[dim] - 0.02)
+        
+        # Normalize to ensure sum doesn't exceed reasonable bounds
+        total = sum(dimensions.values())
+        if total > 5.0:  # 7 dimensions, average should be ~0.7
+            factor = 5.0 / total
+            dimensions = {k: v * factor for k, v in dimensions.items()}
+        
+        self.polytope['vertices'][phase_name]['dimensions'] = dimensions
+        
+        # Log significant changes (only if verbose)
+        if self.verbose:
+            self.logger.debug(f"Updated {phase_name} dimensions: {dimensions}")
+    
+    def _select_phase_by_dimensional_fit(self, objective) -> str:
+        """
+        Select phase based on dimensional profile match.
+        
+        Returns phase whose dimensional profile best matches
+        the objective's dominant dimensions.
+        
+        Args:
+            objective: PolytopicObjective to match
+            
+        Returns:
+            Phase name with best dimensional fit
+        """
+        best_phase = None
+        best_score = -1.0
+        
+        for phase_name, vertex in self.polytope['vertices'].items():
+            phase_dims = vertex['dimensions']
+            
+            # Calculate dimensional similarity
+            score = 0.0
+            for dim, obj_value in objective.dimensional_profile.items():
+                phase_value = phase_dims.get(dim, 0.5)
+                # Higher score when both are high or both are low
+                score += 1.0 - abs(obj_value - phase_value)
+            
+            score /= len(objective.dimensional_profile)  # Normalize
+            
+            if score > best_score:
+                best_score = score
+                best_phase = phase_name
+        
+        self.logger.info(f"Dimensional fit: {best_phase} (score: {best_score:.2f})")
+        return best_phase
     
     def _should_force_transition(self, state, current_phase: str, last_result=None) -> bool:
         """
@@ -1444,6 +1533,9 @@ class PhaseCoordinator:
                 # INTEGRATION: Record execution pattern for learning
                 self._record_execution_pattern(phase_name, result, state)
                 
+                # INTEGRATION: Update phase dimensional profile based on execution
+                self._update_phase_dimensions(phase_name, result, objective)
+                
                 # INTEGRATION: Periodic pattern optimization and document archiving
                 self.execution_count += 1
                 if self.execution_count % 50 == 0:  # Every 50 executions
@@ -1500,9 +1592,10 @@ class PhaseCoordinator:
     
     def _determine_next_action(self, state: PipelineState) -> Dict:
         """
-        Determine the next action using STRATEGIC, OBJECTIVE-DRIVEN logic.
+        Determine the next action using ARBITER for intelligent multi-factor decisions.
         
-        NEW APPROACH: Objectives drive phase selection, not just task status.
+        NEW APPROACH: Arbiter considers all factors (objectives, patterns, analytics,
+        dimensional profiles, phase history) for optimal phase selection.
         
         SPECIALIZED PHASES: Check for failure loops and capability gaps BEFORE
         normal phase selection. Specialized phases (tool_design, prompt_improvement,
@@ -1538,13 +1631,9 @@ class PhaseCoordinator:
                 'specialized': True  # Mark as specialized activation
             }
         
-        # STRATEGIC DECISION-MAKING: Check if we have objectives
-        if state.objectives and any(state.objectives.values()):
-            # Use strategic decision-making based on objectives
-            return self._determine_next_action_strategic(state)
-        else:
-            # Fall back to tactical decision-making (legacy behavior)
-            return self._determine_next_action_tactical(state)
+        # USE ARBITER FOR INTELLIGENT DECISION-MAKING
+        # Arbiter considers all factors for optimal phase selection
+        return self._determine_next_action_with_arbiter(state)
     
     def _determine_next_action_strategic(self, state: PipelineState) -> Dict:
         """
@@ -1609,6 +1698,12 @@ class PhaseCoordinator:
         if changing_dims:
             self.logger.info(f"📈 Dimensional changes: {', '.join(f'{dim}→{trajectory_dir[dim]}' for dim in changing_dims[:3])}")
         
+        # Log trajectory warnings (proactive alerts)
+        trajectory_warnings = optimal_objective.get_trajectory_warnings()
+        if trajectory_warnings:
+            for warning in trajectory_warnings[:3]:  # Show top 3 warnings
+                self.logger.warning(f"  ⚠️ Trajectory: {warning}")
+        
         # Save updated objective to state
         self.objective_manager.save_objective(optimal_objective, state)
         
@@ -1619,6 +1714,95 @@ class PhaseCoordinator:
             'objective': optimal_objective,
             'dimensional_health': health
         }
+    
+    def _determine_next_action_with_arbiter(self, state: PipelineState) -> Dict:
+        """
+        Use Arbiter for intelligent multi-factor decision-making.
+        
+        Arbiter considers:
+        - Phase execution history
+        - Success rates per phase
+        - Dimensional profiles
+        - Pattern recommendations
+        - Analytics predictions
+        - Objective health
+        
+        Returns:
+            Dict with phase decision and reasoning
+        """
+        # Gather all decision factors
+        factors = {
+            'state': state,
+            'phase_history': state.phase_history[-10:] if hasattr(state, 'phase_history') else [],
+            'current_phase': state.current_phase,
+            'completion': state.calculate_completion_percentage(),
+            'project_phase': state.get_project_phase(),
+        }
+        
+        # Add phase statistics
+        factors['phase_stats'] = {}
+        for phase_name in self.phases.keys():
+            if phase_name in state.phases:
+                phase_state = state.phases[phase_name]
+                factors['phase_stats'][phase_name] = {
+                    'success_rate': phase_state.success_rate,
+                    'avg_duration': phase_state.avg_duration,
+                    'total_runs': phase_state.total_runs,
+                    'consecutive_failures': phase_state.consecutive_failures
+                }
+        
+        # Add pattern recommendations
+        factors['pattern_recommendations'] = self.pattern_recognition.get_recommendations({
+            'phase': state.current_phase,
+            'state': state
+        })
+        
+        # Add analytics predictions
+        if self.analytics:
+            try:
+                factors['analytics_predictions'] = {
+                    'anomalies': self.analytics.detect_anomalies(state) if hasattr(self.analytics, 'detect_anomalies') else [],
+                    'optimization_suggestions': self.analytics.get_optimization_suggestions(state) if hasattr(self.analytics, 'get_optimization_suggestions') else []
+                }
+            except Exception as e:
+                self.logger.debug(f"Analytics predictions unavailable: {e}")
+                factors['analytics_predictions'] = {'anomalies': [], 'optimization_suggestions': []}
+        
+        # Add objective information
+        if state.objectives:
+            optimal_objective = self.objective_manager.find_optimal_objective(state)
+            if optimal_objective:
+                factors['optimal_objective'] = {
+                    'id': optimal_objective.id,
+                    'level': optimal_objective.level.value if hasattr(optimal_objective.level, 'value') else str(optimal_objective.level),
+                    'dimensional_profile': optimal_objective.dimensional_profile,
+                    'complexity': optimal_objective.complexity_score,
+                    'risk': optimal_objective.risk_score,
+                    'readiness': optimal_objective.readiness_score,
+                    'trajectory_warnings': optimal_objective.get_trajectory_warnings()
+                }
+                
+                # Add dimensional health
+                health = self.objective_manager.analyze_dimensional_health(optimal_objective)
+                factors['dimensional_health'] = health
+        
+        # Add phase dimensional profiles
+        factors['phase_dimensions'] = {
+            phase_name: vertex['dimensions']
+            for phase_name, vertex in self.polytope['vertices'].items()
+        }
+        
+        # Let Arbiter decide
+        decision = self.arbiter.decide_next_action(factors)
+        
+        # Log decision reasoning
+        self.logger.info(f"🎯 Arbiter decision: {decision.get('phase', 'unknown')}")
+        if decision.get('reasoning'):
+            self.logger.info(f"   Reasoning: {decision['reasoning']}")
+        if decision.get('confidence'):
+            self.logger.info(f"   Confidence: {decision['confidence']:.2f}")
+        
+        return decision
     
     def _should_trigger_refactoring(self, state: PipelineState, pending_tasks: List) -> bool:
         """
