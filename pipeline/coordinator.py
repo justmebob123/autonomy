@@ -1949,7 +1949,7 @@ class PhaseCoordinator:
                 self.logger.debug(f"  ⚠️  Error getting correlation recommendations: {e}")
         
         # Let Arbiter decide
-        decision = self.arbiter.decide_next_action(factors)
+        decision = self.arbiter.decide_action(state, factors)
         
         # Log decision reasoning
         self.logger.info(f"🎯 Arbiter decision: {decision.get('phase', 'unknown')}")
