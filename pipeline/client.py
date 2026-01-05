@@ -409,6 +409,10 @@ class ResponseParser:
         "append_to_file", "insert_after", "insert_before", "replace_between",
         "update_section", "move_file", "rename_file",
         
+        # File discovery and naming
+        "find_similar_files", "validate_filename", "compare_files",
+        "find_all_conflicts", "archive_file", "detect_naming_violations",
+        
         # Code analysis
         "analyze_complexity", "detect_dead_code", "find_integration_gaps",
         "generate_call_graph", "deep_analysis", "advanced_analysis",
