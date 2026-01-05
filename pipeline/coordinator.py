@@ -1359,8 +1359,39 @@ class PhaseCoordinator:
             # Log iteration
             iteration += 1
             self._current_iteration = iteration  # Track for cooldown logic
-            phase_name = phase_decision["phase"]
-            reason = phase_decision.get("reason", "")
+            
+            # Handle different decision types from Arbiter
+            if "action" in phase_decision:
+                action = phase_decision["action"]
+                
+                if action == "change_phase":
+                    phase_name = phase_decision.get("phase", "planning")
+                    reason = phase_decision.get("reason", "Arbiter decided to change phase")
+                elif action == "consult_specialist":
+                    # Specialist consultation - continue to next iteration
+                    specialist = phase_decision.get("specialist", "reasoning")
+                    query = phase_decision.get("query", "")
+                    self.logger.info(f"🤖 Arbiter requested {specialist} specialist consultation: {query}")
+                    # For now, continue with current phase
+                    continue
+                elif action == "continue_current_phase":
+                    # Continue with last phase
+                    phase_name = getattr(state, 'current_phase', None) or (state.phase_history[-1] if hasattr(state, 'phase_history') and state.phase_history else 'planning')
+                    reason = phase_decision.get("reason", "Continuing current phase")
+                elif action == "request_user_input":
+                    # User input requested - for now, continue with planning
+                    self.logger.warning("⚠️  Arbiter requested user input - continuing with planning")
+                    phase_name = "planning"
+                    reason = "User input requested but not implemented"
+                else:
+                    # Unknown action - default to planning
+                    self.logger.warning(f"⚠️  Unknown Arbiter action: {action}")
+                    phase_name = "planning"
+                    reason = f"Unknown action: {action}"
+            else:
+                # Old format with direct "phase" key
+                phase_name = phase_decision.get("phase", "planning")
+                reason = phase_decision.get("reason", "")
             
             # Special case: specialist consultation completed
             if phase_name == "_specialist_consultation_complete":
