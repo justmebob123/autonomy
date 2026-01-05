@@ -111,8 +111,12 @@ class PhaseCoordinator:
         
         # Correlation engine for cross-phase analysis
         from .correlation_engine import CorrelationEngine
-        self.correlation_engine = CorrelationEngine()
-        self.logger.info("🔗 Correlation engine initialized")
+        from .correlation_engine_enhanced import EnhancedCorrelationEngine
+        
+        # Use enhanced correlation engine for Week 2 features
+        self.correlation_engine = CorrelationEngine()  # Keep for compatibility
+        self.enhanced_correlation = EnhancedCorrelationEngine(self.project_dir)
+        self.logger.info("🔗 Correlation engines initialized (basic + enhanced)")
         
         # Analytics integration for predictive analytics, anomaly detection, and optimization
         try:
@@ -1463,6 +1467,22 @@ class PhaseCoordinator:
                 result = phase.run(**phase_kwargs)
                 phase_duration = time.time() - phase_start_time
                 
+                # WEEK 2 PHASE 2: Record phase execution for correlation analysis
+                if hasattr(self, 'enhanced_correlation') and self.enhanced_correlation:
+                    try:
+                        self.enhanced_correlation.record_phase_execution(
+                            phase=phase_name,
+                            success=result.success,
+                            context={
+                                'duration': phase_duration,
+                                'task_id': task.task_id if task else None,
+                                'objective_id': getattr(objective, 'objective_id', None) if objective else None,
+                                'iteration': iteration
+                            }
+                        )
+                    except Exception as e:
+                        self.logger.debug(f"  ⚠️  Error recording phase correlation: {e}")
+                
                 # Analytics: After phase execution
                 if self.analytics:
                     analytics_info = self.analytics.after_phase_execution(
@@ -1861,6 +1881,33 @@ class PhaseCoordinator:
             phase_name: vertex['dimensions']
             for phase_name, vertex in self.polytope['vertices'].items()
         }
+        
+        # WEEK 2 PHASE 2: Add correlation-based recommendations
+        if hasattr(self, 'enhanced_correlation') and self.enhanced_correlation:
+            try:
+                # Get phase success predictions
+                phase_predictions = {}
+                for phase_name in ['planning', 'coding', 'qa', 'debugging', 'refactoring']:
+                    prediction = self.enhanced_correlation.predict_phase_success(phase_name)
+                    phase_predictions[phase_name] = prediction
+                
+                factors['correlation_predictions'] = phase_predictions
+                
+                # Get phase dependencies
+                dependencies = self.enhanced_correlation.analyze_phase_dependencies()
+                factors['phase_dependencies'] = dependencies
+                
+                # Get recommended sequence
+                objectives_list = ['implement_features'] if state.tasks else []
+                recommendations = self.enhanced_correlation.recommend_phase_sequence(
+                    objectives=objectives_list,
+                    current_phase=state.current_phase
+                )
+                factors['correlation_recommendations'] = recommendations[:3]  # Top 3
+                
+                self.logger.debug(f"  🔗 Correlation analysis: {len(recommendations)} phase recommendations")
+            except Exception as e:
+                self.logger.debug(f"  ⚠️  Error getting correlation recommendations: {e}")
         
         # Let Arbiter decide
         decision = self.arbiter.decide_next_action(factors)
