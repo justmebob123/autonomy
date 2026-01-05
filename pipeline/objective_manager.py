@@ -543,12 +543,23 @@ class ObjectiveManager:
                 priority=7
             )
         
-        # Need more tasks
+        # Check if we have enough tasks already
+        # If objective has 50+ tasks but none are pending, something is wrong
+        # Don't add more tasks - investigate or refactor instead
+        if len(objective.tasks) >= 50:
+            return PhaseAction(
+                phase="investigation",
+                task=None,
+                reason=f"Objective has {len(objective.tasks)} tasks but none are pending - needs investigation",
+                priority=8
+            )
+        
+        # Need more tasks (only if < 50 tasks)
         return PhaseAction(
             phase="planning",
             task=None,
             reason="Objective needs more tasks",
-            priority=8
+            priority=9
         )
     
     def save_objective(self, objective: Objective, state: PipelineState):
