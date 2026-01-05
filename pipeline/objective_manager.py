@@ -527,6 +527,28 @@ class ObjectiveManager:
             ]
         ]
         
+        # DEBUG: Log what we're checking
+        self.logger.info(f"  🔍 Checking objective '{objective.title}' (ID: {objective.id})")
+        self.logger.info(f"     Objective.tasks list: {len(objective.tasks)} task IDs")
+        self.logger.info(f"     State.tasks dict: {len(state.tasks)} total tasks")
+        self.logger.info(f"     Found {len(pending_tasks)} pending tasks (NEW or IN_PROGRESS)")
+        
+        # DEBUG: Check if task IDs in objective actually exist in state
+        if objective.tasks:
+            existing_count = sum(1 for tid in objective.tasks if tid in state.tasks)
+            self.logger.info(f"     Tasks that exist in state: {existing_count}/{len(objective.tasks)}")
+            if existing_count < len(objective.tasks):
+                missing = [tid for tid in objective.tasks if tid not in state.tasks]
+                self.logger.warning(f"     ⚠️ Missing task IDs: {missing[:5]}")
+            
+            # Show status breakdown
+            status_counts = {}
+            for tid in objective.tasks:
+                if tid in state.tasks:
+                    status = state.tasks[tid].status
+                    status_counts[status] = status_counts.get(status, 0) + 1
+            self.logger.info(f"     Task status breakdown: {status_counts}")
+        
         qa_pending_tasks = [
             state.tasks[tid] for tid in objective.tasks
             if tid in state.tasks and state.tasks[tid].status == TaskStatus.QA_PENDING
