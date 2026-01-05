@@ -245,6 +245,7 @@ class ChangeHistoryAnalyzer:
     def _find_file(self, file_name: str) -> Optional[Path]:
         """Find a file in the project."""
         for file_path in self.project_root.rglob(file_name):
+            pass
             # Skip common non-source directories
             skip_dirs = {'.git', 'node_modules', '__pycache__', '.venv', 'venv'}
             if not any(skip_dir in file_path.parts for skip_dir in skip_dirs):

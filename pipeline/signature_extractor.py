@@ -48,6 +48,7 @@ class SignatureExtractor:
             target_node = None
             
             if class_name:
+                pass
                 # Look for method in class
                 for node in ast.walk(tree):
                     if isinstance(node, ast.ClassDef) and node.name == class_name:
@@ -57,6 +58,7 @@ class SignatureExtractor:
                                 break
                         break
             else:
+                pass
                 # Look for top-level function
                 for node in ast.walk(tree):
                     if isinstance(node, ast.FunctionDef) and node.name == function_name:

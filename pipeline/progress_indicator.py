@@ -38,6 +38,7 @@ class ProgressIndicator:
     def _show_progress(self):
         """Background thread that shows periodic updates"""
         while not self.stop_flag.is_set():
+            pass
             # Wait for update interval or stop signal
             if self.stop_flag.wait(self.update_interval):
                 break

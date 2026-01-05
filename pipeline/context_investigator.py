@@ -69,9 +69,11 @@ class ContextInvestigator:
             # Find the function call
             for node in ast.walk(tree):
                 if isinstance(node, ast.Call):
+                    pass
                     # Check if this call uses the parameter
                     for keyword in node.keywords:
                         if keyword.arg == parameter_name:
+                            pass
                             # Found usage - trace where the value comes from
                             value_info = self._trace_value_source(keyword.value, source)
                             result['where_defined'] = value_info

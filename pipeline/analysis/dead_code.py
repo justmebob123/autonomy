@@ -109,10 +109,12 @@ class DeadCodeVisitor(ast.NodeVisitor):
     def visit_FunctionDef(self, node: ast.FunctionDef):
         """Visit function definition."""
         if self.current_class:
+            pass
             # Method definition
             method_key = f"{self.current_class}.{node.name}"
             self.methods_defined[method_key] = node.lineno
         else:
+            pass
             # Function definition
             self.functions_defined[node.name] = node.lineno
         
@@ -263,6 +265,7 @@ class DeadCodeDetector:
         unused = []
         for func_name, (file, line) in self.all_functions_defined.items():
             if func_name not in self.all_functions_called:
+                pass
                 # Skip special methods and private functions
                 if not func_name.startswith('_'):
                     unused.append((func_name, file, line))
@@ -294,6 +297,7 @@ class DeadCodeDetector:
         unused = []
         for class_name, (file, line) in self.all_classes_defined.items():
             if class_name not in self.all_classes_used:
+                pass
                 # Skip private classes
                 if not class_name.startswith('_'):
                     unused.append((file, class_name))
@@ -345,8 +349,10 @@ class DeadCodeDetector:
             if target_path.suffix == '.py':
                 self.analyze_file(target_path)
         else:
+            pass
             # Analyze directory
             for root, dirs, files in os.walk(target_path):
+                pass
                 # Skip common directories
                 dirs[:] = [d for d in dirs if d not in ['__pycache__', '.git', 'venv', '.venv', 'node_modules']]
                 
@@ -439,6 +445,7 @@ class DeadCodeDetector:
         
         # Process unused functions
         for name, file, line in result.unused_functions:
+            pass
             # Check if this is in a library directory
             is_library = (self.architecture_config and 
                          self.architecture_config.is_library_module(file))

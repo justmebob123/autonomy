@@ -195,6 +195,7 @@ class ErrorContext:
     def clear_for_file(self, filepath: str):
         """Clear errors for a specific file"""
         if filepath in self._by_file:
+            pass
             # Remove from main list
             file_errors = set(id(e) for e in self._by_file[filepath])
             self._errors = [e for e in self._errors if id(e) not in file_errors]

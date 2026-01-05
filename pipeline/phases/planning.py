@@ -59,8 +59,6 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         self.file_discovery = FileDiscovery(self.project_dir, self.logger)
         self.naming_conventions = NamingConventionManager(self.project_dir, self.logger)
         
-        self.logger.info("  📊 Planning phase initialized with analysis capabilities")
-        self.logger.info("  🔀 Integration conflict detection enabled")
         self.logger.info("  📁 File management and naming conventions enabled")
         
         # MESSAGE BUS: Subscribe to relevant events
@@ -114,22 +112,20 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         
         # 2. ANALYZE CURRENT ARCHITECTURE using validation tools
         current_arch = self.arch_manager.analyze_current_architecture()
-        self.logger.info(f"  🔍 Current architecture: {len(current_arch.components)} components found")
         
         # 3. VALIDATE CONSISTENCY between intended and current
         validation = self.arch_manager.validate_architecture_consistency(intended_arch)
-        self.logger.info(f"  ✅ Architecture validation: {'CONSISTENT' if validation.is_consistent else 'DRIFT DETECTED'}")
         
         if not validation.is_consistent:
             if validation.missing_components:
-                self.logger.warning(f"    ⚠️  Missing {len(validation.missing_components)} components")
+                pass
             if validation.integration_gaps:
-                self.logger.warning(f"    ⚠️  Found {len(validation.integration_gaps)} integration gaps")
+                pass
         
         # 4. GET ARCHITECTURE DIFF (if we have previous analysis)
         diff = self.arch_manager.get_architecture_diff()
         if diff.has_changes():
-            self.logger.info(f"  📊 Architecture changes: +{len(diff.added)} -{len(diff.removed)} ~{len(diff.modified)}")
+            pass
         
         # 5. UPDATE ARCHITECTURE.MD with comprehensive view
         self.arch_manager.update_architecture_document(
@@ -160,7 +156,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         existing_objectives = self._read_objectives()
         obj_count = sum(len(existing_objectives.get(level, [])) for level in ['primary', 'secondary', 'tertiary'])
         if obj_count > 0:
-            self.logger.info(f"🎯 {obj_count} existing objectives loaded")
+            pass
         
         # Write starting status
         self._write_status({
@@ -187,7 +183,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         # Check if we have an active objective (strategic mode)
         objective = kwargs.get('objective')
         if objective:
-            self.logger.info(f"  🎯 Planning for objective: {objective.title}")
+            pass
         
         # Load MASTER_PLAN.md
         master_plan = self.read_file("MASTER_PLAN.md")
@@ -226,7 +222,6 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         
         # IPC: Check if MASTER_PLAN needs update (95% threshold)
         if self._should_update_master_plan(state):
-            self.logger.info("  🎯 95% completion reached - MASTER_PLAN update needed")
             self._update_master_plan_for_completion(state)
         
         # ANALYSIS INTEGRATION: Analyze existing codebase before planning
@@ -261,6 +256,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         tasks_suggested = 0
         
         if tool_calls:
+            pass
             # Process tool calls
             handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
             results = handler.process_tool_calls(tool_calls)
@@ -304,6 +300,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         
         # Add tasks to state
         for task_data in tasks:
+            pass
             # Check if task already exists (by description)
             existing = self._find_existing_task(state, task_data)
             
@@ -317,14 +314,12 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
             # Skip tasks with empty filenames
             if not target_file:
                 tasks_skipped_empty += 1
-                self.logger.warning(f"  ⚠️ Skipping task with empty filename: {task_data.get('description', 'Unknown')}")
                 continue
             
             # Skip tasks targeting directories
             full_path = self.project_dir / target_file
             if full_path.exists() and full_path.is_dir():
                 tasks_skipped_directory += 1
-                self.logger.warning(f"  ⚠️ Skipping task targeting directory: {target_file}")
                 continue
             
             # Get objective info if available
@@ -350,6 +345,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                 self.logger.info(f"   🔗 Linking task {task.task_id} to objective {objective_id}")
                 
                 if objective_id not in state.objectives.get(objective_level, {}):
+                    pass
                     # Create objective entry if it doesn't exist
                     self.logger.info(f"      Creating new objective entry in state.objectives[{objective_level}][{objective_id}]")
                     if objective_level not in state.objectives:
@@ -367,7 +363,6 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                 if task.task_id not in obj_data['tasks']:
                     obj_data['tasks'].append(task.task_id)
                     obj_data['total_tasks'] = len(obj_data['tasks'])
-                    self.logger.info(f"      ✅ Added task to STATE: state.objectives[{objective_level}][{objective_id}]['tasks'] = {obj_data['tasks']}")
                 else:
                     self.logger.info(f"      Task already in state tasks list")
                 
@@ -378,7 +373,6 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                 if task.task_id not in objective.tasks:
                     objective.tasks.append(task.task_id)
                     objective.total_tasks = len(objective.tasks)
-                    self.logger.info(f"      ✅ Added task to OBJECT: objective.tasks = {objective.tasks}")
                 else:
                     self.logger.info(f"      Task already in objective tasks list")
             
@@ -418,7 +412,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         
         # CRITICAL: Detect when ALL tasks are duplicates (planning loop)
         if tasks_added == 0 and tasks_suggested > 0:
-            self.logger.warning(f"  ⚠️  All {tasks_suggested} suggested tasks already exist!")
+            pass
             
             # CRITICAL FIX: Check for tasks in SKIPPED/FAILED status and reactivate them
             from ..state.manager import TaskStatus
@@ -438,7 +432,6 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                     task.status = TaskStatus.NEW
                     task.attempts = 0  # Reset attempts
                     reactivated += 1
-                    self.logger.info(f"    ✅ Reactivated: {task.description[:60]}...")
                 
                 # Rebuild queue with reactivated tasks
                 state.rebuild_queue()
@@ -597,7 +590,6 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         if not existing_files:
             return ""
         
-        self.logger.info("  📊 Analyzing existing codebase...")
         
         analysis_parts = []
         analysis_parts.append("\n## Codebase Analysis\n")
@@ -617,6 +609,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
         
         for filepath in files_to_analyze:
             try:
+                pass
                 # Complexity analysis
                 complexity_result = self.complexity_analyzer.analyze(filepath)
                 if complexity_result.max_complexity >= 30:
@@ -749,6 +742,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
     def _write_phase_messages(self, tasks: List, analysis_results: Dict):
         """Send messages to other phases' READ documents"""
         try:
+            pass
             # Message to Developer
             if tasks:
                 dev_tasks = [t for t in tasks if t.target_file.endswith('.py')]
@@ -816,7 +810,6 @@ Please address these architectural integration issues.
             
             completion_rate = (completed_tasks / total_tasks) * 100
             
-            self.logger.info(f"  📊 Completion rate: {completion_rate:.1f}% ({completed_tasks}/{total_tasks})")
             
             return completion_rate >= 95.0
             
@@ -833,7 +826,6 @@ Please address these architectural integration issues.
             master_plan_path = self.project_dir / 'MASTER_PLAN.md'
             
             if not master_plan_path.exists():
-                self.logger.warning("  ⚠️  MASTER_PLAN.md not found, skipping update")
                 return
             
             content = master_plan_path.read_text()
@@ -874,6 +866,7 @@ Please address these architectural integration issues.
             
             # Update or append status section
             if '## 📊 Project Status' in content or '## Project Status' in content:
+                pass
                 # Update existing section
                 content = re.sub(
                     r'## (?:📊 )?Project Status.*?(?=\n##|\Z)',
@@ -882,12 +875,12 @@ Please address these architectural integration issues.
                     flags=re.DOTALL
                 )
             else:
+                pass
                 # Append new section
                 content += '\n\n' + completion_section
             
             # Write updated content
             master_plan_path.write_text(content)
-            self.logger.info("  ✅ Updated MASTER_PLAN.md with completion status")
             
         except Exception as e:
             self.logger.error(f"  ❌ Failed to update MASTER_PLAN.md: {e}")
@@ -924,7 +917,6 @@ Please address these architectural integration issues.
         return "\n".join(lines)
 
     def _perform_deep_analysis(self, existing_files: List[str]) -> Dict:
-        self.logger.info("  🔍 Performing deep codebase analysis...")
         results = {
             'complexity_issues': [],
             'dead_code': [],
@@ -936,7 +928,6 @@ Please address these architectural integration issues.
         }
         
         # First, run project-wide conflict detection
-        self.logger.info("  🔀 Detecting integration conflicts...")
         try:
             conflict_result = self.conflict_detector.analyze()
             for conflict in conflict_result.conflicts:
@@ -953,6 +944,7 @@ Please address these architectural integration issues.
         python_files = [f for f in existing_files if f.endswith('.py')]
         for filepath in python_files:
             try:
+                pass
                 # Complexity analysis
                 complexity_result = self.complexity_analyzer.analyze(filepath)
                 for func in complexity_result.results:
@@ -993,7 +985,6 @@ Please address these architectural integration issues.
         # Log summary
         total_issues = sum(len(v) for v in results.values())
         if total_issues > 0:
-            self.logger.info(f"  📊 Found {total_issues} total issues:")
             if results['complexity_issues']:
                 self.logger.info(f"    - {len(results['complexity_issues'])} high complexity")
             if results['dead_code']:
@@ -1004,7 +995,7 @@ Please address these architectural integration issues.
                 self.logger.info(f"    - {len(results['integration_conflicts'])} integration conflicts")
                 high_conflicts = [c for c in results['integration_conflicts'] if c['severity'] == 'high']
                 if high_conflicts:
-                    self.logger.warning(f"      ⚠️  {len(high_conflicts)} HIGH SEVERITY conflicts need immediate attention")
+                    pass
         return results
     def _update_tertiary_objectives(self, analysis_results: Dict):
         """Update TERTIARY_OBJECTIVES.md with highly specific implementation details"""
@@ -1059,6 +1050,7 @@ Please address these architectural integration issues.
 ```python
 # Before: Complex function
 def complex_function(data):
+    pass
     # 100+ lines of mixed logic
     result = process_step1(data)
     result = process_step2(result)
@@ -1090,6 +1082,7 @@ def _process_step2(data):
             
             # 2. DEAD CODE REMOVAL
             if analysis_results.get('dead_code'):
+                pass
                 # Filter out integration points
                 real_dead_code = [i for i in analysis_results['dead_code'] 
                                 if not is_integration_point(i['file'], i['type'], i['name'])]
@@ -1128,6 +1121,7 @@ grep -r "{dead['name']}" . --include="*.py" | grep -v "def {dead['name']}"
             
             # 3. INTEGRATION GAPS
             if analysis_results.get('integration_gaps'):
+                pass
                 # Filter out known integration points
                 real_gaps = [i for i in analysis_results['integration_gaps'] 
                            if not is_integration_point(i['file'], 'class', i.get('class', ''))]
@@ -1267,6 +1261,7 @@ result = {gap['class'].lower()}.process(data)
                     intended_arch = arch_match.group(1).strip()
                     content += intended_arch + "\n\n"
                 else:
+                    pass
                     # Look for structure/design section
                     structure_match = re.search(r'##\s+(?:Structure|Design|Components)\s*\n(.*?)(?=\n##|\Z)', master_plan, re.DOTALL | re.IGNORECASE)
                     if structure_match:
@@ -1340,6 +1335,7 @@ result = {gap['class'].lower()}.process(data)
             
             # Add dead code summary (filtered for integration points)
             if analysis_results.get('dead_code'):
+                pass
                 # Filter out integration points
                 real_dead_code = []
                 for issue in analysis_results['dead_code']:
@@ -1355,6 +1351,7 @@ result = {gap['class'].lower()}.process(data)
             
             # Add integration gaps summary (filtered for known integration points)
             if analysis_results.get('integration_gaps'):
+                pass
                 # Filter out known integration points
                 real_gaps = []
                 for issue in analysis_results['integration_gaps']:
@@ -1382,6 +1379,7 @@ result = {gap['class'].lower()}.process(data)
             if analysis_results.get('complexity_issues'):
                 all_issues.extend([('complexity', i) for i in analysis_results['complexity_issues'][:5]])
             if analysis_results.get('integration_gaps'):
+                pass
                 # Only include real gaps, not integration points
                 real_gaps = [i for i in analysis_results['integration_gaps'] 
                            if not is_integration_point(i['file'], 'class', i.get('class', ''))]
@@ -1427,6 +1425,7 @@ result = {gap['class'].lower()}.process(data)
             
             # Extract features from MASTER_PLAN
             if master_plan:
+                pass
                 # Look for features section
                 import re
                 features_match = re.search(r'##\s+Features?\s*\n(.*?)(?=\n##|\Z)', master_plan, re.DOTALL | re.IGNORECASE)
@@ -1464,6 +1463,7 @@ result = {gap['class'].lower()}.process(data)
                     success_text = success_match.group(1).strip()
                     content += success_text + "\n\n"
                 else:
+                    pass
                     # Calculate from task completion
                     total_tasks = len(state.tasks)
                     completed_tasks = len([t for t in state.tasks.values() if t.status == TaskStatus.COMPLETED])
@@ -1602,6 +1602,7 @@ result = {gap['class'].lower()}.process(data)
         outputs = {}
         
         try:
+            pass
             # Read QA output for quality feedback
             qa_output = self.read_phase_output('qa')
             if qa_output:

@@ -73,6 +73,7 @@ class ModelTool:
         start_time = datetime.now()
         
         try:
+            pass
             # Build messages
             messages = self._build_messages(query, context)
             
@@ -96,9 +97,8 @@ class ModelTool:
             self.success_count += 1
             duration = (datetime.now() - start_time).total_seconds()
             
-            self.logger.info(f"  ✓ Response received ({duration:.2f}s)")
             if tool_calls:
-                self.logger.info(f"  ✓ {len(tool_calls)} tool call(s) made")
+                pass
             
             return {
                 "model": self.model,
@@ -265,7 +265,6 @@ class SpecialistRegistry:
             )
         )
         
-        self.logger.info(f"✓ Registered {len(self.specialists)} specialist models")
     
     def register(self, name: str, model_tool: ModelTool):
         """
@@ -276,7 +275,6 @@ class SpecialistRegistry:
             model_tool: ModelTool instance
         """
         self.specialists[name] = model_tool
-        self.logger.debug(f"  ✓ Registered {name} specialist: {model_tool.model} on {model_tool.server}")
     
     def get(self, name: str) -> Optional[ModelTool]:
         """

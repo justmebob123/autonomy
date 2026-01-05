@@ -64,6 +64,7 @@ class VariableInitializationValidator(ast.NodeVisitor):
         # Lambda parameters should not be tracked as usages
         if self.current_function:
             for arg in node.args.args:
+                pass
                 # Mark lambda parameters as defined
                 if arg.arg not in self.function_vars[self.current_function]['definitions']:
                     self.function_vars[self.current_function]['definitions'][arg.arg] = []
@@ -75,6 +76,7 @@ class VariableInitializationValidator(ast.NodeVisitor):
         """Visit assignment (variable definition)."""
         if self.current_function:
             for target in node.targets:
+                pass
                 # Handle tuple unpacking: a, b = func()
                 self._track_target_as_definition(target, node.lineno)
         
@@ -156,6 +158,7 @@ class VariableInitializationValidator(ast.NodeVisitor):
     def visit_Name(self, node):
         """Visit name usage."""
         if self.current_function and isinstance(node.ctx, ast.Load):
+            pass
             # This is a read (usage), not a write (definition)
             var_name = node.id
             if var_name not in self.function_vars[self.current_function]['usages']:
@@ -172,6 +175,7 @@ class VariableInitializationValidator(ast.NodeVisitor):
         parameters = func_data['parameters']
         
         for var_name, usage_lines in usages.items():
+            pass
             # Skip if it's a parameter
             if var_name in parameters:
                 continue
@@ -182,6 +186,7 @@ class VariableInitializationValidator(ast.NodeVisitor):
             
             # Check if variable is defined
             if var_name not in definitions:
+                pass
                 # Variable used but never defined - might be from outer scope or import
                 # We'll let the import validator catch this
                 continue

@@ -79,6 +79,7 @@ class ArchitectureParser:
                 known_conflicts=self._extract_known_conflicts(content),
             )
         except Exception as e:
+            pass
             # If parsing fails, return None (fall back to defaults)
             return None
     
@@ -97,6 +98,7 @@ class ArchitectureParser:
         matches = re.findall(pattern, section)
         
         for match in matches:
+            pass
             # Normalize path (ensure trailing slash)
             path = match.strip()
             if not path.endswith('/'):
@@ -130,6 +132,7 @@ class ArchitectureParser:
         
         section = self._extract_section(content, "Test Directories")
         if not section:
+            pass
             # Default test directories
             return {'tests/', 'test/'}
         
@@ -252,6 +255,7 @@ def get_architecture_config(project_dir: Path) -> ArchitectureConfig:
     config = parser.parse()
     
     if config is None:
+        pass
         # Return default configuration
         return ArchitectureConfig(
             library_dirs=set(),

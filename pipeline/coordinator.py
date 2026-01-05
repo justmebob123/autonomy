@@ -98,7 +98,6 @@ class PhaseCoordinator:
         from .pattern_recognition import PatternRecognitionSystem
         self.pattern_recognition = PatternRecognitionSystem(self.project_dir)
         self.pattern_recognition.load_patterns()
-        self.logger.info("🔍 Pattern recognition system initialized")
         
         # Adaptive Prompt System (depends on pattern recognition)
         from .adaptive_prompts import AdaptivePromptSystem
@@ -107,7 +106,6 @@ class PhaseCoordinator:
             self.pattern_recognition,
             self.logger
         )
-        self.logger.info("🎯 Adaptive prompt system initialized")
         
         # Correlation engine for cross-phase analysis
         from .correlation_engine import CorrelationEngine
@@ -130,7 +128,6 @@ class PhaseCoordinator:
                     'cleanup_interval': 500
                 }
             )
-            self.logger.info("📊 Analytics integration initialized")
         except Exception as e:
             self.logger.warning(f"Analytics integration not available: {e}")
             self.analytics = None
@@ -164,7 +161,6 @@ class PhaseCoordinator:
         # ============================================================================
         from .orchestration.arbiter import ArbiterModel
         self.arbiter = ArbiterModel(self.project_dir)
-        self.logger.info("🎯 Arbiter initialized for intelligent decision-making")
         
         # Hyperdimensional polytopic structure
         self.polytope = {
@@ -191,7 +187,6 @@ class PhaseCoordinator:
         # INTEGRATION: Tool Validator
         from .tool_validator import ToolValidator
         self.tool_validator = ToolValidator(self.project_dir)
-        self.logger.info("✅ Tool validator initialized")
         
         # INTEGRATION: Strategic Management System with Polytopic Navigation
         from .polytopic import PolytopicObjectiveManager
@@ -200,7 +195,6 @@ class PhaseCoordinator:
         # Use PolytopicObjectiveManager for 7D hyperdimensional objective management
         self.objective_manager = PolytopicObjectiveManager(self.project_dir, self.state_manager)
         self.issue_tracker = IssueTracker(self.project_dir, self.state_manager)
-        self.logger.info("🎯 Strategic management system initialized (polytopic objectives + issues)")
         self.logger.info("📐 7D dimensional navigation enabled")
     
     def _init_phases(self) -> Dict:
@@ -263,10 +257,10 @@ class PhaseCoordinator:
         
         # CRITICAL: Update all phases with adapted system prompts
         # This must be done AFTER phases are initialized and adaptive_prompts is available
-        self.logger.info("🎯 Updating phases with adaptive prompts...")
         for phase_name, phase in phases.items():
             if hasattr(phase, 'update_system_prompt_with_adaptation'):
                 try:
+                    pass
                     # Get current state for context
                     state = self.state_manager.load()
                     context = {
@@ -275,7 +269,7 @@ class PhaseCoordinator:
                     }
                     phase.update_system_prompt_with_adaptation(context)
                 except Exception as e:
-                    self.logger.warning(f"  ⚠️  Could not update {phase_name} prompt: {e}")
+                    pass
         
         return phases
     
@@ -483,8 +477,10 @@ class PhaseCoordinator:
         
         # Update based on result success/failure
         if result.success:
+            pass
             # Strengthen dimensions relevant to this execution
             if objective:
+                pass
                 # Increase strength in objective's dominant dimensions
                 for dim, value in objective.dimensional_profile.items():
                     if value > 0.6:  # Dominant dimension
@@ -501,6 +497,7 @@ class PhaseCoordinator:
                 dimensions['integration'] = min(1.0, dimensions['integration'] + 0.03)
         
         else:
+            pass
             # Weaken dimensions where phase failed
             if objective:
                 for dim, value in objective.dimensional_profile.items():
@@ -584,8 +581,10 @@ class PhaseCoordinator:
         """
         # NEVER force transition after success with actual work
         if last_result and last_result.success:
+            pass
             # Check if actual work was done
             if last_result.files_created or last_result.files_modified:
+                pass
                 # Reset counters on progress
                 if hasattr(state, 'no_update_counts'):
                     state.no_update_counts[current_phase] = 0
@@ -603,7 +602,6 @@ class PhaseCoordinator:
             
             # Check if phase is improving - DON'T force transition
             if hasattr(phase_state, 'is_improving') and phase_state.is_improving():
-                self.logger.info(f"✅ Phase {current_phase} is improving, continuing")
                 return False
             
             # Check for consecutive failures - FORCE transition
@@ -621,14 +619,10 @@ class PhaseCoordinator:
                     self.logger.debug(f"  - Recent history (last 10): {recent_history}")
                 
                 if consecutive_failures >= 20:
-                    self.logger.warning(
-                        f"⚠️  Phase {current_phase} has {consecutive_failures} consecutive failures"
-                    )
                     return True
             
             # Check if oscillating - FORCE transition (unstable)
             if hasattr(phase_state, 'is_oscillating') and phase_state.is_oscillating():
-                self.logger.warning(f"⚠️  Phase {current_phase} is oscillating (unstable)")
                 return True
             
             # REMOVED: Aggregate success rate check
@@ -794,6 +788,7 @@ class PhaseCoordinator:
         
         # Calculate dimensional alignment based on situation
         if situation['has_errors']:
+            pass
             # High error dimension is good for debugging/investigation
             score += phase_dims.get('error', 0.5) * 0.4
             # High context dimension helps understand errors
@@ -805,6 +800,7 @@ class PhaseCoordinator:
         
         # Complexity-based dimensional weighting
         if situation['complexity'] == 'high':
+            pass
             # High functional dimension for complex work
             score += phase_dims.get('functional', 0.5) * 0.3
             # High integration dimension for cross-cutting concerns
@@ -812,16 +808,19 @@ class PhaseCoordinator:
         
         # Urgency-based dimensional weighting
         if situation['urgency'] == 'high':
+            pass
             # High temporal dimension for urgent work
             score += phase_dims.get('temporal', 0.5) * 0.3
         
         # Pending work routing
         if situation['has_pending']:
+            pass
             # High functional dimension for execution
             score += phase_dims.get('functional', 0.5) * 0.2
         
         # Planning routing
         if situation['needs_planning']:
+            pass
             # High temporal and integration dimensions for planning
             score += phase_dims.get('temporal', 0.5) * 0.2
             score += phase_dims.get('integration', 0.5) * 0.2
@@ -855,6 +854,7 @@ class PhaseCoordinator:
         
         # Update temporal dimension based on execution time
         if hasattr(result, 'execution_time'):
+            pass
             # Normalize to 0-1 range (assuming max 60 seconds)
             temporal_score = min(1.0, result.execution_time / 60.0)
             dims['temporal'] = 0.7 * dims['temporal'] + 0.3 * temporal_score
@@ -892,6 +892,7 @@ class PhaseCoordinator:
             List of correlation findings with recommendations
         """
         try:
+            pass
             # Add findings from state to correlation engine
             from .state.manager import TaskStatus
             
@@ -938,7 +939,6 @@ class PhaseCoordinator:
         self._print_banner()
         
         # Discover servers
-        self.logger.info("🔍 Discovering Ollama servers...")
         self.client.discover_servers()
         
         # Load or create state
@@ -946,6 +946,7 @@ class PhaseCoordinator:
             state = self.state_manager.load()
             self.logger.info(f"  Resumed pipeline run: {state.run_id}")
         else:
+            pass
             # Start fresh - DELETE old state completely
             self.logger.info("  Starting fresh (deleting all saved state)...")
             
@@ -954,7 +955,6 @@ class PhaseCoordinator:
             if pipeline_dir.exists():
                 import shutil
                 shutil.rmtree(pipeline_dir)
-                self.logger.info("  ✓ Deleted .pipeline directory")
             
             # Recreate .pipeline directory for new state
             pipeline_dir.mkdir(parents=True, exist_ok=True)
@@ -988,7 +988,6 @@ class PhaseCoordinator:
         try:
             return self._run_loop()
         except KeyboardInterrupt:
-            self.logger.info("\n\n⚠️ Pipeline interrupted by user")
             return False
     
     def _detect_failure_loop(self, state: PipelineState) -> Optional[Dict[str, Any]]:
@@ -1011,6 +1010,7 @@ class PhaseCoordinator:
         
         # Track consecutive failures per task
         for task in failed_tasks:
+            pass
             # Count how many times this task has been attempted
             failure_count = getattr(task, 'failure_count', 0)
             
@@ -1087,13 +1087,11 @@ class PhaseCoordinator:
         # # Check for failure loops first (highest priority)
         # loop_info = self._detect_failure_loop(state)
         # if loop_info:
-        #     self.logger.info(f"🎯 Activating {loop_info['suggested_action']} to break failure loop")
         #     return loop_info['suggested_action']
         # 
         # # Check for capability gaps
         # gap = self._detect_capability_gap(state, last_result)
         # if gap:
-        #     self.logger.info(f"🎯 Activating {gap} to fill capability gap")
         #     return gap
         # 
         # return None
@@ -1138,7 +1136,6 @@ class PhaseCoordinator:
             self.logger.error(f"Tool design failed: {design_result.message}")
             return design_result
         
-        self.logger.info(f"✓ Tool designed: {tool_name}")
         
         # Step 2: Evaluate the tool
         if 'tool_evaluation' not in self.phases:
@@ -1154,7 +1151,7 @@ class PhaseCoordinator:
         )
         
         if eval_result.success:
-            self.logger.info(f"✓ Tool validated: {tool_name}")
+            pass
         else:
             self.logger.warning(f"Tool validation failed: {eval_result.message}")
         
@@ -1194,7 +1191,7 @@ class PhaseCoordinator:
         )
         
         if result.success:
-            self.logger.info(f"✓ Prompt improved: {prompt_name}")
+            pass
         else:
             self.logger.error(f"Prompt improvement failed: {result.message}")
         
@@ -1236,7 +1233,7 @@ class PhaseCoordinator:
         )
         
         if result.success:
-            self.logger.info(f"✓ Prompt designed: {prompt_name}")
+            pass
         else:
             self.logger.error(f"Prompt design failed: {result.message}")
         
@@ -1278,7 +1275,7 @@ class PhaseCoordinator:
         )
         
         if result.success:
-            self.logger.info(f"✓ Role designed: {role_name}")
+            pass
         else:
             self.logger.error(f"Role design failed: {result.message}")
         
@@ -1318,7 +1315,7 @@ class PhaseCoordinator:
         )
         
         if result.success:
-            self.logger.info(f"✓ Role improved: {role_name}")
+            pass
         else:
             self.logger.error(f"Role improvement failed: {result.message}")
         
@@ -1344,6 +1341,7 @@ class PhaseCoordinator:
         self._current_iteration = 0
         
         while iteration < max_iter:
+            pass
             # No rate limiting - removed per user request
             last_iteration_time = time.time()
             
@@ -1368,6 +1366,7 @@ class PhaseCoordinator:
                     phase_name = phase_decision.get("phase", "planning")
                     reason = phase_decision.get("reason", "Arbiter decided to change phase")
                 elif action == "consult_specialist":
+                    pass
                     # Specialist consultation - continue to next iteration
                     specialist = phase_decision.get("specialist", "reasoning")
                     query = phase_decision.get("query", "")
@@ -1375,20 +1374,22 @@ class PhaseCoordinator:
                     # For now, continue with current phase
                     continue
                 elif action == "continue_current_phase":
+                    pass
                     # Continue with last phase
                     phase_name = getattr(state, 'current_phase', None) or (state.phase_history[-1] if hasattr(state, 'phase_history') and state.phase_history else 'planning')
                     reason = phase_decision.get("reason", "Continuing current phase")
                 elif action == "request_user_input":
+                    pass
                     # User input requested - for now, continue with planning
-                    self.logger.warning("⚠️  Arbiter requested user input - continuing with planning")
                     phase_name = "planning"
                     reason = "User input requested but not implemented"
                 else:
+                    pass
                     # Unknown action - default to planning
-                    self.logger.warning(f"⚠️  Unknown Arbiter action: {action}")
                     phase_name = "planning"
                     reason = f"Unknown action: {action}"
             else:
+                pass
                 # Old format with direct "phase" key
                 phase_name = phase_decision.get("phase", "planning")
                 reason = phase_decision.get("reason", "")
@@ -1414,16 +1415,15 @@ class PhaseCoordinator:
             # Log project lifecycle context
             completion = state.calculate_completion_percentage()
             project_phase = state.get_project_phase()
-            self.logger.info(f"  📊 Project: {completion:.1f}% complete ({project_phase} phase)")
             
             # Log objective context if present
             objective = phase_decision.get("objective")
             if objective:
-                self.logger.info(f"  🎯 Objective: {objective.title} ({objective.completion_percentage:.0f}% complete)")
+                pass
                 
                 # Log dimensional metrics if available (polytopic objective)
                 if hasattr(objective, 'complexity_score'):
-                    self.logger.info(f"  📊 Metrics: Complexity={objective.complexity_score:.2f} Risk={objective.risk_score:.2f} Readiness={objective.readiness_score:.2f}")
+                    pass
                 
                 # Log dimensional health if available
                 dimensional_health = phase_decision.get("dimensional_health")
@@ -1469,6 +1469,7 @@ class PhaseCoordinator:
             objective = phase_decision.get("objective")
             
             try:
+                pass
                 # Execute the phase with unknown tool detection
                 # Run correlation analysis for investigation/debugging phases BEFORE execution
                 if phase_name in ['investigation', 'debugging', 'debug']:
@@ -1512,7 +1513,7 @@ class PhaseCoordinator:
                             }
                         )
                     except Exception as e:
-                        self.logger.debug(f"  ⚠️  Error recording phase correlation: {e}")
+                        pass
                 
                 # Analytics: After phase execution
                 if self.analytics:
@@ -1619,9 +1620,9 @@ class PhaseCoordinator:
                 
                 # Log result
                 if result.success:
-                    self.logger.info(f"  ✅ {result.message}")
+                    pass
                 else:
-                    self.logger.warning(f"  ⚠️ {result.message}")
+                    pass
                 
                 # Show project status
                 self._show_project_status(state)
@@ -1645,12 +1646,12 @@ class PhaseCoordinator:
                         doc_ipc = DocumentIPC(self.project_dir, self.logger)
                         doc_ipc.archive_old_content(days_old=7)
                     except Exception as e:
-                        self.logger.warning(f"  ⚠️  Document archiving failed: {e}")
+                        pass
                 
                 # Check if we should force transition AFTER execution
                 # This allows us to check the actual result for success/progress
                 if self._should_force_transition(state, phase_name, result):
-                    self.logger.warning(f"⚠️  Forcing transition from {phase_name} due to repeated failures")
+                    pass
                     
                     # Reset counters
                     self.state_manager.reset_no_update_count(state, phase_name)
@@ -1683,7 +1684,6 @@ class PhaseCoordinator:
                 self.state_manager.save(state)
         
         # Reached max iterations
-        self.logger.info(f"\n✅ Completed {iteration} iterations")
         return self._summarize_run()
     
     def _determine_next_action(self, state: PipelineState) -> Dict:
@@ -1735,7 +1735,6 @@ class PhaseCoordinator:
         )
         
         if critical_messages:
-            self.logger.warning(f"⚠️ {len(critical_messages)} critical messages in queue")
             for msg in critical_messages:
                 self.logger.warning(f"  📨 {msg.message_type.value}: {msg.payload}")
         
@@ -1745,7 +1744,6 @@ class PhaseCoordinator:
         specialized_phase = self._should_activate_specialized_phase(state, last_result)
         
         if specialized_phase:
-            self.logger.info(f"🎯 Activating specialized phase: {specialized_phase}")
             return {
                 'phase': specialized_phase,
                 'reason': f'Specialized phase activated: {specialized_phase}',
@@ -1777,6 +1775,7 @@ class PhaseCoordinator:
         # Check for active objectives
         for level, level_objs in objectives_by_level.items():
             for obj_id, obj in level_objs.items():
+                pass
                 # Check for active/in-progress/approved status (handle both enum and string)
                 is_active = False
                 if hasattr(obj.status, 'value'):
@@ -1785,24 +1784,26 @@ class PhaseCoordinator:
                     is_active = obj.status.lower() in ["active", "in_progress", "approved"]
                 
                 if is_active and len(obj.tasks) > 0:
+                    pass
                     # Found an active objective with tasks - continue with it
                     in_progress_objective = obj
-                    self.logger.info(f"✅ Continuing with active objective: {obj.title} ({len(obj.tasks)} tasks)")
                     break
             if in_progress_objective:
                 break
         
         if in_progress_objective:
+            pass
             # Continue with current objective
             optimal_objective = in_progress_objective
         else:
+            pass
             # No active objective - use 7D navigation to find optimal objective
             # BUT: Only select objectives that already have tasks (don't keep creating new empty objectives)
             optimal_objective = self.objective_manager.find_optimal_objective(state)
             
             if not optimal_objective:
+                pass
                 # No active objective - need project planning to create objectives
-                self.logger.info("🎯 No active objectives - need project planning")
                 return {
                     'phase': 'project_planning',
                     'reason': 'No active objectives defined',
@@ -1814,15 +1815,14 @@ class PhaseCoordinator:
             level_str = str(optimal_objective.level).lower() if hasattr(optimal_objective.level, 'value') else str(optimal_objective.level).lower()
             
             if len(optimal_objective.tasks) == 0 and level_str != "primary":
+                pass
                 # Empty non-primary objective - find one with tasks instead
-                self.logger.warning(f"⚠️ Optimal objective '{optimal_objective.title}' has 0 tasks - finding objective with tasks")
                 
                 # Find any objective with tasks
                 for level_objs in objectives_by_level.values():
                     for obj in level_objs.values():
                         if len(obj.tasks) > 0:
                             optimal_objective = obj
-                            self.logger.info(f"✅ Found objective with tasks: {obj.title} ({len(obj.tasks)} tasks)")
                             break
                     if len(optimal_objective.tasks) > 0:
                         break
@@ -1830,14 +1830,11 @@ class PhaseCoordinator:
             # Mark new objective as active
             from .objective_manager import ObjectiveStatus
             optimal_objective.status = ObjectiveStatus.ACTIVE
-            self.logger.info(f"🎯 Selected NEW objective: {optimal_objective.title} (marked as ACTIVE)")
             
             # CRITICAL: Save the status change to state
             self.objective_manager.save_objective(optimal_objective, state)
         
         # Log polytopic information
-        self.logger.info(f"🎯 Optimal objective (7D selection): {optimal_objective.title} ({optimal_objective.level.value})")
-        self.logger.info(f"📊 Complexity: {optimal_objective.complexity_score:.2f} | Risk: {optimal_objective.risk_score:.2f} | Readiness: {optimal_objective.readiness_score:.2f}")
         
         # Log dimensional profile
         dominant_dims = optimal_objective.get_dominant_dimensions(threshold=0.6)
@@ -1850,7 +1847,7 @@ class PhaseCoordinator:
         
         if health['concerns']:
             for concern in health['concerns'][:3]:  # Show top 3 concerns
-                self.logger.warning(f"  ⚠️ {concern}")
+                pass
         
         # Get recommended action using base objective manager logic
         # (We still use the base class method for action determination)
@@ -1866,7 +1863,6 @@ class PhaseCoordinator:
         is_active = status_str in ["active", "in_progress", "approved"]
         
         if optimal_objective.completion_percentage >= 80.0 and is_active:
-            self.logger.info(f"✅ Objective '{optimal_objective.title}' reached {optimal_objective.completion_percentage:.0f}% - marking as COMPLETED")
             from .objective_manager import ObjectiveStatus
             optimal_objective.status = ObjectiveStatus.COMPLETED
             
@@ -1874,19 +1870,16 @@ class PhaseCoordinator:
             self.objective_manager.save_objective(optimal_objective, state)
             
             # Select next objective
-            self.logger.info("🎯 Selecting next objective...")
             next_objective = self.objective_manager.find_optimal_objective(state)
             
             if next_objective:
                 next_objective.status = "active"
-                self.logger.info(f"🎯 Selected NEW objective: {next_objective.title} (marked as ACTIVE)")
                 
                 # Save the status change
                 self.objective_manager.save_objective(next_objective, state)
                 
                 optimal_objective = next_objective
             else:
-                self.logger.info("✅ All objectives complete!")
                 return {
                     'phase': 'documentation',
                     'reason': 'All objectives completed - final documentation',
@@ -1914,7 +1907,7 @@ class PhaseCoordinator:
         trajectory_warnings = optimal_objective.get_trajectory_warnings()
         if trajectory_warnings:
             for warning in trajectory_warnings[:3]:  # Show top 3 warnings
-                self.logger.warning(f"  ⚠️ Trajectory: {warning}")
+                pass
         
         # Save updated objective to state
         self.objective_manager.save_objective(optimal_objective, state)
@@ -2000,6 +1993,7 @@ class PhaseCoordinator:
                 
                 # WEEK 2 PHASE 3: Add trajectory prediction data
                 try:
+                    pass
                     # Get predictions using best model
                     best_model = optimal_objective.select_best_model()
                     predictions = optimal_objective.predict_with_model(best_model, time_steps=5)
@@ -2026,15 +2020,13 @@ class PhaseCoordinator:
                     
                     # Log trajectory insights
                     if interventions:
-                        self.logger.info(f"  🎯 Trajectory interventions: {len(interventions)} recommended")
                         for intervention in interventions[:2]:  # Top 2
                             self.logger.info(f"    • {intervention['action']}: {intervention['reason']}")
                     
                     if prediction_confidence < 0.5:
-                        self.logger.warning(f"  ⚠️  Low prediction confidence: {prediction_confidence:.2f}")
+                        pass
                     
                 except Exception as e:
-                    self.logger.debug(f"  ⚠️  Error getting trajectory data: {e}")
                     factors['trajectory_data'] = None
         
         # Add phase dimensional profiles
@@ -2046,6 +2038,7 @@ class PhaseCoordinator:
         # WEEK 2 PHASE 2: Add correlation-based recommendations
         if hasattr(self, 'phase_correlation') and self.phase_correlation:
             try:
+                pass
                 # Get phase success predictions
                 phase_predictions = {}
                 for phase_name in ['planning', 'coding', 'qa', 'debugging', 'refactoring']:
@@ -2068,13 +2061,12 @@ class PhaseCoordinator:
                 
                 self.logger.debug(f"  🔗 Correlation analysis: {len(recommendations)} phase recommendations")
             except Exception as e:
-                self.logger.debug(f"  ⚠️  Error getting correlation recommendations: {e}")
+                pass
         
         # Let Arbiter decide
         decision = self.arbiter.decide_action(state, factors)
         
         # Log decision reasoning
-        self.logger.info(f"🎯 Arbiter decision: {decision.get('phase', 'unknown')}")
         if decision.get('reasoning'):
             self.logger.info(f"   Reasoning: {decision['reasoning']}")
         if decision.get('confidence'):
@@ -2108,6 +2100,7 @@ class PhaseCoordinator:
         # CRITICAL: If refactoring is currently running, check if it should continue
         current_phase = getattr(state, 'current_phase', None)
         if current_phase == 'refactoring':
+            pass
             # Check if refactoring has pending work
             # For now, let refactoring phase decide when to stop
             # This allows multi-iteration refactoring
@@ -2222,6 +2215,7 @@ class PhaseCoordinator:
         files_by_basename = {}
         for task in state.tasks.values():
             if task.target_file and task.status == TaskStatus.COMPLETED:
+                pass
                 # Extract base name without extension
                 base_name = Path(task.target_file).stem
                 
@@ -2237,6 +2231,7 @@ class PhaseCoordinator:
         # Check for duplicates
         for clean_name, file_list in files_by_basename.items():
             if len(file_list) > 1:
+                pass
                 # Multiple files with same base name (potential duplicates)
                 self.logger.debug(f"  Potential duplicates: {file_list}")
                 return True
@@ -2318,7 +2313,6 @@ class PhaseCoordinator:
         # Check for phase hint from previous phase
         phase_hint = getattr(state, '_next_phase_hint', None)
         if phase_hint and phase_hint in self.phases:
-            self.logger.info(f"🎯 Following phase hint: {phase_hint}")
             state._next_phase_hint = None  # Clear hint after using
             return {'phase': phase_hint, 'reason': f'Phase {current_phase} suggested {phase_hint}'}
         
@@ -2330,7 +2324,6 @@ class PhaseCoordinator:
         needs_fixes = [t for t in state.tasks.values() if t.status in [TaskStatus.NEEDS_FIXES, TaskStatus.QA_FAILED]]
         completed = [t for t in state.tasks.values() if t.status == TaskStatus.COMPLETED]
         
-        self.logger.info(f"📊 Task Status: {len(pending)} pending, {len(qa_pending)} QA, {len(needs_fixes)} fixes, {len(completed)} done")
         
         # CRITICAL FIX: If no tasks at all, always start with planning (fresh start)
         # This prevents loading stale QA_PENDING state on fresh runs
@@ -2352,7 +2345,6 @@ class PhaseCoordinator:
                 # Use high-confidence recommendations to influence decisions
                 if rec['confidence'] > 0.8 and 'suggested_phase' in rec:
                     pattern_override = rec['suggested_phase']
-                    self.logger.info(f"🎯 High-confidence pattern suggests: {pattern_override}")
         
         # SIMPLE DECISION TREE (with pattern influence):
         # CRITICAL: Normal development flow is Coding → Refactoring → QA → Debugging
@@ -2362,6 +2354,7 @@ class PhaseCoordinator:
         # 1. If we have pending tasks, route to appropriate phase
         # CRITICAL: Coding comes FIRST - can't debug code that doesn't exist yet!
         if pending:
+            pass
             # Simple priority-based selection: just pick the highest priority pending task
             # Sort by priority (lower number = higher priority)
             pending_sorted = sorted(pending, key=lambda t: t.priority)
@@ -2372,12 +2365,12 @@ class PhaseCoordinator:
             # CRITICAL: Skip tasks with empty target_file
             # These tasks are incomplete and should be marked as SKIPPED
             if not task.target_file or task.target_file.strip() == "":
-                self.logger.warning(f"⚠️  Task {task.task_id} has empty target_file, marking as SKIPPED")
                 task.status = TaskStatus.SKIPPED
                 self.state_manager.save(state)
                 # Continue to next pending task
                 pending_sorted = pending_sorted[1:]
                 if not pending_sorted:
+                    pass
                     # No more pending tasks, go to planning
                     return {'phase': 'planning', 'reason': 'No valid pending tasks, need to plan'}
                 task = pending_sorted[0]
@@ -2402,12 +2395,13 @@ class PhaseCoordinator:
             # CRITICAL FIX: Don't check for refactoring if it JUST completed
             # This prevents the infinite loop where refactoring completes and immediately re-triggers
             if not getattr(state, '_refactoring_just_completed', False):
+                pass
                 # Check if refactoring is needed BEFORE routing to coding
                 if self._should_trigger_refactoring(state, pending):
                     return {'phase': 'refactoring', 'reason': 'Refactoring needed before continuing development'}
             else:
+                pass
                 # Refactoring just completed, return to coding
-                self.logger.info("  ✅ Refactoring completed, returning to coding phase")
             
             # Regular code tasks go to coding phase
             return {'phase': 'coding', 'task': task, 'reason': f'{len(pending)} tasks in progress'}
@@ -2420,6 +2414,7 @@ class PhaseCoordinator:
         
         # 3. If we have tasks needing fixes (from QA failures), go to debugging
         if needs_fixes:
+            pass
             # Pass the first task needing fixes
             return {'phase': 'debugging', 'task': needs_fixes[0], 'reason': f'{len(needs_fixes)} tasks need fixes'}
         
@@ -2431,6 +2426,7 @@ class PhaseCoordinator:
         
         # 5. All tasks complete - route to documentation then project_planning
         if len(completed) == len(state.tasks):
+            pass
             # Check if we've already done documentation
             if current_phase == 'documentation':
                 return {'phase': 'project_planning', 'reason': 'Documentation complete, planning next iteration'}
@@ -2442,6 +2438,7 @@ class PhaseCoordinator:
         # 6. Check if we're stuck in planning loop (no pending work but not all complete)
         # This happens when planning keeps saying "no new tasks" but coordinator keeps returning to it
         if current_phase == 'planning' and not pending and not qa_pending and not needs_fixes:
+            pass
             # Planning just ran and found no work to do
             # Check if there are tasks in other statuses (FAILED, SKIPPED, etc.)
             other_status = [t for t in state.tasks.values() 
@@ -2450,8 +2447,7 @@ class PhaseCoordinator:
                                              TaskStatus.COMPLETED]]
             
             if other_status:
-                self.logger.warning(f"  ⚠️ Found {len(other_status)} tasks in other statuses: "
-                                  f"{set(t.status for t in other_status)}")
+                pass
                 # CRITICAL: Planning should have reactivated these tasks
                 # If we're here, planning failed to reactivate them
                 # Force reactivation here as a safety net
@@ -2459,6 +2455,7 @@ class PhaseCoordinator:
                 reactivated = 0
                 for task in other_status[:10]:  # Reactivate up to 10
                     if task.status in [TaskStatus.SKIPPED, TaskStatus.FAILED, TaskStatus.QA_FAILED]:
+                        pass
                         # CRITICAL: Don't reactivate tasks with empty target_file
                         if not task.target_file or task.target_file.strip() == "":
                             self.logger.debug(f"    ⏭️  Skipping reactivation of task with empty target_file: {task.description[:60]}...")
@@ -2467,7 +2464,6 @@ class PhaseCoordinator:
                         task.status = TaskStatus.NEW
                         task.attempts = 0
                         reactivated += 1
-                        self.logger.info(f"    ✅ Reactivated: {task.description[:60]}...")
                 
                 # Only route to coding if we actually reactivated tasks
                 if reactivated > 0:
@@ -2475,14 +2471,13 @@ class PhaseCoordinator:
                     self.state_manager.save(state)
                     return {'phase': 'coding', 'reason': f'Reactivated {reactivated} tasks'}
                 else:
+                    pass
                     # No tasks were reactivated (all had empty target_file or other issues)
                     # These tasks are permanently stuck, so consider them done
-                    self.logger.info(f"  ⚠️  Could not reactivate any of the {len(other_status)} tasks (all have issues)")
-                    self.logger.info("  ✅ Moving to documentation phase")
                     return {'phase': 'documentation', 'reason': 'No valid tasks to reactivate, documenting progress'}
             else:
+                pass
                 # No work at all - consider project complete
-                self.logger.info("  ✅ No pending work found, moving to documentation")
                 return {'phase': 'documentation', 'reason': 'No pending work, documenting progress'}
         
         # Removed artificial loop detection - natural flow handles this now
@@ -2549,6 +2544,7 @@ class PhaseCoordinator:
         
         # Handle different arbiter actions
         if action == 'continue_current_phase':
+            pass
             # Fallback to simple logic if arbiter says continue
             if state.needs_planning:
                 return {"phase": "planning", "reason": "arbiter_continue_planning"}
@@ -2566,6 +2562,7 @@ class PhaseCoordinator:
             return {"phase": new_phase, "reason": reason}
         
         elif action == 'consult_specialist':
+            pass
             # CORRECT: Execute specialist consultation directly
             # This allows model-to-model calling through the application
             specialist_name = decision.get('specialist', '')
@@ -2584,6 +2581,7 @@ class PhaseCoordinator:
             return {"phase": "_specialist_consultation_complete", "reason": "specialist_consulted", "result": result}
         
         else:
+            pass
             # Unknown action, default to planning
             self.logger.warning(f"Unknown arbiter action: {action}, defaulting to planning")
             return {"phase": "planning", "reason": "arbiter_unknown_action"}
@@ -2650,17 +2648,17 @@ class PhaseCoordinator:
             # Update state based on tool results
             for tool_result in tool_results:
                 if tool_result.get('success'):
+                    pass
                     # Track file changes
                     filepath = tool_result.get('filepath')
                     if filepath:
                         if tool_result.get('tool') in ['create_file', 'create_python_file']:
-                            self.logger.info(f"  ✓ Created: {filepath}")
+                            pass
                         elif tool_result.get('tool') in ['write_file', 'str_replace']:
-                            self.logger.info(f"  ✓ Modified: {filepath}")
+                            pass
             
-            self.logger.info(f"  ✓ Specialist consultation complete")
         else:
-            self.logger.info(f"  ✓ Specialist provided guidance (no tool calls)")
+            pass
         
         return result
     
@@ -2764,6 +2762,7 @@ class PhaseCoordinator:
             return True
         
         for dep_file in task.dependencies:
+            pass
             # Check if any completed task created this file
             dep_met = False
             for other_task in state.tasks.values():
@@ -2793,6 +2792,7 @@ class PhaseCoordinator:
             state: Current pipeline state
         """
         try:
+            pass
             # Build execution data
             execution_data = {
                 'phase': phase_name,
@@ -2826,7 +2826,7 @@ class PhaseCoordinator:
             
             # Log recommendations if any
             if recommendations:
-                self.logger.debug(f"📊 Pattern recommendations: {len(recommendations)} available")
+                pass
                 
         except Exception as e:
             self.logger.debug(f"Failed to record execution pattern: {e}")
@@ -2894,7 +2894,6 @@ class PhaseCoordinator:
         failed = sum(1 for t in state.tasks.values() if t.status == TaskStatus.SKIPPED)
         
         self.logger.info(f"\n{'='*70}")
-        self.logger.info(f"  📊 PIPELINE SUMMARY")
         self.logger.info(f"{'='*70}")
         self.logger.info(f"  Total tasks: {total}")
         self.logger.info(f"  Completed: {completed}")
@@ -3022,6 +3021,7 @@ class PhaseCoordinator:
             state: Current pipeline state
         """
         try:
+            pass
             # Only validate every 5 iterations to avoid overhead
             if self._current_iteration % 5 != 0:
                 return
@@ -3042,14 +3042,11 @@ class PhaseCoordinator:
             # Store in state for phases to use
             state.architecture_validation = validation
             
-            # If critical drift, log warning
-            if validation.severity.value == 'critical':
-                self.logger.warning("  🚨 Critical architecture drift detected")
-                self.logger.warning(f"    Missing components: {len(validation.missing_components)}")
-                self.logger.warning(f"    Integration gaps: {len(validation.integration_gaps)}")
-                self.logger.info("    Planning phase will address architecture issues")
+            # If critical drift detected, it will be handled by phase transition logic
+            pass
         
         except Exception as e:
+            pass
             # Don't fail iteration on validation error
             self.logger.debug(f"  Architecture validation skipped: {e}")
     

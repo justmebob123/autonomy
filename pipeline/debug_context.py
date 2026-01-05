@@ -77,23 +77,28 @@ def gather_related_files(error: Dict, project_dir: Path) -> Dict[str, str]:
     for frame in call_chain:
         file_path = frame['file']
         try:
+            pass
             # Try absolute path first
             if Path(file_path).exists():
                 with open(file_path, 'r', encoding='utf-8') as f:
                     files[file_path] = f.read()
             else:
+                pass
                 # Try relative to project dir
                 rel_path = project_dir / file_path
                 if rel_path.exists():
                     with open(rel_path, 'r', encoding='utf-8') as f:
                         files[str(rel_path)] = f.read()
         except FileNotFoundError:
+            pass
             # File doesn't exist, skip it
             pass
         except PermissionError:
+            pass
             # Can't read file due to permissions
             pass
         except Exception as e:
+            pass
             # Log unexpected errors
             import logging
             logging.getLogger(__name__).debug(f"Could not read {file_path}: {e}")
@@ -121,6 +126,7 @@ def extract_class_context(file_path: str, line_num: int) -> Dict:
         for node in ast.walk(tree):
             if isinstance(node, ast.ClassDef):
                 if hasattr(node, 'end_lineno') and node.lineno <= line_num <= node.end_lineno:
+                    pass
                     # Find the method containing this line
                     method_name = None
                     for item in node.body:
@@ -136,9 +142,11 @@ def extract_class_context(file_path: str, line_num: int) -> Dict:
                         'class_end': node.end_lineno if hasattr(node, 'end_lineno') else None
                     }
     except SyntaxError:
+        pass
         # File has syntax errors, can't parse
         return {}
     except Exception as e:
+        pass
         # Log unexpected errors
         import logging
         logging.getLogger(__name__).debug(f"Could not extract class context from {file_path}: {e}")
@@ -193,6 +201,7 @@ def find_class_definition(project_dir: Path, class_name: str) -> Dict:
         Dict with file, line, methods list
     """
     try:
+        pass
         # Use grep to find the class definition
         result = subprocess.run(
             ['grep', '-r', '-n', f'class {class_name}', str(project_dir), '--include=*.py'],
@@ -202,6 +211,7 @@ def find_class_definition(project_dir: Path, class_name: str) -> Dict:
         )
         
         if result.returncode == 0 and result.stdout.strip():
+            pass
             # Parse first match
             first_line = result.stdout.split('\n')[0]
             parts = first_line.split(':', 2)
@@ -224,12 +234,15 @@ def find_class_definition(project_dir: Path, class_name: str) -> Dict:
                             'found': True
                         }
     except subprocess.TimeoutExpired:
+        pass
         # Search timed out
         return {'found': False, 'error': 'search_timeout'}
     except SyntaxError:
+        pass
         # Found file but has syntax errors
         return {'found': False, 'error': 'syntax_error'}
     except Exception as e:
+        pass
         # Log unexpected errors
         import logging
         logging.getLogger(__name__).debug(f"Could not find class {class_name}: {e}")

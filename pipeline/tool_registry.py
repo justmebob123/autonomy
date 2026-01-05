@@ -74,6 +74,7 @@ class ToolRegistry:
             try:
                 spec = self._load_tool_spec(spec_file)
                 if spec and self._validate_spec(spec):
+                    pass
                     # Load implementation
                     impl_file = self.tools_dir / f"{spec['name']}.py"
                     if impl_file.exists():
@@ -126,6 +127,7 @@ class ToolRegistry:
             Tool function or None if failed
         """
         try:
+            pass
             # Import the module
             spec = importlib.util.spec_from_file_location(tool_name, impl_file)
             if not spec or not spec.loader:
@@ -199,6 +201,7 @@ class ToolRegistry:
             True if safe, False otherwise
         """
         try:
+            pass
             # Get source code
             source = inspect.getsource(func)
             
@@ -272,6 +275,7 @@ class ToolRegistry:
         impl_file = self.tools_dir / f"{name}.py"
         
         if impl_code:
+            pass
             # Save implementation code
             try:
                 impl_file.write_text(impl_code)
@@ -319,7 +323,6 @@ class ToolRegistry:
         if self.handler:
             self._register_with_handler(name)
         
-        self.logger.info(f"✅ Registered tool: {name}")
         return True
     
     def _register_with_handler(self, tool_name: str):

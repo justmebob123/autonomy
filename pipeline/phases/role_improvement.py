@@ -98,7 +98,7 @@ class RoleImprovementPhase(LoopDetectionMixin, BasePhase):
         # IPC INTEGRATION: Read objectives
         objectives = self._read_objectives()
         if objectives:
-            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+            pass
         
         # IPC INTEGRATION: Write status at start
         self._write_status({
@@ -145,7 +145,6 @@ class RoleImprovementPhase(LoopDetectionMixin, BasePhase):
             
             if result['improved']:
                 roles_improved.append(role_name)
-                self.logger.info(f"    ✅ Role improved")
             else:
                 self.logger.info(f"    ℹ️  Role already optimal")
         
@@ -367,6 +366,7 @@ class RoleImprovementPhase(LoopDetectionMixin, BasePhase):
                             improved_role = args.get('improved_role', {})
                             
                             if improved_role:
+                                pass
                                 # Save improved version
                                 self._save_improved_role(role_name, role_data, improved_role, args)
                                 

@@ -241,6 +241,7 @@ State your current step before proceeding.
             severity: Override default severity
         """
         if violation_type not in self.violation_types:
+            pass
             # Unknown violation type - add as generic
             violation_def = {
                 "phase": phase,
@@ -417,6 +418,7 @@ State your current step before proceeding.
         
         for pattern_key, pattern in list(self.patterns.items()):
             if pattern.resolution_rate >= threshold and pattern.count >= 5:
+                pass
                 # Pattern is consistently resolved - remove prompt addition
                 if pattern.violation_type in self.active_additions[pattern.phase]:
                     self.active_additions[pattern.phase].remove(pattern.violation_type)

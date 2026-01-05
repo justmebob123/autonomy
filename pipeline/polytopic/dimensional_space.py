@@ -218,6 +218,7 @@ class DimensionalSpace:
         clusters = {obj_id: [obj_id] for obj_id in self.objectives.keys()}
         
         while True:
+            pass
             # Find closest pair of clusters
             min_distance = float('inf')
             merge_pair = None
@@ -225,6 +226,7 @@ class DimensionalSpace:
             cluster_ids = list(clusters.keys())
             for i, c1 in enumerate(cluster_ids):
                 for c2 in cluster_ids[i+1:]:
+                    pass
                     # Calculate distance between cluster centroids
                     centroid1 = self.calculate_centroid(clusters[c1])
                     centroid2 = self.calculate_centroid(clusters[c2])
@@ -311,6 +313,7 @@ class DimensionalSpace:
         try:
             from ..objective_manager import ObjectiveStatus
         except ImportError:
+            pass
             # Fallback to string comparison
             ObjectiveStatus = None
         
@@ -318,6 +321,7 @@ class DimensionalSpace:
         scores = {}
         
         for obj_id, obj in self.objectives.items():
+            pass
             # Skip completed objectives
             if ObjectiveStatus:
                 if obj.status == ObjectiveStatus.COMPLETED:

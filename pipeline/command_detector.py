@@ -139,6 +139,7 @@ class CommandDetector:
         for name in makefile_names:
             makefile = self.project_path / name
             if makefile.exists():
+                pass
                 # Try to find default target or 'run' target
                 try:
                     content = makefile.read_text()
@@ -162,6 +163,7 @@ class CommandDetector:
             return "docker-compose up", "Found docker-compose.yml"
         
         if dockerfile.exists():
+            pass
             # Try to extract CMD from Dockerfile
             try:
                 content = dockerfile.read_text()
@@ -198,6 +200,7 @@ class CommandDetector:
         # Look for executable files in project root
         for item in self.project_path.iterdir():
             if item.is_file() and os.access(item, os.X_OK):
+                pass
                 # Skip common non-executable patterns
                 if item.suffix in ['.txt', '.md', '.json', '.yml', '.yaml']:
                     continue

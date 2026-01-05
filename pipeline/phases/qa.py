@@ -60,8 +60,6 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         self.file_discovery = FileDiscovery(self.project_dir, self.logger)
         self.naming_conventions = NamingConventionManager(self.project_dir, self.logger)
         
-        self.logger.info("  🔍 QA phase initialized with comprehensive analysis capabilities")
-        self.logger.info("  🔀 Integration conflict detection enabled")
         self.logger.info("  📁 File management and naming conventions enabled")
         
         # MESSAGE BUS: Subscribe to relevant events
@@ -142,7 +140,6 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             
             # Skip tasks with empty target_file
             if not filepath or filepath.strip() == "":
-                self.logger.warning(f"  ⚠️ Task {task.task_id} has empty target_file, marking as SKIPPED")
                 task.status = TaskStatus.SKIPPED
                 self.state_manager.save(state)
                 return PhaseResult(
@@ -151,9 +148,11 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                     message=f"Skipped task with empty target_file"
                 )
         elif filepath is None:
+            pass
             # Find files needing review
             files = state.get_files_needing_qa()
             if not files:
+                pass
                 # Increment no-update counter
                 count = self.state_manager.increment_no_update_count(state, self.phase_name)
                 self.logger.info(f"  No files need QA review (count: {count}/3)")
@@ -187,7 +186,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         # Check if it's a directory - skip directories
         full_path = self.project_dir / filepath
         if full_path.is_dir():
-            self.logger.warning(f"  ⚠️ Skipping directory: {filepath}")
+            pass
             # Mark task as completed if provided
             if task:
                 task.status = TaskStatus.COMPLETED
@@ -204,7 +203,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         # This prevents syntax errors from blocking QA analysis
         if filepath.endswith('.py'):
             if self._auto_fix_html_entities(filepath):
-                self.logger.info(f"✅ HTML entities fixed, proceeding with QA")
+                pass
                 # File is now fixed, continue with normal QA
         
         # Read file content (now fixed if it had HTML entities)
@@ -229,12 +228,14 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             tertiary_objectives = strategic_docs.get('TERTIARY_OBJECTIVES.md', '')
             
             if secondary_objectives:
+                pass
                 # Extract relevant sections (limit to 1500 chars to avoid huge prompts)
                 if len(secondary_objectives) > 1500:
                     secondary_objectives = secondary_objectives[:1500] + "\n... (truncated)"
                 user_message_parts.append(f"\n## Quality Standards (from SECONDARY_OBJECTIVES.md)\n{secondary_objectives}\n")
             
             if tertiary_objectives:
+                pass
                 # Extract relevant sections (limit to 1500 chars)
                 if len(tertiary_objectives) > 1500:
                     tertiary_objectives = tertiary_objectives[:1500] + "\n... (truncated)"
@@ -284,6 +285,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             self.logger.debug(f"  - Text content preview: {text_content[:500]}")
         
         if not tool_calls:
+            pass
             # No tool calls = implicit approval
             self.logger.info("  No issues reported (implicit approval)")
             state.mark_file_reviewed(filepath, approved=True)
@@ -320,7 +322,6 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         
         # Check results
         if handler.approved:
-            self.logger.info(f"  ✓ Approved: {filepath}")
             state.mark_file_reviewed(filepath, approved=True)
             
             if task:
@@ -363,6 +364,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 from ..issue_tracker import Issue, IssueType, IssueSeverity
                 
                 for issue_data in handler.issues:
+                    pass
                     # Determine issue type
                     issue_type_str = issue_data.get("type", "other")
                     try:
@@ -497,6 +499,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             # BIDIRECTIONAL IPC: Update strategic documents with new issues
             try:
                 for issue in handler.issues:
+                    pass
                     # Add to SECONDARY_OBJECTIVES
                     issue_desc = f"{issue.get('type', 'Error')}: {issue.get('description', 'Unknown issue')} in {filepath}"
                     self.doc_updater.add_new_issue(
@@ -554,14 +557,13 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         successful_tools = sum(1 for r in results if r.get('success', False))
         
         if successful_tools == 0 and len(tool_calls) > 0:
+            pass
             # Tool calls were made but none succeeded - this is a failure
-            self.logger.warning(f"  ⚠️  {len(tool_calls)} tool calls made but none succeeded")
             
             # If this task has failed multiple times, mark it as SKIPPED to prevent infinite loops
             if task:
                 task.attempts += 1
                 if task.attempts >= 3:
-                    self.logger.warning(f"  ⚠️  Task {task.task_id} has failed QA {task.attempts} times, marking as SKIPPED")
                     task.status = TaskStatus.SKIPPED
                     from ..state.manager import StateManager
                     state_manager = StateManager(self.project_dir)
@@ -576,7 +578,6 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         
         # If we got here with successful tool calls but no explicit approval/issues,
         # treat as implicit approval (AI reviewed but didn't find issues)
-        self.logger.info("  ✓ Review completed (implicit approval)")
         state.mark_file_reviewed(filepath, approved=True)
         
         if task:
@@ -734,6 +735,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             return False
         
         try:
+            pass
             # Read file content
             content = full_path.read_text(encoding='utf-8')
             
@@ -756,17 +758,16 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             decoded, modified = decoder.decode_html_entities(content, str(filepath))
             
             if modified:
+                pass
                 # Write fixed content
                 full_path.write_text(decoded, encoding='utf-8')
-                self.logger.info(f"✅ Fixed HTML entities in {filepath}")
                 
                 # Verify the fix worked
                 try:
                     import ast
                     ast.parse(decoded)
-                    self.logger.info(f"✅ File now compiles successfully")
                 except SyntaxError as e:
-                    self.logger.warning(f"⚠️  File still has syntax errors after fix: {e}")
+                    pass
                 
                 return True
             
@@ -786,7 +787,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         # IPC INTEGRATION: Read objectives for quality criteria
         objectives = self._read_objectives()
         if objectives:
-            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+            pass
         
         # IPC INTEGRATION: Write status at start
         self._write_status({
@@ -843,7 +844,6 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         no_update_count = state_manager.get_no_update_count(state, self.phase_name)
         
         if no_update_count >= 3:
-            self.logger.warning(f"  ⚠️ QA phase returned 'no files to review' {no_update_count} times")
             self.logger.info("  🔄 Forcing transition to next phase to prevent loop")
             
             # Reset counter
@@ -887,7 +887,6 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         """Handle case where file is not found"""
         from ..state.manager import StateManager
         
-        self.logger.warning(f"⚠️ File not found, marking task as SKIPPED: {filepath}")
         
         # Update task status if we have a task object
         if task is not None:
@@ -928,7 +927,6 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                     'description': arch_validation['reason'],
                     'file': filepath
                 })
-                self.logger.warning(f"  ⚠️ Architecture violation: {arch_validation['reason']}")
                 
                 # MESSAGE BUS: Publish architecture violation
                 if self.message_bus:
@@ -950,7 +948,6 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         skip_analysis = self.architecture_config.is_test_module(filepath)
         
         if filepath.endswith('.py') and not skip_analysis:
-            self.logger.info(f"  📊 Running comprehensive analysis on {filepath}...")
             try:
                 analysis_result = self.run_comprehensive_analysis(filepath)
                 if analysis_result and analysis_result.get('success'):
@@ -995,8 +992,8 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         is_library_module = self.architecture_config.is_library_module(filepath)
         
         try:
+            pass
             # 1. Complexity Analysis
-            self.logger.info(f"  📊 Analyzing complexity...")
             complexity_result = self.complexity_analyzer.analyze(target=filepath)
             
             # Check for high complexity functions
@@ -1014,7 +1011,6 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             
             # 2. Dead Code Detection (skip for library modules)
             if not is_library_module:
-                self.logger.info(f"  🔍 Detecting dead code...")
                 dead_code_result = self.dead_code_detector.analyze(target=filepath)
                 
                 # Import integration point checker
@@ -1024,6 +1020,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 if dead_code_result.unused_functions:
                     for func_name, file, line in dead_code_result.unused_functions:
                         if file == filepath or filepath in file:
+                            pass
                             # Skip if this is a known integration point
                             if is_integration_point(file, 'function', func_name):
                                 self.logger.info(f"  ⏭️  Skipping integration point: {func_name} in {file}")
@@ -1044,6 +1041,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             if dead_code_result.unused_methods:
                 for method_key, file, line in dead_code_result.unused_methods:
                     if file == filepath or filepath in file:
+                        pass
                         # Skip if this is a known integration point
                         # Extract method name from method_key (format: ClassName.method_name)
                         method_name = method_key.split('.')[-1] if '.' in method_key else method_key
@@ -1078,11 +1076,11 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                         })
             
             # 4. Integration Conflict Detection (project-wide)
-            self.logger.info(f"  🔀 Checking for integration conflicts...")
             conflict_result = self.conflict_detector.analyze(target=filepath)
             
             # Add conflicts as issues
             for conflict in conflict_result.conflicts:
+                pass
                 # Only include if this file is involved
                 if filepath in conflict.files or any(filepath in f for f in conflict.files):
                     issues.append({
@@ -1113,7 +1111,6 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             
             # Log summary
             if issues:
-                self.logger.warning(f"  ⚠️  Found {len(issues)} quality issues via analysis")
                 complexity_issues = [i for i in issues if i['type'] == 'high_complexity']
                 dead_code_issues = [i for i in issues if i['type'] == 'dead_code']
                 gap_issues = [i for i in issues if i['type'] == 'integration_gap']
@@ -1131,7 +1128,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 if review_issues:
                     self.logger.warning(f"    - {len(review_issues)} items marked for review")
             else:
-                self.logger.info(f"  ✅ No quality issues found via analysis")
+                pass
             
             return {
                 'success': True,
@@ -1155,6 +1152,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         outputs = {}
         
         try:
+            pass
             # Read coding output for completed code
             coding_output = self.read_phase_output('coding')
             if coding_output:
@@ -1228,6 +1226,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         
         # Process bug issues (go to debugging)
         for idx, issue in enumerate(bug_issues):
+            pass
             # Create unique task ID
             task_id = f"qa_fix_{filepath.replace('/', '_')}_{issue.get('line_number', idx)}"
             
@@ -1268,7 +1267,6 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             
             # Add to state
             state.tasks[task_id] = task
-            self.logger.info(f"    ✅ Created NEEDS_FIXES task {task_id} (priority {priority})")
         
         # Process refactoring issues (go to refactoring phase)
         for idx, issue in enumerate(refactoring_issues):
@@ -1298,7 +1296,6 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             }
             
             state.tasks[task_id] = task
-            self.logger.info(f"    ✅ Created PENDING task {task_id} for refactoring")
         
         # Process planning issues (go to planning phase)
         for idx, issue in enumerate(planning_issues):
@@ -1328,7 +1325,6 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             }
             
             state.tasks[task_id] = task
-            self.logger.info(f"    ✅ Created PENDING task {task_id} for planning")
         
         # Process investigation issues (go to investigation phase)
         for idx, issue in enumerate(investigation_issues):
@@ -1358,7 +1354,6 @@ class QAPhase(BasePhase, LoopDetectionMixin):
             }
             
             state.tasks[task_id] = task
-            self.logger.info(f"    ✅ Created PENDING task {task_id} for investigation")
         
         # Save state immediately so coordinator sees the tasks
         from ..state.manager import StateManager
@@ -1370,6 +1365,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         """Send messages to other phases' READ documents"""
         try:
             if issues_found:
+                pass
                 # Send to debugging phase when bugs found
                 debug_message = f"""
 ## QA Issues Found - {self.format_timestamp()}
@@ -1408,6 +1404,7 @@ class QAPhase(BasePhase, LoopDetectionMixin):
                 self.send_message_to_phase('debugging', debug_message)
                 self.logger.info(f"  📤 Sent {len(issues_found)} issues to debugging phase")
             else:
+                pass
                 # Send approval to coding phase
                 dev_message = f"""
 ## QA Approval - {self.format_timestamp()}

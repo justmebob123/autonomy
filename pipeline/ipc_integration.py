@@ -78,7 +78,7 @@ class ObjectiveReader:
         
         if not file_path.exists():
             if self.logger:
-                self.logger.debug(f"📄 {filename} not found")
+                pass
             return []
         
         try:
@@ -209,7 +209,7 @@ class StatusWriter:
             write_file.write_text(new_content, encoding='utf-8')
             
             if self.logger:
-                self.logger.debug(f"✅ Wrote status to {write_file.name}")
+                pass
                 
         except Exception as e:
             if self.logger:
@@ -277,7 +277,7 @@ class StatusWriter:
             read_file.write_text(new_content, encoding='utf-8')
             
             if self.logger:
-                self.logger.info(f"✅ Wrote request from {from_phase} to {to_phase}")
+                pass
                 
         except Exception as e:
             if self.logger:

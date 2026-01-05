@@ -56,12 +56,14 @@ class LoopInterventionSystem:
         detections = self.detector.detect_all_loops()
         
         if not detections:
+            pass
             # No loops detected, reset intervention count
             self.intervention_count = 0
             return None
         
         # Check if intervention needed
         if not self.detector.should_intervene(detections):
+            pass
             # Loops detected but not severe enough
             self.logger.info(f"Loops detected but not severe enough for intervention: {len(detections)}")
             return None

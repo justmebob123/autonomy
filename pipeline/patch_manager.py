@@ -135,6 +135,7 @@ class PatchManager:
             patch_to_use = patch_file
         
         try:
+            pass
             # Build patch command
             cmd = ['patch']
             if dry_run:
@@ -196,6 +197,7 @@ class PatchManager:
             Tuple of (success, message)
         """
         try:
+            pass
             # Generate patch
             patch_content, patch_file = self.generate_line_patch(
                 filepath, line_num, old_line, new_line

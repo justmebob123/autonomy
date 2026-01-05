@@ -414,9 +414,11 @@ Your attempt to modify `{failure.filepath}` failed.
         
         # Add relevant file section
         if failure.original_content:
+            pass
             # Find the area around where the change was supposed to happen
             lines = failure.original_content.split('\n')
             if len(lines) > 20:
+                pass
                 # Show first 10 and last 10 lines
                 feedback += "```python\n"
                 feedback += '\n'.join(lines[:10])

@@ -75,6 +75,7 @@ class FilePlacementAnalyzer:
         
         # Find all Python files
         for py_file in self._find_python_files(exclude_patterns):
+            pass
             # Validate location
             validation = self.arch_context.validate_file_location(py_file)
             
@@ -144,6 +145,7 @@ class FilePlacementAnalyzer:
         python_files = []
         
         for root, dirs, files in self.project_root.rglob('*.py'):
+            pass
             # Get relative path
             try:
                 rel_path = root.relative_to(self.project_root)

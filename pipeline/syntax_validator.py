@@ -62,6 +62,7 @@ class SyntaxValidator:
             return False, "Empty code content"
         
         try:
+            pass
             # Try to parse the code
             ast.parse(code)
             return True, None
@@ -121,7 +122,7 @@ Line {error_line}: {error.msg}
         # Verify no entities remain
         is_clean, remaining_entities = self.html_decoder.validate_no_entities(code)
         if not is_clean:
-            self.logger.warning(f"⚠️  HTML entities still present after decoding: {remaining_entities[:3]}")
+            pass
         
         # Fix 1: Remove duplicate imports on same line
         # Example: "time from datetime import datetime" -> "from datetime import datetime"

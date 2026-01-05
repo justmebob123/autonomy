@@ -159,6 +159,7 @@ class TypeTracker(ast.NodeVisitor):
             if isinstance(target, ast.Name):
                 self.set_type(target.id, value_type)
             elif isinstance(target, ast.Tuple):
+                pass
                 # Handle tuple unpacking
                 if isinstance(node.value, ast.Tuple):
                     for t, v in zip(target.elts, node.value.elts):
@@ -197,6 +198,7 @@ class TypeTracker(ast.NodeVisitor):
         # Function call: func()
         if isinstance(node, ast.Call):
             if isinstance(node.func, ast.Attribute):
+                pass
                 # Method call: obj.method()
                 if isinstance(node.func.value, ast.Name):
                     obj_name = node.func.value.id
@@ -207,6 +209,7 @@ class TypeTracker(ast.NodeVisitor):
                     if obj_type and method_name in self.function_returns:
                         return self.function_returns[method_name]
             elif isinstance(node.func, ast.Name):
+                pass
                 # Function call: func()
                 func_name = node.func.id
                 if func_name in self.function_returns:
@@ -256,6 +259,7 @@ class TypeTracker(ast.NodeVisitor):
                 obj_type = self.get_type(obj_name)
                 
                 if obj_type and obj_type.is_dataclass:
+                    pass
                     # Get attribute type from dataclass
                     if obj_type.type_name in self.dataclass_attributes:
                         attrs = self.dataclass_attributes[obj_type.type_name]
@@ -274,6 +278,7 @@ class TypeTracker(ast.NodeVisitor):
     def _infer_element_type(self, container_type: LegacyTypeInfo) -> LegacyTypeInfo:
         """Infer type of elements in a container."""
         if container_type.is_list:
+            pass
             # For now, assume unknown element type
             # Could be enhanced with more sophisticated analysis
             return LegacyTypeInfo(
@@ -305,6 +310,7 @@ class TypeTracker(ast.NodeVisitor):
             )
         
         if isinstance(annotation, ast.Subscript):
+            pass
             # Handle Dict[str, int], List[str], etc.
             if isinstance(annotation.value, ast.Name):
                 type_name = annotation.value.id
@@ -353,6 +359,7 @@ class TypeUsageChecker(ast.NodeVisitor):
         var_type = self.tracker.get_type(var_name)
         
         if not var_type:
+            pass
             # Unknown type - skip validation
             return
         
@@ -412,6 +419,7 @@ class TypeUsageValidator:
         
         # Use SymbolTable if available, otherwise collect ourselves
         if self.symbol_table:
+            pass
             # Extract class types from SymbolTable
             for class_info in self.symbol_table.classes.values():
                 if ':' in class_info.name:  # Skip qualified names
@@ -422,6 +430,7 @@ class TypeUsageValidator:
                 else:
                     self.regular_classes.add(class_info.name)
         else:
+            pass
             # Fallback: identify dataclasses and regular classes ourselves
             self._collect_class_types()
         

@@ -276,7 +276,7 @@ class RefactoringTaskManager:
         # If no valid files, skip task creation
         if not valid_files:
             if hasattr(self, 'logger'):
-                self.logger.warning(f"⚠️ Skipping task creation - no valid files: {target_files}")
+                pass
             return None
         
         task_id = f"refactor_{self._next_id:04d}"

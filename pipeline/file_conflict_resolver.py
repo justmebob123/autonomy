@@ -131,6 +131,7 @@ class FileConflictResolver:
             try:
                 source = self.project_dir / filepath
                 if source.exists():
+                    pass
                     # Preserve directory structure in archive
                     rel_path = Path(filepath)
                     dest = archive_dir / rel_path
@@ -142,7 +143,6 @@ class FileConflictResolver:
                     
                     shutil.move(str(source), str(dest_with_timestamp))
                     results['actions'].append(f"Archived: {filepath} -> {dest_with_timestamp}")
-                    self.logger.info(f"  ✓ Archived {filepath}")
             except Exception as e:
                 results['errors'].append(f"Failed to archive {filepath}: {e}")
                 results['success'] = False

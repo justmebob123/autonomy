@@ -123,6 +123,7 @@ class FileUpdateTools:
             
             if not file_path.exists():
                 if create_if_missing:
+                    pass
                     # Create file with section
                     content = f"# {file_path.stem}\n\n## {section_title}\n{new_content}\n"
                     file_path.write_text(content)
@@ -159,6 +160,7 @@ class FileUpdateTools:
             
             if section_start is None:
                 if create_if_missing:
+                    pass
                     # Append section to end
                     new_lines = lines + [
                         '',
@@ -186,6 +188,7 @@ class FileUpdateTools:
             section_end = len(lines)
             for i in range(section_start + 1, len(lines)):
                 if lines[i].startswith('#'):
+                    pass
                     # Check level
                     level = len(lines[i].split()[0])
                     if level <= section_level:
@@ -254,11 +257,13 @@ class FileUpdateTools:
                 new_lines.append(line)
                 
                 if marker in line:
+                    pass
                     # Insert content after this line
                     new_lines.append(content)
                     insertions += 1
                     
                     if first_occurrence:
+                        pass
                         # Add remaining lines and break
                         new_lines.extend(lines[i + 1:])
                         break
@@ -324,11 +329,13 @@ class FileUpdateTools:
             
             for i, line in enumerate(lines):
                 if marker in line:
+                    pass
                     # Insert content before this line
                     new_lines.append(content)
                     insertions += 1
                     
                     if first_occurrence:
+                        pass
                         # Add remaining lines and break
                         new_lines.extend(lines[i:])
                         break

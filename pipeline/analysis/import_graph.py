@@ -101,6 +101,7 @@ class ImportGraphBuilder:
         python_files = []
         
         for root, dirs, files in os.walk(self.project_root):
+            pass
             # Skip common non-code directories
             dirs[:] = [d for d in dirs if d not in {
                 '__pycache__', '.git', '.venv', 'venv', 'env',
@@ -178,6 +179,7 @@ class ImportGraphBuilder:
             else:
                 module_path = current_dir
         else:
+            pass
             # Absolute import
             module_path = Path(module_name.replace('.', '/'))
         
@@ -212,6 +214,7 @@ class ImportGraphBuilder:
             cycles = []
             
             if filepath in rec_stack:
+                pass
                 # Found a cycle
                 cycle_start = path.index(filepath)
                 cycle = path[cycle_start:]
@@ -246,6 +249,7 @@ class ImportGraphBuilder:
         seen_cycles = set()
         
         for cycle in all_cycles:
+            pass
             # Normalize cycle (start from smallest element)
             normalized = tuple(sorted(cycle))
             if normalized not in seen_cycles:
@@ -267,13 +271,17 @@ class ImportGraphBuilder:
         # Orphaned files are files that neither import nor are imported
         
         for filepath, node in self.nodes.items():
+            pass
             # Check if this file is imported by anyone
             if not node.imported_by:
+                pass
                 # Not imported by anyone
                 if node.imports or node.external_imports:
+                    pass
                     # Imports others - likely an entry point
                     node.is_entry_point = True
                 else:
+                    pass
                     # Doesn't import anything either - orphaned
                     node.is_orphaned = True
     

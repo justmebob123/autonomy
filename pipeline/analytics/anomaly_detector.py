@@ -499,6 +499,7 @@ class AnomalyDetector:
         # Identify patterns
         for anomaly_type, anomalies in by_type.items():
             if len(anomalies) >= 3:
+                pass
                 # Calculate frequency
                 time_span = (anomalies[-1].detected_at - anomalies[0].detected_at).total_seconds()
                 frequency = len(anomalies) / max(time_span / 3600, 1)  # Per hour

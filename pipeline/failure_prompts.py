@@ -13,6 +13,7 @@ def get_code_not_found_prompt(context: Dict) -> str:
     error_msg = context.get('error_message', '')
     suggestion_section = ""
     if "Did you mean" in error_msg:
+        pass
         # Extract the suggestion
         suggestion_section = f"""
 ## ⚠️ SYSTEM SUGGESTION (USE THIS!)

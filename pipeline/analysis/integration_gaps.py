@@ -86,13 +86,16 @@ class IntegrationGapVisitor(ast.NodeVisitor):
         """Visit function/method call."""
         # Track class instantiation
         if isinstance(node.func, ast.Name):
+            pass
             # Direct instantiation: ClassName()
             self.classes_instantiated.add(node.func.id)
         elif isinstance(node.func, ast.Attribute):
+            pass
             # Method call: obj.method()
             method_name = node.func.attr
             # Track method calls (approximate - would need type inference for accuracy)
             if isinstance(node.func.value, ast.Name):
+                pass
                 # Could be a class method call
                 pass
         
@@ -182,6 +185,7 @@ class IntegrationGapFinder:
         unused = []
         for class_name, (file, line) in self.all_classes_defined.items():
             if class_name not in self.all_classes_instantiated:
+                pass
                 # Skip if this is a known integration point
                 if is_integration_point(file, 'class', class_name):
                     self.logger.info(f"Skipping integration point: {class_name} in {file}")
@@ -197,6 +201,7 @@ class IntegrationGapFinder:
         result = {}
         for class_name, methods in self.all_methods_defined.items():
             if class_name in self.all_classes_instantiated:
+                pass
                 # Class is used, check if methods are called
                 called = self.all_methods_called.get(class_name, set())
                 unused_methods = [m for m in methods if m not in called and not m.startswith('_')]
@@ -214,8 +219,10 @@ class IntegrationGapFinder:
         for file, imports in self.all_imports.items():
             unused = []
             for import_name in imports:
+                pass
                 # Check if imported class is instantiated
                 if import_name not in self.all_classes_instantiated:
+                    pass
                     # Check if it's a defined class
                     if import_name in self.all_classes_defined:
                         unused.append(import_name)
@@ -254,8 +261,10 @@ class IntegrationGapFinder:
             if target_path.suffix == '.py':
                 self.analyze_file(target_path)
         else:
+            pass
             # Analyze directory
             for root, dirs, files in os.walk(target_path):
+                pass
                 # Skip common directories
                 dirs[:] = [d for d in dirs if d not in ['__pycache__', '.git', 'venv', '.venv', 'node_modules']]
                 

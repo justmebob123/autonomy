@@ -97,24 +97,10 @@ class ValidatorCoordinator:
         Returns:
             Dict with results from all validators
         """
-        self.logger.info("=" * 80)
-        self.logger.info("COMPREHENSIVE CODE VALIDATION WITH SHARED SYMBOL TABLE")
-        self.logger.info("=" * 80)
-        self.logger.info(f"Project: {self.project_root}")
-        self.logger.info(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        self.logger.info("")
-        
         # Phase 1: Collect all symbols
-        self.logger.info("Phase 1: Collecting symbols...")
         self.collector.collect_from_project(self.project_root)
         
         stats = self.symbol_table.get_statistics()
-        self.logger.info(f"  ✓ Collected {stats['total_classes']} classes")
-        self.logger.info(f"  ✓ Collected {stats['total_functions']} functions")
-        self.logger.info(f"  ✓ Collected {stats['total_methods']} methods")
-        self.logger.info(f"  ✓ Collected {stats['total_enums']} enums")
-        self.logger.info(f"  ✓ Built call graph with {stats['total_call_edges']} edges")
-        self.logger.info("")
         
         # Initialize all validators with SymbolTable
         self.type_validator = TypeUsageValidator(str(self.project_root), self.config_file, self.symbol_table)
@@ -124,46 +110,33 @@ class ValidatorCoordinator:
         self.signature_validator = MethodSignatureValidator(str(self.project_root), self.symbol_table)
         
         # Phase 2: Run validators
-        self.logger.info("Phase 2: Running validators...")
         results = {}
         total_errors = 0
         
         # 1. Type Usage Validation
-        self.logger.info("  1. Type Usage Validation...")
         result1 = self.type_validator.validate_all()
         results['type_usage'] = result1
         total_errors += result1['total_errors']
-        self.logger.info(f"     ✓ {result1['total_errors']} errors found")
         
         # 2. Method Existence Validation
-        self.logger.info("  2. Method Existence Validation...")
         result2 = self.method_validator.validate_all()
         results['method_existence'] = result2
         total_errors += result2['total_errors']
-        self.logger.info(f"     ✓ {result2['total_errors']} errors found")
         
         # 3. Function Call Validation
-        self.logger.info("  3. Function Call Validation...")
         result3 = self.call_validator.validate_all()
         results['function_calls'] = result3
         total_errors += result3['total_errors']
-        self.logger.info(f"     ✓ {result3['total_errors']} errors found")
         
         # 4. Enum Attribute Validation
-        self.logger.info("  4. Enum Attribute Validation...")
         result4 = self.enum_validator.validate_all()
         results['enum_attributes'] = result4
         total_errors += result4['total_errors']
-        self.logger.info(f"     ✓ {result4['total_errors']} errors found")
         
         # 5. Method Signature Validation
-        self.logger.info("  5. Method Signature Validation...")
         result5 = self.signature_validator.validate_all()
         results['method_signatures'] = result5
         total_errors += result5['total_errors']
-        self.logger.info(f"     ✓ {result5['total_errors']} errors found")
-        
-        self.logger.info("")
         
         # Summary
         results['summary'] = {
@@ -172,12 +145,6 @@ class ValidatorCoordinator:
             'duplicate_classes': self.symbol_table.get_duplicate_classes(),
             'timestamp': datetime.now().isoformat()
         }
-        
-        self.logger.info("=" * 80)
-        self.logger.info("VALIDATION COMPLETE")
-        self.logger.info("=" * 80)
-        self.logger.info(f"Total errors: {total_errors}")
-        self.logger.info("")
         
         return results
     

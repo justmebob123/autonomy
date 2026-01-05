@@ -86,6 +86,7 @@ class MethodExistenceValidator:
         
         # Use SymbolTable if available, otherwise collect ourselves
         if self.symbol_table:
+            pass
             # Extract class methods from SymbolTable
             for class_info in self.symbol_table.classes.values():
                 if ':' in class_info.name:  # Skip qualified names
@@ -102,6 +103,7 @@ class MethodExistenceValidator:
                     self.class_locations[class_info.name] = []
                 self.class_locations[class_info.name].append(class_info.file)
         else:
+            pass
             # Fallback: collect class definitions ourselves
             self._collect_class_definitions()
         
@@ -195,6 +197,7 @@ class MethodExistenceValidator:
                 if isinstance(item, ast.FunctionDef):
                     methods.add(item.name)
                 elif isinstance(item, ast.ClassDef):
+                    pass
                     # Nested class - recurse
                     self._collect_from_node(item, filepath)
             
@@ -217,6 +220,7 @@ class MethodExistenceValidator:
                 if isinstance(base, ast.Name):
                     parents.append(base.id)
                 elif isinstance(base, ast.Attribute):
+                    pass
                     # Handle ast.NodeVisitor, etc.
                     if isinstance(base.value, ast.Name):
                         parents.append(f"{base.value.id}.{base.attr}")
@@ -225,6 +229,7 @@ class MethodExistenceValidator:
             self.class_parents[class_key] = parents
             
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            pass
             # Check for nested classes in functions
             for item in node.body:
                 if isinstance(item, ast.ClassDef):
@@ -257,6 +262,7 @@ class MethodExistenceValidator:
         # Check parent classes
         if class_name in self.class_parents:
             for parent in self.class_parents[class_name]:
+                pass
                 # Check known base classes
                 known_bases = self.config.get_known_base_classes()
                 if parent in known_bases:
@@ -415,6 +421,7 @@ class MethodCallVisitor(ast.NodeVisitor):
                 # Handle relative imports
                 module_path = node.module
                 if node.level > 0:
+                    pass
                     # Relative import (e.g., from .analysis.complexity)
                     # Get current file's directory
                     current_dir = str(self.filepath.parent.relative_to(self.project_root))
@@ -431,9 +438,11 @@ class MethodCallVisitor(ast.NodeVisitor):
                     else:
                         module_path = module_path.replace('.', '/')
                 else:
+                    pass
                     # Absolute import (e.g., from myproject.pipeline.tool_validator)
                     # Remove project name prefix if present
                     if self.validator.project_name and module_path.startswith(f'{self.validator.project_name}.'):
+                        pass
                         # Remove project name prefix
                         prefix_len = len(self.validator.project_name) + 1
                         module_path = module_path[prefix_len:]
@@ -452,14 +461,17 @@ class MethodCallVisitor(ast.NodeVisitor):
                 # AND exists in our class registry
                 if func_name and func_name[0].isupper() and func_name in self.validator.class_methods:
                     for target in node.targets:
+                        pass
                         # Track simple variable assignments (e.g., x = MyClass())
                         if isinstance(target, ast.Name):
                             self.var_types[target.id] = func_name
                             # Track source file
                             if func_name in self.imports:
+                                pass
                                 # Use imported source
                                 self.var_type_sources[target.id] = self.imports[func_name]
                             else:
+                                pass
                                 # No import found - assume local definition (same file)
                                 rel_path = str(self.filepath.relative_to(self.project_root))
                                 self.var_type_sources[target.id] = rel_path.replace('.py', '')
@@ -467,6 +479,7 @@ class MethodCallVisitor(ast.NodeVisitor):
                         # Track instance variable assignments (e.g., self.x = MyClass())
                         elif isinstance(target, ast.Attribute):
                             if isinstance(target.value, ast.Name) and target.value.id == 'self':
+                                pass
                                 # Track self.attribute = MyClass()
                                 var_key = f"self.{target.attr}"
                                 self.var_types[var_key] = func_name
@@ -493,13 +506,16 @@ class MethodCallVisitor(ast.NodeVisitor):
         method_name = node.func.attr
         
         if isinstance(node.func.value, ast.Name):
+            pass
             # Simple variable: x.method()
             var_name = node.func.value.id
         elif isinstance(node.func.value, ast.Attribute):
+            pass
             # Attribute access: self.x.method()
             if isinstance(node.func.value.value, ast.Name) and node.func.value.value.id == 'self':
                 var_name = f"self.{node.func.value.attr}"
             else:
+                pass
                 # Other attribute access (e.g., obj.attr.method()) - skip for now
                 return
         else:
@@ -519,6 +535,7 @@ class MethodCallVisitor(ast.NodeVisitor):
         
         # Get class name
         if var_name not in self.var_types:
+            pass
             # Unknown type - skip validation
             return
         
@@ -535,6 +552,7 @@ class MethodCallVisitor(ast.NodeVisitor):
         # Check if method exists, preferring the imported source
         source_file = self.var_type_sources.get(var_name)
         if source_file:
+            pass
             # Try to find the class from the specific source file
             class_key = f"{source_file}.py:{class_name}"
             if class_key in self.validator.class_methods:

@@ -79,6 +79,7 @@ Every tool must handle errors:
 ```python
 def tool_name(param1: str) -> Dict:
     try:
+        pass
         # Validate inputs
         if not param1:
             return {
@@ -148,6 +149,7 @@ def analyze_file_structure(filepath: str) -> Dict:
         Dict with success, result (classes, functions, imports), error
     &quot;&quot;&quot;
     try:
+        pass
         # Validate input
         if not filepath:
             return {"success": False, "error": "filepath required"}
@@ -209,6 +211,7 @@ def run_linter(filepath: str, linter: str = "pylint") -> Dict:
         Dict with success, result (linter output), error
     &quot;&quot;&quot;
     try:
+        pass
         # Validate inputs
         if not filepath:
             return {"success": False, "error": "filepath required"}
@@ -265,6 +268,7 @@ def extract_function_signatures(filepath: str) -> Dict:
         Dict with success, result (list of signatures), error
     &quot;&quot;&quot;
     try:
+        pass
         # Validate
         if not filepath:
             return {"success": False, "error": "filepath required"}
@@ -284,6 +288,7 @@ def extract_function_signatures(filepath: str) -> Dict:
         signatures = []
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef):
+                pass
                 # Get parameters
                 params = []
                 for arg in node.args.args:

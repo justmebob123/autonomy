@@ -155,6 +155,7 @@ def create_default_config_file(filepath: str = 'analytics_config.json'):
     print(f"Created default configuration file: {filepath}")
 
 if __name__ == '__main__':
+    pass
     # Create default config file
     create_default_config_file()
     print("\nDefault configuration:")

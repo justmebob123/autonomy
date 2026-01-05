@@ -110,6 +110,7 @@ class FileDiscovery:
             tree = ast.parse(content)
             docstring = ast.get_docstring(tree)
             if docstring:
+                pass
                 # Return first line of docstring
                 return docstring.split('\n')[0][:100]
         except:

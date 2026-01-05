@@ -267,5 +267,6 @@ class TestMessageBusPerformance(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    pass
     # Run with verbose output to see performance metrics
     unittest.main(verbosity=2)

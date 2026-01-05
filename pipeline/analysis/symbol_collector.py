@@ -256,6 +256,7 @@ class SymbolCollectorVisitor(ast.NodeVisitor):
         num_required = num_args - num_defaults
         
         for i, arg in enumerate(args.args):
+            pass
             # Skip 'self' and 'cls' for methods
             if is_method and arg.arg in ('self', 'cls'):
                 continue
@@ -297,6 +298,7 @@ class SymbolCollectorVisitor(ast.NodeVisitor):
             if isinstance(item, ast.Assign):
                 for target in item.targets:
                     if isinstance(target, ast.Name):
+                        pass
                         # Skip special attributes
                         if not target.id.startswith('_'):
                             attributes.add(target.id)
@@ -325,6 +327,7 @@ class SymbolCollectorVisitor(ast.NodeVisitor):
             elif type_name == "bool":
                 category = TypeCategory.BOOL
             else:
+                pass
                 # Check if it's a known class
                 class_info = self.symbol_table.get_class(type_name)
                 if class_info:
@@ -333,6 +336,7 @@ class SymbolCollectorVisitor(ast.NodeVisitor):
                     category = TypeCategory.CLASS
         
         elif isinstance(annotation, ast.Subscript):
+            pass
             # Handle Dict[str, int], List[str], etc.
             if isinstance(annotation.value, ast.Name):
                 type_name = annotation.value.id
@@ -378,12 +382,14 @@ class SymbolCollector:
         self.logger.info(f"Found {len(python_files)} Python files")
         
         for py_file in python_files:
+            pass
             # Skip hidden files and common directories
             if py_file.name.startswith('.'):
                 continue
             
             if any(part.startswith('.') or part in ['__pycache__', 'venv', '.venv', 'node_modules'] 
                    for part in py_file.parts):
+                       pass
                 continue
             
             self.collect_from_file(py_file)

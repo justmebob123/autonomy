@@ -41,6 +41,7 @@ class ErrorSignature:
     def from_error_dict(cls, error: Dict[str, Any]) -> Optional['ErrorSignature']:
         """Create ErrorSignature from error dictionary."""
         try:
+            pass
             # Extract error type from traceback or error message
             error_type = error.get('type', 'RuntimeError')
             
@@ -55,6 +56,7 @@ class ErrorSignature:
                 for line in reversed(lines):
                     line = line.strip()
                     if line and not line.startswith('File') and not line.startswith('Traceback'):
+                        pass
                         # This should be the exception line like "KeyError: 'url'"
                         if ':' in line:
                             error_type = line.split(':')[0].strip()
@@ -70,6 +72,7 @@ class ErrorSignature:
                 lines = traceback.strip().split('\n')
                 for i, tline in enumerate(lines):
                     if tline.strip().startswith('File'):
+                        pass
                         # Parse: File "/path/to/file.py", line 123, in function
                         parts = tline.split(',')
                         if len(parts) >= 2:
@@ -89,6 +92,7 @@ class ErrorSignature:
                 line=line
             )
         except Exception as e:
+            pass
             # If we can't parse the error, return None
             return None
 

@@ -41,6 +41,7 @@ class TextToolParser:
             if task:
                 tasks.append(task)
             else:
+                pass
                 # If no file path found, extract task without file path
                 task = self._extract_task_without_file(task_text)
                 if task:
@@ -185,11 +186,13 @@ class TextToolParser:
         elif re.search(r'\b(performance|metric|optimize)\b', text_lower):
             return "monitors/performance.py"
         elif re.search(r'\b(dashboard|interface)\b', text_lower):
+            pass
             # Dashboard or interface implies UI
             return "ui/dashboard.py"
         elif re.search(r'\b(config|configuration)\b', text_lower):
             return "config/settings.py"
         elif re.search(r'\btest\b', text_lower) and not re.search(r'\b(testing|latest)\b', text_lower):
+            pass
             # Extract meaningful test name from description (remove "test" from extraction)
             text_without_test = re.sub(r'\btest\b', '', text_lower)
             name = self._extract_meaningful_name(text_without_test)
@@ -197,14 +200,17 @@ class TextToolParser:
         elif re.search(r'\b(monitor|monitoring)\b', text_lower) and not re.search(r'\b(email|notification)\b', text_lower):
             return "monitors/system.py"
         elif re.search(r'\b(phase|workflow)\b', text_lower):
+            pass
             # Extract meaningful name from description
             name = self._extract_meaningful_name(text)
             return f"pipeline/phases/{name}.py"
         elif re.search(r'\b(tool|utility|helper)\b', text_lower):
+            pass
             # Extract meaningful name from description
             name = self._extract_meaningful_name(text)
             return f"pipeline/tools/{name}.py"
         else:
+            pass
             # Default to pipeline directory for general code
             name = self._extract_meaningful_name(text)
             return f"pipeline/{name}.py"
@@ -230,9 +236,11 @@ class TextToolParser:
         meaningful_words = [w for w in words if w not in stop_words][:3]
         
         if meaningful_words:
+            pass
             # Join with underscores
             return '_'.join(meaningful_words)
         else:
+            pass
             # Last resort: use first word from original text
             first_word = re.search(r'\b[a-zA-Z]{3,}\b', text)
             if first_word:

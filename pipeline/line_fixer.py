@@ -30,6 +30,7 @@ def fix_line_directly(filepath: Path, line_num: int, fix_type: str, error_msg: s
         # Handle files without final newline
         lines = content.splitlines(keepends=True)
         if content and not content.endswith('\n'):
+            pass
             # Last line doesn't have newline, add it
             if lines:
                 lines[-1] = lines[-1] + '\n'
@@ -95,6 +96,7 @@ def apply_fix(line: str, fix_type: str, error_msg: str) -> Optional[str]:
         
         # Check if line ends with a quote and is missing ]
         if '"' in stripped and not stripped.endswith(']'):
+            pass
             # Add ] before the newline
             return stripped + ']\n'
     
@@ -106,12 +108,14 @@ def apply_fix(line: str, fix_type: str, error_msg: str) -> Optional[str]:
     
     # Fix 3: Invalid syntax with XML/HTML tags
     elif 'invalid syntax' in error_lower and '</' in line:
+        pass
         # Comment out the line
         indent = len(line) - len(line.lstrip())
         return ' ' * indent + '# ' + line.lstrip()
     
     # Fix 4: Markdown code blocks
     elif 'invalid syntax' in error_lower and '```' in line:
+        pass
         # Remove the line
         return '\n'
     

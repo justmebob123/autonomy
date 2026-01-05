@@ -142,6 +142,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         recent_tasks = []
         if self.adaptive_prompts:
             if hasattr(state, 'refactoring_manager') and state.refactoring_manager:
+                pass
                 # Get all tasks and take the most recent ones
                 all_tasks = list(state.refactoring_manager.tasks.values())
                 # Sort by created_at if available, otherwise just take last 5
@@ -213,7 +214,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         objectives = self._read_objectives()
         obj_count = sum(len(objectives.get(level, [])) for level in ['primary', 'secondary', 'tertiary'])
         if obj_count > 0:
-            self.logger.info(f"🎯 {obj_count} objectives loaded for prioritization")
+            pass
         
         # Write starting status
         self._write_status({
@@ -235,10 +236,11 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         pending_tasks = self._get_pending_refactoring_tasks(state)
         
         if not pending_tasks:
+            pass
             # No pending tasks - check if we should run analysis
             if not self._comprehensive_analysis_done:
+                pass
                 # First time with no tasks - run analysis to find issues
-                self.logger.info(f"  🔍 No pending tasks, analyzing codebase...")
                 self._comprehensive_analysis_done = True
                 
                 # CRITICAL FIX: Track analysis time
@@ -246,8 +248,8 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 
                 return self._analyze_and_create_tasks(state)
             else:
+                pass
                 # Analysis already done and no tasks left - we're truly done
-                self.logger.info(f"  ✅ All refactoring tasks completed")
                 return PhaseResult(
                     success=True,
                     phase=self.phase_name,
@@ -259,18 +261,18 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         self.logger.info(f"  📋 {len(pending_tasks)} pending tasks, working on next task...")
         task = self._select_next_task(pending_tasks)
         
-        self.logger.info(f"  🎯 Selected task: {task.task_id} - {task.title}")
         self.logger.info(f"     Priority: {task.priority.value}, Type: {task.issue_type.value}")
         
         result = self._work_on_task(state, task)
         
         if result.success:
+            pass
             # Task completed successfully
             remaining = self._get_pending_refactoring_tasks(state)
             
             if remaining:
+                pass
                 # More tasks to do
-                self.logger.info(f"  ✅ Task completed, {len(remaining)} tasks remaining")
                 return PhaseResult(
                     success=True,
                     phase=self.phase_name,
@@ -278,15 +280,16 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                     next_phase="refactoring"  # Continue refactoring
                 )
             else:
+                pass
                 # All tasks complete - check if refactoring is done
-                self.logger.info(f"  ✅ All tasks completed, checking for new issues...")
                 return self._check_completion(state)
         else:
+            pass
             # Task failed
-            self.logger.warning(f"  ⚠️  Task {task.task_id} failed: {result.message}")
             
             # Check if this is a retry request (task was reset to NEW)
             if task.status == TaskStatus.NEW and task.attempts < task.max_attempts:
+                pass
                 # This is a retry - continue refactoring to retry same task
                 self.logger.info(f"  🔄 Task {task.task_id} will be retried (attempt {task.attempts + 1}/{task.max_attempts})")
                 return PhaseResult(
@@ -307,6 +310,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                     next_phase="refactoring"
                 )
             else:
+                pass
                 # No more tasks, check completion
                 return self._check_completion(state)
     
@@ -350,6 +354,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         # Check all tasks (not just pending, as failed tasks can be retried)
         for task in manager.tasks.values():
+            pass
             # Identify tasks with insufficient data
             is_broken = (
                 "Unknown" in task.title or
@@ -371,6 +376,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             has_invalid_files = False
             if task.target_files:
                 for file_path in task.target_files:
+                    pass
                     # Check for backup directories
                     if '.autonomy' in file_path or '/backups/' in file_path or '\\backups\\' in file_path:
                         has_invalid_files = True
@@ -394,7 +400,6 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             manager.delete_task(task_id)
         
         if broken_tasks:
-            self.logger.info(f"  ✅ Cleaned up {len(broken_tasks)} broken tasks")
             self.logger.info(f"  🔄 Will re-detect issues with proper data on next iteration")
     
     def _get_pending_refactoring_tasks(self, state: PipelineState) -> List:
@@ -465,7 +470,6 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         # CRITICAL INTELLIGENCE: Check if we should return to coding phase
         if tasks_created == -1:
-            self.logger.warning(f"  🚨 Analysis found CODING problems (syntax/import errors), not refactoring issues")
             self.logger.info(f"  ➡️  Returning to CODING phase to fix missing code...")
             return PhaseResult(
                 success=True,
@@ -475,26 +479,24 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             )
         
         if tasks_created > 0:
-            self.logger.info(f"  ✅ Auto-created {tasks_created} refactoring tasks from analysis")
+            pass
         
         # CRITICAL: Add file placement analysis
         placement_tasks = self._analyze_file_placements(state)
         if placement_tasks > 0:
-            self.logger.info(f"  ✅ Created {placement_tasks} file placement tasks")
+            pass
         
         # DEBUG: Check manager state
         if state.refactoring_manager:
             total_tasks = len(state.refactoring_manager.tasks)
-            self.logger.info(f"  🔍 DEBUG: Total tasks in manager: {total_tasks}")
             for task_id, task in list(state.refactoring_manager.tasks.items())[:5]:
                 self.logger.info(f"     - {task_id}: status={task.status.value}, can_execute={task.can_execute([])}")
         
         # Check if any tasks were created (either by LLM or auto-created)
         pending = self._get_pending_refactoring_tasks(state)
-        self.logger.info(f"  🔍 DEBUG: Pending tasks returned: {len(pending)}")
         
         if pending:
-            self.logger.info(f"  ✅ Analysis complete, {len(pending)} tasks to work on")
+            pass
             
             # MESSAGE BUS: Publish analysis complete event
             if self.message_bus:
@@ -519,7 +521,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 next_phase="refactoring"  # Continue to work on tasks
             )
         else:
-            self.logger.info(f"  ✅ Analysis complete, no issues found")
+            pass
             
             # MESSAGE BUS: Publish analysis complete event
             if self.message_bus:
@@ -577,6 +579,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             
             tasks_created = 0
             for misplaced in misplaced_files:
+                pass
                 # Analyze impact
                 impact = impact_analyzer.analyze_move_impact(
                     misplaced.file,
@@ -617,7 +620,6 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             return tasks_created
             
         except Exception as e:
-            self.logger.warning(f"  ⚠️  File placement analysis failed: {e}")
             return 0
     
     def _work_on_task(self, state: PipelineState, task: Any) -> PhaseResult:
@@ -677,6 +679,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         content = result.get("content", "")
         
         if not tool_calls:
+            pass
             # No tool calls, mark as failed
             task.fail("No tool calls in response")
             return PhaseResult(
@@ -702,8 +705,8 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         )
         
         if not is_valid:
+            pass
             # Analysis incomplete - force retry with error message
-            self.logger.warning(f"  ⚠️ Task {task.task_id}: Analysis incomplete, forcing retry")
             self.logger.info(f"  📋 Missing analysis steps detected")
             
             # Reset task to NEW status for retry
@@ -756,10 +759,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         # HARD LIMIT: If 2+ tools used without resolution, FORCE request_developer_review
         # LOWERED from 3 to 2 because AI was getting stuck reading files repeatedly
         if tool_call_count >= 2 and not has_resolving_tool:
-            self.logger.warning(
-                f"🚨 Task {task.task_id}: {tool_call_count} tools used without resolution, "
-                f"FORCING request_developer_review"
-            )
+            pass
             
             # Override AI's tool calls with forced escalation to DEVELOPER PHASE
             tool_calls = [{
@@ -831,13 +831,14 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                     break
         
         if task_resolved:
+            pass
             # CRITICAL FIX: Verify that task was actually resolved
             is_verified, verification_msg = self._verify_task_resolution(task)
             
             if is_verified:
+                pass
                 # Task actually resolved AND verified
                 task.complete(content)
-                self.logger.info(f"  ✅ Task {task.task_id} completed and verified: {verification_msg}")
                 
                 # CRITICAL: Record resolution in history to prevent re-detection
                 state.refactoring_manager.record_resolution(
@@ -901,6 +902,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                     message=f"Task {task.task_id} completed and verified"
                 )
             else:
+                pass
                 # Resolving tool called but verification failed
                 self.logger.warning(f"  ❌ Task {task.task_id} verification failed: {verification_msg}")
                 
@@ -913,6 +915,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                     message=f"Task {task.task_id} verification failed: {verification_msg}"
                 )
         else:
+            pass
             # Tools succeeded but didn't resolve the issue
             # This happens when AI only calls analysis tools (compare_file_implementations)
             # without taking action
@@ -920,6 +923,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             any_success = any(r.get("success") for r in results)
             
             if any_success:
+                pass
                 # Tools ran successfully but didn't resolve issue
                 # Check if AI actually tried to understand the files
                 tools_used = {r.get("tool") for r in results if r.get("success")}
@@ -932,9 +936,10 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 checked_architecture = "read_file" in tools_used  # Would read ARCHITECTURE.md
                 
                 if not tried_to_understand:
+                    pass
                     # CRITICAL: Check if we've exceeded retry limit
                     if task.attempts >= 2:
-                        self.logger.warning(f"  🚨 Task {task.task_id}: Max retries reached (2), escalating to issue report")
+                        pass
                         
                         # Create issue report and mark complete
                         from ..handlers import ToolCallHandler
@@ -968,8 +973,10 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                     
                     # Simple tasks don't need comprehensive analysis
                     if task.issue_type in [RefactoringIssueType.ARCHITECTURE]:
+                        pass
                         # Check if this is a missing method or bug fix (simple tasks)
                         if "Missing method:" in task.title or "Dictionary key error" in task.title:
+                            pass
                             # Simple task - just needs to read the file and fix
                             error_msg = (
                                 f"ATTEMPT {task.attempts + 1}: "
@@ -978,6 +985,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                                 "DO NOT over-analyze - this should take 1-2 tool calls."
                             )
                         else:
+                            pass
                             # Complex architecture issue - needs analysis
                             error_msg = (
                                 f"ATTEMPT {task.attempts + 1}: "
@@ -985,6 +993,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                                 "Use read_file on the target files, then take action."
                             )
                     elif task.issue_type == RefactoringIssueType.DUPLICATE:
+                        pass
                         # Duplicate - just needs to merge
                         error_msg = (
                             f"ATTEMPT {task.attempts + 1}: "
@@ -993,6 +1002,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                             "Use merge_file_implementations to complete this task."
                         )
                     else:
+                        pass
                         # Other tasks - standard retry
                         error_msg = (
                             f"ATTEMPT {task.attempts + 1}: "
@@ -1000,7 +1010,6 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                             "Use read_file to understand the files, then take action."
                         )
                     
-                    self.logger.warning(f"  ⚠️  Task {task.task_id}: Needs to read files - RETRYING (attempt {task.attempts + 1})")
                     
                     # DON'T mark as failed - reset to NEW so it can be retried
                     task.status = TaskStatus.NEW
@@ -1019,7 +1028,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 
                 # CRITICAL: Check if we've exceeded retry limit
                 if task.attempts >= 2:
-                    self.logger.warning(f"  🚨 Task {task.task_id}: Max retries reached (2), escalating to issue report")
+                    pass
                     
                     # Create issue report and mark complete
                     from ..handlers import ToolCallHandler
@@ -1056,6 +1065,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 
                 # Simple tasks don't need comprehensive analysis
                 if task.issue_type in [RefactoringIssueType.ARCHITECTURE]:
+                    pass
                     # Check if this is a missing method or bug fix (simple tasks)
                     if "Missing method:" in task.title or "Dictionary key error" in task.title:
                         error_msg = (
@@ -1083,6 +1093,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                         "This is an EARLY-STAGE project - create_issue_report for developer review."
                     )
                 elif task.issue_type == RefactoringIssueType.INTEGRATION:
+                    pass
                     # Integration conflicts need comprehensive analysis
                     error_msg = (
                         f"ATTEMPT {task.attempts + 1}: "
@@ -1096,7 +1107,6 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                         "Use a resolving tool (merge, move, report) to complete this task."
                     )
                 
-                self.logger.warning(f"  ⚠️  Task {task.task_id}: Read files but didn't resolve - RETRYING (attempt {task.attempts + 1})")
                 
                 # CRITICAL FIX: Reset TaskAnalysisTracker state so step detection works on retry
                 self._analysis_tracker.reset_state(task.task_id)
@@ -1116,6 +1126,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                     message=f"Task {task.task_id} not resolved: {error_msg}"
                 )
             else:
+                pass
                 # All tools failed
                 errors = [r.get("error", "Unknown") for r in results if not r.get("success")]
                 error_msg = "; ".join(errors)
@@ -1129,7 +1140,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             )
             
             if self._detect_complexity(task, result):
-                self.logger.warning(f"  ⚠️  Task {task.task_id} is too complex, creating issue report...")
+                pass
                 
                 # Create issue report via tool call
                 # This will be picked up by the handler
@@ -1154,7 +1165,6 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 # CRITICAL FIX: Mark task as complete to prevent infinite retry loop
                 # The issue report has been created, so the task is "resolved" by escalation
                 task.complete("Issue report created for manual review")
-                self.logger.info(f"  ✅ Task {task.task_id} marked complete (escalated to issue report)")
                 
                 # Return success since we successfully escalated the task
                 return PhaseResult(
@@ -1192,6 +1202,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         target_file = task.target_files[0] if task.target_files else ""
         
         try:
+            pass
             # Build comprehensive context using context builder
             refactoring_context = self.context_builder.build_context(
                 issue_type=task.issue_type.value,
@@ -1226,7 +1237,6 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             return task_header + formatted_context
             
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Failed to build comprehensive context: {e}")
             self.logger.warning(f"  Falling back to basic context")
             
             # Fallback to basic context if context builder fails
@@ -1310,6 +1320,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         issue_type_str = None
         
         if task.issue_type == RefactoringIssueType.ARCHITECTURE:
+            pass
             # Check if this is a missing method task
             if "Missing method:" in task.title or ("method_name" in task.analysis_data and "class_name" in task.analysis_data):
                 issue_type_str = 'missing_method'
@@ -1376,18 +1387,15 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         CRITICAL FIX: Don't automatically re-analyze after every completion.
         Only re-analyze if there's a good reason (time passed, IPC request, etc.)
         """
-        self.logger.info(f"  🔍 Checking if refactoring is complete...")
         
         # Get progress
         if state.refactoring_manager:
             progress = state.refactoring_manager.get_progress()
-            self.logger.info(f"  📊 Progress: {progress['completion_percentage']:.1f}% complete")
             self.logger.info(f"     Completed: {progress['completed']}, Failed: {progress['failed']}, Blocked: {progress['blocked']}")
             
             # Check for blocked tasks
             blocked = progress.get('blocked', 0)
             if blocked > 0:
-                self.logger.warning(f"  ⚠️  {blocked} tasks blocked, generating report...")
                 self._generate_refactoring_report(state)
                 return PhaseResult(
                     success=True,
@@ -1399,11 +1407,9 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         # CRITICAL FIX: Don't automatically re-analyze!
         # Check if we should re-analyze based on intelligent criteria
         if self._should_reanalyze(state):
-            self.logger.info(f"  🔍 Re-analyzing codebase (criteria met)...")
             return self._analyze_and_create_tasks(state)
         
         # No re-analysis needed, we're done!
-        self.logger.info(f"  ✅ All refactoring complete, no re-analysis needed")
         
         # Generate final report
         self._generate_refactoring_report(state)
@@ -1593,7 +1599,6 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                                    target_files: List[str] = None) -> PhaseResult:
         """Detect and handle duplicate implementations"""
         
-        self.logger.info("  🔍 Detecting duplicate implementations...")
         
         # Get all Python files if no targets specified
         if not target_files:
@@ -1844,7 +1849,6 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         """
         
         self.logger.info("  🔬 Performing COMPREHENSIVE refactoring analysis...")
-        self.logger.info("  🎯 Running ALL available checks automatically...")
         
         from ..handlers import ToolCallHandler
         handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry, refactoring_manager=state.refactoring_manager)
@@ -1865,12 +1869,10 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         if arch_result.get('success'):
             violations = arch_result.get('result', {}).get('total_violations', 0)
-            self.logger.info(f"     ✓ Architecture validation: {violations} violations found")
         
         # ============================================================
         # PHASE 2: CODE QUALITY ANALYSIS
         # ============================================================
-        self.logger.info("  🔍 Phase 2: Code Quality Analysis")
         
         # 2.1: Duplicate Detection
         dup_result = handler._handle_detect_duplicate_implementations({
@@ -1882,7 +1884,6 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         if dup_result.get('success'):
             dups = dup_result.get('result', {}).get('total_duplicates', 0)
-            self.logger.info(f"     ✓ Duplicate detection: {dups} duplicate sets found")
         
         # 2.2: Complexity Analysis
         complexity_result = handler._handle_analyze_complexity({})
@@ -1890,7 +1891,6 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         if complexity_result.get('success'):
             critical = complexity_result.get('result', {}).get('critical_count', 0)
-            self.logger.info(f"     ✓ Complexity analysis: {critical} critical functions found")
         
         # 2.3: Dead Code Detection
         dead_result = handler._handle_detect_dead_code({})
@@ -1900,7 +1900,6 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             summary = dead_result.get('result', {}).get('summary', {})
             unused_funcs = summary.get('total_unused_functions', 0)
             unused_methods = summary.get('total_unused_methods', 0)
-            self.logger.info(f"     ✓ Dead code detection: {unused_funcs + unused_methods} unused items found")
         
         # ============================================================
         # PHASE 3: INTEGRATION ANALYSIS
@@ -1913,7 +1912,6 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         if gaps_result.get('success'):
             gaps = len(gaps_result.get('result', {}).get('gaps', []))
-            self.logger.info(f"     ✓ Integration gaps: {gaps} gaps found")
         
         # 3.2: Integration Conflicts (if available)
         try:
@@ -1931,9 +1929,8 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
                 }
             }
             all_results.append(conflict_result)
-            self.logger.info(f"     ✓ Integration conflicts: {len(conflict_analysis.conflicts)} conflicts found")
         except Exception as e:
-            self.logger.warning(f"     ⚠️  Integration conflict detection failed: {e}")
+            pass
         
         # ============================================================
         # PHASE 4: CODE STRUCTURE ANALYSIS
@@ -1945,7 +1942,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         all_results.append(callgraph_result)
         
         if callgraph_result.get('success'):
-            self.logger.info(f"     ✓ Call graph generated")
+            pass
         
         # ============================================================
         # PHASE 5: BUG DETECTION
@@ -1958,7 +1955,6 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         if bug_result.get('success'):
             bugs = len(bug_result.get('result', {}).get('bugs', []))
-            self.logger.info(f"     ✓ Bug detection: {bugs} potential bugs found")
         
         # 5.2: Anti-pattern Detection
         antipattern_result = handler._handle_detect_antipatterns({'target': None})  # None = analyze all files
@@ -1966,12 +1962,10 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         if antipattern_result.get('success'):
             patterns = len(antipattern_result.get('result', {}).get('antipatterns', []))
-            self.logger.info(f"     ✓ Anti-pattern detection: {patterns} anti-patterns found")
         
         # ============================================================
         # PHASE 6: VALIDATION CHECKS
         # ============================================================
-        self.logger.info("  ✅ Phase 6: Validation Checks")
         
         # 6.1: Function Call Validation (NEW - Priority 1)
         try:
@@ -1980,9 +1974,8 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             
             if func_call_result.get('success'):
                 error_count = func_call_result.get('total_errors', 0)
-                self.logger.info(f"     ✓ Function call validation: {error_count} errors found")
         except Exception as e:
-            self.logger.warning(f"     ⚠️  Function call validation failed: {e}")
+            pass
         
         # 6.2: Method Existence Validation (NEW - Priority 1)
         try:
@@ -1991,9 +1984,8 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             
             if method_result.get('success'):
                 error_count = method_result.get('total_errors', 0)
-                self.logger.info(f"     ✓ Method existence validation: {error_count} errors found")
         except Exception as e:
-            self.logger.warning(f"     ⚠️  Method existence validation failed: {e}")
+            pass
         
         # 6.3: Dictionary Structure Validation (NEW - Priority 2)
         try:
@@ -2002,9 +1994,8 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             
             if dict_result.get('success'):
                 error_count = dict_result.get('total_errors', 0)
-                self.logger.info(f"     ✓ Dictionary structure validation: {error_count} errors found")
         except Exception as e:
-            self.logger.warning(f"     ⚠️  Dictionary structure validation failed: {e}")
+            pass
         
         # 6.4: Type Usage Validation (NEW - Priority 2)
         try:
@@ -2013,9 +2004,8 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             
             if type_result.get('success'):
                 error_count = type_result.get('total_errors', 0)
-                self.logger.info(f"     ✓ Type usage validation: {error_count} errors found")
         except Exception as e:
-            self.logger.warning(f"     ⚠️  Type usage validation failed: {e}")
+            pass
         
         # 6.5: Import Validation
         try:
@@ -2024,13 +2014,11 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             
             if import_result.get('success'):
                 invalid_count = import_result.get('count', 0)
-                self.logger.info(f"     ✓ Import validation: {invalid_count} invalid imports found")
         except Exception as e:
-            self.logger.warning(f"     ⚠️  Import validation failed: {e}")
+            pass
         
         # 6.6: Syntax Validation (using complexity analyzer which already checks syntax)
         # Syntax errors already detected in Phase 2 complexity analysis
-        self.logger.info(f"     ✓ Syntax validation: Checked in Phase 2 (complexity analysis)")
         
         # 6.7: Circular Import Detection
         try:
@@ -2039,9 +2027,8 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             
             if circular_result.get('success'):
                 cycles = len(circular_result.get('result', {}).get('cycles', []))
-                self.logger.info(f"     ✓ Circular import detection: {cycles} cycles found")
         except Exception as e:
-            self.logger.warning(f"     ⚠️  Circular import detection failed: {e}")
+            pass
         
         # Store results for auto-task creation
         self._last_tool_results = all_results
@@ -2058,7 +2045,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
         
         # If ALL tools failed, try ONE MORE TIME with error feedback
         if not any_success:
-            self.logger.warning(f"  ⚠️  All tools failed on first attempt, retrying with error feedback...")
+            pass
             
             # Build error feedback message
             error_summary = "\n".join(all_errors)
@@ -2407,6 +2394,7 @@ Please select ONE reliable tool and try again."""
         last_analysis = getattr(state, 'last_refactoring_analysis', None)
         
         if not last_analysis:
+            pass
             # First analysis, should run
             self.logger.debug("  📝 No previous analysis, should analyze")
             return True
@@ -2416,6 +2404,7 @@ Please select ONE reliable tool and try again."""
         hours_since = time_since.total_seconds() / 3600
         
         if hours_since > 1.0:
+            pass
             # More than 1 hour since last analysis
             self.logger.info(f"  ⏰ {hours_since:.1f} hours since last analysis, re-analyzing")
             return True
@@ -2442,6 +2431,7 @@ Please select ONE reliable tool and try again."""
             True if analysis requested, False otherwise
         """
         try:
+            pass
             # Read our READ document (written by other phases)
             read_content = self.doc_ipc.read_own_document('refactoring')
             
@@ -2475,6 +2465,7 @@ Please select ONE reliable tool and try again."""
             True if major changes detected, False otherwise
         """
         try:
+            pass
             # Check git for recent changes
             import subprocess
             result = subprocess.run(
@@ -2506,6 +2497,7 @@ Please select ONE reliable tool and try again."""
         CRITICAL FIX: Communicate with other phases via IPC.
         """
         try:
+            pass
             # Get progress
             progress = state.refactoring_manager.get_progress() if state.refactoring_manager else {}
             
@@ -2538,7 +2530,7 @@ Please select ONE reliable tool and try again."""
             
             self.logger.info("  📝 Updated IPC documents with completion status")
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Error writing IPC status: {e}")
+            pass
     
     def _verify_task_resolution(self, task) -> Tuple[bool, str]:
         """
@@ -2557,22 +2549,23 @@ Please select ONE reliable tool and try again."""
         
         try:
             if task.issue_type == RefactoringIssueType.DUPLICATE:
+                pass
                 # Re-run duplicate detection on target files
-                self.logger.debug(f"  🔍 Verifying duplicate resolution for {task.target_files}")
                 
                 duplicates = self.duplicate_detector.find_duplicates(
                     scope="project"
                 )
                 
                 if duplicates:
+                    pass
                     # Still has duplicates!
                     return False, f"Files still have {len(duplicates)} duplicate(s) after merge attempt"
                 
                 return True, "Duplicates successfully resolved"
             
             elif task.issue_type == RefactoringIssueType.ARCHITECTURE:
+                pass
                 # Re-run architecture validation
-                self.logger.debug(f"  🔍 Verifying architecture fix for {task.target_files}")
                 
                 # Check architecture consistency
                 consistency = self.architecture_analyzer.analyze_consistency()
@@ -2584,8 +2577,8 @@ Please select ONE reliable tool and try again."""
                 return True, "Architecture violations resolved"
             
             elif task.issue_type == RefactoringIssueType.DEAD_CODE:
+                pass
                 # For dead code, check if file/function still exists
-                self.logger.debug(f"  🔍 Verifying dead code removal for {task.target_files}")
                 
                 # If files were deleted, that's good
                 for file_path in task.target_files:
@@ -2609,8 +2602,8 @@ Please select ONE reliable tool and try again."""
                 return True, "Dead code successfully removed"
             
             elif task.issue_type == RefactoringIssueType.INTEGRATION:
+                pass
                 # Re-run integration conflict detection
-                self.logger.debug(f"  🔍 Verifying integration conflict resolution for {task.target_files}")
                 
                 # Re-run integration conflict detection
                 result = self.conflict_detector.analyze()
@@ -2622,13 +2615,14 @@ Please select ONE reliable tool and try again."""
                 return True, "Integration conflicts resolved"
             
             else:
+                pass
                 # For other types, assume resolved if resolving tool was called
                 # (This is the old behavior, kept as fallback)
                 self.logger.debug(f"  ℹ️  No verification available for {task.issue_type.value}, assuming resolved")
                 return True, "Resolution assumed (no verification available)"
         
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Error verifying task resolution: {e}")
+            pass
             # On error, assume resolved to avoid blocking
             return True, f"Verification error (assumed resolved): {e}"
     
@@ -2644,6 +2638,7 @@ Please select ONE reliable tool and try again."""
         from pipeline.state.refactoring_task import RefactoringIssueType
         
         try:
+            pass
             # Only update for certain task types
             if task.issue_type not in [
                 RefactoringIssueType.STRUCTURE,
@@ -2680,7 +2675,7 @@ Please select ONE reliable tool and try again."""
             self.logger.info(f"  📝 Updated ARCHITECTURE.md with refactoring changes")
         
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Error updating ARCHITECTURE.md: {e}")
+            pass
     
     def _write_task_completion_to_ipc(self, task):
         """
@@ -2690,6 +2685,7 @@ Please select ONE reliable tool and try again."""
             task: Completed RefactoringTask
         """
         try:
+            pass
             # Read current WRITE document
             current_content = self.doc_ipc.read_own_document('refactoring') or ""
             
@@ -2714,7 +2710,7 @@ Please select ONE reliable tool and try again."""
             self.logger.debug(f"  📝 Updated IPC with task completion")
         
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Error writing to IPC: {e}")
+            pass
     
     def _read_ipc_objectives(self) -> Dict[str, List[str]]:
         """
@@ -2750,7 +2746,6 @@ Please select ONE reliable tool and try again."""
             return objectives
         
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Error reading IPC objectives: {e}")
             return {'primary': [], 'secondary': [], 'tertiary': []}
     
     def _parse_objectives(self, content: str) -> List[str]:
@@ -2771,6 +2766,7 @@ Please select ONE reliable tool and try again."""
             
             # Match bullet points (-, *, +) or numbered lists (1., 2., etc.)
             if line.startswith(('-', '*', '+')) or (len(line) > 2 and line[0].isdigit() and line[1] == '.'):
+                pass
                 # Remove the bullet/number
                 if line.startswith(('-', '*', '+')):
                     objective = line[1:].strip()
@@ -2802,6 +2798,7 @@ Please select ONE reliable tool and try again."""
         target_files = set(new_task_data.get('target_files', []))
         
         for task in manager.tasks.values():
+            pass
             # Check same issue type
             if task.issue_type != issue_type:
                 continue
@@ -2812,7 +2809,6 @@ Please select ONE reliable tool and try again."""
             
             # Check if currently active (NEW or IN_PROGRESS)
             if task.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]:
-                self.logger.debug(f"  🔍 Found active task {task.task_id} for same files")
                 return True
             
             # Check if recently completed (within last hour)
@@ -2822,8 +2818,8 @@ Please select ONE reliable tool and try again."""
                     hours_since = time_since.total_seconds() / 3600
                     
                     if hours_since < 1.0:
+                        pass
                         # Recently completed, don't recreate
-                        self.logger.debug(f"  🔍 Found recently completed task {task.task_id} ({hours_since*60:.0f} min ago)")
                         return True
             
             # Check if recently failed (within last 30 minutes)
@@ -2834,8 +2830,8 @@ Please select ONE reliable tool and try again."""
                     minutes_since = time_since.total_seconds() / 60
                     
                     if minutes_since < 30:
+                        pass
                         # Recently failed, don't recreate yet
-                        self.logger.debug(f"  🔍 Found recently failed task {task.task_id} ({minutes_since:.0f} min ago)")
                         return True
         
         return False

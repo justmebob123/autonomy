@@ -67,6 +67,7 @@ class CallChainTracer:
             try:
                 self._analyze_file(file_path)
             except Exception as e:
+                pass
                 # Skip files that can't be parsed
                 continue
     
@@ -93,6 +94,7 @@ class CallChainTracer:
             self.import_graph[relative_path] = visitor.imports
             
         except SyntaxError:
+            pass
             # Skip files with syntax errors (expected for some files)
             pass
         except Exception as e:
@@ -262,6 +264,7 @@ class CallChainTracer:
         report.append("-" * 80)
         critical_paths = results.get('critical_paths', [])
         if critical_paths:
+            pass
             # Group by type
             by_type = {}
             for path in critical_paths:
@@ -306,6 +309,7 @@ class CallChainTracer:
         report.append("-" * 80)
         import_graph = results.get('import_graph', {})
         if import_graph:
+            pass
             # Show files with most imports
             sorted_imports = sorted(
                 import_graph.items(),

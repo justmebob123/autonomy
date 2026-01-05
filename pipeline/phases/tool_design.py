@@ -115,7 +115,7 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
         # IPC INTEGRATION: Read objectives
         objectives = self._read_objectives()
         if objectives:
-            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+            pass
         
         # IPC INTEGRATION: Write status at start
         self._write_status({
@@ -155,7 +155,6 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
         self.logger.info(f"   Parameters: {parameters}")
         
         # Step 1: Analyze existing tools
-        self.logger.info("📊 Analyzing existing tools for similarities...")
         
         analysis_context = {
             'description': tool_description,
@@ -184,6 +183,7 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
             return self._handle_create_new(tool_name, analysis, state, kwargs)
         
         else:
+            pass
             # MESSAGE BUS: Publish phase completion (failure)
             self._publish_message('PHASE_COMPLETED', {
                 'phase': self.phase_name,
@@ -213,7 +213,7 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
         self.logger.info("=" * 70)
         
         if analysis.exists:
-            self.logger.info(f"✓ Tool exists: {analysis.existing_tool_name}")
+            pass
         else:
             self.logger.info("✗ Tool does not exist")
         
@@ -236,7 +236,6 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
     def _handle_existing_tool(self, tool_name: str, analysis: ToolAnalysisResult,
                              state: PipelineState) -> PhaseResult:
         """Handle case where tool already exists."""
-        self.logger.info(f"✓ Tool '{analysis.existing_tool_name}' already exists - no action needed")
         
         # MESSAGE BUS: Publish phase completion
         self._publish_message('PHASE_COMPLETED', {
@@ -305,7 +304,6 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
     def _handle_abstraction(self, tool_name: str, analysis: ToolAnalysisResult,
                            state: PipelineState, kwargs: Dict) -> PhaseResult:
         """Handle case where abstraction is recommended."""
-        self.logger.info(f"🎯 Creating abstraction for multiple similar tools")
         
         similar_tools = [s.tool2 for s in analysis.similar_tools[:3]]
         self.logger.info(f"   Abstracting: {', '.join(similar_tools)}")
@@ -559,7 +557,7 @@ The specification must include:
                 
                 # Register with ToolRegistry
                 if self.tool_registry.register_tool(spec):
-                    self.logger.info(f"✅ Successfully registered tool: {spec['name']}")
+                    pass
                     
                     # WRITE STATUS
                     from datetime import datetime

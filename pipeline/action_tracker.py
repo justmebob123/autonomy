@@ -36,10 +36,12 @@ class Action:
         if self.file_path:
             key_args.append(f"file:{self.file_path}")
         if 'old_str' in self.args:
+            pass
             # For str_replace, include first 50 chars of old_str
             old_str = self.args['old_str'][:50]
             key_args.append(f"old:{old_str}")
         if 'content' in self.args:
+            pass
             # For file writes, include first 50 chars
             content = str(self.args['content'])[:50]
             key_args.append(f"content:{content}")

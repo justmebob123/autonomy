@@ -44,6 +44,7 @@ class SerializationValidator(ast.NodeVisitor):
         # Check for serialization functions
         if isinstance(node.func, ast.Attribute):
             if node.func.attr in {'dumps', 'dump'}:
+                pass
                 # json.dumps() or json.dump()
                 self.serialization_calls.append({
                     'line': node.lineno,
@@ -51,6 +52,7 @@ class SerializationValidator(ast.NodeVisitor):
                     'node': node
                 })
             elif node.func.attr == 'to_dict':
+                pass
                 # obj.to_dict()
                 self.serialization_calls.append({
                     'line': node.lineno,
@@ -67,6 +69,7 @@ class SerializationValidator(ast.NodeVisitor):
         
         # Check for Path() calls
         if isinstance(node.func, ast.Name) and node.func.id == 'Path':
+            pass
             # This creates a Path object
             self._check_path_usage(node)
         
@@ -76,6 +79,7 @@ class SerializationValidator(ast.NodeVisitor):
         """Visit subscript (dict[key] = value)."""
         # Check if this is a dictionary assignment
         if isinstance(node.ctx, ast.Store):
+            pass
             # This is dict[key] = value
             # Check what's being assigned
             parent = getattr(node, '_parent', None)
@@ -110,6 +114,7 @@ class SerializationValidator(ast.NodeVisitor):
                     'message': f"Path object in collection at line {node.lineno} - may cause serialization error"
                 })
             elif isinstance(parent, ast.Assign):
+                pass
                 # Check if assigned to a dict key
                 for target in parent.targets:
                     if isinstance(target, ast.Subscript):
@@ -138,6 +143,7 @@ class SerializationValidator(ast.NodeVisitor):
         
         # Check for attribute access that might be Path
         elif isinstance(value_node, ast.Attribute):
+            pass
             # Could be something.path or Path.something
             if 'path' in value_node.attr.lower():
                 self.warnings.append({

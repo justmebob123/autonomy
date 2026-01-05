@@ -62,6 +62,7 @@ class PolytopicVisualizer:
             gz = int(z * (size - 1))
             
             if 0 <= gx < size and 0 <= gy < size and 0 <= gz < size:
+                pass
                 # Use different symbols for different levels
                 symbol = 'P' if 'primary' in level.lower() else 'S' if 'secondary' in level.lower() else 'T'
                 grid[gz][gy][gx] = symbol

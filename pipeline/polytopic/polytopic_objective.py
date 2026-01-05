@@ -476,6 +476,7 @@ class PolytopicObjective(Objective):
         current = self.dimensional_profile.copy()
         
         if model == "linear":
+            pass
             # Linear model with damping (existing implementation)
             damping_factor = 0.9
             for t in range(time_steps):
@@ -488,6 +489,7 @@ class PolytopicObjective(Objective):
                 current = predicted
                 
         elif model == "exponential":
+            pass
             # Exponential growth/decay model
             for t in range(1, time_steps + 1):
                 predicted = {}
@@ -499,6 +501,7 @@ class PolytopicObjective(Objective):
                 predictions.append(predicted)
                 
         elif model == "sigmoid":
+            pass
             # Sigmoid model (asymptotic approach to limit)
             for t in range(1, time_steps + 1):
                 predicted = {}
@@ -518,6 +521,7 @@ class PolytopicObjective(Objective):
                     predicted[dim] = max(0.0, min(1.0, predicted[dim]))
                 predictions.append(predicted)
         else:
+            pass
             # Default to linear
             return self.predict_dimensional_state(time_steps)
         

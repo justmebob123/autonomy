@@ -58,7 +58,6 @@ class ObjectiveFileGenerator:
         Returns:
             Dictionary mapping filename to content
         """
-        self.logger.info("🎯 Generating objective files...")
         
         # Extract objectives from project context
         objectives = self._extract_objectives(project_context, tasks)
@@ -72,7 +71,6 @@ class ObjectiveFileGenerator:
         secondary = [obj for obj in objectives if obj.level == ObjectiveLevel.SECONDARY]
         tertiary = [obj for obj in objectives if obj.level == ObjectiveLevel.TERTIARY]
         
-        self.logger.info(f"  📊 Extracted: {len(primary)} PRIMARY, {len(secondary)} SECONDARY, {len(tertiary)} TERTIARY")
         
         # Generate files
         files = {}
@@ -151,6 +149,7 @@ class ObjectiveFileGenerator:
         )
         
         for section_title, section_content in sections:
+            pass
             # Skip meta sections
             if any(skip in section_title.lower() for skip in ['overview', 'timeline', 'status']):
                 continue
@@ -202,6 +201,7 @@ class ObjectiveFileGenerator:
         )
         
         for section_title, section_content in sections:
+            pass
             # Skip meta sections
             if any(skip in section_title.lower() for skip in ['overview', 'diagram', 'stack']):
                 continue
@@ -328,6 +328,7 @@ class ObjectiveFileGenerator:
                 if criterion:
                     criteria.append(criterion)
             elif in_criteria_section and line and not line.startswith('#'):
+                pass
                 # End of criteria section
                 break
         
@@ -375,6 +376,7 @@ class ObjectiveFileGenerator:
                 keywords.add(word)
         
         for task in tasks:
+            pass
             # Check if task description or file matches keywords
             task_text = f"{task.description} {task.target_file}".lower()
             
@@ -554,7 +556,6 @@ class ObjectiveFileGenerator:
             try:
                 filepath.write_text(content, encoding='utf-8')
                 created.append(str(filepath))
-                self.logger.info(f"  ✅ Created {filename}")
             except Exception as e:
                 self.logger.error(f"  ❌ Failed to create {filename}: {e}")
         
@@ -586,6 +587,7 @@ class ObjectiveFileGenerator:
             matches = re.findall(obj_pattern, content, re.DOTALL)
             
             for obj_id, tasks_section in matches:
+                pass
                 # Extract task IDs from tasks section
                 task_ids = re.findall(r'`(task_\d+)`', tasks_section)
                 
@@ -597,6 +599,6 @@ class ObjectiveFileGenerator:
                         self.logger.debug(f"  🔗 Linked {task_id} to {obj_id}")
         
         if linked_count > 0:
-            self.logger.info(f"  ✅ Linked {linked_count} tasks to objectives")
+            pass
         
         return linked_count

@@ -92,7 +92,6 @@ class AdaptivePromptSystem:
         adapted_prompt = "\n".join(adapted_sections)
         
         # Log adaptation
-        self.logger.debug(f"  🎯 Adapted prompt for {phase} (awareness: {self_awareness}, patterns: {len(recommendations)})")
         
         return adapted_prompt
     
@@ -243,4 +242,3 @@ You are operating at EXPERT self-awareness level. You excel at:
         """
         # This could be used to further refine prompt adaptation
         # For now, just log it
-        self.logger.debug(f"  📊 Prompt effectiveness for {phase}: {'✅' if success else '❌'}")

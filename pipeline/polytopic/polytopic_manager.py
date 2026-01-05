@@ -55,6 +55,7 @@ class PolytopicObjectiveManager(ObjectiveManager):
         
         for level, objectives in objectives_by_level.items():
             for obj_id, obj in objectives.items():
+                pass
                 # Convert to PolytopicObjective if not already
                 if not isinstance(obj, PolytopicObjective):
                     poly_obj = self._convert_to_polytopic(obj)

@@ -69,6 +69,7 @@ class EnumCollector(ast.NodeVisitor):
                 break
         
         if is_enum:
+            pass
             # Collect enum members
             members = set()
             for item in node.body:
@@ -120,6 +121,7 @@ class EnumUsageChecker(ast.NodeVisitor):
                 
                 # Check if attribute exists
                 if attribute not in valid_attrs:
+                    pass
                     # Get suggestions (similar names)
                     suggestions = self._get_suggestions(attribute, valid_attrs)
                     suggestion_text = f" Did you mean: {', '.join(suggestions)}?" if suggestions else ""
@@ -188,6 +190,7 @@ class EnumAttributeValidator:
         if self.symbol_table:
             self.all_enums = self.symbol_table.enums.copy()
         else:
+            pass
             # Fallback: collect enums ourselves
             self._collect_enums()
         
@@ -252,6 +255,7 @@ class EnumAttributeValidator:
                 self.all_enums.update(collector.enums)
                 
             except Exception as e:
+                pass
                 # Skip files that can't be parsed
                 pass
     
@@ -268,6 +272,7 @@ class EnumAttributeValidator:
             self.errors.extend(checker.errors)
             
         except Exception as e:
+            pass
             # Skip files that can't be parsed
             pass
     

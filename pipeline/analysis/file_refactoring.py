@@ -153,9 +153,11 @@ class FileFeatureExtractor(ast.NodeVisitor):
     def visit_FunctionDef(self, node: ast.FunctionDef):
         """Visit function definition."""
         if self.current_class:
+            pass
             # Method
             key = f"{self.current_class}.{node.name}"
         else:
+            pass
             # Function
             key = node.name
         
@@ -204,7 +206,6 @@ class DuplicateDetector:
         Returns:
             List of DuplicateSet objects
         """
-        self.logger.info(f"🔍 Detecting duplicates (threshold: {similarity_threshold})")
         
         # Get all Python files
         files = self._get_python_files(scope, include_tests)
@@ -246,9 +247,11 @@ class DuplicateDetector:
         
         files = []
         for filepath in search_dir.rglob("*.py"):
+            pass
             # Skip __pycache__ and hidden directories
             if any(part.startswith('.') or part == '__pycache__' 
                    for part in filepath.parts):
+                       pass
                 continue
             
             # Skip tests if not included
@@ -413,7 +416,6 @@ class FileComparator:
         Returns:
             FileComparison object
         """
-        self.logger.info(f"🔍 Comparing {file1} vs {file2}")
         
         # Parse both files
         features1 = self._parse_file(file1)
@@ -681,6 +683,7 @@ class FeatureExtractor:
         for feature in extracted.values():
             for dep in feature.dependencies[:]:
                 if dep in all_features and dep not in extracted:
+                    pass
                     # Add dependency
                     node = all_features[dep]
                     if isinstance(node, ast.FunctionDef):

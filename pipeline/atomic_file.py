@@ -37,6 +37,7 @@ def atomic_write(filepath: Union[str, Path], content: str, encoding: str = 'utf-
     temp_file = Path(temp_path)
     
     try:
+        pass
         # Write to temp file
         with os.fdopen(temp_fd, 'w', encoding=encoding) as f:
             f.write(content)
@@ -47,6 +48,7 @@ def atomic_write(filepath: Union[str, Path], content: str, encoding: str = 'utf-
         temp_file.replace(filepath)
         
     except Exception:
+        pass
         # Clean up temp file on failure
         try:
             if temp_file.exists():
@@ -108,6 +110,7 @@ def safe_read(filepath: Union[str, Path], default=None, encoding: str = 'utf-8')
     except FileNotFoundError:
         return default
     except Exception as e:
+        pass
         # Log corruption but return default
         import logging
         logging.getLogger(__name__).error(f"Failed to read {filepath}: {e}")

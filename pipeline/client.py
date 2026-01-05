@@ -26,7 +26,6 @@ class OllamaClient:
     
     def discover_servers(self) -> Dict[str, List[str]]:
         """Discover available models on all configured servers"""
-        self.logger.info("🔍 Discovering Ollama servers...")
         
         for server in self.config.servers:
             try:
@@ -37,7 +36,6 @@ class OllamaClient:
                     server.online = True
                     self.servers[server.host] = server
                     self.available_models[server.host] = server.models
-                    self.logger.info(f"  ✓ {server.name} ({server.host}): {len(server.models)} models")
                 else:
                     self.logger.warning(f"  ✗ {server.name}: HTTP {response.status_code}")
                     server.online = False
@@ -159,13 +157,16 @@ class OllamaClient:
             self.logger.debug(f"  [{i}] {role}: {preview}")
         
         try:
+            pass
             # Parse host to handle both "hostname" and "http://hostname:port" formats
             if host.startswith("http://") or host.startswith("https://"):
+                pass
                 # Host already includes protocol and possibly port
                 base_url = host
                 if ":11434" not in host and not host.endswith("/"):
                     base_url = f"{host}:11434"
             else:
+                pass
                 # Host is just hostname, add protocol and port
                 base_url = f"http://{host}:11434"
             
@@ -276,6 +277,7 @@ Output ONLY the JSON, nothing else:"""
             
             content = response.get("message", {}).get("content", "")
             if content:
+                pass
                 # Try to parse the response
                 try:
                     data = json.loads(content.strip())
@@ -375,15 +377,16 @@ Output the corrected tool call now:"""
             
             content = response.get("message", {}).get("content", "")
             if content:
+                pass
                 # Try to parse the response
                 try:
+                    pass
                     # Extract JSON from response
                     import re
                     json_match = re.search(r'\{[^{}]*"name"[^{}]*"arguments"[^{}]*\}', content, re.DOTALL)
                     if json_match:
                         data = json.loads(json_match.group(0))
                         if "name" in data and "arguments" in data:
-                            self.logger.info(f"  ✅ FunctionGemma validated/fixed tool call: {data['name']}")
                             return {"function": data}
                 except json.JSONDecodeError as e:
                     self.logger.debug(f"  Failed to parse FunctionGemma response: {e}")
@@ -530,6 +533,7 @@ class ResponseParser:
         self.logger.debug("    Trying: find all JSON blocks with name/arguments")
         result = self._extract_all_json_blocks(text)
         if result:
+            pass
             # CRITICAL: Validate tool name against whitelist
             tool_name = result.get("function", {}).get("name")
             if tool_name not in self.VALID_TOOLS:
@@ -545,6 +549,7 @@ class ResponseParser:
         self.logger.debug("    Trying: standard tool call format {name, arguments}")
         result = self._try_standard_json(text)
         if result:
+            pass
             # CRITICAL: Validate tool name against whitelist
             tool_name = result.get("function", {}).get("name")
             if tool_name not in self.VALID_TOOLS:
@@ -565,7 +570,6 @@ class ResponseParser:
         self.logger.debug("    Trying: tasks JSON format")
         tasks = self._extract_tasks_json(text)
         if tasks:
-            self.logger.debug(f"    ✓ Found tasks format with {len(tasks)} tasks")
             return {
                 "function": {
                     "name": "create_task_plan",
@@ -583,6 +587,7 @@ class ResponseParser:
         self.logger.debug("    Trying: aggressive JSON extraction")
         result = self._extract_json_aggressive(text)
         if result:
+            pass
             # CRITICAL: Validate tool name against whitelist
             tool_name = result.get("function", {}).get("name")
             if tool_name not in self.VALID_TOOLS:
@@ -591,7 +596,6 @@ class ResponseParser:
                     f"This looks like Python code, not a tool call."
                 )
                 return None
-            self.logger.debug(f"    ✓ Aggressive extraction found: {tool_name}")
             return result
         
         self.logger.debug("    ✗ All extraction methods failed")
@@ -606,6 +610,7 @@ class ResponseParser:
         self.logger.debug("    Layer 1: Trying Python function call syntax")
         result = self._extract_function_call_syntax(text)
         if result:
+            pass
             # CRITICAL: Validate tool name BEFORE returning
             tool_name = result.get("function", {}).get("name")
             if tool_name in self.VALID_TOOLS:
@@ -618,9 +623,11 @@ class ResponseParser:
         self.logger.debug("    Layer 2: Trying markdown code blocks")
         code_blocks = re.findall(r'```(?:json|python|modify_python_file|try)?\s*\n([\s\S]*?)\n```', text)
         for block in code_blocks:
+            pass
             # Try function call syntax first
             result = self._extract_function_call_syntax(block)
             if result:
+                pass
                 # Validate before returning
                 tool_name = result.get("function", {}).get("name")
                 if tool_name in self.VALID_TOOLS:
@@ -641,7 +648,6 @@ class ResponseParser:
                         self.logger.debug(f"    ✗ Skipping invalid tool in code block: {tool_name}")
                         continue  # Skip this block, try next one
                     
-                    self.logger.debug(f"    ✓ Found tool call in code block: {tool_name}")
                     return {
                         "function": {
                             "name": tool_name,
@@ -657,6 +663,7 @@ class ResponseParser:
         i = 0
         while i < len(text):
             if text[i] == '{':
+                pass
                 # Found start of potential JSON
                 depth = 0
                 start = i
@@ -666,6 +673,7 @@ class ResponseParser:
                     elif text[j] == '}':
                         depth -= 1
                         if depth == 0:
+                            pass
                             # Found complete JSON block
                             json_blocks.append(text[start:j+1])
                             i = j + 1
@@ -687,7 +695,6 @@ class ResponseParser:
                         self.logger.debug(f"    ✗ Skipping invalid tool in JSON block: {tool_name}")
                         continue  # Skip this block, try next one
                     
-                    self.logger.debug(f"    ✓ Found embedded JSON with tool call: {tool_name}")
                     return {
                         "function": {
                             "name": tool_name,
@@ -711,7 +718,6 @@ class ResponseParser:
                 data = json.loads(json_str)
                 
                 if "name" in data and "arguments" in data:
-                    self.logger.debug(f"    ✓ Found standard format: {data['name']}")
                     return {
                         "function": {
                             "name": data["name"],
@@ -740,7 +746,6 @@ class ResponseParser:
         if code_match:
             code = code_match.group(1)
             if code.strip():
-                self.logger.debug(f"    ✓ Extracted from code block: {filepath}")
                 return {
                     "function": {
                         "name": "create_python_file",
@@ -812,6 +817,7 @@ class ResponseParser:
                 break
         
         if not code:
+            pass
             # Last resort: take everything up to the last }
             last_brace = code_content.rfind('}')
             if last_brace > 100:  # Sanity check
@@ -821,11 +827,11 @@ class ResponseParser:
                     code = code_content[:quote_pos]
         
         if code:
+            pass
             # Unescape the code
             code = code.replace('\\n', '\n').replace('\\t', '\t').replace('\\"', '"').replace('\\\\', '\\')
             
             if len(code) > 50:  # Sanity check
-                self.logger.debug(f"    ✓ Robust extraction: {filepath} ({len(code)} chars)")
                 return {
                     "function": {
                         "name": tool_name,
@@ -969,6 +975,7 @@ class ResponseParser:
         tools_to_check = known_tools + [t for t in potential_tools if t not in known_tools]
         
         for tool_name in tools_to_check:
+            pass
             # Look for tool_name( ... ) with proper bracket matching
             pattern = rf'{tool_name}\s*\('
             match = re.search(pattern, text)
@@ -1010,6 +1017,7 @@ class ResponseParser:
                 
                 # Unescape the value if it was in quotes (not triple quotes)
                 if arg_match.group(4) or arg_match.group(5):
+                    pass
                     # Handle escaped characters
                     value = value.replace('\\n', '\n')
                     value = value.replace('\\t', '\t')
@@ -1021,7 +1029,6 @@ class ResponseParser:
                 arguments[key] = value
             
             if arguments:
-                self.logger.debug(f"    ✓ Found function call syntax: {tool_name}")
                 self.logger.debug(f"      Arguments: {list(arguments.keys())}")
                 return {
                     "function": {

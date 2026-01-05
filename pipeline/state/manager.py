@@ -89,6 +89,7 @@ class TaskState:
         if not self.updated_at:
             self.updated_at = self.created
         if isinstance(self.status, str):
+            pass
             # Handle both uppercase and lowercase status values
             status_upper = self.status.upper()
             # Map NEEDS_FIXES to QA_FAILED for compatibility
@@ -433,6 +434,7 @@ class PipelineState:
             Completion percentage (0.0 to 100.0)
         """
         if not self.objectives:
+            pass
             # Fallback: Use task completion if no objectives
             if not self.tasks:
                 return 0.0
@@ -552,6 +554,7 @@ class PipelineState:
     
     @classmethod
     def from_dict(cls, data: Dict) -> "PipelineState":
+        pass
         # Backward compatibility: add defaults for new fields
         data.setdefault("objectives", {})
         data.setdefault("issues", {})
@@ -666,6 +669,7 @@ class PipelineState:
         self.queue = []
         for task_id, task in self.tasks.items():
             if task.status not in [TaskStatus.COMPLETED, TaskStatus.SKIPPED]:
+                pass
                 # Adjust priority based on status
                 priority = task.priority
                 if task.status == TaskStatus.QA_FAILED:

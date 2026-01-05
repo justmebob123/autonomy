@@ -45,6 +45,7 @@ class MemoryManager:
         
         for key, items in data.items():
             if len(items) > max_size:
+                pass
                 # Keep only the most recent max_size items
                 removed_count = len(items) - max_size
                 data[key] = items[-max_size:]
@@ -92,6 +93,7 @@ class MemoryManager:
         }
         
         try:
+            pass
             # Limit phase history
             stats['phase_history'] = self.limit_dict_of_lists(engine.phase_history)
             
@@ -134,6 +136,7 @@ class MemoryManager:
         }
         
         try:
+            pass
             # Limit phase performance
             stats['phase_performance'] = self.limit_dict_of_lists(optimizer.phase_performance)
             
@@ -174,6 +177,7 @@ class MemoryManager:
         }
         
         try:
+            pass
             # Limit detected anomalies (keep last 100)
             if len(detector.detected_anomalies) > 100:
                 removed = len(detector.detected_anomalies) - 100

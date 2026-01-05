@@ -73,7 +73,6 @@ class SpecialistRequestHandler:
         for specialist_name, patterns in self.request_patterns.items():
             for pattern in patterns:
                 if re.search(pattern, message_lower):
-                    self.logger.info(f"  🔍 Detected request for {specialist_name} specialist")
                     return {
                         'specialist': specialist_name,
                         'context': message,
@@ -96,7 +95,6 @@ class SpecialistRequestHandler:
         specialist_name = request['specialist']
         
         if specialist_name not in self.specialists:
-            self.logger.warning(f"  ⚠️ Specialist '{specialist_name}' not available")
             return {
                 'success': False,
                 'error': f"Specialist '{specialist_name}' not available",

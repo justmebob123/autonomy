@@ -17,6 +17,7 @@ def validate_python_syntax(code: str) -> Tuple[bool, str]:
         compile(code, '<string>', 'exec')
         return True, ""
     except SyntaxError as e:
+        pass
         # Format a helpful error message
         error_msg = f"Line {e.lineno}: {e.msg}"
         if e.text:

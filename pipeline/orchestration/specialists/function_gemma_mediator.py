@@ -195,10 +195,12 @@ Please interpret this response and convert it to a proper tool call."""
             Parsed interpretation
         """
         try:
+            pass
             # Try to parse as JSON
             parsed = json.loads(response)
             return parsed
         except json.JSONDecodeError:
+            pass
             # Try to extract JSON from response
             import re
             json_match = re.search(r'\{.*\}', response, re.DOTALL)
@@ -298,6 +300,7 @@ Return only the repaired JSON, nothing else."""
                 "repaired_json": repaired
             }
         except json.JSONDecodeError:
+            pass
             # Try to extract JSON
             import re
             json_match = re.search(r'\{.*\}', response, re.DOTALL)

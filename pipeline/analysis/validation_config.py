@@ -31,6 +31,7 @@ class ValidationConfig:
         if config_file and config_file.exists():
             self._load_custom_config(config_file)
         else:
+            pass
             # Try to find config in project root
             default_config = project_root / '.validation_config.json'
             if default_config.exists():

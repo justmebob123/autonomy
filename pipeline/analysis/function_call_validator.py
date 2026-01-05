@@ -106,6 +106,7 @@ class FunctionCallValidator:
         
         # Use SymbolTable if available, otherwise collect ourselves
         if self.symbol_table:
+            pass
             # Extract function signatures from SymbolTable
             for func_info in self.symbol_table.functions.values():
                 sig_data = {
@@ -124,6 +125,7 @@ class FunctionCallValidator:
                     import_dict[imp.local_name] = f"{imp.module}.{imp.name}"
                 self.file_imports[file] = import_dict
         else:
+            pass
             # Fallback: collect function signatures and imports ourselves
             self._collect_function_signatures()
             self._collect_imports()
@@ -224,6 +226,7 @@ class FunctionCallValidator:
                     if isinstance(node, ast.ClassDef):
                         class_stack.append(node.name)
                     elif isinstance(node, ast.FunctionDef):
+                        pass
                         # Build qualified name
                         if class_stack:
                             qualified_name = f"{class_stack[-1]}.{node.name}"
@@ -237,6 +240,7 @@ class FunctionCallValidator:
                         )
                         
                         if has_decorator:
+                            pass
                             # Skip validation for decorated functions
                             continue
                         
@@ -254,6 +258,7 @@ class FunctionCallValidator:
                         num_required = num_args - num_defaults
                         
                         for i, arg in enumerate(args.args):
+                            pass
                             # Skip 'self' and 'cls'
                             if arg.arg in ('self', 'cls'):
                                 continue
@@ -354,11 +359,13 @@ class FunctionCallValidator:
             if qualified_name and qualified_name in self.function_signatures:
                 sig = self.function_signatures[qualified_name]
             else:
+                pass
                 # Can't determine exact method - skip to avoid false positives
                 return
         
         # For simple function calls, we can be more confident
         elif isinstance(node.func, ast.Name):
+            pass
             # Look for any function with this name
             matching_sigs = [
                 s for name, s in self.function_signatures.items() 
@@ -366,12 +373,15 @@ class FunctionCallValidator:
             ]
             
             if len(matching_sigs) == 1:
+                pass
                 # Only one function with this name - safe to validate
                 sig = matching_sigs[0]
             elif len(matching_sigs) > 1:
+                pass
                 # Multiple functions with same name - skip to avoid confusion
                 return
             else:
+                pass
                 # Unknown function - might be from external package
                 return
         else:
@@ -391,6 +401,7 @@ class FunctionCallValidator:
         
         # Positional args cover required params
         if num_positional < len(required):
+            pass
             # Check if missing params are provided as keywords
             provided_keywords = {kw.arg for kw in node.keywords}
             missing = set(required[num_positional:]) - provided_keywords

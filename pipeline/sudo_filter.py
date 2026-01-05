@@ -46,6 +46,7 @@ class SudoFilter:
         
         # Check for sudo usage
         if self._contains_sudo(command):
+            pass
             # Block the command
             self.blocked_commands.append({
                 'command': command,

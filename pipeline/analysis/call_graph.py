@@ -111,10 +111,12 @@ class CallGraphVisitor(ast.NodeVisitor):
     def visit_Call(self, node: ast.Call):
         """Visit function/method call."""
         if self.current_function:
+            pass
             # Track what this function calls
             if isinstance(node.func, ast.Name):
                 self.calls[self.current_function].add(node.func.id)
             elif isinstance(node.func, ast.Attribute):
+                pass
                 # Method call
                 method_name = node.func.attr
                 self.calls[self.current_function].add(method_name)
@@ -208,8 +210,10 @@ class CallGraphGenerator:
             if target_path.suffix == '.py':
                 self.analyze_file(target_path)
         else:
+            pass
             # Analyze directory
             for root, dirs, files in os.walk(target_path):
+                pass
                 # Skip common directories
                 dirs[:] = [d for d in dirs if d not in ['__pycache__', '.git', 'venv', '.venv', 'node_modules']]
                 

@@ -89,6 +89,7 @@ class MessageBus:
             message: Message to publish
         """
         with self.lock:
+            pass
             # Add to queue
             self.queue.append(message)
             
@@ -144,6 +145,7 @@ class MessageBus:
         """
         with self.lock:
             if message_types is None:
+                pass
                 # Unsubscribe from all
                 for subscribers in self.subscriptions.values():
                     subscribers.discard(phase_name)
@@ -209,11 +211,13 @@ class MessageBus:
                 return 0
             
             if message_ids is None:
+                pass
                 # Clear all
                 count = len(self.phase_queues[phase_name])
                 self.phase_queues[phase_name] = []
                 return count
             else:
+                pass
                 # Clear specific messages
                 original_count = len(self.phase_queues[phase_name])
                 self.phase_queues[phase_name] = [
@@ -316,6 +320,7 @@ class MessageBus:
         start_time = time.time()
         while time.time() - start_time < timeout:
             with self.lock:
+                pass
                 # Check for response
                 if request.id in self.pending_responses:
                     response, _ = self.pending_responses.pop(request.id)
@@ -477,6 +482,7 @@ class MessageBus:
             message: Message to persist
         """
         try:
+            pass
             # This would integrate with StateManager
             # For now, just log
             logger.debug(f"Persisting message: {message.id}")

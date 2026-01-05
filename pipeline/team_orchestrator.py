@@ -219,11 +219,9 @@ class TeamOrchestrator:
             # Check if wave succeeded
             failed_tasks = [t for t in wave.tasks if t.error]
             if failed_tasks:
-                self.logger.warning(f"⚠️  Wave {wave.wave_number}: {len(failed_tasks)} tasks failed")
                 for task in failed_tasks:
                     self.logger.warning(f"   - {task.task_id}: {task.error}")
             
-            self.logger.info(f"✅ Wave {wave.wave_number} complete in {wave.duration:.1f}s")
         
         end_time = time.time()
         total_duration = end_time - start_time
@@ -262,6 +260,7 @@ class TeamOrchestrator:
         
         # Use ThreadPoolExecutor for parallel execution
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            pass
             # Submit all tasks
             future_to_task = {
                 executor.submit(self._execute_task, task, thread): task
@@ -275,7 +274,6 @@ class TeamOrchestrator:
                     result = future.result()
                     task.result = result
                     results[task.task_id] = result
-                    self.logger.info(f"   ✓ {task.task_id} complete ({task.duration:.1f}s)")
                 except Exception as e:
                     task.error = str(e)
                     results[task.task_id] = {'error': str(e)}
@@ -301,6 +299,7 @@ class TeamOrchestrator:
         task.start_time = time.time()
         
         try:
+            pass
             # Update server load
             self.server_load[task.server] += 1
             
@@ -434,6 +433,7 @@ class TeamOrchestrator:
         """
         # If already has 'success' key, assume it's normalized
         if 'success' in result:
+            pass
             # Ensure all required keys exist
             normalized = {
                 'success': result.get('success', True),
@@ -495,6 +495,7 @@ class TeamOrchestrator:
             }
         
         if strategy == 'merge_all':
+            pass
             # Merge all results into single dictionary
             merged = {}
             for wave_results in normalized_results.values():
@@ -502,19 +503,23 @@ class TeamOrchestrator:
             return {'success': True, 'merged_results': merged}
         
         elif strategy == 'use_first_result':
+            pass
             # Use first successful result (normalized results have guaranteed structure: success, error, findings, data)
             for wave_results in normalized_results.values():
                 for normalized_result in wave_results.values():
+                    pass
                     # Safe to use direct access - structure is guaranteed by _normalize_result()
                     if normalized_result['success'] and not normalized_result['error']:
                         return {'success': True, 'result': normalized_result}
             return {'success': False, 'error': 'No successful results'}
         
         elif strategy == 'consensus':
+            pass
             # Build consensus from multiple results (normalized results have guaranteed structure: success, error, findings, data)
             all_findings = []
             for wave_results in normalized_results.values():
                 for normalized_result in wave_results.values():
+                    pass
                     # Safe to use direct access - structure is guaranteed by _normalize_result()
                     if normalized_result['success'] and normalized_result['findings']:
                         all_findings.extend(normalized_result['findings'])
@@ -529,6 +534,7 @@ class TeamOrchestrator:
             return {'success': True, 'consensus': consensus, 'all_findings': all_findings}
         
         else:
+            pass
             # Default: return all results
             return {'success': True, 'all_results': normalized_results}
     
@@ -585,7 +591,6 @@ class TeamOrchestrator:
         Returns:
             Validation result dictionary
         """
-        self.logger.info(f"🔍 Validating custom tool: {tool_name}")
         
         result = {
             'tool_name': tool_name,
@@ -595,6 +600,7 @@ class TeamOrchestrator:
         }
         
         try:
+            pass
             # Check if tool exists in registry
             if tool_name not in tool_registry.tools:
                 result['issues'].append(f"Tool {tool_name} not found in registry")
@@ -627,9 +633,8 @@ class TeamOrchestrator:
             # If no issues, tool is valid
             if not result['issues']:
                 result['valid'] = True
-                self.logger.info(f"  ✅ Tool {tool_name} is valid")
             else:
-                self.logger.warning(f"  ⚠️  Tool {tool_name} has issues: {result['issues']}")
+                pass
         
         except Exception as e:
             result['issues'].append(f"Validation error: {str(e)}")
@@ -658,6 +663,7 @@ class TeamOrchestrator:
         }
         
         try:
+            pass
             # Try to get the prompt
             prompt = prompt_registry.get_prompt(prompt_name)
             
@@ -671,18 +677,19 @@ class TeamOrchestrator:
             
             # Check for variable placeholders
             if '{' in prompt and '}' in prompt:
+                pass
                 # Has variables - good
                 pass
             else:
+                pass
                 # No variables - might be static (could be okay)
                 pass
             
             # If no issues, prompt is valid
             if not result['issues']:
                 result['valid'] = True
-                self.logger.info(f"  ✅ Prompt {prompt_name} is valid")
             else:
-                self.logger.warning(f"  ⚠️  Prompt {prompt_name} has issues: {result['issues']}")
+                pass
         
         except Exception as e:
             result['issues'].append(f"Validation error: {str(e)}")
@@ -711,6 +718,7 @@ class TeamOrchestrator:
         }
         
         try:
+            pass
             # Check if role exists
             if not role_registry.has_specialist(role_name):
                 result['issues'].append(f"Role {role_name} not found in registry")
@@ -739,9 +747,8 @@ class TeamOrchestrator:
             # If no issues, role is valid
             if not result['issues']:
                 result['valid'] = True
-                self.logger.info(f"  ✅ Role {role_name} is valid")
             else:
-                self.logger.warning(f"  ⚠️  Role {role_name} has issues: {result['issues']}")
+                pass
         
         except Exception as e:
             result['issues'].append(f"Validation error: {str(e)}")
@@ -821,7 +828,6 @@ class TeamOrchestrator:
             'overall_total': tools_total + prompts_total + roles_total
         }
         
-        self.logger.info(f"\n📊 Improvement Cycle Summary:")
         self.logger.info(f"  Tools: {tools_valid}/{tools_total} valid")
         self.logger.info(f"  Prompts: {prompts_valid}/{prompts_total} valid")
         self.logger.info(f"  Roles: {roles_valid}/{roles_total} valid")

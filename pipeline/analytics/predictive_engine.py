@@ -148,6 +148,7 @@ class PredictiveAnalyticsEngine:
         history = self.phase_history.get(phase_name, [])
         
         if not history:
+            pass
             # No history - use defaults
             return PhasePrediction(
                 phase_name=phase_name,
@@ -326,6 +327,7 @@ class PredictiveAnalyticsEngine:
         history = self.resource_history.get(phase_name, [])
         
         if not history:
+            pass
             # Default estimates
             return ResourceForecast(
                 phase_name=phase_name,

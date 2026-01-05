@@ -97,7 +97,7 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
         # IPC INTEGRATION: Read objectives
         objectives = self._read_objectives()
         if objectives:
-            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+            pass
         
         # IPC INTEGRATION: Write status at start
         self._write_status({
@@ -168,7 +168,6 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
             
             if result['improved']:
                 prompts_improved.append(prompt_name)
-                self.logger.info(f"    ✅ Prompt improved")
                 
                 # MESSAGE BUS: Publish improvement event
                 self._publish_message('PROMPT_IMPROVED', {
@@ -397,6 +396,7 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
                             improved_template = args.get('improved_template', '')
                             
                             if improved_template and improved_template != current_template:
+                                pass
                                 # Save improved version
                                 self._save_improved_prompt(prompt_name, prompt_data, improved_template, args)
                                 

@@ -183,9 +183,8 @@ class BasePhase(ABC):
         system_prompt = self._get_system_prompt(self.phase_name)
         if system_prompt:
             self.conversation.add_message("system", system_prompt)
-            self.logger.info(f"✅ Added system prompt for {self.phase_name} phase ({len(system_prompt)} chars)")
         else:
-            self.logger.warning(f"⚠️ No system prompt found for {self.phase_name} phase")
+            pass
         
         # INTEGRATION: Use shared specialists if provided
         if coding_specialist is None or reasoning_specialist is None or analysis_specialist is None:
@@ -384,6 +383,7 @@ class BasePhase(ABC):
         state = self.state_manager.load()
         
         try:
+            pass
             # Execute phase
             result = self.execute(state, **kwargs)
             
@@ -391,6 +391,7 @@ class BasePhase(ABC):
             if self.phase_name in state.phases:
                 state.phases[self.phase_name].record_run(result.success)
             else:
+                pass
                 # Phase not registered in state - log warning and create it
                 from pipeline.state.manager import PhaseState
                 self.logger.warning(f"Phase '{self.phase_name}' not found in state.phases, creating it now")
@@ -447,6 +448,7 @@ class BasePhase(ABC):
         full_path.parent.mkdir(parents=True, exist_ok=True)
         
         try:
+            pass
             # Record previous version
             if full_path.exists():
                 old_content = full_path.read_text()
@@ -613,6 +615,7 @@ class BasePhase(ABC):
             self.logger.debug(f"  Using custom system prompt for {phase_name}")
             base_prompt = custom_prompt
         else:
+            pass
             # Fallback to hardcoded
             base_prompt = SYSTEM_PROMPTS.get(phase_name, SYSTEM_PROMPTS.get("base", ""))
         
@@ -625,7 +628,7 @@ class BasePhase(ABC):
                     self.logger.info(f"  📋 Adding pattern feedback reminders to {phase_name} prompt")
                     base_prompt = base_prompt + feedback_additions
             except Exception as e:
-                self.logger.warning(f"  ⚠️  Error getting pattern feedback: {e}")
+                pass
         
         # CRITICAL FIX: Apply adaptive prompt system if available
         if hasattr(self, 'adaptive_prompts') and self.adaptive_prompts and context:
@@ -637,7 +640,6 @@ class BasePhase(ABC):
                 )
                 return adapted_prompt
             except Exception as e:
-                self.logger.warning(f"  ⚠️  Error adapting prompt: {e}")
                 return base_prompt
         
         return base_prompt
@@ -668,6 +670,7 @@ class BasePhase(ABC):
             try:
                 message_type = MessageType(message_type.lower())
             except ValueError:
+                pass
                 # If not a valid enum value, try to find it by name
                 try:
                     message_type = MessageType[message_type.upper()]
@@ -766,6 +769,7 @@ class BasePhase(ABC):
             host, model_name = result
             self.logger.debug(f"  Selected model: {model_name} on {host}")
         else:
+            pass
             # Fallback to conversation model and first available server
             model_name = self.conversation.thread.model
             host = self.config.servers[0].host if self.config.servers else "localhost"
@@ -787,7 +791,6 @@ class BasePhase(ABC):
             self.logger.info(f"  🛠️  Tool names: {', '.join(tool_names[:10])}{' ...' if len(tool_names) > 10 else ''}")
         total_chars = sum(len(str(m.get('content', ''))) for m in messages)
         approx_tokens = total_chars // 4
-        self.logger.info(f"  📊 Approximate context: ~{approx_tokens:,} tokens ({total_chars:,} chars)")
         self.logger.info(f"  ⏱️  Waiting for response...")
         self.logger.info(f"{'='*70}")
         start_time = time.time()
@@ -805,7 +808,6 @@ class BasePhase(ABC):
         duration = time.time() - start_time
         self.logger.info(f"")
         self.logger.info(f"{'='*70}")
-        self.logger.info(f"✅ MODEL RESPONSE RECEIVED")
         self.logger.info(f"{'='*70}")
         self.logger.info(f"  ⏱️  Duration: {duration:.1f}s ({duration/60:.1f} minutes)")
         message_obj = response.get("message", {})
@@ -833,6 +835,7 @@ class BasePhase(ABC):
         if hasattr(self, 'specialist_request_handler') and task_context:
             request = self.specialist_request_handler.detect_request(content)
             if request:
+                pass
                 # Handle specialist request
                 specialist_result = self.specialist_request_handler.handle_request(request, task_context)
                 
@@ -869,6 +872,7 @@ class BasePhase(ABC):
             return
         
         try:
+            pass
             # Get adapted prompt
             adapted_prompt = self._get_system_prompt(self.phase_name, context)
             
@@ -877,10 +881,9 @@ class BasePhase(ABC):
             for i, msg in enumerate(self.conversation.thread.messages):
                 if msg.get('role') == 'system':
                     self.conversation.thread.messages[i]['content'] = adapted_prompt
-                    self.logger.debug(f"  🎯 Updated system prompt with adaptation ({len(adapted_prompt)} chars)")
                     break
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Error updating system prompt: {e}")
+            pass
     
     def record_execution_pattern(self, pattern_data: Dict):
         """Record execution pattern for learning."""
@@ -894,17 +897,17 @@ class BasePhase(ABC):
                 **pattern_data
             })
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Error recording pattern: {e}")
+            pass
     
     def get_cross_phase_correlation(self, correlation_data: Dict) -> Dict:
         """Get cross-phase correlations."""
         if not self.correlation_engine:
             return {}
         try:
+            pass
             # correlate() takes no arguments, just returns all correlations
             return self.correlation_engine.correlate()
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Error getting correlation: {e}")
             return {}
     
     def track_phase_metric(self, metric_data: Dict):
@@ -912,23 +915,23 @@ class BasePhase(ABC):
         if not self.analytics:
             return
         try:
+            pass
             # Analytics doesn't have track_metric, it has specific methods
             # For now, just log the metric
-            self.logger.debug(f"  📊 Metric: {metric_data}")
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Error tracking metric: {e}")
+            pass
     
     def get_optimization_suggestion(self, context: Dict) -> Dict:
         """Get optimization suggestion from pattern optimizer."""
         if not self.pattern_optimizer:
             return {}
         try:
+            pass
             # PatternOptimizer doesn't have get_suggestion
             # It has run_full_optimization() which returns statistics
             # For now, return empty dict
             return {}
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Error getting optimization: {e}")
             return {}
     
     def track_dimensions(self, dimension_updates: Dict[str, float]):
@@ -954,12 +957,14 @@ class BasePhase(ABC):
             return
         
         try:
+            pass
             # Update dimensions in coordinator's polytopic structure
             if hasattr(self.coordinator, 'polytope') and self.coordinator.polytope:
                 phase_vertex = self.coordinator.polytope['vertices'].get(self.phase_name)
                 if phase_vertex and 'dimensions' in phase_vertex:
                     for dim, value in dimension_updates.items():
                         if dim in phase_vertex['dimensions']:
+                            pass
                             # Blend old and new values (exponential moving average)
                             # This creates smooth transitions and prevents sudden jumps
                             old_value = phase_vertex['dimensions'][dim]
@@ -967,7 +972,7 @@ class BasePhase(ABC):
                     
                     self.logger.debug(f"  📐 Updated {len(dimension_updates)} dimensions for {self.phase_name}")
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Error tracking dimensions: {e}")
+            pass
     
     def track_violation(self, violation_type: str, context: Optional[Dict] = None, severity: Optional[str] = None):
         """
@@ -1000,7 +1005,7 @@ class BasePhase(ABC):
             )
             self.logger.debug(f"  📋 Tracked violation: {violation_type}")
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Error tracking violation: {e}")
+            pass
     
     def mark_violation_resolved(self, violation_type: str):
         """
@@ -1024,9 +1029,8 @@ class BasePhase(ABC):
                 phase=self.phase_name,
                 violation_type=violation_type
             )
-            self.logger.debug(f"  ✅ Marked violation resolved: {violation_type}")
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Error marking violation resolved: {e}")
+            pass
     
     def get_pattern_summary(self) -> Dict:
         """
@@ -1041,5 +1045,4 @@ class BasePhase(ABC):
         try:
             return self.pattern_feedback.get_pattern_summary(phase=self.phase_name)
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Error getting pattern summary: {e}")
             return {}

@@ -65,7 +65,6 @@ class InvestigationPhase(BasePhase):
             ])
             self.logger.info("  📡 Message bus subscriptions configured")
         
-        self.logger.info("  🔍 Investigation phase initialized with ALL analysis capabilities and IPC integration")
     
     def execute(self, state: PipelineState,
                 issue: Dict = None, **kwargs) -> PhaseResult:
@@ -113,7 +112,7 @@ class InvestigationPhase(BasePhase):
         # IPC INTEGRATION: Read objectives for investigation priorities
         objectives = self._read_objectives()
         if objectives:
-            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+            pass
         
         # IPC INTEGRATION: Write status at start
         self._write_status({
@@ -156,7 +155,6 @@ class InvestigationPhase(BasePhase):
         if filepath.startswith('./'):
             filepath = filepath[2:]
         
-        self.logger.info(f"  🔍 Investigating: {filepath}")
         self.logger.info(f"  Issue: [{issue.get('type')}] {issue.get('message', '')[:80]}")
         
         # Read current content
@@ -192,7 +190,6 @@ class InvestigationPhase(BasePhase):
             handler = ToolCallHandler(self.project_dir, verbose=verbose, activity_log_file=str(activity_log))
             results = handler.process_tool_calls(tool_calls)
             
-            self.logger.info(f"  ✓ Gathered context using {len(tool_calls)} tool calls")
         
         # Extract findings from response
         findings = self._extract_findings(content, issue)
@@ -392,6 +389,7 @@ Start your investigation now by using the available tools."""
         
         # Try to extract root cause - get the full section, not just one sentence
         if "root cause" in content_lower:
+            pass
             # Find the section containing "root cause"
             import re
             # Look for "Root Cause" section (case insensitive)
@@ -399,11 +397,13 @@ Start your investigation now by using the available tools."""
             if match:
                 findings["root_cause"] = match.group(1).strip()
             else:
+                pass
                 # Fallback: Find sentences containing "root cause"
                 sentences = content.split('.')
                 root_cause_sentences = []
                 for i, sentence in enumerate(sentences):
                     if "root cause" in sentence.lower():
+                        pass
                         # Take this sentence and the next 2-3 sentences for context
                         root_cause_sentences = sentences[i:min(i+3, len(sentences))]
                         break
@@ -418,11 +418,13 @@ Start your investigation now by using the available tools."""
             if match:
                 findings["recommended_fix"] = match.group(1).strip()
             else:
+                pass
                 # Fallback: Find sentences containing "recommend" or "fix"
                 sentences = content.split('.')
                 fix_sentences = []
                 for i, sentence in enumerate(sentences):
                     if "recommend" in sentence.lower() or "should fix" in sentence.lower():
+                        pass
                         # Take this sentence and the next 2-3 sentences for context
                         fix_sentences = sentences[i:min(i+3, len(sentences))]
                         break

@@ -65,7 +65,6 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
             ])
             self.logger.info("  📡 Message bus subscriptions configured")
         
-        self.logger.info("  🎯 Project Planning phase initialized with IPC integration")
         
         # CORE ANALYSIS CAPABILITIES - Direct integration
         from ..analysis.complexity import ComplexityAnalyzer
@@ -87,7 +86,6 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """Execute project planning phase"""
         
-        self.logger.info("  📊 Analyzing project for expansion opportunities...")
         
         # ADAPTIVE PROMPTS: Update system prompt based on recent planning
         if self.adaptive_prompts:
@@ -129,7 +127,7 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         # IPC INTEGRATION: Read objectives for expansion priorities
         objectives = self._read_objectives()
         if objectives:
-            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+            pass
         
         # IPC INTEGRATION: Write status at start
         self._write_status({
@@ -163,7 +161,6 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         
         # Check expansion health
         if not self._check_expansion_health(state):
-            self.logger.warning("  ⚠️ Expansion paused - entering maintenance mode")
             return self._create_maintenance_result(state)
         
         # Ensure ARCHITECTURE.md exists (will use strategic docs)
@@ -246,13 +243,11 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
                 tasks = self.text_parser.parse_project_planning_response(content)
                 
                 if tasks:
-                    self.logger.info(f"  ✓ Extracted {len(tasks)} tasks from text response")
                     for i, task in enumerate(tasks, 1):
                         self.logger.debug(f"    Task {i}: {task['description'][:50]}... -> {task['target_file']}")
                     
                     # Convert to tool call format
                     tool_calls = self.text_parser.create_tool_calls_from_tasks(tasks)
-                    self.logger.info(f"  ✓ Converted to {len(tool_calls)} tool call(s), continuing with normal flow")
                     # Continue with normal processing below
                 else:
                     self.logger.warning("  ✗ Could not extract tasks from text response")
@@ -339,16 +334,15 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         
         # Generate objective files from tasks and context
         if created_task_objects and context:
-            self.logger.info("  🎯 Generating objective files...")
             try:
                 objective_files = self.objective_generator.generate_objective_files(
                     state, context, created_task_objects
                 )
                 
                 if objective_files:
+                    pass
                     # Write objective files to disk
                     created_files = self.objective_generator.write_objective_files(objective_files)
-                    self.logger.info(f"  ✅ Created {len(created_files)} objective file(s)")
                     
                     # Link tasks to objectives
                     linked_count = self.objective_generator.link_tasks_to_objectives(
@@ -360,7 +354,7 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
                 else:
                     self.logger.debug("  ℹ️ No objectives extracted from context")
             except Exception as e:
-                self.logger.warning(f"  ⚠️ Failed to generate objective files: {e}")
+                pass
                 # Continue anyway - objective files are optional
         
         # Apply architecture updates if any
@@ -692,7 +686,6 @@ This document will be updated as the project evolves to reflect:
 """
         
         arch_path.write_text(initial_arch)
-        self.logger.info("  📄 Created ARCHITECTURE.md")
     
     def _apply_architecture_updates(self, updates: List[Dict]) -> None:
         """Apply updates to ARCHITECTURE.md"""
@@ -749,7 +742,6 @@ This document will be updated as the project evolves to reflect:
         Returns:
             Analysis summary as formatted string
         """
-        self.logger.info("  📊 Analyzing codebase for project planning...")
         
         analysis_parts = []
         analysis_parts.append("\n# Codebase Analysis for Planning\n")

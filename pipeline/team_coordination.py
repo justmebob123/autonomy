@@ -58,6 +58,7 @@ class TeamCoordinationFacade:
             Specialist response or None
         """
         try:
+            pass
             # Note: This needs to be updated to match SpecialistTeam API
             # which requires thread and tools parameters
             # For now, return None as this interface mismatch needs design review

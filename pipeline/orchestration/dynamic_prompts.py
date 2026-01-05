@@ -191,9 +191,11 @@ class DynamicPromptBuilder:
         
         # Model-specific role descriptions
         if context.model_size in ["3b", "7b", "14b"]:
+            pass
             # Simpler role for smaller models
             role = f"You are a {context.phase} specialist. Your job is to {self._get_simple_job_description(context.phase)}."
         else:
+            pass
             # More sophisticated role for larger models
             role = f"You are a senior {context.phase} specialist with deep expertise. {self._get_detailed_job_description(context.phase)}"
         
@@ -436,6 +438,7 @@ RIGHT: report_issue(type="...", description="...", line=10)
             section_tokens = section.estimate_tokens()
             
             if current_tokens + section_tokens > max_tokens_per_message and current_chunk:
+                pass
                 # Flush current chunk
                 messages.append({
                     "role": "user",

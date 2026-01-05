@@ -117,7 +117,6 @@ class PatternOptimizer:
         conn.commit()
         conn.close()
         
-        self.logger.info("📊 Pattern database initialized")
     
     def _pattern_hash(self, pattern_data: Dict) -> str:
         """Generate hash for pattern data."""
@@ -165,6 +164,7 @@ class PatternOptimizer:
                         ))
                         migrated += 1
                     except sqlite3.IntegrityError:
+                        pass
                         # Pattern already exists (duplicate hash)
                         pass
             
@@ -175,7 +175,6 @@ class PatternOptimizer:
             backup_path = self.legacy_json_path.with_suffix('.json.backup')
             self.legacy_json_path.rename(backup_path)
             
-            self.logger.info(f"✅ Migrated {migrated} patterns from JSON to SQLite")
             return migrated
             
         except Exception as e:
@@ -246,6 +245,7 @@ class PatternOptimizer:
         merged_count = 0
         
         for ptype, patterns in patterns_by_type.items():
+            pass
             # Compare each pattern with others
             i = 0
             while i < len(patterns):
@@ -257,6 +257,7 @@ class PatternOptimizer:
                     )
                     
                     if similarity >= self.similarity_threshold:
+                        pass
                         # Merge j into i
                         self._merge_patterns(
                             cursor,
@@ -376,6 +377,7 @@ class PatternOptimizer:
             if occurrences == 0:
                 effectiveness = 0.0
             else:
+                pass
                 # Effectiveness = (success rate * confidence boost)
                 success_rate = success / (success + failure) if (success + failure) > 0 else 0.5
                 usage_factor = min(1.0, occurrences / 10)  # Boost for frequently used patterns
@@ -525,5 +527,4 @@ class PatternOptimizer:
             'final_stats': stats
         }
         
-        self.logger.info(f"✅ Optimization complete: {results}")
         return results

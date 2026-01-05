@@ -902,6 +902,7 @@ Your investigation results will guide debugging, coding, and refactoring phases.
 # - Phase-specific best practices
 
 if ENHANCED_PROMPTS_AVAILABLE:
+    pass
     # Override with enhanced prompts
     SYSTEM_PROMPTS["base"] = get_base_system_prompt()
     SYSTEM_PROMPTS["coding"] = get_base_system_prompt() + "\n\n" + get_coding_system_prompt()
@@ -1174,6 +1175,7 @@ def get_debug_prompt(filepath: str, code: str, issue: dict) -> str:
     if is_syntax_error:
         return _get_syntax_debug_prompt(filepath, code, issue)
     else:
+        pass
         # All other errors are runtime errors
         return _get_runtime_debug_prompt(filepath, code, issue)
 

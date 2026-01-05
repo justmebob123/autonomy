@@ -22,6 +22,7 @@ def create_error_key(error: Dict) -> Tuple:
     error_type = error.get('type', 'Unknown')
     
     if error_type == 'RuntimeError':
+        pass
         # For runtime errors, group by error message and object/attribute
         return (
             error_type,
@@ -30,6 +31,7 @@ def create_error_key(error: Dict) -> Tuple:
             error.get('missing_attribute')
         )
     else:
+        pass
         # For syntax errors, group by file + message (line can vary)
         return (
             error_type,
@@ -72,6 +74,7 @@ def deduplicate_errors(errors: List[Dict]) -> Dict[Tuple, Dict]:
         error_key = create_error_key(error)
         
         if error_key not in deduplicated:
+            pass
             # First occurrence - create entry with all error info
             deduplicated[error_key] = {
                 'type': error.get('type', 'Unknown'),
@@ -151,10 +154,12 @@ def group_errors_by_file(deduplicated: Dict[Tuple, Dict]) -> Dict[str, List[Dict
     by_file = defaultdict(list)
     
     for error_key, error_group in deduplicated.items():
+        pass
         # Get all unique files affected by this error
         files = set(loc['file'] for loc in error_group['locations'] if loc['file'])
         
         for file_path in files:
+            pass
             # Filter locations to only this file
             file_locations = [
                 loc for loc in error_group['locations']

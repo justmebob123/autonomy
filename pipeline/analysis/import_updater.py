@@ -134,6 +134,7 @@ class ImportUpdater:
         full_path = self.project_root / file_path
         
         try:
+            pass
             # Read file
             with open(full_path, 'r', encoding='utf-8') as f:
                 old_content = f.read()
@@ -160,6 +161,7 @@ class ImportUpdater:
             
             # Write file if not dry run
             if not dry_run and changes_made > 0:
+                pass
                 # Create backup
                 backup_path = full_path.with_suffix('.py.bak')
                 with open(backup_path, 'w', encoding='utf-8') as f:
@@ -211,6 +213,7 @@ class ImportUpdater:
         changes_made = 0
         
         for i, line in enumerate(lines):
+            pass
             # Skip comments and empty lines
             stripped = line.strip()
             if not stripped or stripped.startswith('#'):

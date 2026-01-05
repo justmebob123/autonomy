@@ -85,9 +85,11 @@ def search_for_attribute_usage(
                             results[rel_path].append(occurrence)
         
         except subprocess.TimeoutExpired:
+            pass
             # Timeout is expected for very large codebases
             continue
         except Exception as e:
+            pass
             # Log but continue with other patterns
             import logging
             logging.getLogger(__name__).warning(f"Search failed for pattern '{pattern}': {e}")
@@ -143,9 +145,11 @@ def search_for_pattern(
                     })
     
     except subprocess.TimeoutExpired:
+        pass
         # Timeout is expected for very large codebases
         pass
     except Exception as e:
+        pass
         # Log but return partial results
         import logging
         logging.getLogger(__name__).warning(f"Pattern search failed for '{pattern}': {e}")

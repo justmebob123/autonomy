@@ -108,7 +108,7 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
         # IPC INTEGRATION: Read objectives
         objectives = self._read_objectives()
         if objectives:
-            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+            pass
         
         # IPC INTEGRATION: Write status at start
         self._write_status({
@@ -168,18 +168,15 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
         impl_result = self._test_load_implementation(spec, tool_impl)
         if impl_result['success']:
             evaluation['tests_passed'].append('load_implementation')
-            self.logger.info("   ✓ Tool implementation loaded successfully")
         else:
             evaluation['tests_failed'].append('load_implementation')
             self.logger.error(f"   ✗ Failed to load implementation: {impl_result.get('error', None)}")
             return self._create_failure_result(evaluation, impl_result.get('error', None))
         
         # Test 2: Validate function signature
-        self.logger.info("🔍 Test 2: Validating function signature...")
         sig_result = self._test_function_signature(spec, impl_result['function'])
         if sig_result['success']:
             evaluation['tests_passed'].append('function_signature')
-            self.logger.info("   ✓ Function signature valid")
         else:
             evaluation['tests_failed'].append('function_signature')
             evaluation['warnings'].append(sig_result.get('error', None))
@@ -190,7 +187,6 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
         security_result = self._test_security(spec, impl_result['source_code'])
         if security_result['success']:
             evaluation['tests_passed'].append('security_validation')
-            self.logger.info(f"   ✓ Security level: {spec.get('security_level', 'unknown')}")
         else:
             evaluation['tests_failed'].append('security_validation')
             self.logger.error(f"   ✗ Security issue: {security_result.get('error', None)}")
@@ -210,7 +206,6 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
         )
         if exec_result['success']:
             evaluation['tests_passed'].append('execution')
-            self.logger.info(f"   ✓ Executed {exec_result['tests_run']} test(s) successfully")
         else:
             evaluation['tests_failed'].append('execution')
             self.logger.error(f"   ✗ Execution failed: {exec_result.get('error', None)}")
@@ -222,7 +217,6 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
         integration_result = self._test_handler_integration(spec, tool_impl)
         if integration_result['success']:
             evaluation['tests_passed'].append('handler_integration')
-            self.logger.info("   ✓ ToolCallHandler integration successful")
         else:
             evaluation['tests_failed'].append('handler_integration')
             evaluation['warnings'].append(integration_result.get('error', None))
@@ -233,7 +227,6 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
         registry_result = self._test_registry_integration(spec)
         if registry_result['success']:
             evaluation['tests_passed'].append('registry_integration')
-            self.logger.info("   ✓ ToolRegistry integration successful")
         else:
             evaluation['tests_failed'].append('registry_integration')
             evaluation['warnings'].append(registry_result.get('error', None))
@@ -334,10 +327,12 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
     def _test_load_implementation(self, spec: Dict, tool_impl: Optional[str]) -> Dict:
         """Test loading the tool implementation."""
         try:
+            pass
             # Determine implementation file path
             if tool_impl:
                 impl_path = Path(tool_impl)
             else:
+                pass
                 # Try to find it based on spec
                 tool_name = spec.get('name', '')
                 impl_path = Path(f"pipeline/tools/custom/{tool_name}.py")
@@ -428,6 +423,7 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
             # Check for extra parameters
             extra_params = [p for p in func_params if p not in spec_param_names]
             if extra_params:
+                pass
                 # This is a warning, not a failure
                 return {
                     'success': True,
@@ -449,6 +445,7 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
         
         # Check for dangerous operations based on security level
         if security_level == 'safe':
+            pass
             # Should not have file system, network, or subprocess operations
             dangerous_imports = ['os', 'subprocess', 'socket', 'urllib', 'requests']
             dangerous_calls = ['open(', 'exec(', 'eval(', '__import__']
@@ -465,6 +462,7 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
                     warnings.append(f"Potentially dangerous call: {call}")
         
         elif security_level == 'restricted':
+            pass
             # Can have read-only file operations, no network or subprocess
             dangerous_imports = ['subprocess', 'socket', 'urllib', 'requests']
             
@@ -485,6 +483,7 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
     def _test_execution(self, function: Any, spec: Dict, test_inputs: List[Dict]) -> Dict:
         """Test executing the function with sample inputs."""
         if not test_inputs:
+            pass
             # Generate basic test inputs from spec
             test_inputs = self._generate_test_inputs(spec)
         
@@ -543,6 +542,7 @@ class ToolEvaluationPhase(LoopDetectionMixin, BasePhase):
     def _test_handler_integration(self, spec: Dict, tool_impl: Optional[str]) -> Dict:
         """Test integration with ToolCallHandler."""
         try:
+            pass
             # This would test if ToolCallHandler can find and execute the tool
             # For now, we'll do a basic check
             tool_name = spec.get('name')

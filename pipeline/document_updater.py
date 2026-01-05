@@ -79,7 +79,6 @@ class DocumentUpdater:
             
             if updated_content != content:
                 doc_path.write_text(updated_content)
-                self.logger.info(f"✅ Marked task complete in {doc_name}: {task_identifier}")
                 return True
             else:
                 self.logger.warning(f"Could not find task {task_identifier} in {doc_name}")
@@ -125,6 +124,7 @@ class DocumentUpdater:
             
             for line in lines:
                 if issue_description in line and not '✅ FIXED' in line:
+                    pass
                     # Mark as fixed with strikethrough
                     resolution_text = f"✅ FIXED ({timestamp} by {phase_name})"
                     if resolution_note:
@@ -134,7 +134,6 @@ class DocumentUpdater:
                     updated_line = line.replace('- ', f'- ~~') + f'~~ {resolution_text}'
                     updated_lines.append(updated_line)
                     found = True
-                    self.logger.info(f"✅ Marked issue resolved in {doc_name}: {issue_description[:50]}...")
                 else:
                     updated_lines.append(line)
             
@@ -193,11 +192,13 @@ class DocumentUpdater:
             phase_subsection = f"### From {phase_name.title()} Phase"
             
             if phase_subsection not in content:
+                pass
                 # Add new subsection after the main section
                 insert_pos = match.end()
                 new_subsection = f"\n{phase_subsection} (Added {timestamp})\n\n- {severity}: {issue_description}\n"
                 updated_content = content[:insert_pos] + new_subsection + content[insert_pos:]
             else:
+                pass
                 # Append to existing subsection
                 # Find the subsection and add after it
                 subsection_pattern = rf'({re.escape(phase_subsection)}[^\n]*\n)'
@@ -209,7 +210,6 @@ class DocumentUpdater:
                 )
             
             doc_path.write_text(updated_content)
-            self.logger.info(f"✅ Added new issue to {doc_name}: {issue_description[:50]}...")
             return True
                 
         except Exception as e:
@@ -255,6 +255,7 @@ class DocumentUpdater:
             component_pattern = rf'(\*\*{re.escape(component_name)}\*\*[^\n]*)'
             
             if re.search(component_pattern, content):
+                pass
                 # Update existing component
                 updated_content = re.sub(
                     component_pattern,
@@ -263,6 +264,7 @@ class DocumentUpdater:
                     count=1
                 )
             else:
+                pass
                 # Add new component to the list
                 # Find "### Current Components" and add after it
                 components_pattern = r'(###\s+Current\s+Components\s*\n)'
@@ -274,7 +276,6 @@ class DocumentUpdater:
                 )
             
             doc_path.write_text(updated_content)
-            self.logger.info(f"✅ Updated ARCHITECTURE.md: {component_name} - {change_description}")
             return True
                 
         except Exception as e:
@@ -333,7 +334,6 @@ class DocumentUpdater:
             )
             
             doc_path.write_text(updated_content)
-            self.logger.info(f"✅ Marked feature complete in PRIMARY_OBJECTIVES.md: {feature_name}")
             return True
                 
         except Exception as e:
@@ -381,7 +381,6 @@ class DocumentUpdater:
             updated_content = content[:insert_pos] + drift_note + content[insert_pos:]
             
             doc_path.write_text(updated_content)
-            self.logger.info(f"✅ Updated architectural drift: {drift_reduction}")
             return True
                 
         except Exception as e:

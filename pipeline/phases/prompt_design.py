@@ -100,7 +100,7 @@ class PromptDesignPhase(LoopDetectionMixin, BasePhase):
         # IPC INTEGRATION: Read objectives for prompt design priorities
         objectives = self._read_objectives()
         if objectives:
-            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+            pass
         
         # IPC INTEGRATION: Write status at start
         self._write_status({
@@ -250,7 +250,7 @@ class PromptDesignPhase(LoopDetectionMixin, BasePhase):
                 
                 # Register with PromptRegistry
                 if self.prompt_registry.register_prompt(spec):
-                    self.logger.info(f"✅ Successfully registered prompt: {spec['name']}")
+                    pass
                     
                     # IPC INTEGRATION: Write completion status
                     self._write_status({

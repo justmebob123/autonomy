@@ -269,7 +269,6 @@ class ObjectiveManager:
         
         # STEP 2: Parse markdown files
         self.logger.info("\n" + "=" * 80)
-        self.logger.info("📄 STEP 2: Parsing markdown files")
         
         objectives = {
             "primary": {},
@@ -284,16 +283,13 @@ class ObjectiveManager:
             
             self.logger.info(f"\n   Parsing {level.value} objectives from {filepath.name}")
             level_objectives = self._parse_objective_file(filepath, level)
-            self.logger.info(f"   ✓ Parsed {len(level_objectives)} objectives")
             
             for obj_id, obj in level_objectives.items():
                 self.logger.info(f"      {obj_id}: tasks={obj.tasks} (length: {len(obj.tasks)})")
             
             # STEP 3: Merge task lists from state
-            self.logger.info(f"\n   🔀 Merging task lists for {level.value} objectives...")
             
             for obj_id, obj in level_objectives.items():
-                self.logger.info(f"\n      🎯 Processing objective '{obj_id}'")
                 self.logger.info(f"         Before merge: obj.tasks = {obj.tasks} (length: {len(obj.tasks)})")
                 
                 # Check level exists
@@ -302,7 +298,6 @@ class ObjectiveManager:
                     self.logger.info(f"         Available levels: {list(state.objectives.keys())}")
                     continue
                 
-                self.logger.info(f"         ✓ Level '{level.value}' found in state.objectives")
                 
                 # Check obj_id exists
                 if obj_id not in state.objectives[level.value]:
@@ -310,7 +305,6 @@ class ObjectiveManager:
                     self.logger.info(f"         Available IDs: {list(state.objectives[level.value].keys())}")
                     continue
                 
-                self.logger.info(f"         ✓ ID '{obj_id}' found in state.objectives[{level.value}]")
                 
                 # Get state data
                 state_data = state.objectives[level.value][obj_id]
@@ -322,7 +316,6 @@ class ObjectiveManager:
                     # Get tasks
                     if 'tasks' in state_data:
                         tasks = state_data.get('tasks', [])
-                        self.logger.info(f"         ✓ 'tasks' key found")
                         self.logger.info(f"         tasks type: {type(tasks)}")
                         self.logger.info(f"         tasks length: {len(tasks) if isinstance(tasks, list) else 'NOT A LIST'}")
                         self.logger.info(f"         tasks content: {tasks[:5] if isinstance(tasks, list) and len(tasks) > 5 else tasks}")
@@ -332,7 +325,6 @@ class ObjectiveManager:
                         obj.total_tasks = len(obj.tasks)
                         obj.completed_tasks = state_data.get('completed_tasks', [])
                         
-                        self.logger.info(f"         ✅ After merge: obj.tasks = {obj.tasks[:5] if len(obj.tasks) > 5 else obj.tasks} (length: {len(obj.tasks)})")
                     else:
                         self.logger.warning(f"         ✗ 'tasks' key NOT FOUND in state_data")
                 else:
@@ -402,6 +394,7 @@ class ObjectiveManager:
             
             # Section content
             elif in_section == 'tasks' and (line.startswith('- [x]') or line.startswith('- [ ]')):
+                pass
                 # Task items - will be linked when tasks are created
                 pass
             
@@ -431,6 +424,7 @@ class ObjectiveManager:
                 state.objectives[level] = {}
             
             for obj_id, obj in level_objs.items():
+                pass
                 # CRITICAL: Preserve task list from existing state
                 # Markdown files don't contain task IDs - those are in state
                 existing_tasks = []
@@ -488,6 +482,7 @@ class ObjectiveManager:
     def check_dependencies_met(self, objective: Objective, state: PipelineState) -> bool:
         """Check if objective's dependencies are met"""
         for dep_id in objective.depends_on:
+            pass
             # Find dependency objective
             dep_obj = None
             for level in ["primary", "secondary", "tertiary"]:
@@ -607,7 +602,6 @@ class ObjectiveManager:
         ]
         
         # DEBUG: Log what we're checking
-        self.logger.info(f"  🔍 Checking objective '{objective.title}' (ID: {objective.id})")
         self.logger.info(f"     Objective.tasks list: {len(objective.tasks)} task IDs")
         self.logger.info(f"     State.tasks dict: {len(state.tasks)} total tasks")
         self.logger.info(f"     Found {len(pending_tasks)} pending tasks (NEW or IN_PROGRESS)")
@@ -618,7 +612,6 @@ class ObjectiveManager:
             self.logger.info(f"     Tasks that exist in state: {existing_count}/{len(objective.tasks)}")
             if existing_count < len(objective.tasks):
                 missing = [tid for tid in objective.tasks if tid not in state.tasks]
-                self.logger.warning(f"     ⚠️ Missing task IDs: {missing[:5]}")
             
             # Show status breakdown
             status_counts = {}

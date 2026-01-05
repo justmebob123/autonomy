@@ -104,6 +104,7 @@ class ToolCallHandler:
             if tool_count > 0:
                 self.logger.info(f"Initialized custom tool handler with {tool_count} tools")
         except Exception as e:
+            pass
             # Fail silently - custom tools are optional
             pass
         
@@ -329,6 +330,7 @@ class ToolCallHandler:
             file_lines.append(f"[{activity['timestamp']}] LIST: {directory}")
             
         elif tool_name == 'create_python_file' or tool_name == 'create_file':
+            pass
             # Try multiple parameter names (filepath, file_path, path)
             file_path = args.get('filepath') or args.get('file_path') or args.get('path') or 'unknown'
             console_lines.append(f"✨ [AI Activity] Creating file: {file_path}")
@@ -340,6 +342,7 @@ class ToolCallHandler:
                     console_lines.append(f"   └─ Content length: {len(content)} chars")
             
         else:
+            pass
             # Generic logging for other tools
             console_lines.append(f"🤖 [AI Activity] Calling tool: {tool_name}")
             file_lines.append(f"[{activity['timestamp']}] TOOL: {tool_name}")
@@ -414,6 +417,7 @@ class ToolCallHandler:
         
         # Handle empty string names (common AI model error)
         if not name or name.strip() == "":
+            pass
             # Try to infer tool name from arguments
             inferred_name = self._infer_tool_name_from_args(args)
             
@@ -425,10 +429,12 @@ class ToolCallHandler:
             self.logger.warning(f"=" * 70)
             
             if inferred_name != "unknown":
+                pass
                 # Use inferred name and continue execution
                 name = inferred_name
                 func["name"] = name  # Update the function object
             else:
+                pass
                 # Could not infer - return error
                 self.logger.error(f"Could not infer tool name from arguments")
                 return {
@@ -463,6 +469,7 @@ class ToolCallHandler:
         self.logger.info(f"🔧 EXECUTING TOOL: {name}")
         self.logger.info(f"{'─'*70}")
         if args:
+            pass
             # Show arguments in a readable format
             arg_preview = {}
             for k, v in list(args.items())[:10]:  # Limit to first 10 args
@@ -481,6 +488,7 @@ class ToolCallHandler:
         
         handler = self._handlers.get(name)
         if not handler:
+            pass
             # Check if this is a custom tool
             if hasattr(self, 'custom_tool_handler') and self.custom_tool_handler:
                 if self.custom_tool_handler.is_custom_tool(name):
@@ -527,6 +535,7 @@ class ToolCallHandler:
             }
         
         try:
+            pass
             # INTEGRATION: Record tool usage start time
             import time
             start_time = time.time()
@@ -553,7 +562,6 @@ class ToolCallHandler:
             self.logger.info(f"  ⏱️  Execution time: {execution_time:.2f}s")
             if not success:
                 error_msg = result.get("error", "Unknown error")
-                self.logger.info(f"  ⚠️  Error: {error_msg[:200]}")
             elif "message" in result:
                 msg = result.get("message", "")
                 if msg and len(msg) < 200:
@@ -633,7 +641,6 @@ class ToolCallHandler:
         # OPTIMIZATION: Coding phase should NOT create documentation files
         # Documentation files should only be created by documentation phase
         if filepath.endswith('.md'):
-            self.logger.warning(f"⚠️  Coding phase attempted to create .md file: {filepath}")
             self.logger.warning(f"    Documentation files should be created by documentation phase")
             return {
                 "tool": "create_file",
@@ -658,7 +665,6 @@ class ToolCallHandler:
         if not is_valid:
             self.logger.error(f"Syntax validation failed for {filepath}")
             self.logger.error(error_msg)
-            self.logger.warning(f"⚠️  Saving file anyway for debugging phase to fix")
             syntax_error = error_msg
         
         # CRITICAL FIX: Auto-create __init__.py files for Python packages
@@ -675,7 +681,7 @@ class ToolCallHandler:
                         init_full_path.write_text("# Auto-generated __init__.py\n")
                         self.logger.info(f"  📦 Auto-created: {init_path}")
                     except Exception as e:
-                        self.logger.warning(f"  ⚠️ Could not create {init_path}: {e}")
+                        pass
         
         # Create directory and file
         full_path = self.project_dir / filepath
@@ -787,6 +793,7 @@ class ToolCallHandler:
         if original in content:
             new_content = content.replace(original, new_code, 1)
         else:
+            pass
             # Try with normalized whitespace (strip leading/trailing, normalize internal)
             original_stripped = original.strip()
             
@@ -794,6 +801,7 @@ class ToolCallHandler:
             found = False
             for line_num, line in enumerate(content.split('\n'), 1):
                 if line.strip() == original_stripped:
+                    pass
                     # Found it! Get the indentation
                     indent = line[:len(line) - len(line.lstrip())]
                     
@@ -826,15 +834,16 @@ class ToolCallHandler:
                     lines[line_num - 1] = new_code_indented
                     new_content = '\n'.join(lines)
                     found = True
-                    self.logger.info(f"  ✓ Found code at line {line_num}, stripped {min_indent} spaces, applied {len(indent)} spaces indentation")
                     break
             
             if not found:
+                pass
                 # Try multi-line match with flexible whitespace
                 original_lines = [l.strip() for l in original.strip().split('\n') if l.strip()]
                 content_lines = content.split('\n')
                 
                 for i in range(len(content_lines) - len(original_lines) + 1):
+                    pass
                     # Check if this is a match
                     match = True
                     for j, orig_line in enumerate(original_lines):
@@ -843,6 +852,7 @@ class ToolCallHandler:
                             break
                     
                     if match:
+                        pass
                         # Found it! Get indentation from first line
                         first_line = content_lines[i]
                         indent = first_line[:len(first_line) - len(first_line.lstrip())]
@@ -876,11 +886,10 @@ class ToolCallHandler:
                         content_lines[i:i+len(original_lines)] = new_code_lines
                         new_content = '\n'.join(content_lines)
                         found = True
-                        self.logger.info(f"  ✓ Found multi-line code at line {i+1}, stripped {min_indent} spaces, applied {len(indent)} spaces indentation")
                         break
                 
                 if not found:
-                    self.logger.warning(f"  ⚠️ Original code not found in {filepath}")
+                    pass
                     
                     # ENHANCED: Create failure analysis
                     failure = ModificationFailure(
@@ -896,7 +905,6 @@ class ToolCallHandler:
                     
                     # Save detailed failure report
                     report_path = create_failure_report(failure, analysis, self.failures_dir)
-                    self.logger.info(f"  📄 Failure analysis saved: {report_path.name}")
                     
                     # Try to find similar code
                     similar = self._find_similar_code(content, original)
@@ -920,6 +928,7 @@ class ToolCallHandler:
         if filepath.endswith('.py'):
             valid, error = validate_python_syntax(new_content)
             if not valid:
+                pass
                 # ENHANCED: Create failure analysis for syntax errors
                 failure = ModificationFailure(
                     filepath=filepath,
@@ -932,7 +941,6 @@ class ToolCallHandler:
                 
                 analysis = self.failure_analyzer.analyze_modification_failure(failure)
                 report_path = create_failure_report(failure, analysis, self.failures_dir)
-                self.logger.info(f"  📄 Syntax error analysis saved: {report_path.name}")
                 
                 return {
                     "tool": "modify_file", 
@@ -961,6 +969,7 @@ class ToolCallHandler:
             patch_content = ''.join(diff)
             
             if patch_content:
+                pass
                 # Save the patch
                 from datetime import datetime
                 change_num = patch_manager._get_next_change_number()
@@ -971,7 +980,7 @@ class ToolCallHandler:
                 patch_path.write_text(patch_content)
                 self.logger.info(f"  💾 Saved patch: {patch_filename}")
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Could not save patch: {e}")
+            pass
         
         # Validate syntax before writing
         is_valid, fixed_content, error_msg = self.syntax_validator.validate_and_fix(new_content, filepath)
@@ -987,17 +996,16 @@ class ToolCallHandler:
         if not is_valid:
             self.logger.error(f"Syntax validation failed for modified {filepath}")
             self.logger.error(error_msg)
-            self.logger.warning(f"⚠️  Saving file anyway for debugging phase to fix")
             syntax_error = error_msg
         
         full_path.write_text(new_content)
         
         # STAGE 1: Immediate Post-Fix Verification
-        self.logger.info(f"  🔍 Verifying fix...")
         verification_passed = True
         verification_errors = []
         
         try:
+            pass
             # 1. Re-read file to ensure write succeeded
             written_content = full_path.read_text()
             if written_content != new_content:
@@ -1024,12 +1032,14 @@ class ToolCallHandler:
             )
             
             if is_wrapping:
+                pass
                 # For wrapping operations (try/except, if/else, etc.)
                 # Just verify the new wrapped code was added
                 if new_code_normalized not in written_normalized:
                     verification_errors.append("Wrapped code not found in file - wrapping operation may have failed")
                     verification_passed = False
             else:
+                pass
                 # For replacement operations
                 # Verify original was removed AND new was added
                 if new_code_normalized not in written_normalized:
@@ -1073,7 +1083,6 @@ class ToolCallHandler:
             verification_passed = False
         
         if not verification_passed:
-            self.logger.warning(f"  ⚠️  Post-fix verification found issues:")
             for err in verification_errors:
                 self.logger.warning(f"     - {err}")
             
@@ -1090,7 +1099,6 @@ class ToolCallHandler:
             
             analysis = self.failure_analyzer.analyze_modification_failure(failure)
             report_path = create_failure_report(failure, analysis, self.failures_dir)
-            self.logger.info(f"  📄 Verification analysis saved: {report_path.name}")
             
             # ARCHITECTURAL CHANGE: DO NOT automatically rollback!
             # Instead, return the state and let the AI decide what to do
@@ -1113,7 +1121,6 @@ class ToolCallHandler:
                 "rollback_available": bool(patch_content and 'patch_path' in locals())
             }
         
-        self.logger.info(f"  ✅ Verification passed")
         self.files_modified.append(filepath)
         self.logger.info(f"  ✏️ Modified: {filepath}")
         
@@ -1172,8 +1179,6 @@ class ToolCallHandler:
         }
         self.issues.append(issue)
         
-        self.logger.warning(f"  ⚠️ Issue [{issue['type']}] {issue['filepath']}: "
-                           f"{issue['description'][:60] if issue['description'] else ''}")
         
         return {"tool": "report_issue", "success": True, "issue": issue}
     
@@ -1188,13 +1193,11 @@ class ToolCallHandler:
         filepath = self._normalize_filepath(filepath)
         
         self.approved.append(filepath)
-        self.logger.info(f"  ✓ Approved: {filepath}")
         return {"tool": "approve_code", "success": True, "filepath": filepath}
     
     def _handle_mark_task_complete(self, args: Dict) -> Dict:
         """Handle mark_task_complete tool - explicitly marks task as complete without changes"""
         reason = args.get("reason", "File is already complete and correct")
-        self.logger.info(f"  ✅ Task marked complete: {reason}")
         return {
             "tool": "mark_task_complete",
             "success": True,
@@ -1394,6 +1397,7 @@ class ToolCallHandler:
             }
         
         try:
+            pass
             # Execute command in project directory
             result = subprocess.run(
                 command,
@@ -1673,6 +1677,7 @@ class ToolCallHandler:
                     "signature": validation["signature"]
                 }
             else:
+                pass
                 # Invalid parameters found
                 invalid = validation.get("invalid_parameters", [])
                 valid = validation.get("valid_parameters", [])
@@ -1923,7 +1928,6 @@ class ToolCallHandler:
         code_quality_notes = args.get("code_quality_notes", "")
         recommended_focus = args.get("recommended_focus", "")
         
-        self.logger.info("  📊 Project Status Analysis:")
         self.logger.info(f"    Completed: {len(objectives_completed)} objectives")
         self.logger.info(f"    In Progress: {len(objectives_in_progress)} objectives")
         self.logger.info(f"    Pending: {len(objectives_pending)} objectives")
@@ -2071,6 +2075,7 @@ class ToolCallHandler:
             }
         
         try:
+            pass
             # Read current README
             with open(readme_path, 'r') as f:
                 content = f.read()
@@ -2147,6 +2152,7 @@ class ToolCallHandler:
             }
         
         try:
+            pass
             # Read current README
             with open(readme_path, 'r') as f:
                 readme_content = f.read()
@@ -2168,6 +2174,7 @@ class ToolCallHandler:
                     else:  # before_section
                         updated_content = readme_content.replace(ref_section, new_section + ref_section)
                 else:
+                    pass
                     # Reference section not found, add at end
                     updated_content = readme_content.rstrip() + new_section
             else:
@@ -2202,7 +2209,6 @@ class ToolCallHandler:
         """
         confirmation_notes = args.get("confirmation_notes", "")
         
-        self.logger.info("  ✅ Documentation confirmed current")
         if confirmation_notes:
             self.logger.info(f"    Notes: {confirmation_notes}")
         
@@ -2225,7 +2231,6 @@ class ToolCallHandler:
         try:
             result = self.system_analyzer.analyze_connectivity()
             
-            self.logger.info(f"📊 Connectivity Analysis:")
             self.logger.info(f"   Connected: {result.get('connected_vertices', 0)}/{result.get('total_vertices', 0)} phases")
             self.logger.info(f"   Edges: {result.get('total_edges', 0)}")
             self.logger.info(f"   Avg Reachability: {result.get('avg_reachability', 0.0):.1f} phases")
@@ -2335,7 +2340,7 @@ class ToolCallHandler:
             self.logger.info(f"   Circular calls: {result.get('total_circular', 0)} functions")
             
             if result.get('warning', None):
-                self.logger.warning("   ⚠️  High number of recursive patterns detected")
+                pass
             
             return {
                 "tool": "find_recursive_patterns",
@@ -2440,7 +2445,6 @@ class ToolCallHandler:
             analyzer = ComplexityAnalyzer(str(self.project_dir), self.logger)
             target = args.get('target')
             
-            self.logger.info(f"🔍 Analyzing code complexity...")
             result = analyzer.analyze(target)
             
             # Generate report
@@ -2450,7 +2454,6 @@ class ToolCallHandler:
             report_file = self.project_dir / "COMPLEXITY_REPORT.txt"
             report_file.write_text(report)
             
-            self.logger.info(f"✅ Complexity analysis complete")
             self.logger.info(f"   Total functions: {result.total_functions}")
             self.logger.info(f"   Average complexity: {result.average_complexity:.2f}")
             self.logger.info(f"   Critical functions: {result.critical_count}")
@@ -2479,7 +2482,6 @@ class ToolCallHandler:
             detector = DeadCodeDetector(str(self.project_dir), self.logger)
             target = args.get('target')
             
-            self.logger.info(f"🔍 Detecting dead code...")
             result = detector.analyze(target)
             
             # Generate report
@@ -2489,7 +2491,6 @@ class ToolCallHandler:
             report_file = self.project_dir / "DEAD_CODE_REPORT.txt"
             report_file.write_text(report)
             
-            self.logger.info(f"✅ Dead code detection complete")
             self.logger.info(f"   Unused functions: {result.total_unused_functions}")
             self.logger.info(f"   Unused methods: {result.total_unused_methods}")
             self.logger.info(f"   Unused imports: {result.total_unused_imports}")
@@ -2518,7 +2519,6 @@ class ToolCallHandler:
             finder = IntegrationGapFinder(str(self.project_dir), self.logger)
             target = args.get('target')
             
-            self.logger.info(f"🔍 Finding integration gaps...")
             result = finder.analyze(target)
             
             # Generate report
@@ -2528,7 +2528,6 @@ class ToolCallHandler:
             report_file = self.project_dir / "INTEGRATION_GAP_REPORT.txt"
             report_file.write_text(report)
             
-            self.logger.info(f"✅ Integration gap analysis complete")
             self.logger.info(f"   Unused classes: {result.total_unused_classes}")
             self.logger.info(f"   Classes with gaps: {result.total_classes_with_gaps}")
             self.logger.info(f"   Report: INTEGRATION_GAP_REPORT.txt")
@@ -2556,7 +2555,6 @@ class ToolCallHandler:
             detector = IntegrationConflictDetector(str(self.project_dir), self.logger)
             target = args.get('target')
             
-            self.logger.info(f"🔍 Detecting integration conflicts...")
             result = detector.analyze(target)
             
             # Generate report
@@ -2566,7 +2564,6 @@ class ToolCallHandler:
             report_file = self.project_dir / "INTEGRATION_CONFLICT_REPORT.txt"
             report_file.write_text(report)
             
-            self.logger.info(f"✅ Integration conflict detection complete")
             self.logger.info(f"   Total conflicts: {result.total_conflicts}")
             if result.duplicate_definitions:
                 self.logger.info(f"   Duplicate definitions: {len(result.duplicate_definitions)}")
@@ -2597,7 +2594,6 @@ class ToolCallHandler:
             generator = CallGraphGenerator(str(self.project_dir), self.logger)
             target = args.get('target')
             
-            self.logger.info(f"🔍 Generating call graph...")
             result = generator.analyze(target)
             
             # Generate report
@@ -2612,7 +2608,6 @@ class ToolCallHandler:
             dot_file = self.project_dir / "call_graph.dot"
             dot_file.write_text(dot_graph)
             
-            self.logger.info(f"✅ Call graph generation complete")
             self.logger.info(f"   Total functions: {result.total_functions}")
             self.logger.info(f"   Total calls: {result.total_calls}")
             self.logger.info(f"   Report: CALL_GRAPH_REPORT.txt")
@@ -2647,7 +2642,6 @@ class ToolCallHandler:
             
             target = args.get('target', str(self.project_dir))
             
-            self.logger.info(f"🔍 Running deep recursive analysis...")
             
             # Run external script
             result = subprocess.run(
@@ -2659,7 +2653,6 @@ class ToolCallHandler:
             )
             
             if result.returncode == 0:
-                self.logger.info(f"✅ Deep analysis complete")
                 self.logger.info(f"   Report: deep_analysis.txt")
                 
                 return {
@@ -2695,7 +2688,6 @@ class ToolCallHandler:
             
             target = args.get('target', str(self.project_dir))
             
-            self.logger.info(f"🔍 Running advanced pattern analysis...")
             
             # Run external script
             result = subprocess.run(
@@ -2707,7 +2699,6 @@ class ToolCallHandler:
             )
             
             if result.returncode == 0:
-                self.logger.info(f"✅ Advanced analysis complete")
                 self.logger.info(f"   Report: advanced_analysis.txt")
                 
                 return {
@@ -2746,7 +2737,6 @@ class ToolCallHandler:
             output_format = args.get('output_format', 'text')
             recursive = args.get('recursive', True)
             
-            self.logger.info(f"🔍 Running unified analysis...")
             
             # Build command
             cmd = [sys.executable, str(script_path), target]
@@ -2767,7 +2757,7 @@ class ToolCallHandler:
             )
             
             if result.returncode == 0:
-                self.logger.info(f"✅ Unified analysis complete")
+                pass
                 
                 return {
                     "tool": "unified_analysis",
@@ -2808,7 +2798,7 @@ class ToolCallHandler:
             result = file_tools.append_to_file(filepath, content, ensure_newline)
             
             if result['success']:
-                self.logger.info(f"✅ Content appended to {filepath}")
+                pass
                 # Track as file modification
                 if filepath not in self.files_modified:
                     self.files_modified.append(filepath)
@@ -2841,7 +2831,7 @@ class ToolCallHandler:
             result = file_tools.update_section(filepath, section_title, new_content, create_if_missing)
             
             if result['success']:
-                self.logger.info(f"✅ Section updated in {filepath}")
+                pass
                 # Track as file modification or creation
                 if result.get('created'):
                     if filepath not in self.files_created:
@@ -2878,7 +2868,7 @@ class ToolCallHandler:
             result = file_tools.insert_after(filepath, marker, content, first_occurrence)
             
             if result['success']:
-                self.logger.info(f"✅ Content inserted in {filepath}")
+                pass
                 # Track as file modification
                 if filepath not in self.files_modified:
                     self.files_modified.append(filepath)
@@ -2911,7 +2901,7 @@ class ToolCallHandler:
             result = file_tools.insert_before(filepath, marker, content, first_occurrence)
             
             if result['success']:
-                self.logger.info(f"✅ Content inserted in {filepath}")
+                pass
                 # Track as file modification
                 if filepath not in self.files_modified:
                     self.files_modified.append(filepath)
@@ -2945,7 +2935,7 @@ class ToolCallHandler:
             result = file_tools.replace_between(filepath, start_marker, end_marker, new_content, include_markers)
             
             if result['success']:
-                self.logger.info(f"✅ Content replaced in {filepath}")
+                pass
                 # Track as file modification
                 if filepath not in self.files_modified:
                     self.files_modified.append(filepath)
@@ -2972,10 +2962,8 @@ class ToolCallHandler:
             
             # If target is None or not specified, analyze all files
             if target is None:
-                self.logger.info(f"🔍 Detecting bugs in all files...")
                 result = detector.analyze_all()
             else:
-                self.logger.info(f"🔍 Detecting bugs in {target}...")
                 result = detector.detect(target)
             
             # Generate report
@@ -2985,7 +2973,6 @@ class ToolCallHandler:
             report_file = self.project_dir / "BUG_DETECTION_REPORT.txt"
             report_file.write_text(report)
             
-            self.logger.info(f"✅ Bug detection complete")
             self.logger.info(f"   Total bugs: {len(result.bugs)}")
             if result.severity_counts:
                 for severity, count in result.severity_counts.items():
@@ -3017,10 +3004,8 @@ class ToolCallHandler:
             
             # If target is None or not specified, analyze all files
             if target is None:
-                self.logger.info(f"🔍 Detecting anti-patterns in all files...")
                 result = detector.analyze_all()
             else:
-                self.logger.info(f"🔍 Detecting anti-patterns in {target}...")
                 result = detector.detect(target)
             
             # Generate report
@@ -3030,7 +3015,6 @@ class ToolCallHandler:
             report_file = self.project_dir / "ANTIPATTERN_REPORT.txt"
             report_file.write_text(report)
             
-            self.logger.info(f"✅ Anti-pattern detection complete")
             self.logger.info(f"   Total anti-patterns: {len(result.antipatterns)}")
             if result.pattern_counts:
                 for pattern, count in result.pattern_counts.items():
@@ -3060,7 +3044,6 @@ class ToolCallHandler:
             analyzer = DataFlowAnalyzer(str(self.project_dir), self.logger)
             target = args.get('filepath', args.get('target'))
             
-            self.logger.info(f"🔍 Analyzing data flow in {target}...")
             result = analyzer.analyze(target)
             
             # Generate report
@@ -3070,7 +3053,6 @@ class ToolCallHandler:
             report_file = self.project_dir / "DATAFLOW_REPORT.txt"
             report_file.write_text(report)
             
-            self.logger.info(f"✅ Data flow analysis complete")
             self.logger.info(f"   Total variables: {len(result.variables)}")
             self.logger.info(f"   Uninitialized: {len(result.uninitialized_vars)}")
             self.logger.info(f"   Unused assignments: {len(result.unused_assignments)}")
@@ -3124,7 +3106,6 @@ class ToolCallHandler:
                 fix_approach=fix_approach
             )
             
-            self.logger.info(f"  ✅ Created refactoring task: {task.task_id} - {task.title}")
             
             return {
                 "tool": "create_refactoring_task",
@@ -3184,7 +3165,6 @@ class ToolCallHandler:
             if 'error_message' in args:
                 task.error_message = args['error_message']
             
-            self.logger.info(f"  ✅ Updated task {task_id}: status={task.status.value}")
             
             return {
                 "tool": "update_refactoring_task",
@@ -3268,7 +3248,6 @@ class ToolCallHandler:
             
             progress = self._refactoring_manager.get_progress()
             
-            self.logger.info(f"  📊 Refactoring progress: {progress['completion_percentage']:.1f}% complete")
             self.logger.info(f"     Total: {progress['total']}, Completed: {progress['completed']}, Pending: {progress['pending']}")
             
             return {
@@ -3288,6 +3267,7 @@ class ToolCallHandler:
     def _handle_create_issue_report(self, args: Dict) -> Dict:
         """Handle create_issue_report tool."""
         try:
+            pass
             # Get or create refactoring task manager
             if not hasattr(self, '_refactoring_manager') or self._refactoring_manager is None:
                 from pipeline.state.refactoring_task import RefactoringTaskManager
@@ -3310,6 +3290,7 @@ class ToolCallHandler:
             # Map old parameters to new ones if present
             impact_analysis = args.get('impact_analysis')
             if not impact_analysis:
+                pass
                 # Try old parameter names
                 impact_analysis = args.get('description', '')
                 if not impact_analysis:
@@ -3360,6 +3341,7 @@ class ToolCallHandler:
     def _handle_request_developer_review(self, args: Dict) -> Dict:
         """Handle request_developer_review tool."""
         try:
+            pass
             # Get or create refactoring task manager
             if not hasattr(self, '_refactoring_manager') or self._refactoring_manager is None:
                 from pipeline.state.refactoring_task import RefactoringTaskManager
@@ -3423,7 +3405,6 @@ class ToolCallHandler:
             check_naming = args.get('check_naming', True)
             check_missing = args.get('check_missing', True)
             
-            self.logger.info(f"🔍 Validating architecture against MASTER_PLAN.md and ARCHITECTURE.md")
             
             validator = ArchitectureValidator(self.project_dir, self.logger)
             results = validator.validate_all()
@@ -3444,7 +3425,6 @@ class ToolCallHandler:
             for v in all_violations:
                 by_severity[v.severity] = by_severity.get(v.severity, 0) + 1
             
-            self.logger.info(f"✅ Architecture validation complete")
             self.logger.info(f"   Total violations: {len(all_violations)}")
             if by_severity:
                 for severity in ['critical', 'high', 'medium', 'low']:
@@ -3494,7 +3474,6 @@ class ToolCallHandler:
             scope = args.get('scope', 'project')
             include_tests = args.get('include_tests', False)
             
-            self.logger.info(f"🔍 Detecting duplicate implementations (threshold: {similarity_threshold})")
             
             detector = DuplicateDetector(self.project_dir, self.logger)
             duplicate_sets = detector.find_duplicates(
@@ -3510,7 +3489,6 @@ class ToolCallHandler:
                 'estimated_reduction': sum(ds.estimated_reduction for ds in duplicate_sets)
             }
             
-            self.logger.info(f"✅ Found {len(duplicate_sets)} duplicate sets")
             if duplicate_sets:
                 self.logger.info(f"   Estimated reduction: ~{result.get('estimated_reduction', 0)} lines")
             
@@ -3536,12 +3514,10 @@ class ToolCallHandler:
             file2 = args['file2']
             comparison_type = args.get('comparison_type', 'full')
             
-            self.logger.info(f"🔍 Comparing {file1} vs {file2}")
             
             comparator = FileComparator(self.project_dir, self.logger)
             comparison = comparator.compare(file1, file2, comparison_type)
             
-            self.logger.info(f"✅ Comparison complete")
             self.logger.info(f"   Similarity: {comparison.similarity_score:.2%}")
             self.logger.info(f"   Common features: {len(comparison.common_features)}")
             self.logger.info(f"   Conflicts: {len(comparison.conflicts)}")
@@ -3591,7 +3567,6 @@ class ToolCallHandler:
                 'dependencies_resolved': include_dependencies
             }
             
-            self.logger.info(f"✅ Extracted {len(extracted)} features")
             self.logger.info(f"   Total lines: {result.get('total_lines', 0)}")
             
             return {
@@ -3625,7 +3600,6 @@ class ToolCallHandler:
                 check_objectives=check_objectives
             )
             
-            self.logger.info(f"✅ Analysis complete")
             self.logger.info(f"   Consistency score: {consistency.consistency_score:.2%}")
             self.logger.info(f"   Issues found: {len(consistency.issues)}")
             self.logger.info(f"   Refactoring needed: {consistency.refactoring_needed}")
@@ -3681,7 +3655,6 @@ class ToolCallHandler:
                 'estimated_time': f"{len(plan) * 15} minutes"
             }
             
-            self.logger.info(f"✅ Plan generated with {len(plan)} steps")
             
             return {
                 "tool": "suggest_refactoring_plan",
@@ -3703,7 +3676,6 @@ class ToolCallHandler:
             target_file = args['target_file']
             merge_strategy = args.get('merge_strategy', 'ai_merge')
             
-            self.logger.info(f"🔀 Merging {len(source_files)} files into {target_file}")
             
             # Create backup
             import shutil
@@ -3746,21 +3718,26 @@ class ToolCallHandler:
                     
                     for i, node in enumerate(tree.body):
                         if isinstance(node, (ast.Import, ast.ImportFrom)):
+                            pass
                             # Collect imports
                             all_imports.add(ast.unparse(node))
                         elif isinstance(node, ast.ClassDef):
+                            pass
                             # Collect classes (keep first occurrence)
                             if node.name not in all_classes:
                                 all_classes[node.name] = ast.unparse(node)
                         elif isinstance(node, ast.FunctionDef):
+                            pass
                             # Collect functions (keep first occurrence)
                             if node.name not in all_functions:
                                 all_functions[node.name] = ast.unparse(node)
                         elif i == 0 and isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
+                            pass
                             # Skip module docstring (first node that's a string expression)
                             # It's already captured by ast.get_docstring()
                             continue
                         else:
+                            pass
                             # Collect other code (constants, etc.)
                             all_other_code.append(ast.unparse(node))
                 
@@ -3819,7 +3796,6 @@ class ToolCallHandler:
                 'functions_merged': len(all_functions)
             }
             
-            self.logger.info(f"✅ Merge complete: {len(all_imports)} imports, {len(all_classes)} classes, {len(all_functions)} functions")
             
             return {
                 "tool": "merge_file_implementations",
@@ -3842,7 +3818,6 @@ class ToolCallHandler:
             refactored_files = args['refactored_files']
             check_syntax = args.get('check_syntax', True)
             
-            self.logger.info(f"✅ Validating {len(refactored_files)} refactored files")
             
             syntax_errors = []
             
@@ -3862,7 +3837,6 @@ class ToolCallHandler:
                 'syntax_errors': syntax_errors
             }
             
-            self.logger.info(f"✅ Validation {'passed' if result.get('valid', False) else 'found issues'}")
             
             return {
                 "tool": "validate_refactoring",
@@ -3913,7 +3887,6 @@ class ToolCallHandler:
                 'backup_location': backup_location
             }
             
-            self.logger.info(f"✅ Cleanup complete: {len(files_removed)} files removed")
             
             return {
                 "tool": "cleanup_redundant_files",
@@ -3940,9 +3913,9 @@ class ToolCallHandler:
             filepath = args.get('filepath')
             check_all = args.get('check_all_files', False)
             
-            self.logger.info(f"🔍 Validating attribute access in {filepath if not check_all else 'all files'}")
             
             if check_all:
+                pass
                 # Check all Python files
                 from pathlib import Path
                 files = [f for f in Path(self.project_dir).rglob("*.py") 
@@ -3958,11 +3931,10 @@ class ToolCallHandler:
                     all_issues.extend(issues)
             
             if all_issues:
-                self.logger.warning(f"⚠️  Found {len(all_issues)} attribute access issues")
                 for issue in all_issues[:5]:  # Show first 5
                     self.logger.warning(f"  • {issue['file']}:{issue.get('line', '?')}: {issue['message']}")
             else:
-                self.logger.info("✅ No attribute access issues found")
+                pass
             
             return {
                 "tool": "validate_attribute_access",
@@ -3986,18 +3958,16 @@ class ToolCallHandler:
             
             filepath = args.get('filepath')
             
-            self.logger.info(f"🔍 Verifying import-class matches in {filepath}")
             
             full_path = self.project_dir / filepath
             matcher = ImportClassMatcher(str(full_path), self.logger)
             issues = matcher.validate()
             
             if issues:
-                self.logger.warning(f"⚠️  Found {len(issues)} import-class mismatch issues")
                 for issue in issues[:5]:  # Show first 5
                     self.logger.warning(f"  • Line {issue.get('line', '?')}: {issue['message']}")
             else:
-                self.logger.info("✅ All imports match class names")
+                pass
             
             return {
                 "tool": "verify_import_class_match",
@@ -4022,18 +3992,16 @@ class ToolCallHandler:
             filepath = args.get('filepath')
             class_name = args.get('class_name')
             
-            self.logger.info(f"🔍 Checking abstract methods in {class_name}")
             
             full_path = self.project_dir / filepath
             checker = AbstractMethodChecker(str(full_path), class_name, self.logger)
             issues = checker.validate()
             
             if issues:
-                self.logger.warning(f"⚠️  Found {len(issues)} abstract method issues")
                 for issue in issues:
                     self.logger.warning(f"  • {issue['message']}")
             else:
-                self.logger.info(f"✅ All abstract methods implemented in {class_name}")
+                pass
             
             return {
                 "tool": "check_abstract_methods",
@@ -4062,7 +4030,6 @@ class ToolCallHandler:
             
             is_valid, errors = validator.validate_python_code(code, filename)
             
-            self.logger.info(f"  🔍 Syntax validation: {'✅ Valid' if is_valid else '❌ Invalid'}")
             if errors:
                 self.logger.info(f"     Errors: {len(errors)}")
             
@@ -4145,18 +4112,16 @@ class ToolCallHandler:
         try:
             from pipeline.analysis.function_call_validator import FunctionCallValidator
             
-            self.logger.info("🔍 Validating function calls...")
             
             validator = FunctionCallValidator(str(self.project_dir))
             result = validator.validate_all()
             
             errors = result.get('errors', [])
             if errors:
-                self.logger.warning(f"⚠️  Found {len(errors)} function call errors")
                 for err in errors[:5]:  # Show first 5
                     self.logger.warning(f"  • {err['file']}:{err['line']}: {err['message']}")
             else:
-                self.logger.info("✅ No function call errors found")
+                pass
             
             return {
                 "tool": "validate_function_calls",
@@ -4179,18 +4144,16 @@ class ToolCallHandler:
         try:
             from pipeline.analysis.method_existence_validator import MethodExistenceValidator
             
-            self.logger.info("🔍 Validating method existence...")
             
             validator = MethodExistenceValidator(str(self.project_dir))
             result = validator.validate_all()
             
             errors = result.get('errors', [])
             if errors:
-                self.logger.warning(f"⚠️  Found {len(errors)} method existence errors")
                 for err in errors[:5]:  # Show first 5
                     self.logger.warning(f"  • {err['file']}:{err['line']}: {err['class_name']}.{err['method_name']} does not exist")
             else:
-                self.logger.info("✅ No method existence errors found")
+                pass
             
             return {
                 "tool": "validate_method_existence",
@@ -4213,18 +4176,16 @@ class ToolCallHandler:
         try:
             from pipeline.analysis.dict_structure_validator import DictStructureValidator
             
-            self.logger.info("🔍 Validating dictionary structures...")
             
             validator = DictStructureValidator(str(self.project_dir))
             result = validator.validate_all()
             
             errors = result.get('errors', [])
             if errors:
-                self.logger.warning(f"⚠️  Found {len(errors)} dictionary structure errors")
                 for err in errors[:5]:  # Show first 5
                     self.logger.warning(f"  • {err['file']}:{err['line']}: {err['message']}")
             else:
-                self.logger.info("✅ No dictionary structure errors found")
+                pass
             
             return {
                 "tool": "validate_dict_structure",
@@ -4247,18 +4208,16 @@ class ToolCallHandler:
         try:
             from pipeline.analysis.type_usage_validator import TypeUsageValidator
             
-            self.logger.info("🔍 Validating type usage...")
             
             validator = TypeUsageValidator(str(self.project_dir))
             result = validator.validate_all()
             
             errors = result.get('errors', [])
             if errors:
-                self.logger.warning(f"⚠️  Found {len(errors)} type usage errors")
                 for err in errors[:5]:  # Show first 5
                     self.logger.warning(f"  • {err['file']}:{err['line']}: {err['message']}")
             else:
-                self.logger.info("✅ No type usage errors found")
+                pass
             
             return {
                 "tool": "validate_type_usage",
@@ -4281,17 +4240,15 @@ class ToolCallHandler:
         try:
             from ..analysis.code_validation import ToolHandlerVerifier
             
-            self.logger.info("🔍 Verifying tool-handler-registration chain")
             
             verifier = ToolHandlerVerifier(str(self.project_dir), self.logger)
             issues = verifier.validate()
             
             if issues:
-                self.logger.warning(f"⚠️  Found {len(issues)} tool-handler issues")
                 for issue in issues[:10]:  # Show first 10
                     self.logger.warning(f"  • {issue['type']}: {issue['message']}")
             else:
-                self.logger.info("✅ All tools have handlers and are registered")
+                pass
             
             return {
                 "tool": "verify_tool_handlers",
@@ -4315,18 +4272,16 @@ class ToolCallHandler:
             
             filepath = args.get('filepath')
             
-            self.logger.info(f"🔍 Validating dictionary access in {filepath}")
             
             full_path = self.project_dir / filepath
             validator = DictAccessValidator(str(full_path), self.logger)
             issues = validator.validate()
             
             if issues:
-                self.logger.warning(f"⚠️  Found {len(issues)} unsafe dictionary access patterns")
                 for issue in issues[:5]:  # Show first 5
                     self.logger.warning(f"  • Line {issue.get('line', '?')}: {issue['message']}")
             else:
-                self.logger.info("✅ All dictionary accesses are safe")
+                pass
             
             return {
                 "tool": "validate_dict_access",
@@ -4357,7 +4312,6 @@ class ToolCallHandler:
             check_modules = args.get('check_modules', True)
             check_typing = args.get('check_typing', True)
             
-            self.logger.info(f"🔍 Comprehensive import validation: {target_dir}")
             
             full_path = self.project_dir / target_dir
             errors = []
@@ -4463,10 +4417,10 @@ class ToolCallHandler:
                 for error in errors[:5]:
                     self.logger.warning(f"  • {error}")
             else:
-                self.logger.info("✅ No errors found")
+                pass
             
             if warnings:
-                self.logger.info(f"⚠️  Found {len(warnings)} warnings")
+                pass
             
             return {
                 "tool": "validate_imports_comprehensive",
@@ -4541,6 +4495,7 @@ class ToolCallHandler:
                 fixes_applied = 0
                 
                 if not dry_run:
+                    pass
                     # Fix malformed docstring quotes
                     fixed_content = re.sub(r'\\&amp;quot;\\&amp;quot;\\&amp;quot;', '"""', fixed_content)
                     fixes_applied += len(re.findall(pattern1, original_content))
@@ -4583,9 +4538,9 @@ class ToolCallHandler:
                 total_fixes += fixes_applied
             
             if results:
-                self.logger.info(f"✅ Processed {len(files_to_process)} files, fixed {total_fixes} issues")
+                pass
             else:
-                self.logger.info("✅ No HTML entity issues found")
+                pass
             
             return {
                 "tool": "fix_html_entities",
@@ -4655,13 +4610,12 @@ class ToolCallHandler:
                     text=True,
                     check=True
                 )
-                self.logger.info(f"   ✅ File moved (git history preserved)")
             except subprocess.CalledProcessError as e:
+                pass
                 # Fallback to regular move if git mv fails
                 self.logger.warning(f"   git mv failed, using regular move: {e.stderr}")
                 import shutil
                 shutil.move(str(source_full), str(dest_full))
-                self.logger.info(f"   ✅ File moved (git history NOT preserved)")
             
             # Update imports if requested
             updated_files = []
@@ -4678,9 +4632,8 @@ class ToolCallHandler:
                 for result in update_results:
                     if result.success and result.changes_made > 0:
                         updated_files.append(result.file)
-                        self.logger.info(f"      ✅ {result.file}: {result.changes_made} changes")
                     elif not result.success:
-                        self.logger.warning(f"      ⚠️  {result.file}: {result.error}")
+                        pass
             
             # Track in handler
             self.files_modified.append(destination_path)
@@ -4860,7 +4813,6 @@ class ToolCallHandler:
             new_path = args.get('new_path')
             operation = args.get('operation', 'move')
             
-            self.logger.info(f"🔍 Analyzing import impact: {operation} {file_path}")
             
             from .analysis.import_impact import ImportImpactAnalyzer
             
@@ -4928,6 +4880,7 @@ class ToolCallHandler:
             for file_type in file_types:
                 pattern = f"**/*.{file_type}"
                 for file_path in self.project_dir.glob(pattern):
+                    pass
                     # Skip hidden directories and common excludes
                     if any(part.startswith('.') for part in file_path.parts):
                         continue
@@ -4989,7 +4942,6 @@ class ToolCallHandler:
                     
                     files.append(file_info)
             
-            self.logger.info(f"  ✅ Found {total_files} source files")
             
             return {
                 "tool": "list_all_source_files",
@@ -5017,7 +4969,6 @@ class ToolCallHandler:
             check_naming = args.get('check_naming', True)
             check_dependencies = args.get('check_dependencies', True)
             
-            self.logger.info(f"🔍 Cross-referencing {file_path}")
             
             result = {
                 "tool": "cross_reference_file",
@@ -5039,6 +4990,7 @@ class ToolCallHandler:
             
             # Check placement
             if check_placement:
+                pass
                 # Extract directory from file path
                 from pathlib import Path
                 file_dir = str(Path(file_path).parent)
@@ -5050,6 +5002,7 @@ class ToolCallHandler:
                 # Try to find recommended location
                 placement_recommendation = None
                 if not placement_valid:
+                    pass
                     # Look for patterns in architecture
                     if 'service' in file_name.lower() and 'services/' in architecture_content.lower():
                         placement_recommendation = f"Should be in services/ directory per ARCHITECTURE.md"
@@ -5065,6 +5018,7 @@ class ToolCallHandler:
             
             # Check purpose
             if check_purpose:
+                pass
                 # Check if file or its functionality is mentioned in MASTER_PLAN
                 file_base = Path(file_path).stem
                 purpose_match = file_base.lower() in master_plan_content.lower()
@@ -5072,10 +5026,12 @@ class ToolCallHandler:
                 # Extract relevant section from MASTER_PLAN
                 purpose_description = None
                 if purpose_match:
+                    pass
                     # Find context around the mention
                     lines = master_plan_content.split('\n')
                     for i, line in enumerate(lines):
                         if file_base.lower() in line.lower():
+                            pass
                             # Get surrounding lines
                             start = max(0, i - 2)
                             end = min(len(lines), i + 3)
@@ -5087,6 +5043,7 @@ class ToolCallHandler:
             
             # Check naming
             if check_naming:
+                pass
                 # Check if follows Python naming conventions
                 file_name = Path(file_path).name
                 naming_valid = file_name.islower() or '_' in file_name
@@ -5104,6 +5061,7 @@ class ToolCallHandler:
             
             # Check dependencies
             if check_dependencies:
+                pass
                 # Read file and check imports
                 full_path = self.project_dir / file_path
                 if full_path.exists():
@@ -5123,6 +5081,7 @@ class ToolCallHandler:
                         # Check for problematic imports
                         dependency_issues = []
                         for imp in imports:
+                            pass
                             # Check for circular dependencies (importing from parent)
                             if '..' in imp:
                                 dependency_issues.append(f"Relative import may cause circular dependency: {imp}")
@@ -5296,7 +5255,6 @@ class ToolCallHandler:
                     "error": "Either file_path or pattern must be provided"
                 }
             
-            self.logger.info(f"🔍 Finding all related files for {file_path or pattern}")
             
             import ast
             from pathlib import Path
@@ -5368,7 +5326,6 @@ class ToolCallHandler:
                         "reasons": reasons
                     })
             
-            self.logger.info(f"  ✅ Found {len(related_files)} related files")
             
             return {
                 "tool": "find_all_related_files",
@@ -5465,6 +5422,7 @@ class ToolCallHandler:
                 
                 # Analyze complexity
                 if analyze_complexity:
+                    pass
                     # Count total nodes as rough complexity measure
                     total_nodes = sum(1 for _ in ast.walk(tree))
                     result["complexity_score"] = total_nodes

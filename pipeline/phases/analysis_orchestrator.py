@@ -121,11 +121,7 @@ class AnalysisOrchestrator:
         if coding_issues_count > 0 and tasks_created > 0:
             coding_ratio = coding_issues_count / tasks_created
             if coding_ratio > 0.5:
-                self.logger.warning(
-                    f"  🚨 INTELLIGENCE: {coding_issues_count}/{tasks_created} issues are CODING problems "
-                    f"(syntax: {syntax_errors}, imports: {import_errors})"
                 )
-                self.logger.warning("  🚨 These require CODING phase, not refactoring!")
                 self.logger.info("  ➡️  Returning to CODING phase to fix missing code...")
                 return -1  # Signal to return to coding phase
         
@@ -140,7 +136,6 @@ class AnalysisOrchestrator:
         if not duplicates:
             return 0
         
-        self.logger.info(f"  🔍 Found {len(duplicates)} duplicate sets, creating tasks...")
         
         for dup in duplicates:
             files = dup.get('files', [])
@@ -167,10 +162,6 @@ class AnalysisOrchestrator:
             
             # Check if should mark as false positive (detected 3+ times but never resolved)
             if manager.should_mark_as_false_positive('duplicate', files):
-                self.logger.warning(
-                    f"  ⚠️  Duplicate detected {count} times but never resolved - "
-                    f"marking as false positive"
-                )
                 manager.record_resolution(
                     issue_type='duplicate',
                     target_files=files,
@@ -234,10 +225,6 @@ class AnalysisOrchestrator:
             
             # Check for false positive
             if manager.should_mark_as_false_positive('complexity', [file_path]):
-                self.logger.warning(
-                    f"  ⚠️  Complexity issue detected {count} times but never resolved - "
-                    f"marking as false positive"
-                )
                 manager.record_resolution(
                     issue_type='complexity',
                     target_files=[file_path],
@@ -296,10 +283,6 @@ class AnalysisOrchestrator:
             
             # Check for false positive
             if manager.should_mark_as_false_positive('dead_code', [file_path]):
-                self.logger.warning(
-                    f"  ⚠️  Dead code detected {count} times but never resolved - "
-                    f"marking as false positive"
-                )
                 manager.record_resolution(
                     issue_type='dead_code',
                     target_files=[file_path],
@@ -358,10 +341,6 @@ class AnalysisOrchestrator:
             
             # Check for false positive
             if manager.should_mark_as_false_positive('architecture', files):
-                self.logger.warning(
-                    f"  ⚠️  Architecture issue detected {count} times but never resolved - "
-                    f"marking as false positive"
-                )
                 manager.record_resolution(
                     issue_type='architecture',
                     target_files=files,
@@ -421,10 +400,6 @@ class AnalysisOrchestrator:
             
             # Check for false positive
             if manager.should_mark_as_false_positive('integration', [file_path]):
-                self.logger.warning(
-                    f"  ⚠️  Integration issue detected {count} times but never resolved - "
-                    f"marking as false positive"
-                )
                 manager.record_resolution(
                     issue_type='integration',
                     target_files=[file_path],
@@ -527,10 +502,6 @@ class AnalysisOrchestrator:
             
             # Check for false positive
             if manager.should_mark_as_false_positive('architecture', cycle_files):
-                self.logger.warning(
-                    f"  ⚠️  Circular import detected {count} times but never resolved - "
-                    f"marking as false positive"
-                )
                 manager.record_resolution(
                     issue_type='architecture',
                     target_files=cycle_files,

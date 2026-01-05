@@ -121,6 +121,7 @@ class ConversationPruner:
         important = set()
         
         for i, msg in enumerate(messages):
+            pass
             # Always preserve first N messages (initial context)
             if i < self.config.preserve_first_n:
                 important.add(i)
@@ -183,6 +184,7 @@ class ConversationPruner:
         
         # If we're still over the limit, we need to be more aggressive
         if len(keep) > self.config.max_messages:
+            pass
             # Keep only first N and last N, plus critical errors
             keep = set()
             
@@ -206,6 +208,7 @@ class ConversationPruner:
         
         # If still too many, trim from middle
         if len(keep) > self.config.max_messages:
+            pass
             # Sort indices
             sorted_keep = sorted(keep)
             
@@ -257,6 +260,7 @@ class ConversationPruner:
             
             # Extract errors
             if "error" in content.lower() or "exception" in content.lower():
+                pass
                 # Get first line of error
                 first_line = content.split("\n")[0][:100]
                 errors.append(first_line)

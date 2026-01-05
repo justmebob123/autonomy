@@ -65,6 +65,7 @@ class UnifiedModelTool:
             # Create client with config
             self.client = OllamaClient(config)
         else:
+            pass
             # Use provided client class (for testing)
             self.client = client_class(model_name, host)
         
@@ -140,8 +141,10 @@ class UnifiedModelTool:
         self.logger.info(f"🤖 Calling {self.model_name} on {self.host}")
         
         try:
+            pass
             # Prepare messages with system prompt
             if system_prompt:
+                pass
                 # Add system message if not already present
                 if not messages or messages[0].get('role') != 'system':
                     messages = [{'role': 'system', 'content': system_prompt}] + messages
@@ -179,6 +182,7 @@ class UnifiedModelTool:
             return result
             
         except Exception as e:
+            pass
             # Track failure
             self.usage_stats['failed_calls'] += 1
             elapsed = time.time() - start_time

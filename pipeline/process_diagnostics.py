@@ -87,11 +87,14 @@ class ProcessDiagnostics:
         
         # Check if it's a relative path
         if '/' in executable or '\\' in executable:
+            pass
             # Relative or absolute path
             if executable.startswith('/'):
+                pass
                 # Absolute path
                 path = Path(executable)
             else:
+                pass
                 # Relative to working directory
                 path = working_dir / executable
             
@@ -130,6 +133,7 @@ class ProcessDiagnostics:
         
         # Check for Python scripts
         if command.startswith('python') or '.py' in command:
+            pass
             # Check if Python is available
             try:
                 result = subprocess.run(['python', '--version'], capture_output=True, text=True, timeout=5)

@@ -55,7 +55,6 @@ class ArbiterModel:
         # Decision history
         self.decision_history: List[Dict] = []
         
-        self.logger.info(f"🎯 Arbiter initialized: {self.model} on {self.server}")
     
     def decide_action(self, state: PipelineState, context: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -75,7 +74,6 @@ class ArbiterModel:
         Returns:
             Dict with action decision
         """
-        self.logger.info("🎯 Arbiter making decision...")
         
         # Build decision prompt
         prompt = self._build_decision_prompt(state, context)
@@ -115,7 +113,6 @@ class ArbiterModel:
             "timestamp": datetime.now().isoformat()
         })
         
-        self.logger.info(f"  ✓ Decision: {decision['action']}")
         
         return decision
     
@@ -176,7 +173,6 @@ class ArbiterModel:
         """
         # Check if response was successful
         if not response.get("success"):
-            self.logger.warning(f"  ⚠️ Specialist {specialist_name} failed")
             return response
         
         # Check if already clarified (prevent infinite loops)
@@ -187,6 +183,7 @@ class ArbiterModel:
         tool_calls = response.get("tool_calls", [])
         
         if not tool_calls:
+            pass
             # No tool calls - might need clarification
             self.logger.debug(f"  No tool calls from {specialist_name}")
             
@@ -214,13 +211,14 @@ class ArbiterModel:
                 break
         
         if has_empty_names:
-            self.logger.warning(f"  ⚠️ Empty tool name detected, requesting clarification...")
+            pass
             
             # Use FunctionGemma to fix (ONCE only)
             clarified = self.consult_specialist("interpreter",
                 f"Fix this tool call with empty name. Available tools: {[t['name'] for t in self._get_arbiter_tools()]}. Tool calls: {tool_calls}")
             
             if clarified.get("success") and clarified.get("tool_calls"):
+                pass
                 # Replace with clarified version
                 response["tool_calls"] = clarified.get("tool_calls", [])
                 response["clarified_by_functiongemma"] = True
@@ -369,6 +367,7 @@ MAKE YOUR DECISION NOW. Call exactly ONE tool.
         failures = []
         for task in state.tasks.values():
             if task.errors:
+                pass
                 # Convert TaskError objects to dicts
                 for error in task.errors[-3:]:
                     if hasattr(error, 'to_dict'):
@@ -376,6 +375,7 @@ MAKE YOUR DECISION NOW. Call exactly ONE tool.
                     elif isinstance(error, dict):
                         failures.append(error)
                     else:
+                        pass
                         # Fallback: convert to dict manually
                         failures.append({
                             'error_type': getattr(error, 'error_type', 'unknown'),
@@ -514,6 +514,7 @@ Example BAD response (asking instead of deciding):
         
         # Check for phase change
         if "change_phase" in content or "change to" in content or "move to" in content:
+            pass
             # Extract phase name
             for phase in ["coding", "qa", "debugging", "documentation", "planning"]:
                 if phase in content:
@@ -575,6 +576,7 @@ Example BAD response (asking instead of deciding):
         tool_calls = message.get("tool_calls", [])
         
         if not tool_calls:
+            pass
             # No tool calls - default to continue
             return {
                 "action": "continue_current_phase",
@@ -601,10 +603,10 @@ Example BAD response (asking instead of deciding):
                 for tool_name in available_tools:
                     if tool_name in content:
                         name = tool_name
-                        self.logger.info(f"✓ Found tool name in content: {name}")
                         # Try to extract arguments from content if present
                         import json
                         try:
+                            pass
                             # Look for JSON in the content
                             if "{" in content and "}" in content:
                                 json_start = content.index("{")
@@ -612,14 +614,13 @@ Example BAD response (asking instead of deciding):
                                 json_str = content[json_start:json_end]
                                 extracted_args = json.loads(json_str)
                                 args = extracted_args
-                                self.logger.info(f"✓ Extracted arguments from content: {args}")
                         except Exception as e:
                             self.logger.debug(f"Could not extract JSON from content: {e}")
                         break
             
             # If still no name, infer from arguments
             if not name:
-                self.logger.info("🔍 Inferring tool name from arguments...")
+                pass
                 
                 # Infer tool based on argument keys and content
                 if "new_phase" in args or "phase" in args:
@@ -627,30 +628,26 @@ Example BAD response (asking instead of deciding):
                     # Normalize the argument name
                     if "new_phase" in args and "phase" not in args:
                         args["phase"] = args.pop("new_phase")
-                    self.logger.info(f"✓ Inferred tool from 'phase' argument: {name}")
                 elif "query" in args:
+                    pass
                     # Infer which specialist based on query content
                     query = args.get("query", "").lower()
                     if "review" in query or "qa" in query or "check" in query or "quality" in query:
                         name = "consult_analysis_specialist"
-                        self.logger.info(f"✓ Inferred analysis specialist from query: {query[:50]}")
                     elif "diagnose" in query or "failure" in query or "error" in query or "debug" in query:
                         name = "consult_reasoning_specialist"
-                        self.logger.info(f"✓ Inferred reasoning specialist from query: {query[:50]}")
                     elif "implement" in query or "code" in query or "write" in query or "create" in query:
                         name = "consult_coding_specialist"
-                        self.logger.info(f"✓ Inferred coding specialist from query: {query[:50]}")
                     else:
+                        pass
                         # Default to reasoning for strategic questions
                         name = "consult_reasoning_specialist"
-                        self.logger.info(f"✓ Defaulting to reasoning specialist for query: {query[:50]}")
                 elif "message" in args or "question" in args:
                     name = "request_user_input"
-                    self.logger.info(f"✓ Inferred tool from message/question argument: {name}")
                 else:
+                    pass
                     # Default fallback
                     name = "continue_current_phase"
-                    self.logger.warning(f"⚠️ Could not infer tool, defaulting to: {name}")
         
         # Parse based on tool name
         if name.startswith("consult_"):

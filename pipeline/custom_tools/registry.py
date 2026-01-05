@@ -132,6 +132,7 @@ class CustomToolRegistry:
         # Scan for tool files
         discovered = 0
         for tool_file in self.tools_dir.glob('*.py'):
+            pass
             # Skip private files
             if tool_file.name.startswith('_'):
                 continue
@@ -171,6 +172,7 @@ class CustomToolRegistry:
             tool_class = None
             for node in ast.walk(tree):
                 if isinstance(node, ast.ClassDef):
+                    pass
                     # Check if inherits from BaseTool
                     for base in node.bases:
                         if isinstance(base, ast.Name) and base.id == 'BaseTool':
@@ -235,6 +237,7 @@ class CustomToolRegistry:
             if isinstance(node, ast.Assign):
                 for target in node.targets:
                     if isinstance(target, ast.Name) and target.id == attr_name:
+                        pass
                         # Get value
                         if isinstance(node.value, ast.Constant):
                             return node.value.value
@@ -272,6 +275,7 @@ class CustomToolRegistry:
         # Find execute() method
         for node in class_node.body:
             if isinstance(node, ast.FunctionDef) and node.name == 'execute':
+                pass
                 # Extract parameters from signature
                 for arg in node.args.args:
                     if arg.arg == 'self' or arg.arg == 'kwargs':
@@ -439,6 +443,7 @@ class CustomToolRegistry:
             True if reloaded successfully
         """
         try:
+            pass
             # Get current metadata
             metadata = self._tools.get(tool_name)
             if not metadata:

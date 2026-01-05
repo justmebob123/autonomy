@@ -235,6 +235,7 @@ class ToolValidator:
             List of similar tool names
         """
         if existing_tools is None:
+            pass
             # Load from tool registry if available
             existing_tools = self._get_existing_tools()
         
@@ -254,6 +255,7 @@ class ToolValidator:
             registry = ToolRegistry()
             return registry.get_all_tool_names()
         except Exception:
+            pass
             # If registry not available, return empty list
             return []
     
@@ -270,6 +272,7 @@ class ToolValidator:
         errors = []
         
         for param_name, param_spec in parameters.items():
+            pass
             # Check parameter name format
             if not re.match(r'^[a-z_][a-z0-9_]*$', param_name):
                 errors.append(f"Invalid parameter name: {param_name}")
@@ -314,7 +317,6 @@ class ToolValidator:
             error_type=error_type
         )
         
-        self.logger.debug(f"📊 Recorded usage for {tool_name}: success={success}")
     
     def get_tool_effectiveness(self, tool_name: str) -> Optional[Dict]:
         """
@@ -348,6 +350,7 @@ class ToolValidator:
         deprecated = []
         
         for tool_name, metrics in self.tool_metrics.items():
+            pass
             # Reason 1: Unused for too long
             if metrics.days_since_last_use > self.deprecation_days:
                 deprecated.append((
@@ -381,6 +384,7 @@ class ToolValidator:
         }
         
         for tool_name, metrics in self.tool_metrics.items():
+            pass
             # High performers
             if metrics.success_rate > 0.9 and metrics.total_calls >= 10:
                 recommendations['high_performers'].append(tool_name)

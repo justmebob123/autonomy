@@ -289,7 +289,6 @@ whether code should be INTEGRATED rather than REMOVED.
         try:
             return filepath.read_text()
         except Exception as e:
-            self.logger.warning(f"  ⚠️  Failed to load {filename}: {e}")
             return f"Error loading {filename}: {e}"
     
     def _load_file_content(self, filepath: str) -> str:

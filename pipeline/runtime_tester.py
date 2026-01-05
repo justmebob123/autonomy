@@ -74,6 +74,7 @@ class ProgramRunner:
             signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGTERM})
             self.logger.debug("Blocked SIGTERM in monitoring process")
         except AttributeError:
+            pass
             # pthread_sigmask not available on all platforms
             self.logger.debug("pthread_sigmask not available, skipping signal blocking")
         
@@ -85,6 +86,7 @@ class ProgramRunner:
     def _run(self):
         """Internal method to run the program."""
         try:
+            pass
             # Create a new process group so we can kill all children
             self.process = subprocess.Popen(
                 self.command,
@@ -111,6 +113,7 @@ class ProgramRunner:
             
             # Read output in real-time
             while self.running and self.process and self.process.poll() is None:
+                pass
                 # Read stdout
                 if self.process and self.process.stdout:
                     line = self.process.stdout.readline()
@@ -206,6 +209,7 @@ class ProgramRunner:
                                 continue
                             
                             try:
+                                pass
                                 # Try SIGTERM first
                                 os.kill(proc_pid, signal.SIGTERM)
                                 self.logger.info(f"Sent SIGTERM to {proc_pid}")
@@ -226,12 +230,14 @@ class ProgramRunner:
                                 continue
                             
                             try:
+                                pass
                                 # Check if still alive
                                 os.kill(proc_pid, 0)
                                 # Still alive, force kill
                                 os.kill(proc_pid, signal.SIGKILL)
                                 self.logger.info(f"Sent SIGKILL to {proc_pid}")
                             except ProcessLookupError:
+                                pass
                                 # Already dead, good
                                 pass
                             except Exception as e:
@@ -244,6 +250,7 @@ class ProgramRunner:
                         os.kill(pid, signal.SIGKILL)
                         self.logger.info(f"Killed main process {pid}")
                     except ProcessLookupError:
+                        pass
                         # Process already dead
                         pass
                     except PermissionError as e:
@@ -258,6 +265,7 @@ class ProgramRunner:
                 except subprocess.TimeoutExpired:
                     self.logger.warning("Process did not terminate, may still be running")
                 except ProcessLookupError:
+                    pass
                     # Process already terminated
                     pass
                 except Exception as e:
@@ -389,6 +397,7 @@ class LogMonitor:
         
         while self.running:
             try:
+                pass
                 # Wait for log file to exist
                 if not self.log_file.exists():
                     time.sleep(1)
@@ -402,6 +411,7 @@ class LogMonitor:
                 
                 # Process new lines
                 for line in new_lines:
+                    pass
                     # Check for error patterns
                     for pattern, error_type in self.compiled_patterns:
                         if pattern.search(line):
@@ -409,6 +419,7 @@ class LogMonitor:
                                 in_traceback = True
                                 error_buffer = [line]
                             else:
+                                pass
                                 # Report error immediately
                                 self.error_callback({
                                     'type': error_type,
@@ -534,6 +545,7 @@ class RuntimeTester:
         # CRITICAL: Also check stdout/stderr for errors that didn't make it to log file
         # This catches crashes during initialization before logging starts
         if not self.program_runner.is_running() and self.program_runner.exit_code != 0:
+            pass
             # Check stderr for tracebacks
             stderr_text = ''.join(self.program_runner.stderr_lines)
             if 'Traceback' in stderr_text or 'Error:' in stderr_text or 'ERROR:' in stderr_text:
@@ -594,6 +606,7 @@ class RuntimeTester:
      results = {}
      
      try:
+         pass
          # Analyze logs
          self.logger.info("Analyzing logs...")
          results['log_analysis'] = log_analyzer.analyze()
@@ -666,6 +679,7 @@ class RuntimeTester:
      
      # Architecture Analysis Section
      if results.get('architecture_analysis'):
+         pass
          # ArchitectureAnalyzer doesn't have format_report() - format manually
          arch_data = results['architecture_analysis']
          report.append("## Architecture Analysis")

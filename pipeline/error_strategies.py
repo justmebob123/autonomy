@@ -329,6 +329,7 @@ class TypeErrorStrategy(ErrorStrategy):
         
         # Check if it's a function call parameter error
         if 'unexpected keyword argument' in error_msg or 'got an unexpected' in error_msg:
+            pass
             # Extract parameter name
             import re
             match = re.search(r"unexpected keyword argument '(\w+)'", error_msg)
@@ -360,6 +361,7 @@ class TypeErrorStrategy(ErrorStrategy):
         error_msg = issue.get('message', '')
         
         if 'unexpected keyword argument' in error_msg or 'got an unexpected' in error_msg:
+            pass
             # Extract parameter name from error message
             import re
             match = re.search(r"unexpected keyword argument '(\w+)'", error_msg)
@@ -416,6 +418,7 @@ class TypeErrorStrategy(ErrorStrategy):
         error_msg = issue.get('message', '')
         
         if 'unexpected keyword argument' in error_msg or 'got an unexpected' in error_msg:
+            pass
             # Extract parameter name
             import re
             match = re.search(r"unexpected keyword argument '(\w+)'", error_msg)

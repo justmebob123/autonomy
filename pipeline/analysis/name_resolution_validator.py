@@ -60,6 +60,7 @@ class NameResolutionValidator(ast.NodeVisitor):
         """Visit from...import statement."""
         for alias in node.names:
             if alias.name == '*':
+                pass
                 # Can't track star imports precisely
                 continue
             name = alias.asname if alias.asname else alias.name
@@ -113,12 +114,14 @@ class NameResolutionValidator(ast.NodeVisitor):
     def visit_Name(self, node):
         """Visit name usage."""
         if isinstance(node.ctx, ast.Load):
+            pass
             # This is a read (usage)
             name = node.id
             if name not in self.used_names:
                 self.used_names[name] = []
             self.used_names[name].append(node.lineno)
         elif isinstance(node.ctx, ast.Store) and self.current_scope == 'module':
+            pass
             # Module-level assignment
             self.defined_names.add(node.id)
         
@@ -127,6 +130,7 @@ class NameResolutionValidator(ast.NodeVisitor):
     def check_names(self):
         """Check that all used names are defined."""
         for name, line_nums in self.used_names.items():
+            pass
             # Check if name is defined
             if name in self.imported_names:
                 continue

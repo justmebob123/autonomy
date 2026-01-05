@@ -74,6 +74,7 @@ Example: ["tool1", "tool2"]"""
         # Parse response
         content = response.get('content', '')
         try:
+            pass
             # Try to extract JSON list
             import re
             json_match = re.search(r'\[.*?\]', content, re.DOTALL)
@@ -82,6 +83,7 @@ Example: ["tool1", "tool2"]"""
                 # Filter to only valid tool names
                 return [t for t in suggested if t in tool_names]
         except json.JSONDecodeError:
+            pass
             # Response wasn't valid JSON, continue to fallback
             pass
         except Exception as e:
@@ -178,6 +180,7 @@ Respond with a valid JSON tool call in this format:
         
         content = response.get('content', '')
         try:
+            pass
             # Try to extract JSON
             import re
             json_match = re.search(r'\{.*?\}', content, re.DOTALL)
@@ -185,6 +188,7 @@ Respond with a valid JSON tool call in this format:
                 fixed_call = json.loads(json_match.group())
                 return fixed_call
         except json.JSONDecodeError:
+            pass
             # Response wasn't valid JSON
             pass
         except Exception as e:

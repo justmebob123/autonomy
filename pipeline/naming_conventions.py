@@ -130,6 +130,7 @@ class NamingConventionManager:
             expected_pattern = dir_info.get('pattern')
             
             if expected_pattern:
+                pass
                 # For directory patterns, check the full path relative to directory
                 # e.g., "services/*_service.py" should match "services/task_service.py"
                 if not self._matches_pattern(filepath, expected_pattern):
@@ -159,6 +160,7 @@ class NamingConventionManager:
         """Check if filename matches pattern"""
         # Handle different pattern types
         if '{' in pattern and '}' in pattern:
+            pass
             # Pattern like "api/{resource}.py" or "models/{entity}.py"
             # Extract the parts before and after the placeholder
             parts = pattern.split('{')
@@ -170,6 +172,7 @@ class NamingConventionManager:
                     # Check if filename starts with prefix and ends with suffix
                     return filename.startswith(prefix) and filename.endswith(suffix)
         elif '*' in pattern:
+            pass
             # Pattern like "*_service.py" - glob pattern
             # Convert to regex: *_service.py -> ^.*_service\.py$
             # IMPORTANT: Escape dots first, THEN replace * with .*
@@ -178,6 +181,7 @@ class NamingConventionManager:
             regex_pattern = '^' + regex_pattern + '$'  # Add anchors
             return bool(re.match(regex_pattern, filename))
         else:
+            pass
             # Exact match
             return filename == pattern
         
@@ -201,6 +205,7 @@ class NamingConventionManager:
         # Check file patterns
         for pattern, purpose in self.conventions['file_patterns'].items():
             if self._matches_pattern(filename, pattern):
+                pass
                 # Find directory that uses this pattern
                 for directory, info in self.conventions['directories'].items():
                     if info.get('pattern') and pattern in info['pattern']:

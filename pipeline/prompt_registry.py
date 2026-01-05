@@ -170,7 +170,6 @@ class PromptRegistry:
         try:
             with open(prompt_file, 'w') as f:
                 json.dump(spec, f, indent=2)
-            self.logger.info(f"✅ Registered prompt: {name}")
             return True
         except Exception as e:
             self.logger.error(f"Failed to persist prompt {name}: {e}")

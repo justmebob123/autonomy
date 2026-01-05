@@ -35,7 +35,6 @@ class UserProxyAgent:
         """
         # Check if role already exists
         if self.role_registry.has_specialist("user_proxy"):
-            self.logger.info("✓ UserProxy role already exists")
             return True
         
         self.logger.info("Creating UserProxy specialist role...")
@@ -108,7 +107,6 @@ Provide clear, specific guidance with concrete actions the AI should take."""
         # Register the role
         self.role_registry.register_role(role_spec)
         self._user_proxy_created = True
-        self.logger.info("✓ UserProxy role created and registered")
         return True
     
     def get_guidance(self, 
@@ -235,6 +233,7 @@ Pattern: {loop_info.get('pattern', 'Unknown')}
             
             # Handle both Action objects and dicts
             if hasattr(attempt, 'to_dict'):
+                pass
                 # It's an Action object
                 attempt_dict = attempt.to_dict()
                 formatted.append(f"  Tool: {attempt_dict.get('tool', 'Unknown')}")
@@ -244,6 +243,7 @@ Pattern: {loop_info.get('pattern', 'Unknown')}
                     result_str = str(attempt_dict['result'])[:100]
                     formatted.append(f"  Result: {result_str}")
             else:
+                pass
                 # It's a dict
                 formatted.append(f"  Action: {attempt.get('action', 'Unknown')}")
                 formatted.append(f"  Result: {attempt.get('result', 'Unknown')}")
@@ -285,7 +285,6 @@ Pattern: {loop_info.get('pattern', 'Unknown')}
         Returns:
             Name of the created specialist, or None if failed
         """
-        self.logger.info(f"\n🎯 Creating custom specialist for: {problem_description}")
         
         # Use RoleCreator to design the specialist
         # This would integrate with the role_design phase

@@ -120,6 +120,7 @@ class MessageAnalytics:
         
         # Detect message bursts (many messages in short time)
         if len(messages) > 10:
+            pass
             # Group messages by 5-minute windows
             time_buckets = defaultdict(int)
             for msg in messages:
@@ -254,6 +255,7 @@ class MessageAnalytics:
             messages = self.message_bus.search_messages(since=since)
             
             if messages:
+                pass
                 # Message volume
                 trends['message_volume'].append({
                     'window': str(window),

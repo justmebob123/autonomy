@@ -108,6 +108,7 @@ class HTMLEntityDecoder:
         
         # For Python files, use conservative context-aware decoding
         if language == 'python':
+            pass
             # First fix syntax errors (lines starting with &quot;)
             decoded = self._fix_syntax_errors(code)
             
@@ -115,9 +116,11 @@ class HTMLEntityDecoder:
             try:
                 decoded = self._decode_python_context_aware(decoded)
             except SyntaxError:
+                pass
                 # If file still has syntax errors, keep the syntax-error fixes
                 self.logger.debug(f"Cannot parse {filepath}, using syntax-error fixes only")
         else:
+            pass
             # For other languages, use comprehensive decoding (legacy)
             decoded = html.unescape(code)
             decoded = self._manual_decode(decoded)
@@ -219,18 +222,22 @@ class HTMLEntityDecoder:
             # The pattern is: backslash + &quot; (7 chars total)
             pattern1 = '\\&quot;'
             if stripped.startswith(pattern1):
+                pass
                 # Replace ALL \&quot; on this line
                 line = line.replace(pattern1, '"')
             
             # Fix 2: Line starts with \&apos; (ALWAYS a syntax error)
             elif stripped.startswith('\\&apos;'):
+                pass
                 # Replace ALL \&apos; on this line
                 line = line.replace('\\&apos;', "'")
             
             # Fix 3: Line starts with &quot; (ALWAYS a syntax error)
             elif stripped.startswith(chr(92) + chr(34)):
+                pass
                 # Check for docstring delimiter: &quot;&quot;&quot;
                 if stripped.startswith(chr(92) + chr(34) * 3):
+                    pass
                     # Only replace the first occurrence at line start
                     indent = len(line) - len(line.lstrip())
                     rest = line.lstrip()[len(chr(92) + chr(34) * 3):]
@@ -243,6 +250,7 @@ class HTMLEntityDecoder:
             
             # Fix 4: Line starts with \' (ALWAYS a syntax error)
             elif stripped.startswith(chr(92) + chr(39)):
+                pass
                 # Check for docstring delimiter: \'\'\'
                 if stripped.startswith(chr(92) + chr(39) * 3):
                     indent = len(line) - len(line.lstrip())
@@ -283,6 +291,7 @@ class HTMLEntityDecoder:
             tree = ast.parse(source)
             
             for node in ast.walk(tree):
+                pass
                 # Module docstring
                 if isinstance(node, ast.Module) and ast.get_docstring(node):
                     if node.body and isinstance(node.body[0], ast.Expr):
@@ -297,6 +306,7 @@ class HTMLEntityDecoder:
                                 docstrings.append((node.body[0].lineno, node.body[0].end_lineno))
         
         except SyntaxError:
+            pass
             # If we can't parse, return empty list
             self.logger.debug("Could not parse Python AST for docstring detection")
         
@@ -308,6 +318,7 @@ class HTMLEntityDecoder:
         lines = source.split('\n')
         
         for line_num, line in enumerate(lines, 1):
+            pass
             # Find # character that's not in a string
             in_string = False
             string_char = None
@@ -347,11 +358,13 @@ class HTMLEntityDecoder:
         
         # Process each line
         for line_num, line in enumerate(lines, 1):
+            pass
             # Check if this line is in a safe context
             in_docstring = any(start <= line_num <= end for start, end in docstrings)
             in_comment = line_num in comment_lines
             
             if in_docstring or in_comment:
+                pass
                 # Decode HTML entities in this line
                 original_line = line
                 

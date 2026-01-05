@@ -128,7 +128,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         objectives = self._read_objectives()
         obj_count = sum(len(objectives.get(level, [])) for level in ['primary', 'secondary', 'tertiary'])
         if obj_count > 0:
-            self.logger.info(f"🎯 {obj_count} objectives loaded")
+            pass
         
         # Write starting status
         self._write_status({
@@ -178,7 +178,6 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         
         # CRITICAL: Skip tasks with empty target_file
         if not task.target_file or task.target_file.strip() == "":
-            self.logger.warning(f"  ⚠️  Task {task.task_id} has empty target_file, marking as SKIPPED")
             task.status = TaskStatus.SKIPPED
             self.state_manager.save(state)
             return PhaseResult(
@@ -215,10 +214,12 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         content = response.get("content", "")
         
         if not tool_calls:
+            pass
             # Check if file exists and LLM explained why no changes needed
             file_exists = (self.project_dir / task.target_file).exists()
             
             if file_exists and content and len(content) > 50:
+                pass
                 # LLM provided explanation, file exists - this is SUCCESS (no changes needed)
                 self.logger.info("  ℹ️  No changes needed - file already correct")
                 task.status = TaskStatus.COMPLETED
@@ -231,6 +232,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                     next_phase="qa"  # Still send to QA for verification
                 )
             else:
+                pass
                 # No file and no tool calls - this is a real failure
                 task.add_error("no_tool_call", "Model did not use tools", phase="coding")
                 task.status = TaskStatus.FAILED
@@ -253,9 +255,9 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 break
         
         if mark_complete_call:
+            pass
             # Task is being marked complete without changes
             reason = mark_complete_call.get("function", {}).get("arguments", {}).get("reason", "File is already complete")
-            self.logger.info(f"  ✅ Task marked complete: {reason}")
             task.status = TaskStatus.COMPLETED
             
             return PhaseResult(
@@ -269,6 +271,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         # FILENAME VALIDATION - Check for problematic filenames before processing
         filename_issues = self._validate_tool_call_filenames(tool_calls)
         if filename_issues:
+            pass
             # Build context about the filename issues
             issue_context = self._build_filename_issue_context(filename_issues, task)
             
@@ -320,6 +323,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         files_modified = handler.files_modified
         
         if not files_created and not files_modified:
+            pass
             # Check for syntax errors in results
             for result in results:
                 if not result.get("success") and "Syntax error" in result.get("error", ""):
@@ -340,6 +344,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                         phase="coding"
                     )
                 elif not result.get("success"):
+                    pass
                     # Record other errors too
                     error_msg = result.get("error", "Unknown error")
                     task.add_error(
@@ -405,7 +410,6 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
                             self.logger.info("="*70)
                             self.logger.info("  📝 Full file content added to error context")
                             self.logger.info("  🔄 Task will be picked up in next iteration")
-                            self.logger.info("  ✅ LLM will see error context and can use full_file_rewrite")
                             
                             # Save state with error context
                             self.state_manager.save(state)
@@ -420,6 +424,7 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
                             )
                                 
                         except Exception as e:
+                            pass
                             # Fallback if we can't read the file
                             task.add_error(
                                 "modify_file_failed",
@@ -452,13 +457,11 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
         for filepath in files_created + files_modified:
             if filepath.endswith('.py'):
                 try:
-                    self.logger.info(f"  📊 Validating complexity for {filepath}...")
                     complexity_result = self.complexity_analyzer.analyze(filepath)
                     
                     if complexity_result.max_complexity >= 30:
                         warning = f"{filepath}: High complexity detected (max={complexity_result.max_complexity})"
                         complexity_warnings.append(warning)
-                        self.logger.warning(f"  ⚠️ {warning}")
                         
                         # Add note to task for QA review
                         task.add_error(
@@ -474,18 +477,19 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
         completion = state.calculate_completion_percentage()
         
         if project_phase == 'foundation':
+            pass
             # Foundation phase (0-25%): Mark as completed, defer QA
             task.status = TaskStatus.COMPLETED
-            self.logger.info(f"  📊 Foundation phase ({completion:.1f}%): Task completed (QA deferred)")
         else:
+            pass
             # Integration/Consolidation/Completion: Mark for QA
             task.status = TaskStatus.QA_PENDING
-            self.logger.debug(f"  📊 {project_phase.title()} phase ({completion:.1f}%): Task marked for QA")
         
         task.failure_count = 0  # Reset failure count on success
         
         # BIDIRECTIONAL IPC: Update strategic documents
         try:
+            pass
             # Mark task complete in TERTIARY_OBJECTIVES
             if task.target_file and task.description:
                 task_id = f"{task.target_file}"
@@ -540,6 +544,7 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
         # Record new components in architecture
         if files_created:
             for file_path in files_created:
+                pass
                 # Determine component type from file path
                 component_name = Path(file_path).stem
                 
@@ -608,6 +613,7 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
         if task.dependencies:
             parts.append("\n=== DEPENDENCY FILES (required for this task) ===")
             for i, dep in enumerate(task.dependencies[:3], 1):
+                pass
                 # Skip directories
                 dep_path = self.project_dir / dep
                 if dep_path.exists() and dep_path.is_dir():
@@ -770,12 +776,14 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
             tertiary_objectives = strategic_docs.get('TERTIARY_OBJECTIVES.md', '')
             
             if primary_objectives:
+                pass
                 # Extract relevant sections (limit to 1000 chars)
                 if len(primary_objectives) > 1000:
                     primary_objectives = primary_objectives[:1000] + "\n... (truncated)"
                 parts.append(f"## Features to Implement (from PRIMARY_OBJECTIVES.md)\n{primary_objectives}\n")
             
             if tertiary_objectives:
+                pass
                 # Extract relevant sections (limit to 2000 chars for detailed implementation steps)
                 if len(tertiary_objectives) > 2000:
                     tertiary_objectives = tertiary_objectives[:2000] + "\n... (truncated)"
@@ -806,7 +814,7 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
                     parts.append("4. DO NOT make trivial changes (comments, formatting, etc.)")
                     parts.append("\nExplain your decision before taking action.")
                 except Exception as e:
-                    self.logger.warning(f"  ⚠️ Could not read existing file: {e}")
+                    pass
         
         # List dependencies explicitly
         if task.dependencies:
@@ -911,6 +919,7 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
         outputs = {}
         
         try:
+            pass
             # Read planning output for task assignments and priorities
             planning_output = self.read_phase_output('planning')
             if planning_output:
@@ -938,6 +947,7 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
                             files_modified: List[str], complexity_warnings: List[str]):
         """Send messages to other phases' READ documents"""
         try:
+            pass
             # Send to QA phase when code is ready for review
             qa_message = f"""
 ## Code Completion Update - {self.format_timestamp()}

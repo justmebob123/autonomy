@@ -136,6 +136,7 @@ class RoleRegistry:
             SpecialistAgent instance or None if failed
         """
         try:
+            pass
             # Create SpecialistConfig
             config = SpecialistConfig(
                 name=spec["name"],
@@ -214,7 +215,6 @@ class RoleRegistry:
             del self.role_specs[name]
             return False
         
-        self.logger.info(f"✅ Registered specialist role: {name}")
         return True
     
     def get_specialist(self, name: str) -> Optional[SpecialistAgent]:
@@ -370,6 +370,7 @@ class RoleRegistry:
         problem_lower = problem_description.lower()
         
         for name, spec in self.role_specs.items():
+            pass
             # Check decision criteria
             criteria = spec.get("decision_criteria", {})
             engagement_conditions = criteria.get("when_to_engage", [])

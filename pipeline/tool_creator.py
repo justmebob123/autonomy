@@ -302,7 +302,6 @@ class ToolCreator:
         # Save specs
         self.save_tool_specs()
         
-        self.logger.info(f"✅ Approved tool creation: {spec.name}")
         
         return spec
     

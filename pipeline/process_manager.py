@@ -291,6 +291,7 @@ class ResourceMonitor:
         """Get memory usage profile"""
         try:
             if pid is None:
+                pass
                 # System-wide memory
                 mem = psutil.virtual_memory()
                 return {
@@ -300,6 +301,7 @@ class ResourceMonitor:
                     'percent': mem.percent
                 }
             else:
+                pass
                 # Process-specific memory
                 proc = psutil.Process(pid)
                 mem_info = proc.memory_info()
@@ -326,6 +328,7 @@ class ResourceMonitor:
         """Get CPU usage profile"""
         try:
             if pid is None:
+                pass
                 # System-wide CPU
                 cpu_percent = psutil.cpu_percent(interval=duration, percpu=True)
                 return {
@@ -334,6 +337,7 @@ class ResourceMonitor:
                     'cpu_count': psutil.cpu_count()
                 }
             else:
+                pass
                 # Process-specific CPU
                 proc = psutil.Process(pid)
                 cpu_percent = proc.cpu_percent(interval=duration)

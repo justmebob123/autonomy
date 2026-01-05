@@ -71,6 +71,7 @@ class PriorityQueue:
              metadata: Dict = None):
         """Add a task to the queue"""
         if task_id in self._task_map and task_id not in self._removed:
+            pass
             # Update existing task
             self.update_priority(task_id, priority, metadata)
             return
@@ -113,6 +114,7 @@ class PriorityQueue:
                         metadata: Dict = None):
         """Update the priority of an existing task"""
         if task_id in self._task_map:
+            pass
             # Mark old entry as removed
             self._removed.add(task_id)
         

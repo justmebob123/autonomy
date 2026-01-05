@@ -1101,6 +1101,7 @@ def get_tools_for_phase(phase: str, tool_registry=None) -> List[Dict]:
     # Add custom tools from registry (Integration Point #3)
     if tool_registry:
         try:
+            pass
             # New ToolRegistry API (scripts/)
             if hasattr(tool_registry, 'get_tools_for_phase'):
                 custom_tools = tool_registry.get_tools_for_phase(phase)
@@ -1113,6 +1114,7 @@ def get_tools_for_phase(phase: str, tool_registry=None) -> List[Dict]:
                     if tool_def:
                         tools.append(tool_def)
         except Exception as e:
+            pass
             # Log error but don't fail
             import logging
             logger = logging.getLogger(__name__)

@@ -180,6 +180,7 @@ class ToolAnalyzer:
                           is_custom: bool) -> Optional[ToolSignature]:
         """Extract tool signature from AST node."""
         try:
+            pass
             # Extract parameters
             parameters = {}
             for arg in node.args.args:
@@ -218,6 +219,7 @@ class ToolAnalyzer:
         requested_desc = context.get('description', '')
         
         for existing_name, existing_sig in self.tool_signatures.items():
+            pass
             # Calculate name similarity
             name_similarity = difflib.SequenceMatcher(
                 None, tool_name.lower(), existing_name.lower()
@@ -241,6 +243,7 @@ class ToolAnalyzer:
             )
             
             if similarity_score >= self.similarity_threshold:
+                pass
                 # Find similar parameters
                 similar_params = self._find_similar_parameters(
                     requested_params, existing_sig.parameters

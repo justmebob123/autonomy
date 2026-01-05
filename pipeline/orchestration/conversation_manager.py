@@ -99,6 +99,7 @@ class OrchestrationConversationThread:
         total_tokens = 0
         
         for msg in reversed(self.messages):
+            pass
             # Estimate tokens
             msg_tokens = len(msg["content"].split()) * 1.3
             

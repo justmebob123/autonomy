@@ -79,9 +79,11 @@ class DataFlowAnalyzer(ast.NodeVisitor):
             unused_assignments = []
             for var, actions in self.variables.items():
                 if len(actions) > 0:
+                    pass
                     # Check if last action is store and never followed by load
                     for i, (action, line) in enumerate(actions):
                         if action == 'store':
+                            pass
                             # Check if there's a load after this store
                             has_load_after = any(a[0] == 'load' for a in actions[i+1:])
                             if not has_load_after and i == len(actions) - 1:

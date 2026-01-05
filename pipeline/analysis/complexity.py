@@ -110,6 +110,7 @@ class ComplexityVisitor(ast.NodeVisitor):
         complexity = 1  # Base complexity
         
         for child in ast.walk(node):
+            pass
             # Decision points
             if isinstance(child, (ast.If, ast.While, ast.For, ast.AsyncFor)):
                 complexity += 1
@@ -246,8 +247,10 @@ class ComplexityAnalyzer:
             if target_path.suffix == '.py':
                 self.results.extend(self.analyze_file(target_path))
         else:
+            pass
             # Analyze directory
             for root, dirs, files in os.walk(target_path):
+                pass
                 # Skip common directories
                 dirs[:] = [d for d in dirs if d not in ['__pycache__', '.git', 'venv', '.venv', 'node_modules']]
                 

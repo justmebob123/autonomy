@@ -175,6 +175,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             # ENHANCED: Detect cascading errors (new errors introduced by the fix)
             cascading_errors = []
             if not same_error_persists and new_errors:
+                pass
                 # Original error is gone, but new errors appeared
                 for error in new_errors:
                     if not is_same_error(error, original_error):
@@ -192,16 +193,15 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             if same_error_persists:
                 self.logger.warning("❌ Runtime verification FAILED: Same error persists")
             elif cascading_errors:
-                self.logger.warning(f"⚠️ Runtime verification PARTIAL: Original error fixed but {len(cascading_errors)} new error(s) introduced")
                 for i, error in enumerate(cascading_errors, 1):
                     self.logger.warning(f"   {i}. {error.get('type')}: {error.get('message', '')[:80]}")
             else:
-                self.logger.info("✅ Runtime verification PASSED: Error is fixed")
+                pass
             
             return result
         else:
+            pass
             # No tester available, assume success
-            self.logger.warning("⚠️  No runtime tester available, skipping verification")
             return {
                 'success': True,
                 'error_fixed': True,
@@ -215,6 +215,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         intervention = self.check_for_loops()
         
         if intervention:
+            pass
             # Log the intervention
             self.logger.warning("=" * 80)
             self.logger.warning("LOOP DETECTED - INTERVENTION REQUIRED")
@@ -254,8 +255,8 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         
         # ENFORCE based on intervention count
         if intervention_count == 1:
+            pass
             # First warning: Log and continue
-            self.logger.warning("⚠️  First loop detected - continuing with caution")
             return {
                 'should_stop': False,
                 'action': 'continue',
@@ -263,8 +264,8 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             }
         
         elif intervention_count == 2:
+            pass
             # Second warning: Consult whitespace specialist
-            self.logger.warning("⚠️  Second loop detected - CONSULTING WHITESPACE SPECIALIST")
             return {
                 'should_stop': True,
                 'action': 'consult_specialist',
@@ -273,8 +274,8 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             }
         
         elif intervention_count == 3:
+            pass
             # Third warning: Consult syntax specialist
-            self.logger.warning("⚠️  Third loop detected - CONSULTING SYNTAX SPECIALIST")
             return {
                 'should_stop': True,
                 'action': 'consult_specialist',
@@ -283,8 +284,8 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             }
         
         elif intervention_count == 4:
+            pass
             # Fourth warning: Consult pattern specialist
-            self.logger.warning("⚠️  Fourth loop detected - CONSULTING PATTERN SPECIALIST")
             return {
                 'should_stop': True,
                 'action': 'consult_specialist',
@@ -293,8 +294,8 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             }
         
         else:
+            pass
             # Fifth+ warning: FORCE user intervention
-            self.logger.error("🚨 MULTIPLE LOOPS DETECTED - FORCING USER INTERVENTION")
             return {
                 'should_stop': True,
                 'action': 'ask_user',
@@ -384,12 +385,14 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             tertiary_objectives = strategic_docs.get('TERTIARY_OBJECTIVES.md', '')
             
             if secondary_objectives:
+                pass
                 # Extract relevant sections (limit to 1000 chars)
                 if len(secondary_objectives) > 1000:
                     secondary_objectives = secondary_objectives[:1000] + "\n... (truncated)"
                 parts.append(f"## Known Failures and Issues (from SECONDARY_OBJECTIVES.md)\n{secondary_objectives}\n")
             
             if tertiary_objectives:
+                pass
                 # Extract relevant sections (limit to 1500 chars for specific fixes)
                 if len(tertiary_objectives) > 1500:
                     tertiary_objectives = tertiary_objectives[:1500] + "\n... (truncated)"
@@ -408,6 +411,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         
         # Current code or summary
         if content.startswith("[File is"):
+            pass
             # File too large - provide guidance
             parts.append(f"\n{content}")
             parts.append("\n## Available Tools")
@@ -417,6 +421,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             parts.append("- analyze_call_graph(project_dir, filepath) - Check function calls")
             parts.append("- detect_dead_code(project_dir, filepath) - Check for unused code")
         else:
+            pass
             # File small enough to include
             parts.append(f"\nCurrent code:\n```\n{content}\n```")
         
@@ -441,6 +446,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         analysis_parts.append("\n## Code Analysis\n")
         
         try:
+            pass
             # Complexity analysis - ONLY for this specific file
             complexity_result = self.complexity_analyzer.analyze(filepath)
             if complexity_result.max_complexity >= 20:
@@ -560,7 +566,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         # IPC INTEGRATION: Read objectives for debugging priorities
         objectives = self._read_objectives()
         if objectives:
-            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+            pass
         
         # IPC INTEGRATION: Write status at start
         self._write_status({
@@ -597,7 +603,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                 self.logger.info(f"  📨 Received {len(messages)} messages")
                 critical_count = sum(1 for m in messages if m.priority == MessagePriority.CRITICAL)
                 if critical_count > 0:
-                    self.logger.warning(f"    ⚠️ {critical_count} CRITICAL issues in queue")
+                    pass
                 for msg in messages[:3]:  # Show first 3
                     self.logger.info(f"    • {msg.message_type.value}: {msg.payload.get('issue_id', msg.payload.get('task_id', 'N/A'))}")
                 # Clear processed messages
@@ -613,6 +619,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         
         # NEW: Check IssueTracker for issues to fix
         if hasattr(self, 'coordinator') and hasattr(self.coordinator, 'issue_tracker'):
+            pass
             # Load issues from state
             self.coordinator.issue_tracker.load_issues(state)
             
@@ -620,9 +627,9 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             priority_issues = self.coordinator.issue_tracker.get_issues_by_priority()
             
             if priority_issues and issue is None:
+                pass
                 # Use highest priority issue
                 issue_obj = priority_issues[0]
-                self.logger.info(f"  🎯 Using issue from tracker: {issue_obj.id} ({issue_obj.severity.value})")
                 
                 # Mark as in progress
                 self.coordinator.issue_tracker.start_fixing(issue_obj.id, state)
@@ -745,6 +752,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         # Check for loops
         intervention = self._check_for_loops()
         if intervention and intervention.get('requires_user_input'):
+            pass
             # AUTONOMOUS: Consult AI UserProxy specialist instead of blocking
             self.logger.info("\n" + "="*80)
             self.logger.info("🤖 AUTONOMOUS USER PROXY CONSULTATION")
@@ -781,7 +789,6 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             
             # Apply the guidance
             guidance = guidance_result.get('guidance', '')
-            self.logger.info(f"\n✓ AI Guidance: {guidance}")
 
             # Continue with the guidance (don't return failure)
 
@@ -789,6 +796,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         self.logger.info(handler.get_activity_summary())
         
         if not handler.files_modified:
+            pass
             # Check for errors
             for result in results:
                 if not result.get("success"):
@@ -802,7 +810,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                     if ai_feedback:
                         self.logger.info(f"  📋 Detailed failure analysis available")
                         if failure_report:
-                            self.logger.info(f"  📄 Report: {failure_report}")
+                            pass
                         
                         # If we have AI feedback, we should retry with this information
                         # For now, include it in the error data
@@ -839,7 +847,6 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
             )
         
         # Success - update state
-        self.logger.info(f"  ✓ Fixed: {filepath}")
         
         # Update file hash
         for modified_file in handler.files_modified:
@@ -857,7 +864,6 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
                     f"Fixed in {filepath}",
                     state
                 )
-                self.logger.info(f"  ✅ Issue {issue_id} marked as resolved")
                 
                 # MESSAGE BUS: Publish ISSUE_RESOLVED event
                 from ..messaging import MessageType, MessagePriority
@@ -908,6 +914,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         
         # BIDIRECTIONAL IPC: Update strategic documents
         try:
+            pass
             # Remove fixed issue from SECONDARY_OBJECTIVES
             issue_desc = issue.get('description', '')
             if issue_desc:
@@ -1062,6 +1069,7 @@ Remember:
         # Check for loops
         intervention = self._check_for_loops()
         if intervention and intervention.get('requires_user_input'):
+            pass
             # AUTONOMOUS: Consult AI UserProxy specialist instead of blocking
             self.logger.info("\n" + "="*80)
             self.logger.info("🤖 AUTONOMOUS USER PROXY CONSULTATION")
@@ -1098,7 +1106,6 @@ Remember:
             
             # Apply the guidance
             guidance = guidance_result.get('guidance', '')
-            self.logger.info(f"\n✓ AI Guidance: {guidance}")
 
             # Continue with the guidance (don't return failure)
 
@@ -1106,6 +1113,7 @@ Remember:
         self.logger.info(handler.get_activity_summary())
         
         if not handler.files_modified:
+            pass
             # Check for errors
             for result in results:
                 if not result.get("success"):
@@ -1127,7 +1135,6 @@ Remember:
             )
         
         # Success
-        self.logger.info(f"  ✅ Retry successful: {filepath}")
         
         # Update file hash
         for modified_file in handler.files_modified:
@@ -1217,7 +1224,6 @@ Remember:
             issue['context_start_line'] = start + 1
             issue['context_end_line'] = end
         
-        self.logger.info(f"  ✅ Read file: {filepath} ({len(file_content)} chars, {len(issue['file_lines'])} lines)")
         
         # Create conversation thread
         thread = DebuggingConversationThread(issue, self.project_dir)
@@ -1225,7 +1231,6 @@ Remember:
         
         # CRITICAL: Run investigation phase FIRST to diagnose the problem
         self.logger.info(f"\n{'='*70}")
-        self.logger.info(f"🔍 INVESTIGATION PHASE - Diagnosing problem before fixing")
         self.logger.info(f"{'='*70}")
         
         investigation_phase = self.phases.get('investigation') if hasattr(self, 'phases') else None
@@ -1235,9 +1240,8 @@ Remember:
             investigation_result = investigation_phase.execute(state, issue=issue)
             if investigation_result.success and investigation_result.data:
                 investigation_findings = investigation_result.data.get('findings', {})
-                self.logger.info(f"  ✅ Investigation complete")
                 if investigation_findings.get('root_cause'):
-                    self.logger.info(f"  🎯 Root cause: {investigation_findings['root_cause']}")
+                    pass
                 if investigation_findings.get('recommended_fix'):
                     self.logger.info(f"  💡 Recommended fix: {investigation_findings['recommended_fix']}")
                 if investigation_findings.get('related_files'):
@@ -1255,21 +1259,21 @@ Remember:
                 # Add to issue for AI context
                 issue['investigation_findings'] = investigation_findings
             else:
-                self.logger.warning(f"  ⚠️ Investigation failed: {investigation_result.message}")
+                pass
         else:
-            self.logger.warning(f"  ⚠️ Investigation phase not available")
+            pass
         
         self.logger.info(f"{'='*70}\n")
         
         # Assess error complexity
         complexity = assess_error_complexity(issue, len(thread.attempts))
-        self.logger.info(f"  📊 Error complexity: {complexity}")
         
         # Use team orchestration for complex errors
         if complexity == 'complex':
             self.logger.info("  🎭 Complex error detected - using team orchestration")
             
             try:
+                pass
                 # Create orchestration plan
                 plan = self.team_coordination.create_orchestration_plan(
                     problem=f"Fix {issue['type']}: {issue['message']}",
@@ -1287,7 +1291,6 @@ Remember:
                 # Use synthesis for fix
                 if orchestration_results['success']:
                     synthesis = orchestration_results['synthesis']
-                    self.logger.info(f"  ✅ Team orchestration completed in {orchestration_results['duration']:.1f}s")
                     self.logger.info(f"  📈 Parallel efficiency: {orchestration_results['statistics']['parallel_efficiency']:.1f}x")
                     
                     # Add synthesis to thread for context
@@ -1296,7 +1299,7 @@ Remember:
                         content=f"Team orchestration synthesis: {synthesis}"
                     )
                 else:
-                    self.logger.warning("  ⚠️ Team orchestration failed, falling back to standard approach")
+                    pass
             except Exception as e:
                 self.logger.error(f"  ❌ Team orchestration error: {e}")
                 self.logger.info("  Falling back to standard debugging approach")
@@ -1314,6 +1317,7 @@ Remember:
             
             # Build prompt with full conversation context
             if attempt_num == 1:
+                pass
                 # First attempt - use standard debug prompt
                 filepath = issue.get("filepath")
                 content = self.read_file(filepath)
@@ -1330,6 +1334,7 @@ Remember:
                     self.logger.debug(f"  No specific strategy for {error_type}, using generic approach")
                     user_prompt = base_prompt
             else:
+                pass
                 # Subsequent attempts - use retry prompt with failure analysis
                 last_attempt = thread.attempts[-1]
                 
@@ -1392,6 +1397,7 @@ Remember:
             self.logger.info(f"🤖 AI RESPONSE:")
             self.logger.info(f"{'='*70}")
             if text_response:
+                pass
                 # Truncate if too long
                 if len(text_response) > 500:
                     self.logger.info(f"{text_response[:500]}...")
@@ -1406,6 +1412,7 @@ Remember:
                 self.logger.info(f"🔧 TOOL CALLS ({len(tool_calls)}):")
                 self.logger.info(f"{'='*70}")
                 for i, call in enumerate(tool_calls, 1):
+                    pass
                     # Tool calls have structure: {"function": {"name": "...", "arguments": {...}}}
                     func = call.get('function', {})
                     tool_name = func.get('name', call.get('name', 'unknown'))
@@ -1420,7 +1427,7 @@ Remember:
                                else:
                                    self.logger.info(f"       {key}: {safe_json_dumps(value, indent=8)}")
             else:
-                self.logger.info(f"\n⚠️  NO TOOL CALLS MADE")
+                pass
             self.logger.info(f"{'='*70}\n")
             
             # Add AI response to thread
@@ -1435,7 +1442,7 @@ Remember:
                 allowed_calls, blocked_calls, sudo_summary = filter_sudo_commands(tool_calls)
                 
                 if blocked_calls:
-                    self.logger.warning(f"  ⚠️  Blocked {len(blocked_calls)} sudo command(s)")
+                    pass
                     # Add sudo block message to thread
                     thread.add_message(
                         role="system",
@@ -1446,7 +1453,7 @@ Remember:
                 tool_calls = allowed_calls
             
             if not tool_calls:
-                self.logger.warning("  ⚠️  No tool calls made")
+                pass
                 
                 # Consult specialist for guidance
                 self.logger.info("  🔬 Consulting specialists for guidance...")
@@ -1488,6 +1495,7 @@ Remember:
             
             # Check if we're stuck in investigation loop
             if investigation_count > 0 and modification_count == 0:
+                pass
                 # Count recent investigation-only attempts
                 recent_investigation_only = 0
                 for attempt in thread.attempts[-3:]:  # Last 3 attempts
@@ -1500,7 +1508,6 @@ Remember:
                             recent_investigation_only += 1
                 
                 if recent_investigation_only >= 2:
-                    self.logger.warning("⚠️  INVESTIGATION LOOP DETECTED")
                     self.logger.warning(f"   AI has investigated {recent_investigation_only} times without making a fix")
                     self.logger.warning("   FORCING modification on next attempt")
                     
@@ -1540,6 +1547,7 @@ Apply the fix immediately.""",
             
             if loop_check['should_stop']:
                 if loop_check['action'] == 'consult_specialist':
+                    pass
                     # FORCE specialist consultation
                     self.logger.info(f"  🔬 FORCED: {loop_check['message']}")
                     specialist_type = loop_check.get('specialist_type', 'whitespace')
@@ -1567,7 +1575,6 @@ Apply the fix immediately.""",
                         
                         # Check if specialist succeeded
                         if any(r.get('success') for r in specialist_results):
-                            self.logger.info("  ✅ Specialist fix applied successfully")
                             overall_success = True
                             break
                     
@@ -1575,8 +1582,8 @@ Apply the fix immediately.""",
                     continue
                 
                 elif loop_check['action'] == 'ask_user':
+                    pass
                     # FORCE user intervention - BLOCKING
-                    self.logger.error(f"  🚨 FORCED USER INTERVENTION: {loop_check['message']}")
                     return PhaseResult(
                         success=False,
                         phase=self.phase_name,
@@ -1592,6 +1599,7 @@ Apply the fix immediately.""",
             # Old loop detection (for logging only)
             intervention = self._check_for_loops()
             if intervention:
+                pass
                 # Add intervention guidance to thread
                 thread.add_message(
                     role="system",
@@ -1599,6 +1607,7 @@ Apply the fix immediately.""",
                 )
                 
                 if intervention.get('requires_user_input'):
+                    pass
                     # AUTONOMOUS: Consult AI UserProxy specialist instead of blocking
                     self.logger.info("\n" + "="*80)
                     self.logger.info("🤖 AUTONOMOUS USER PROXY CONSULTATION")
@@ -1635,7 +1644,6 @@ Apply the fix immediately.""",
                     
                     # Apply the guidance
                     guidance = guidance_result.get('guidance', '')
-                    self.logger.info(f"\n✓ AI Guidance: {guidance}")
 
                     # Add guidance to thread
                     if thread:
@@ -1662,7 +1670,6 @@ Apply the fix immediately.""",
                 if result.get('tool') == 'modify_file':
                     if result.get('success'):
                         success = True
-                        self.logger.info("  ✅ Modification successful!")
                     else:
                         error_message = result.get('error', 'Unknown error')
                         failure_analysis = result.get('failure_analysis')
@@ -1680,6 +1687,7 @@ Apply the fix immediately.""",
                                     break
                             
                             if failed_call and hasattr(self, 'parser') and hasattr(self.parser, 'gemma_formatter'):
+                                pass
                                 # Read current file content
                                 filepath = result.get('filepath', issue.get('filepath'))
                                 file_content = self.read_file(filepath) if filepath else None
@@ -1693,7 +1701,7 @@ Apply the fix immediately.""",
                                 )
                                 
                                 if fixed_call:
-                                    self.logger.info("  ✅ FunctionGemma fixed the tool call, retrying...")
+                                    pass
                                     
                                     # Re-execute with fixed call
                                     verbose = getattr(self.config, 'verbose', 0) if hasattr(self, 'config') else 0
@@ -1783,7 +1791,6 @@ Apply the fix immediately.""",
                     
                     # Parse decision
                     if "DECISION: ACCEPT" in decision_text.upper():
-                        self.logger.info("  ✅ AI decided to ACCEPT the change")
                         success = True
                         overall_success = True
                         
@@ -1808,11 +1815,10 @@ Apply the fix immediately.""",
                                 filepath = decision_context['filepath']
                                 full_path = self.project_dir / filepath
                                 full_path.write_text(decision_context['original_content'])
-                                self.logger.info("  ✅ Rollback completed")
                             except Exception as e:
                                 self.logger.error(f"  ❌ Rollback failed: {e}")
                     else:
-                        self.logger.warning("  ⚠️  Could not parse AI decision, treating as failure")
+                        pass
                 else:
                     self.logger.error(f"  ❌ Specialist decision failed")
             
@@ -1903,6 +1909,7 @@ Apply the fix immediately.""",
                 }
             )
         else:
+            pass
             # MESSAGE BUS: Publish phase completion (failure)
             self._publish_message('PHASE_COMPLETED', {
                 'phase': self.phase_name,
@@ -2000,6 +2007,7 @@ Apply the fix immediately.""",
                     fix_history.append((task, error))
         
         if fix_history:
+            pass
             # Sort by timestamp
             fix_history.sort(key=lambda x: x[1].timestamp, reverse=True)
             
@@ -2061,6 +2069,7 @@ Apply the fix immediately.""",
         outputs = {}
         
         try:
+            pass
             # Read QA output for reported bugs
             qa_output = self.read_phase_output('qa')
             if qa_output:
@@ -2088,6 +2097,7 @@ Apply the fix immediately.""",
         """Send messages to other phases' READ documents"""
         try:
             if fix_applied:
+                pass
                 # Send to QA phase when fix is ready for verification
                 qa_message = f"""
 ## Debug Fix Complete - {self.format_timestamp()}
@@ -2135,6 +2145,7 @@ An architectural issue was fixed. Please review to ensure it aligns with the ove
                     self.send_message_to_phase('coding', dev_message)
                     self.logger.info("  📤 Sent architectural fix notice to coding phase")
             else:
+                pass
                 # Send failure notice
                 qa_message = f"""
 ## Debug Attempt Failed - {self.format_timestamp()}

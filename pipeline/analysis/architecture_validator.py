@@ -68,15 +68,13 @@ class ArchitectureValidator:
         
         if master_plan_path.exists():
             self.master_plan = master_plan_path.read_text()
-            self.logger.info(f"  ✓ Loaded MASTER_PLAN.md ({len(self.master_plan)} chars)")
         else:
-            self.logger.warning(f"  ⚠️  MASTER_PLAN.md not found")
+            pass
             
         if architecture_path.exists():
             self.architecture = architecture_path.read_text()
-            self.logger.info(f"  ✓ Loaded ARCHITECTURE.md ({len(self.architecture)} chars)")
         else:
-            self.logger.warning(f"  ⚠️  ARCHITECTURE.md not found")
+            pass
             
         return self.master_plan is not None or self.architecture is not None
     
@@ -121,6 +119,7 @@ class ArchitectureValidator:
                 
                 # Check for directory markers
                 if '/' in line and not line.startswith('#'):
+                    pass
                     # Extract directory name
                     dir_match = re.search(r'([a-z_][a-z0-9_]*)/\s*(?:-|–|—|\||├|└)?', line, re.IGNORECASE)
                     if dir_match:
@@ -240,6 +239,7 @@ class ArchitectureValidator:
                 
                 # If specific files are listed, check if this file should be here
                 if expected_files and filename not in expected_files:
+                    pass
                     # Check if file matches any pattern
                     matches_pattern = False
                     for expected in expected_files:
@@ -347,7 +347,7 @@ class ArchitectureValidator:
             Dict mapping check names to lists of violations
         """
         if not self.load_documents():
-            self.logger.warning("  ⚠️  No architecture documents found, skipping validation")
+            pass
             
         
         
@@ -369,7 +369,6 @@ class ArchitectureValidator:
         return result
 
             
-        self.logger.info("  🔍 Validating architecture...")
         
         results = {
             'location_violations': self.validate_file_locations(),
@@ -378,7 +377,6 @@ class ArchitectureValidator:
         }
         
         total_violations = sum(len(v) for v in results.values())
-        self.logger.info(f"  ✓ Architecture validation complete: {total_violations} violations found")
         
         return results
     

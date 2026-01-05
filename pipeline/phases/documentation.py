@@ -110,22 +110,20 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         
         # 2. ANALYZE CURRENT ARCHITECTURE using validation tools
         current_arch = self.arch_manager.analyze_current_architecture()
-        self.logger.info(f"  🔍 Current architecture: {len(current_arch.components)} components found")
         
         # 3. VALIDATE CONSISTENCY between intended and current
         validation = self.arch_manager.validate_architecture_consistency(intended_arch)
-        self.logger.info(f"  ✅ Architecture validation: {'CONSISTENT' if validation.is_consistent else 'DRIFT DETECTED'}")
         
         if not validation.is_consistent:
             if validation.missing_components:
-                self.logger.warning(f"    ⚠️  Missing {len(validation.missing_components)} components")
+                pass
             if validation.integration_gaps:
-                self.logger.warning(f"    ⚠️  Found {len(validation.integration_gaps)} integration gaps")
+                pass
         
         # 4. GET ARCHITECTURE DIFF since last update
         diff = self.arch_manager.get_architecture_diff()
         if diff.has_changes():
-            self.logger.info(f"  📊 Architecture changes: +{len(diff.added)} -{len(diff.removed)} ~{len(diff.modified)}")
+            pass
         
         # 5. UPDATE ARCHITECTURE.MD with comprehensive view
         self.arch_manager.update_architecture_document(
@@ -150,7 +148,7 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         # IPC INTEGRATION: Read objectives for documentation priorities
         objectives = self._read_objectives()
         if objectives:
-            self.logger.info(f"  🎯 Objectives loaded: PRIMARY={bool(objectives.get('primary'))}, SECONDARY={len(objectives.get('secondary', []))}")
+            pass
         
         # IPC INTEGRATION: Write status at start
         self._write_status({
@@ -162,7 +160,6 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         # CHECK IF README EXISTS - if not, complete documentation task anyway
         readme_path = self.project_dir / "README.md"
         if not readme_path.exists():
-            self.logger.warning("  ⚠️  README.md not found - marking documentation task complete")
             self.logger.info("  💡 Tip: Create README.md to enable documentation updates")
             
             # Find and complete any documentation tasks
@@ -172,6 +169,7 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
             doc_tasks_completed = 0
             for task_id, task in state.tasks.items():
                 if task.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]:
+                    pass
                     # Check if it's a documentation task
                     is_doc_task = False
                     if task.target_file and task.target_file.endswith('.md'):
@@ -186,7 +184,6 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
                         task.status = TaskStatus.COMPLETED
                         task.completed_at = datetime.now()
                         doc_tasks_completed += 1
-                        self.logger.info(f"  ✅ Marked documentation task complete: {task.description[:60]}")
             
             if doc_tasks_completed > 0:
                 state_manager.save(state)
@@ -225,7 +222,6 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         no_update_count = state_manager.get_no_update_count(state, self.phase_name)
         
         if no_update_count >= 3:
-            self.logger.warning(f"  ⚠️  Documentation phase returned 'no updates' {no_update_count} times")
             self.logger.info("  🔄 Forcing transition to next phase to prevent loop")
             
             # Reset counter
@@ -266,6 +262,7 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         content = response.get("content", "")
         
         if not tool_calls:
+            pass
             # Increment no-update counter
             count = state_manager.increment_no_update_count(state, self.phase_name)
             
@@ -329,6 +326,7 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
         doc_tasks_completed = 0
         for task_id, task in state.tasks.items():
             if task.status in [TaskStatus.NEW, TaskStatus.IN_PROGRESS]:
+                pass
                 # Check if it's a documentation task
                 is_doc_task = False
                 if task.target_file and task.target_file.endswith('.md'):
@@ -343,7 +341,6 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
                     task.status = TaskStatus.COMPLETED
                     task.completed_at = datetime.now()
                     doc_tasks_completed += 1
-                    self.logger.info(f"  ✅ Marked documentation task complete: {task.description[:60]}")
         
         if doc_tasks_completed > 0:
             state_manager.save(state)
@@ -512,6 +509,7 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
             self.logger.info(f"    Updated README section: {section}")
             return True
         else:
+            pass
             # Section not found, add it
             return self._add_readme_section({
                 "section_heading": section,
@@ -608,7 +606,6 @@ This project uses an AI-assisted development pipeline that:
 """
         
         readme_path.write_text(basic_readme)
-        self.logger.info("  📄 Created README.md")
     
     def _log_analysis(self, analysis: Dict) -> None:
         """Log documentation analysis results"""
@@ -616,7 +613,6 @@ This project uses an AI-assisted development pipeline that:
         arch_needs = analysis.get("architecture_needs_update", False)
         new_features = analysis.get("new_features_to_document", [])
         
-        self.logger.info(f"  📊 Documentation Analysis:")
         self.logger.info(f"      README needs update: {readme_needs}")
         self.logger.info(f"      ARCHITECTURE needs update: {arch_needs}")
         
@@ -639,6 +635,7 @@ This project uses an AI-assisted development pipeline that:
         
         # Handle both string and dict context (for backward compatibility)
         if isinstance(context, str):
+            pass
             # Context is already a formatted string from _gather_documentation_context
             parts.append(context)
             
@@ -810,4 +807,3 @@ See ARCHITECTURE.md for detailed analysis.
         else:
             planning_read_path.write_text(planning_message, encoding='utf-8')
         
-        self.logger.warning("  🚨 Critical architecture drift alert sent to planning phase")

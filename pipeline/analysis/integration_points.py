@@ -139,6 +139,7 @@ def is_integration_point(filepath: str, symbol_type: str, symbol_name: str) -> b
     # HEURISTIC 2: Service layer methods are integration points
     # Services are meant to be called by API/UI layers
     if symbol_type == 'method' and filepath.startswith('services/'):
+        pass
         # Common service method patterns that are integration points
         integration_patterns = [
             'create_', 'get_', 'update_', 'delete_',  # CRUD operations
@@ -162,6 +163,7 @@ def is_integration_point(filepath: str, symbol_type: str, symbol_name: str) -> b
     ]
     
     if symbol_type == 'method' and any(filepath.startswith(d) for d in integration_directories):
+        pass
         # These are feature modules - their public methods are integration points
         if not symbol_name.startswith('_'):  # Public methods only
             return True

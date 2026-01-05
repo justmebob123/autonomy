@@ -71,11 +71,13 @@ class MethodCollector(ast.NodeVisitor):
     def visit_FunctionDef(self, node: ast.FunctionDef):
         """Collect method signature."""
         if self.current_class:
+            pass
             # Count arguments (excluding self)
             arg_count = len(node.args.args) - 1  # Subtract 'self'
             
             # Add defaults count
             if node.args.defaults:
+                pass
                 # Arguments with defaults are optional
                 required_args = arg_count - len(node.args.defaults)
             else:
@@ -128,11 +130,14 @@ class MethodCallChecker(ast.NodeVisitor):
                 class_name = self.variable_types[var_name]
             # Check if it's self.something
             elif var_name == 'self':
+                pass
                 # Would need to track current class
                 pass
         elif isinstance(node.func.value, ast.Attribute):
+            pass
             # self.something.method() - get the attribute name
             if isinstance(node.func.value.value, ast.Name) and node.func.value.value.id == 'self':
+                pass
                 # This is self.attribute.method()
                 attr_name = node.func.value.attr
                 # Common patterns
@@ -205,6 +210,7 @@ class MethodSignatureValidator:
         
         # Use SymbolTable if available, otherwise collect methods
         if self.symbol_table:
+            pass
             # Extract method signatures from SymbolTable
             for class_info in self.symbol_table.classes.values():
                 if ':' in class_info.name:  # Skip qualified names
@@ -213,6 +219,7 @@ class MethodSignatureValidator:
                     key = (class_info.name, method_name)
                     self.all_methods[key] = method_info.min_args
         else:
+            pass
             # Fallback: collect methods ourselves
             self._collect_methods()
         
@@ -278,6 +285,7 @@ class MethodSignatureValidator:
                 self.all_methods.update(collector.methods)
                 
             except Exception as e:
+                pass
                 # Skip files that can't be parsed
                 pass
     
@@ -294,6 +302,7 @@ class MethodSignatureValidator:
             self.errors.extend(checker.errors)
             
         except Exception as e:
+            pass
             # Skip files that can't be parsed
             pass
     

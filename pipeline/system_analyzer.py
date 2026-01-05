@@ -180,6 +180,7 @@ class SystemAnalyzer:
         circular = []
         
         for func in self.call_graph:
+            pass
             # Check for direct recursion
             if func in self.call_graph[func]:
                 recursive.append(func)

@@ -156,6 +156,7 @@ Remember: You're collaborating with other specialists. Build on their analysis a
         findings = []
         
         if "### Findings" in response or "## Findings" in response:
+            pass
             # Extract findings section
             lines = response.split('\n')
             in_findings = False
@@ -371,6 +372,7 @@ Provide strategic, high-level analysis and recommendations."""
         """
         
         if specialists is None:
+            pass
             # Default consultation order
             specialists = [
                 "Whitespace Analyst",
@@ -389,7 +391,6 @@ Provide strategic, high-level analysis and recommendations."""
         
         for specialist_name in specialists:
             if specialist_name not in self.specialists:
-                self.logger.warning(f"  ⚠️  Specialist '{specialist_name}' not available")
                 continue
             
             analysis = self.consult_specialist(specialist_name, thread, tools)

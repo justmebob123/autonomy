@@ -70,7 +70,7 @@ class ArchitectureManager:
         """
         if not self.arch_file.exists():
             if self.logger:
-                self.logger.warning(f"⚠️  ARCHITECTURE.md not found, creating template")
+                pass
             self._create_template()
             return self._get_empty_architecture()
         
@@ -151,7 +151,7 @@ class ArchitectureManager:
             self.arch_file.write_text(updated_content, encoding='utf-8')
             
             if self.logger:
-                self.logger.info(f"✅ Updated ARCHITECTURE.md section: {section_name}")
+                pass
                 
         except Exception as e:
             if self.logger:
@@ -396,7 +396,7 @@ Recent architectural changes will be recorded here automatically by phases.
         try:
             self.arch_file.write_text(template, encoding='utf-8')
             if self.logger:
-                self.logger.info("✅ Created ARCHITECTURE.md template")
+                pass
         except Exception as e:
             if self.logger:
                 self.logger.error(f"❌ Failed to create ARCHITECTURE.md: {e}")
@@ -437,7 +437,7 @@ Recent architectural changes will be recorded here automatically by phases.
                 return self._last_analysis
         
         if self.logger:
-            self.logger.info("  🔍 Analyzing current architecture...")
+            pass
         
         # Run all validators
         results = self.validator.validate_all()
@@ -481,7 +481,7 @@ Recent architectural changes will be recorded here automatically by phases.
         self._last_analysis_time = datetime.now()
         
         if self.logger:
-            self.logger.info(f"  ✅ Analysis complete: {len(components)} components, {len(validation_errors)} errors")
+            pass
         
         return analysis
     
@@ -491,6 +491,7 @@ Recent architectural changes will be recorded here automatically by phases.
         
         # Group by module/package
         for class_name, class_info in symbol_table.classes.items():
+            pass
             # Extract module name (e.g., 'pipeline.phases.planning' from 'pipeline.phases.planning.PlanningPhase')
             parts = class_name.split('.')
             if len(parts) > 1:
@@ -512,6 +513,7 @@ Recent architectural changes will be recorded here automatically by phases.
         
         # Add functions
         for func_name, func_info in symbol_table.functions.items():
+            pass
             # Extract module name
             parts = func_name.split('.')
             if len(parts) > 1:
@@ -582,6 +584,7 @@ Recent architectural changes will be recorded here automatically by phases.
             module = '.'.join(class_name.split('.')[:-1]) if '.' in class_name else 'root'
             
             if module not in integration_status:
+                pass
                 # Check if class is used (check if any method is called)
                 is_used = False
                 for method_name in class_info.methods.keys():
@@ -650,7 +653,7 @@ Recent architectural changes will be recorded here automatically by phases.
             - Naming violations
         """
         if self.logger:
-            self.logger.info("  🔍 Validating architecture consistency...")
+            pass
         
         # Get current architecture
         current = self.analyze_current_architecture()
@@ -678,6 +681,7 @@ Recent architectural changes will be recorded here automatically by phases.
         
         for module, status in current.integration_status.items():
             if not status.is_integrated:
+                pass
                 # Filter out known integration points from unused classes
                 real_unused = []
                 for cls in status.unused_classes:
@@ -715,11 +719,10 @@ Recent architectural changes will be recorded here automatically by phases.
         )
         
         if self.logger:
-            self.logger.info(f"  ✅ Validation complete: {'CONSISTENT' if is_consistent else 'DRIFT DETECTED'}")
             if missing_components:
-                self.logger.warning(f"    ⚠️  Missing {len(missing_components)} components")
+                pass
             if integration_gaps:
-                self.logger.warning(f"    ⚠️  Found {len(integration_gaps)} integration gaps")
+                pass
         
         return report
     
@@ -734,7 +737,7 @@ Recent architectural changes will be recorded here automatically by phases.
         
         if not master_plan_path.exists():
             if self.logger:
-                self.logger.warning("  ⚠️  MASTER_PLAN.md not found")
+                pass
             return {'components': {}}
         
         try:
@@ -782,6 +785,7 @@ Recent architectural changes will be recorded here automatically by phases.
         current = self.analyze_current_architecture()
         
         if previous_analysis is None:
+            pass
             # No previous analysis, all components are "added"
             return ArchitectureDiff(
                 added=list(current.components.values()),
@@ -985,7 +989,7 @@ Recent architectural changes will be recorded here automatically by phases.
         try:
             self.arch_file.write_text(content, encoding='utf-8')
             if self.logger:
-                self.logger.info("  ✅ ARCHITECTURE.md updated")
+                pass
         except Exception as e:
             if self.logger:
                 self.logger.error(f"  ❌ Failed to update ARCHITECTURE.md: {e}")
