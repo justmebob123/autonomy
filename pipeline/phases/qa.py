@@ -200,10 +200,30 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         # Run comprehensive analysis
         architecture_issues, analysis_issues = self._run_file_analysis(filepath, architecture)
         
+        # Get strategic documents for context
+        strategic_docs = self.read_strategic_docs()
+        
         # Build review message with analysis results
         user_message_parts = [
             f"Please review this code for quality issues:\n\nFile: {filepath}\n\n```\n{content}\n```"
         ]
+        
+        # Add strategic context from objectives documents
+        if strategic_docs:
+            secondary_objectives = strategic_docs.get('SECONDARY_OBJECTIVES.md', '')
+            tertiary_objectives = strategic_docs.get('TERTIARY_OBJECTIVES.md', '')
+            
+            if secondary_objectives:
+                # Extract relevant sections (limit to 1500 chars to avoid huge prompts)
+                if len(secondary_objectives) > 1500:
+                    secondary_objectives = secondary_objectives[:1500] + "\n... (truncated)"
+                user_message_parts.append(f"\n## Quality Standards (from SECONDARY_OBJECTIVES.md)\n{secondary_objectives}\n")
+            
+            if tertiary_objectives:
+                # Extract relevant sections (limit to 1500 chars)
+                if len(tertiary_objectives) > 1500:
+                    tertiary_objectives = tertiary_objectives[:1500] + "\n... (truncated)"
+                user_message_parts.append(f"\n## Known Issues to Check (from TERTIARY_OBJECTIVES.md)\n{tertiary_objectives}\n")
         
         # Add architecture issues first (highest priority)
         if architecture_issues:

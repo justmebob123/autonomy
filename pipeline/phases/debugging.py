@@ -377,6 +377,24 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         """
         parts = []
         
+        # Add strategic context from objectives documents
+        strategic_docs = self.read_strategic_docs()
+        if strategic_docs:
+            secondary_objectives = strategic_docs.get('SECONDARY_OBJECTIVES.md', '')
+            tertiary_objectives = strategic_docs.get('TERTIARY_OBJECTIVES.md', '')
+            
+            if secondary_objectives:
+                # Extract relevant sections (limit to 1000 chars)
+                if len(secondary_objectives) > 1000:
+                    secondary_objectives = secondary_objectives[:1000] + "\n... (truncated)"
+                parts.append(f"## Known Failures and Issues (from SECONDARY_OBJECTIVES.md)\n{secondary_objectives}\n")
+            
+            if tertiary_objectives:
+                # Extract relevant sections (limit to 1500 chars for specific fixes)
+                if len(tertiary_objectives) > 1500:
+                    tertiary_objectives = tertiary_objectives[:1500] + "\n... (truncated)"
+                parts.append(f"## Specific Fixes Needed (from TERTIARY_OBJECTIVES.md)\n{tertiary_objectives}\n")
+        
         # Issue description
         issue_type = issue.get('type', 'unknown')
         issue_desc = issue.get('description', 'No description')

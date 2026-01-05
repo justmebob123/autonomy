@@ -19,6 +19,9 @@ class RefactoringContext:
     master_plan: str
     architecture: str
     roadmap: Optional[str]
+    primary_objectives: Optional[str]
+    secondary_objectives: Optional[str]
+    tertiary_objectives: Optional[str]
     
     # Analysis reports
     dead_code_report: str
@@ -82,6 +85,9 @@ class RefactoringContextBuilder:
         master_plan = self._load_document('MASTER_PLAN.md')
         architecture = self._load_document('ARCHITECTURE.md')
         roadmap = self._load_document('ROADMAP.md', optional=True)
+        primary_objectives = self._load_document('PRIMARY_OBJECTIVES.md', optional=True)
+        secondary_objectives = self._load_document('SECONDARY_OBJECTIVES.md', optional=True)
+        tertiary_objectives = self._load_document('TERTIARY_OBJECTIVES.md', optional=True)
         
         # Load analysis reports
         dead_code_report = self._load_document('DEAD_CODE_REPORT.txt', optional=True)
@@ -106,6 +112,9 @@ class RefactoringContextBuilder:
             master_plan=master_plan,
             architecture=architecture,
             roadmap=roadmap,
+            primary_objectives=primary_objectives,
+            secondary_objectives=secondary_objectives,
+            tertiary_objectives=tertiary_objectives,
             dead_code_report=dead_code_report or "No report available",
             complexity_report=complexity_report or "No report available",
             antipattern_report=antipattern_report or "No report available",
@@ -161,6 +170,14 @@ class RefactoringContextBuilder:
 ```
 
 {f"### ROADMAP.md (Timeline & Priorities)```{self._truncate(context.roadmap, 1000)}```" if context.roadmap else ""}
+
+## Objectives Hierarchy
+
+{f"### PRIMARY_OBJECTIVES.md (Core Features)```{self._truncate(context.primary_objectives, 1000)}```" if context.primary_objectives else ""}
+
+{f"### SECONDARY_OBJECTIVES.md (Architectural Changes & Quality)```{self._truncate(context.secondary_objectives, 1500)}```" if context.secondary_objectives else ""}
+
+{f"### TERTIARY_OBJECTIVES.md (Specific Implementation Steps)```{self._truncate(context.tertiary_objectives, 2000)}```" if context.tertiary_objectives else ""}
 
 ## Analysis Reports
 

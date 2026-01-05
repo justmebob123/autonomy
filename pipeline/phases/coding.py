@@ -689,6 +689,24 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
         """
         parts = []
         
+        # Add strategic context from objectives documents
+        strategic_docs = self.read_strategic_docs()
+        if strategic_docs:
+            primary_objectives = strategic_docs.get('PRIMARY_OBJECTIVES.md', '')
+            tertiary_objectives = strategic_docs.get('TERTIARY_OBJECTIVES.md', '')
+            
+            if primary_objectives:
+                # Extract relevant sections (limit to 1000 chars)
+                if len(primary_objectives) > 1000:
+                    primary_objectives = primary_objectives[:1000] + "\n... (truncated)"
+                parts.append(f"## Features to Implement (from PRIMARY_OBJECTIVES.md)\n{primary_objectives}\n")
+            
+            if tertiary_objectives:
+                # Extract relevant sections (limit to 2000 chars for detailed implementation steps)
+                if len(tertiary_objectives) > 2000:
+                    tertiary_objectives = tertiary_objectives[:2000] + "\n... (truncated)"
+                parts.append(f"## Specific Implementation Steps (from TERTIARY_OBJECTIVES.md)\n{tertiary_objectives}\n")
+        
         # Task description
         parts.append(f"Task: {task.description}")
         parts.append(f"Target file: {task.target_file}")
