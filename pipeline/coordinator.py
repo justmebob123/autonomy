@@ -1835,10 +1835,10 @@ class PhaseCoordinator:
             if phase_name in state.phases:
                 phase_state = state.phases[phase_name]
                 factors['phase_stats'][phase_name] = {
-                    'success_rate': phase_state.success_rate,
-                    'avg_duration': phase_state.avg_duration,
-                    'total_runs': phase_state.total_runs,
-                    'consecutive_failures': phase_state.consecutive_failures
+                    'success_rate': phase_state.get_recent_success_rate(10) if hasattr(phase_state, 'get_recent_success_rate') else (phase_state.successes / max(phase_state.runs, 1)),
+                    'avg_duration': 0.0,  # Not tracked in PhaseState
+                    'total_runs': phase_state.runs,
+                    'consecutive_failures': phase_state.get_consecutive_failures() if hasattr(phase_state, 'get_consecutive_failures') else 0
                 }
         
         # Add pattern recommendations
