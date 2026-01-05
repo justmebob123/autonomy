@@ -29,6 +29,18 @@ class HTMLEntityDecoder:
         '&#38;': '&',
         '&nbsp;': ' ',
         '&#160;': ' ',
+        '&#167;': 'Section ',
+        '&#146;': "'",
+        '&#147;': '"',
+        '&#148;': '"',
+        '&#174;': '',  # Registered trademark
+        '&#168;': '',  # Diaeresis
+        '&#153;': '',  # Trademark
+        '&#128;': '(euro)',
+        '&#163;': '(british pound)',
+        '&#150;': '-',
+        '&#165;': '(yen)',
+        '&#169;': 'copyright ',
         '&ndash;': '\u2013',
         '&mdash;': '\u2014',
         '&hellip;': '...',
@@ -146,12 +158,38 @@ class HTMLEntityDecoder:
         return None
     
     def _manual_decode(self, code: str) -> str:
-        """Apply manual decoding for common HTML entities."""
+        """
+        Apply manual decoding for common HTML entities.
+        
+        Uses multiple approaches:
+        1. Direct entity replacement from COMMON_ENTITIES
+        2. Numeric entity decoding (&#NNNN;)
+        3. html.unescape for standard entities
+        """
+        import re
+        
         decoded = code
         
+        # Step 1: Replace common entities
         for entity, char in self.COMMON_ENTITIES.items():
             if entity in decoded:
                 decoded = decoded.replace(entity, char)
+        
+        # Step 2: Decode numeric HTML entities (&#NNNN;)
+        def replace_numeric_entity(match):
+            try:
+                dec = int(match.group(1))
+                return chr(dec)
+            except (ValueError, OverflowError):
+                return match.group(0)  # Keep original if conversion fails
+        
+        decoded = re.sub(r'&#(\d+);', replace_numeric_entity, decoded)
+        
+        # Step 3: Use html.unescape for any remaining standard entities
+        decoded = html.unescape(decoded)
+        
+        # Step 4: Normalize non-breaking spaces to regular spaces
+        decoded = decoded.replace('\xa0', ' ')
         
         return decoded
     
