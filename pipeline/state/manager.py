@@ -760,6 +760,26 @@ class StateManager:
         
         state.updated = datetime.now().isoformat()
         
+        # DEBUG: Log what's being saved
+        self.logger.info("=" * 80)
+        self.logger.info("💾 SAVING STATE - OBJECTIVES STRUCTURE")
+        self.logger.info("=" * 80)
+        
+        for level in ["primary", "secondary", "tertiary"]:
+            if level in state.objectives:
+                self.logger.info(f"   {level}: {len(state.objectives[level])} objectives")
+                for obj_id, obj_data in state.objectives[level].items():
+                    if isinstance(obj_data, dict):
+                        task_count = len(obj_data.get('tasks', [])) if isinstance(obj_data.get('tasks'), list) else 0
+                        self.logger.info(f"      {obj_id}: {task_count} tasks")
+                        if task_count > 0:
+                            tasks = obj_data.get('tasks', [])
+                            self.logger.info(f"         Task IDs: {tasks[:5] if len(tasks) > 5 else tasks}")
+                    else:
+                        self.logger.info(f"      {obj_id}: NOT A DICT (type: {type(obj_data)})")
+        
+        self.logger.info("=" * 80)
+        
         try:
             atomic_write_json(self.state_file, state.to_dict(), indent=2)
             self.logger.debug(f"Saved state to {self.state_file}")
