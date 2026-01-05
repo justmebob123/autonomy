@@ -978,34 +978,228 @@ Please address these architectural integration issues.
                     self.logger.warning(f"      ⚠️  {len(high_conflicts)} HIGH SEVERITY conflicts need immediate attention")
         return results
     def _update_tertiary_objectives(self, analysis_results: Dict):
-        """Update TERTIARY_OBJECTIVES.md with specific implementation details"""
-        self.logger.info("  📝 Updating TERTIARY_OBJECTIVES.md...")
-        content_parts = []
-        # Specific code fixes needed
-        if analysis_results.get('complexity_issues') or analysis_results.get('dead_code'):
-            content_parts.append("## Specific Fixes Needed\n\n")
-            # High complexity fixes
-            for issue in analysis_results.get('complexity_issues', [])[:5]:
-                content_parts.append(f"### {issue['file']} - Line {issue['line']}\n")
-                content_parts.append(f"**Problem**: Function `{issue['function']}` has complexity {issue['complexity']}\n")
-                content_parts.append(f"**Fix**: {issue['recommendation']}\n")
-                content_parts.append("**Approach**: Break down into smaller functions, extract logic\n\n")
-            # Dead code removal
-            for dead in analysis_results.get('dead_code', [])[:5]:
-                content_parts.append(f"### {dead['file']} - Line {dead['line']}\n")
-                content_parts.append(f"**Problem**: {dead['type'].title()} `{dead['name']}` is unused\n")
-                content_parts.append(f"**Fix**: {dead['recommendation']}\n\n")
-        if content_parts:
-            full_content = "".join(content_parts)
-            try:
-                self.file_updater.update_section(
-                    "TERTIARY_OBJECTIVES.md",
-                    "## Implementation Details",
-                    full_content
-                )
-                self.logger.info("  ✅ Updated TERTIARY_OBJECTIVES.md")
-            except Exception as e:
-                self.logger.warning(f"  Failed to update TERTIARY_OBJECTIVES.md: {e}")
+        """Update TERTIARY_OBJECTIVES.md with highly specific implementation details"""
+        try:
+            tertiary_path = self.project_dir / 'TERTIARY_OBJECTIVES.md'
+            
+            content = f"""# Tertiary Objectives - Specific Implementation Details
+
+> **Purpose**: Highly specific implementation steps, code examples, and exact changes needed
+> **Updated By**: Planning phase (from detailed analysis)
+> **Read By**: Coding, Debugging, Refactoring phases
+> **Last Updated**: {self.format_timestamp()}
+
+---
+
+## Specific Code Changes Required
+
+> This section provides exact file locations, line numbers, and concrete implementation steps.
+> Each item includes the problem, the fix, and example code where applicable.
+
+"""
+            
+            # Import integration point checker
+            from pipeline.analysis.integration_points import is_integration_point
+            
+            # 1. HIGH COMPLEXITY REFACTORING
+            if analysis_results.get('complexity_issues'):
+                high_complexity = [i for i in analysis_results['complexity_issues'] if i['complexity'] >= 30]
+                if high_complexity:
+                    content += f"""### 1. High Complexity Refactoring ({len(high_complexity)} functions)
+
+> Functions with cyclomatic complexity >= 30 need to be broken down.
+
+"""
+                    for idx, issue in enumerate(high_complexity[:10], 1):
+                        content += f"""#### {idx}. `{issue['file']}::{issue['function']}` (Line {issue['line']})
+
+**Complexity Score**: {issue['complexity']} (threshold: 30)
+
+**Problem**: Function is too complex and hard to maintain.
+
+**Recommendation**: {issue['recommendation']}
+
+**Implementation Steps**:
+1. Identify logical sections within the function
+2. Extract each section into a separate helper function
+3. Add clear docstrings to each new function
+4. Update tests to cover new functions
+5. Verify original functionality is preserved
+
+**Example Refactoring Pattern**:
+```python
+# Before: Complex function
+def complex_function(data):
+    # 100+ lines of mixed logic
+    result = process_step1(data)
+    result = process_step2(result)
+    result = process_step3(result)
+    return result
+
+# After: Broken down
+def complex_function(data):
+    &quot;&quot;&quot;Main orchestration function.&quot;&quot;&quot;
+    result = _process_step1(data)
+    result = _process_step2(result)
+    result = _process_step3(result)
+    return result
+
+def _process_step1(data):
+    &quot;&quot;&quot;Handle step 1 logic.&quot;&quot;&quot;
+    # Clear, focused logic
+    pass
+
+def _process_step2(data):
+    &quot;&quot;&quot;Handle step 2 logic.&quot;&quot;&quot;
+    # Clear, focused logic
+    pass
+```
+
+---
+
+"""
+            
+            # 2. DEAD CODE REMOVAL
+            if analysis_results.get('dead_code'):
+                # Filter out integration points
+                real_dead_code = [i for i in analysis_results['dead_code'] 
+                                if not is_integration_point(i['file'], i['type'], i['name'])]
+                
+                if real_dead_code:
+                    content += f"""### 2. Dead Code Removal ({len(real_dead_code)} items)
+
+> Unused code that can be safely removed to improve maintainability.
+
+"""
+                    for idx, dead in enumerate(real_dead_code[:10], 1):
+                        content += f"""#### {idx}. `{dead['file']}::{dead['name']}` (Line {dead['line']})
+
+**Type**: {dead['type'].title()}
+
+**Problem**: This {dead['type']} is defined but never called or used.
+
+**Recommendation**: {dead['recommendation']}
+
+**Action Required**:
+1. Verify no external dependencies use this {dead['type']}
+2. Check if it's part of a public API (if so, deprecate first)
+3. Remove the {dead['type']} definition
+4. Remove any associated tests
+5. Update documentation if referenced
+
+**Verification Command**:
+```bash
+# Search for any usage of this {dead['type']}
+grep -r "{dead['name']}" . --include="*.py" | grep -v "def {dead['name']}"
+```
+
+---
+
+"""
+            
+            # 3. INTEGRATION GAPS
+            if analysis_results.get('integration_gaps'):
+                # Filter out known integration points
+                real_gaps = [i for i in analysis_results['integration_gaps'] 
+                           if not is_integration_point(i['file'], 'class', i.get('class', ''))]
+                
+                if real_gaps:
+                    content += f"""### 3. Integration Gaps ({len(real_gaps)} components)
+
+> Components that are defined but not integrated into the system.
+
+"""
+                    for idx, gap in enumerate(real_gaps[:10], 1):
+                        content += f"""#### {idx}. `{gap['file']}::{gap['class']}` (Line {gap['line']})
+
+**Problem**: Class is defined but not instantiated or used anywhere.
+
+**Integration Steps**:
+1. Identify where this component should be used
+2. Import the class in the appropriate module
+3. Instantiate with required dependencies
+4. Wire into existing workflow/pipeline
+5. Add integration tests
+
+**Example Integration Pattern**:
+```python
+# In the appropriate module (e.g., main.py, coordinator.py)
+from {gap['file'].replace('/', '.').replace('.py', '')} import {gap['class']}
+
+# Instantiate with dependencies
+{gap['class'].lower()} = {gap['class']}(
+    dependency1=dep1,
+    dependency2=dep2
+)
+
+# Use in workflow
+result = {gap['class'].lower()}.process(data)
+```
+
+**Files to Modify**:
+- `{gap['file']}` - The component itself (may need constructor updates)
+- `[main module]` - Where component should be instantiated
+- `[workflow module]` - Where component should be called
+- `tests/test_{gap['class'].lower()}.py` - Integration tests
+
+---
+
+"""
+            
+            # 4. INTEGRATION CONFLICTS
+            if analysis_results.get('integration_conflicts'):
+                content += f"""### 4. Integration Conflicts ({len(analysis_results['integration_conflicts'])} conflicts)
+
+> Conflicts between components that need resolution.
+
+"""
+                for idx, conflict in enumerate(analysis_results['integration_conflicts'][:5], 1):
+                    content += f"""#### {idx}. {conflict.get('description', 'Unknown conflict')}
+
+**Type**: {conflict.get('type', 'Unknown')}
+
+**Affected Components**:
+{chr(10).join(f"- `{comp}`" for comp in conflict.get('components', []))}
+
+**Resolution Steps**:
+1. Analyze the conflict in detail
+2. Determine which component should take precedence
+3. Refactor interfaces to be compatible
+4. Add adapter/bridge pattern if needed
+5. Update all call sites
+
+---
+
+"""
+            
+            # 5. SUMMARY
+            content += """## Implementation Priority
+
+> Recommended order for addressing these issues:
+
+1. **Integration Conflicts** - Fix first to unblock other work
+2. **Integration Gaps** - Wire up components to enable functionality
+3. **High Complexity** - Refactor to improve maintainability
+4. **Dead Code** - Remove to reduce cognitive load
+
+## Notes for Implementers
+
+- Always run tests after each change
+- Commit frequently with clear messages
+- Update documentation as you go
+- Ask for code review on complex refactorings
+- Use feature flags for risky changes
+
+---
+
+*This document is automatically updated by the Planning phase based on detailed codebase analysis.*
+"""
+            
+            tertiary_path.write_text(content)
+            self.logger.info("  📝 Updated TERTIARY_OBJECTIVES.md with specific implementation details")
+            
+        except Exception as e:
+            self.logger.error(f"  ❌ Failed to update TERTIARY_OBJECTIVES: {e}")
     def _update_architecture_doc(self, analysis_results: Dict):
         """Update ARCHITECTURE.md with INTENDED design and track drift from ACTUAL design"""
         try:
