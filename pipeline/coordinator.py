@@ -111,11 +111,11 @@ class PhaseCoordinator:
         
         # Correlation engine for cross-phase analysis
         from .correlation_engine import CorrelationEngine
-        from .correlation_engine_enhanced import EnhancedCorrelationEngine
+        from .phase_correlation import PhaseCorrelationEngine
         
         # Use enhanced correlation engine for Week 2 features
         self.correlation_engine = CorrelationEngine()  # Keep for compatibility
-        self.enhanced_correlation = EnhancedCorrelationEngine(self.project_dir)
+        self.phase_correlation = PhaseCorrelationEngine(self.project_dir)
         self.logger.info("🔗 Correlation engines initialized (basic + enhanced)")
         
         # Analytics integration for predictive analytics, anomaly detection, and optimization
@@ -1468,9 +1468,9 @@ class PhaseCoordinator:
                 phase_duration = time.time() - phase_start_time
                 
                 # WEEK 2 PHASE 2: Record phase execution for correlation analysis
-                if hasattr(self, 'enhanced_correlation') and self.enhanced_correlation:
+                if hasattr(self, 'phase_correlation') and self.phase_correlation:
                     try:
-                        self.enhanced_correlation.record_phase_execution(
+                        self.phase_correlation.record_phase_execution(
                             phase=phase_name,
                             success=result.success,
                             context={
@@ -1883,23 +1883,23 @@ class PhaseCoordinator:
         }
         
         # WEEK 2 PHASE 2: Add correlation-based recommendations
-        if hasattr(self, 'enhanced_correlation') and self.enhanced_correlation:
+        if hasattr(self, 'phase_correlation') and self.phase_correlation:
             try:
                 # Get phase success predictions
                 phase_predictions = {}
                 for phase_name in ['planning', 'coding', 'qa', 'debugging', 'refactoring']:
-                    prediction = self.enhanced_correlation.predict_phase_success(phase_name)
+                    prediction = self.phase_correlation.predict_phase_success(phase_name)
                     phase_predictions[phase_name] = prediction
                 
                 factors['correlation_predictions'] = phase_predictions
                 
                 # Get phase dependencies
-                dependencies = self.enhanced_correlation.analyze_phase_dependencies()
+                dependencies = self.phase_correlation.analyze_phase_dependencies()
                 factors['phase_dependencies'] = dependencies
                 
                 # Get recommended sequence
                 objectives_list = ['implement_features'] if state.tasks else []
-                recommendations = self.enhanced_correlation.recommend_phase_sequence(
+                recommendations = self.phase_correlation.recommend_phase_sequence(
                     objectives=objectives_list,
                     current_phase=state.current_phase
                 )

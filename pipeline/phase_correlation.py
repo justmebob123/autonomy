@@ -66,9 +66,9 @@ class PhaseDependency:
         }
 
 
-class EnhancedCorrelationEngine:
+class PhaseCorrelationEngine:
     """
-    Enhanced correlation engine for pipeline phase analysis.
+    Phase correlation engine for pipeline phase analysis.
     
     WEEK 2 ENHANCEMENTS:
     - Phase dependency tracking

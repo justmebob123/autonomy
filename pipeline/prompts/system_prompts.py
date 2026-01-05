@@ -1,5 +1,5 @@
 """
-Enhanced Phase-Specific System Prompts
+Phase-Specific System Prompts
 
 This module provides system prompts for each phase that enforce multi-step workflows,
 require explicit step tracking, and guide the AI through proper tool usage.
