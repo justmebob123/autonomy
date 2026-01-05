@@ -6,6 +6,22 @@ Contains all system prompts used by the various pipeline phases.
 
 from typing import List, Dict, Optional
 
+# Import enhanced system prompts
+try:
+    from pipeline.prompts.system_prompts import (
+        get_base_system_prompt,
+        get_coding_system_prompt,
+        get_refactoring_system_prompt,
+        get_qa_system_prompt,
+        get_debugging_system_prompt,
+        get_planning_system_prompt,
+        get_documentation_system_prompt,
+        get_investigation_system_prompt
+    )
+    ENHANCED_PROMPTS_AVAILABLE = True
+except ImportError:
+    ENHANCED_PROMPTS_AVAILABLE = False
+
 SYSTEM_PROMPTS = {
     "planning": """🎯 YOUR PRIMARY MISSION: CREATE ACTIONABLE IMPLEMENTATION PLANS
 
@@ -874,6 +890,29 @@ The system tracks your investigation progress:
 REMEMBER: You MUST use tools with non-empty name fields!
 Your investigation results will guide debugging, coding, and refactoring phases.""",
 }
+
+# ============================================================================
+# ENHANCED SYSTEM PROMPTS WITH MULTI-STEP WORKFLOW ENFORCEMENT
+# ============================================================================
+# These enhanced prompts are loaded dynamically and override the base prompts
+# when ENHANCED_PROMPTS_AVAILABLE is True. They provide:
+# - Explicit multi-step workflow enforcement
+# - Step tracking requirements
+# - Failure recovery guidance
+# - Phase-specific best practices
+
+if ENHANCED_PROMPTS_AVAILABLE:
+    # Override with enhanced prompts
+    SYSTEM_PROMPTS["base"] = get_base_system_prompt()
+    SYSTEM_PROMPTS["coding"] = get_base_system_prompt() + "\n\n" + get_coding_system_prompt()
+    SYSTEM_PROMPTS["refactoring"] = get_base_system_prompt() + "\n\n" + get_refactoring_system_prompt()
+    SYSTEM_PROMPTS["qa"] = get_base_system_prompt() + "\n\n" + get_qa_system_prompt()
+    SYSTEM_PROMPTS["debugging"] = get_base_system_prompt() + "\n\n" + get_debugging_system_prompt()
+    SYSTEM_PROMPTS["debug"] = SYSTEM_PROMPTS["debugging"]  # Alias
+    # Keep existing planning prompt as it's already comprehensive
+    # SYSTEM_PROMPTS["planning"] = get_base_system_prompt() + "\n\n" + get_planning_system_prompt()
+    SYSTEM_PROMPTS["documentation"] = get_base_system_prompt() + "\n\n" + get_documentation_system_prompt()
+    SYSTEM_PROMPTS["investigation"] = get_base_system_prompt() + "\n\n" + get_investigation_system_prompt()
 
 
 def get_planning_prompt(master_plan: str, existing_files: str) -> str:
