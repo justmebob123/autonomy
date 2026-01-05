@@ -389,7 +389,7 @@ class SymbolCollector:
             
             if any(part.startswith('.') or part in ['__pycache__', 'venv', '.venv', 'node_modules'] 
                    for part in py_file.parts):
-                       pass
+                pass
                 continue
             
             self.collect_from_file(py_file)

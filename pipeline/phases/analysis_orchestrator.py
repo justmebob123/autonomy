@@ -121,7 +121,6 @@ class AnalysisOrchestrator:
         if coding_issues_count > 0 and tasks_created > 0:
             coding_ratio = coding_issues_count / tasks_created
             if coding_ratio > 0.5:
-                )
                 self.logger.info("  ➡️  Returning to CODING phase to fix missing code...")
                 return -1  # Signal to return to coding phase
         
