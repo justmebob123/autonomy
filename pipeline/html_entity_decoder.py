@@ -202,7 +202,7 @@ class HTMLEntityDecoder:
         
         CONSERVATIVE approach - only fixes:
         1. Lines starting with &quot; or \' (line continuation errors)
-        2. Lines starting with \&quot; or \&apos; (HTML entity line continuation errors)
+        2. Lines starting with \\&quot; or \\&apos; (HTML entity line continuation errors)
         3. Standalone docstring delimiters at line start
         4. HTML entities in comments (safe context)
         

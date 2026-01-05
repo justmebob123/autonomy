@@ -176,7 +176,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 message="No tasks to implement"
             )
         
-        # CRITICAL: Skip tasks with empty target_file
+        # CRITICAL: Skip tasks with empty target_file or directory targets
         if not task.target_file or task.target_file.strip() == "":
             task.status = TaskStatus.SKIPPED
             self.state_manager.save(state)
@@ -185,6 +185,20 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 phase=self.phase_name,
                 message="Skipped task with empty target_file",
                 task_id=task.task_id
+            )
+        
+        # Skip tasks targeting directories (should be handled by refactoring phase)
+        if task.target_file.endswith('/'):
+            self.logger.info(f"  📁 Directory refactoring task - skipping in coding phase")
+            task.status = TaskStatus.SKIPPED
+            task.completion_notes = "Directory refactoring should be handled by refactoring phase"
+            self.state_manager.save(state)
+            return PhaseResult(
+                success=True,
+                phase=self.phase_name,
+                message="Directory refactoring skipped - use refactoring phase",
+                task_id=task.task_id,
+                next_phase="refactoring"
             )
         
         # SPECIAL HANDLING: Analysis markdown files should use analysis tools
