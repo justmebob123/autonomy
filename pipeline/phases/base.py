@@ -161,6 +161,10 @@ class BasePhase(ABC):
         self.analytics = analytics
         self.pattern_optimizer = pattern_optimizer
         
+        # Initialize pattern feedback system for self-correcting behavior
+        from ..pattern_feedback import PromptFeedbackSystem
+        self.pattern_feedback = PromptFeedbackSystem(self.project_dir)
+        
         # CRITICAL: Initialize Architecture Manager and IPC Integration
         from ..architecture_manager import ArchitectureManager
         from ..ipc_integration import ObjectiveReader, StatusWriter, StatusReader
@@ -592,6 +596,7 @@ class BasePhase(ABC):
         - Learned patterns from execution history
         - Self-awareness level
         - Current context and state
+        - Pattern feedback (violation-based reminders)
         
         Args:
             phase_name: Name of the phase (e.g., "debugging", "coding")
@@ -610,6 +615,17 @@ class BasePhase(ABC):
         else:
             # Fallback to hardcoded
             base_prompt = SYSTEM_PROMPTS.get(phase_name, SYSTEM_PROMPTS.get("base", ""))
+        
+        # WEEK 2 ENHANCEMENT: Add pattern feedback additions
+        # These are dynamic reminders based on detected workflow violations
+        if hasattr(self, 'pattern_feedback') and self.pattern_feedback:
+            try:
+                feedback_additions = self.pattern_feedback.get_prompt_additions(phase_name)
+                if feedback_additions:
+                    self.logger.info(f"  📋 Adding pattern feedback reminders to {phase_name} prompt")
+                    base_prompt = base_prompt + feedback_additions
+            except Exception as e:
+                self.logger.warning(f"  ⚠️  Error getting pattern feedback: {e}")
         
         # CRITICAL FIX: Apply adaptive prompt system if available
         if hasattr(self, 'adaptive_prompts') and self.adaptive_prompts and context:
@@ -952,3 +968,78 @@ class BasePhase(ABC):
                     self.logger.debug(f"  📐 Updated {len(dimension_updates)} dimensions for {self.phase_name}")
         except Exception as e:
             self.logger.warning(f"  ⚠️  Error tracking dimensions: {e}")
+    
+    def track_violation(self, violation_type: str, context: Optional[Dict] = None, severity: Optional[str] = None):
+        """
+        Track a workflow violation for pattern feedback.
+        
+        This enables self-correcting behavior by:
+        1. Recording when AI violates workflow steps
+        2. Detecting repeat patterns
+        3. Dynamically adding prompt reminders
+        
+        Args:
+            violation_type: Type of violation (e.g., "skipped_discovery", "created_duplicate")
+            context: Additional context about the violation
+            severity: Override default severity ("low", "medium", "high")
+        
+        Example:
+            # In coding phase, if AI skips find_similar_files:
+            self.track_violation("skipped_discovery", 
+                               context={"target_file": task.target_file})
+        """
+        if not hasattr(self, 'pattern_feedback') or not self.pattern_feedback:
+            return
+        
+        try:
+            self.pattern_feedback.track_workflow_violation(
+                phase=self.phase_name,
+                violation_type=violation_type,
+                context=context,
+                severity=severity
+            )
+            self.logger.debug(f"  📋 Tracked violation: {violation_type}")
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error tracking violation: {e}")
+    
+    def mark_violation_resolved(self, violation_type: str):
+        """
+        Mark a violation as resolved (AI followed workflow correctly).
+        
+        This helps measure effectiveness of prompt additions and
+        automatically removes reminders when patterns are consistently resolved.
+        
+        Args:
+            violation_type: Type of violation that was resolved
+        
+        Example:
+            # In coding phase, if AI correctly calls find_similar_files:
+            self.mark_violation_resolved("skipped_discovery")
+        """
+        if not hasattr(self, 'pattern_feedback') or not self.pattern_feedback:
+            return
+        
+        try:
+            self.pattern_feedback.mark_violation_resolved(
+                phase=self.phase_name,
+                violation_type=violation_type
+            )
+            self.logger.debug(f"  ✅ Marked violation resolved: {violation_type}")
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error marking violation resolved: {e}")
+    
+    def get_pattern_summary(self) -> Dict:
+        """
+        Get summary of violation patterns for this phase.
+        
+        Returns:
+            Dictionary with pattern statistics
+        """
+        if not hasattr(self, 'pattern_feedback') or not self.pattern_feedback:
+            return {}
+        
+        try:
+            return self.pattern_feedback.get_pattern_summary(phase=self.phase_name)
+        except Exception as e:
+            self.logger.warning(f"  ⚠️  Error getting pattern summary: {e}")
+            return {}
