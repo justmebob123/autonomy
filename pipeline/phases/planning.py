@@ -422,6 +422,7 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
             if inactive_tasks:
                 self.logger.info(f"  🔄 Found {len(inactive_tasks)} inactive tasks - checking for reactivation")
                 reactivated = 0
+                skipped_too_many_failures = 0
                 for task in inactive_tasks[:10]:  # Reactivate up to 10 at a time
                     # CRITICAL: Don't reactivate tasks with empty target_file
                     # These are invalid and will just be skipped again
@@ -429,9 +430,25 @@ class PlanningPhase(BasePhase, LoopDetectionMixin):
                         self.logger.debug(f"    ⏭️  Skipping reactivation of task with empty target_file: {task.description[:60]}...")
                         continue
                     
+                    # CRITICAL: Don't reactivate permanently failed tasks
+                    if getattr(task, 'permanently_failed', False):
+                        self.logger.debug(f"    🚫 Skipping permanently failed task: {task.description[:60]}...")
+                        skipped_too_many_failures += 1
+                        continue
+                    
+                    # CRITICAL: Don't reactivate tasks that have failed too many times
+                    failure_count = getattr(task, 'failure_count', 0)
+                    if failure_count >= 5:
+                        self.logger.debug(f"    🚫 Skipping reactivation of task with {failure_count} failures: {task.description[:60]}...")
+                        skipped_too_many_failures += 1
+                        continue
+                    
                     task.status = TaskStatus.NEW
                     task.attempts = 0  # Reset attempts
                     reactivated += 1
+                
+                if skipped_too_many_failures > 0:
+                    self.logger.warning(f"  ⚠️  Skipped {skipped_too_many_failures} tasks with too many failures (≥5)")
                 
                 # Rebuild queue with reactivated tasks
                 state.rebuild_queue()
