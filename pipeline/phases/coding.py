@@ -204,7 +204,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         # SPECIAL HANDLING: Analysis markdown files should use analysis tools
         # and report through IPC/messaging instead of creating files
         if task.target_file.endswith('.md') and any(keyword in task.target_file.lower() 
-                                                      for keyword in ['analysis', 'gap', 'report', 'findings']):
+                                                      for keyword in ['analysis', 'gap', 'report', 'findings', 'plan', 'architecture', 'design', 'integration']):
             self.logger.info(f"  📊 Analysis task detected - using analysis tools instead of file creation")
             # Use analysis tools to gather information
             # Report findings through IPC documentation system
@@ -359,35 +359,56 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         files_modified = handler.files_modified
         
         if not files_created and not files_modified:
-            # Check if only analysis tools were called (find_similar_files, validate_filename, etc.)
+            # Check if only analysis/read tools were called (find_similar_files, validate_filename, read_file, etc.)
             analysis_tools = ['find_similar_files', 'validate_filename', 'compare_files', 
-                            'find_all_conflicts', 'detect_naming_violations']
+                            'find_all_conflicts', 'detect_naming_violations', 'read_file']
             only_analysis = all(
                 call.get("function", {}).get("name") in analysis_tools 
                 for call in tool_calls
             )
             
             if only_analysis:
-                # Model called analysis tools but didn't create files
-                # This means it needs more context or is confused
-                task.add_error(
-                    "incomplete_action",
-                    "You called analysis tools but didn't create or modify any files. "
-                    "After analyzing, you must use create_python_file or full_file_rewrite to actually create the file.",
-                    phase="coding"
-                )
+                # Model called analysis/read tools but didn't create files
+                # Provide clear guidance based on file type
+                tools_called = [call.get('function', {}).get('name') for call in tool_calls]
+                file_type = "markdown" if task.target_file.endswith('.md') else "Python"
+                file_ext = task.target_file.split('.')[-1] if '.' in task.target_file else 'unknown'
+                
+                error_msg = f"""You called {', '.join(tools_called)} but didn't create the target file.
+
+TARGET FILE: {task.target_file}
+FILE TYPE: {file_type} (.{file_ext})
+
+WHAT YOU MUST DO NEXT:
+1. Use create_file tool to create the {file_type} file
+2. Provide the complete content for the file
+3. Ensure the content matches the task description
+
+EXAMPLE:
+{{
+  "name": "create_file",
+  "arguments": {{
+    "filepath": "{task.target_file}",
+    "content": "# Your {file_type} content here..."
+  }}
+}}
+
+DO NOT just analyze - you must CREATE the file!"""
+                
+                task.add_error("incomplete_action", error_msg, phase="coding")
                 task.status = TaskStatus.FAILED
                 task.failure_count = getattr(task, 'failure_count', 0) + 1
                 
-                self.logger.error(f"  ❌ Analysis tools called but no files created")
-                self.logger.error(f"     Tools called: {[call.get('function', {}).get('name') for call in tool_calls]}")
-                self.logger.error(f"     Next attempt: Must use file creation tools after analysis")
+                self.logger.error(f"  ❌ Analysis/read tools called but no files created")
+                self.logger.error(f"     Tools called: {tools_called}")
+                self.logger.error(f"     Target file: {task.target_file} ({file_type})")
+                self.logger.error(f"     Next attempt: Must use create_file to create the {file_type} file")
                 
                 return PhaseResult(
                     success=False,
                     phase=self.phase_name,
                     task_id=task.task_id,
-                    message="Analysis completed but no files created - must follow through with file creation"
+                    message=f"Analysis completed but {file_type} file '{task.target_file}' not created - must use create_file tool"
                 )
             
             # Check for syntax errors in results

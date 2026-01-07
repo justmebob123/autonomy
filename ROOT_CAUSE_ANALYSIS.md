@@ -1,140 +1,163 @@
-# ROOT CAUSE: Why Tasks Are Being Skipped
+# Root Cause Analysis - Infinite Loop Issue (DEEP ANALYSIS)
 
-## The Real Problem
+## CRITICAL: Focusing on REAL Root Causes, Not Band-Aids
 
-Looking at the logs:
+## The Actual Problem from Logs
+
 ```
-AI: compare_file_implementations(file1, file2)
-Result: 0% similar, manual_review recommended
-System: ⚠️ Only analysis performed, auto-creating issue report
-System: ✅ Task resolved by creating issue report
+Task: Develop a plan to integrate identified components with existing architecture
+Target: architecture/integration_plan.md
+Phase: CODING
+Model Action: read_file("services/integration_gap_analysis.py")
+Result: ❌ File operation failed: (empty error message)
+Status: Task FAILED, gets reactivated, repeats 500+ times
 ```
 
-**The AI is NEVER being forced to read the files.**
+## Root Cause #1: WRONG PHASE FOR TASK TYPE
 
-## Why This Happens
+### The Problem
+A **documentation task** (create markdown plan) is being handled by the **coding phase** (creates Python files).
 
-1. **AI calls compare_file_implementations first** (allowed by prompt)
-2. **Gets 0% similarity** 
-3. **System checks**: Did AI use read_file? NO
-4. **System should**: FAIL and retry with error message
-5. **But instead**: Auto-creates report and marks complete
+### Evidence
+- Target file: `architecture/integration_plan.md` (MARKDOWN)
+- Phase: coding (expects PYTHON files)
+- Task description: "Develop a plan..." (PLANNING/DOCUMENTATION task)
 
-## The Bug
+### Why This Happens
+Looking at the task creation in planning phase:
+1. Planning phase creates tasks with various target files
+2. No validation that target file type matches phase capabilities
+3. Coding phase accepts ANY task with a target file
+4. No routing logic based on file extension
 
-In `refactoring.py` line ~500:
+### The Real Fix
+**Option A**: Documentation phase should handle `.md` files
+- Check: Does documentation phase exist and handle markdown?
+- Check: Is there routing logic for file extensions?
 
+**Option B**: Coding phase should reject non-Python targets
+- Add validation: if target ends with `.md`, reject or redirect
+- Return clear error: "This is a documentation task, not a coding task"
+
+**Option C**: Planning phase should route tasks correctly
+- When creating tasks, check target file extension
+- Route `.md` files to documentation phase
+- Route `.py` files to coding phase
+
+## Root Cause #2: MODEL DOESN'T UNDERSTAND WHAT TO CREATE
+
+### The Problem
+Model reads a Python file when it should create a markdown file.
+
+### Evidence
+- Reads: `services/integration_gap_analysis.py` (Python)
+- Should create: `architecture/integration_plan.md` (Markdown)
+- No logical connection between input and output
+
+### Why This Happens
+Looking at the coding phase prompt:
+1. Prompt says "create Python files"
+2. Task says "create architecture/integration_plan.md"
+3. Model is confused: Python or Markdown?
+4. Model defaults to reading related files
+5. Never actually creates the target file
+
+### The Real Fix
+**Fix the prompt to handle markdown files**:
 ```python
-if not tried_to_understand:
-    # AI was lazy - give it ONE MORE CHANCE
-    error_msg = "You only compared files without reading them..."
-    task.fail(error_msg)
-    return PhaseResult(success=False, ...)  # Should retry
+if task.target_file.endswith('.md'):
+    prompt = "Create a markdown document at {target_file}. This is DOCUMENTATION, not code."
+else:
+    prompt = "Create Python code at {target_file}."
 ```
 
-**BUT** the task is marked as FAILED, not PENDING. So it doesn't retry - it just moves to the next task!
-
-## The Fix Needed
-
-When AI is lazy (only compares without reading):
-1. **Don't mark task as FAILED** - mark as PENDING
-2. **Add error context** to force reading
-3. **Retry the SAME task** with stronger guidance
-4. **Only after 2-3 attempts** should we auto-create report
-
-## Current Flow (BROKEN)
-
-```
-Iteration 1:
-  Task: refactor_0358
-  AI: compare_file_implementations(...)
-  System: "Only compared without reading - FAILED"
-  Task Status: FAILED
-  
-Iteration 2:
-  Task: refactor_0359 (NEXT TASK, not retry!)
-  AI: compare_file_implementations(...)
-  System: "Only compared without reading - FAILED"
-  Task Status: FAILED
-```
-
-**Tasks are being SKIPPED, not RETRIED!**
-
-## Correct Flow (NEEDED)
-
-```
-Iteration 1:
-  Task: refactor_0358
-  AI: compare_file_implementations(...)
-  System: "Only compared without reading - RETRY"
-  Task Status: PENDING (with error context)
-  
-Iteration 2:
-  Task: refactor_0358 (SAME TASK, retry!)
-  AI: read_file(file1), read_file(file2), read_file("ARCHITECTURE.md")
-  AI: Decision based on understanding
-  AI: merge_file_implementations(...) OR update_architecture(...)
-  Task Status: COMPLETED
-```
-
-## The Critical Bug
-
-**task.fail(error_msg)** marks the task as FAILED and moves to next task.
-
-**Should be**: Keep task as PENDING, add error context, retry same task.
-
-## Implementation Fix
-
+OR **Reject markdown files entirely**:
 ```python
-if not tried_to_understand:
-    # AI was lazy - RETRY with stronger guidance
-    self.logger.warning(f"Task {task.task_id}: Only compared without reading - RETRYING")
-    
-    # DON'T mark as failed - keep as pending with error context
-    # task.fail(error_msg)  # WRONG - skips to next task
-    
-    # Add error context for retry
-    if not hasattr(task, 'retry_count'):
-        task.retry_count = 0
-    task.retry_count += 1
-    
-    if task.retry_count >= 3:
-        # After 3 attempts, auto-create report
-        # ... auto-report logic ...
-    else:
-        # Retry with stronger guidance
-        error_context = (
-            f"ATTEMPT {task.retry_count + 1}/3: "
-            "You only compared files without reading them. "
-            "You MUST read both files to understand their purpose. "
-            "Use read_file on both files, then check ARCHITECTURE.md."
-        )
-        
-        # Keep task pending, add error context
-        return PhaseResult(
-            success=False,
-            phase=self.phase_name,
-            message=error_context,
-            retry_same_task=True  # Signal to retry same task
-        )
+if task.target_file.endswith('.md'):
+    return PhaseResult(
+        success=False,
+        message="Coding phase cannot create markdown files. Route to documentation phase."
+    )
 ```
 
-## Why Tasks Are Being "Skipped"
+## Root Cause #3: EMPTY ERROR MESSAGES
 
-They're not being skipped - they're being **FAILED and moved past**.
+### The Problem
+When model calls `read_file` but doesn't create files, error message is empty.
 
-The system thinks:
-- "AI tried and failed, move to next task"
+### Evidence
+```
+❌ File operation failed: 
+```
+(nothing after the colon)
 
-When it should think:
-- "AI was lazy, make it try again with stronger guidance"
+### Why This Happens
+1. Model calls `read_file` successfully
+2. No files created or modified
+3. `handler.errors` is empty (no tool errors)
+4. `handler.get_error_summary()` returns empty string
+5. Error log shows empty message
 
-## The Solution
+### The Real Fix (ALREADY PARTIALLY DONE)
+Commit f0b52df added `read_file` to analysis tools list, but we need to verify:
+1. Is the fix actually working?
+2. Is the error message now clear?
+3. Does it prevent the infinite loop?
 
-**RETRY LOGIC** instead of **FAIL LOGIC**
+## Investigation Plan
 
-- Attempt 1: AI compares → System: "Read files first" → RETRY
-- Attempt 2: AI reads files → AI makes decision → COMPLETE
-- Attempt 3 (if needed): AI still lazy → Auto-create report → COMPLETE
+### Step 1: Check Task Routing
+```bash
+# Find where tasks are created
+grep -r "architecture/integration_plan.md" pipeline/
 
-**Every task gets 2-3 chances before being documented.**
+# Find where phase is selected for tasks
+grep -r "def.*select.*phase" pipeline/
+
+# Check if there's file extension routing
+grep -r "\.md\|\.py" pipeline/phases/
+```
+
+### Step 2: Check Phase Capabilities
+```bash
+# What does coding phase accept?
+grep -r "def run" pipeline/phases/coding.py
+
+# What does documentation phase accept?
+grep -r "def run" pipeline/phases/documentation.py
+
+# Is there validation for file types?
+grep -r "target_file.*endswith\|file.*extension" pipeline/phases/
+```
+
+### Step 3: Check Model Prompts
+```bash
+# What does coding phase tell the model?
+grep -r "system.*prompt\|You are" pipeline/phases/coding.py
+
+# Does it mention markdown files?
+grep -r "markdown\|\.md" pipeline/phases/coding.py
+```
+
+## What We Should NOT Do
+
+❌ Add failure count limits (hides the problem)
+❌ Force phase transitions (masks the issue)  
+❌ Add artificial loop breaking (band-aid fix)
+❌ Reduce thresholds (doesn't fix root cause)
+
+## What We SHOULD Do
+
+✅ Fix task routing based on file type
+✅ Add validation in coding phase for file types
+✅ Improve prompts to clarify task requirements
+✅ Ensure error messages are always actionable
+✅ Add logging to understand task flow
+
+## Next Steps
+
+1. Examine task creation in planning phase
+2. Check phase selection logic
+3. Verify file type handling in each phase
+4. Fix routing or add validation
+5. Test with the actual failing task
