@@ -924,6 +924,7 @@ Please address these architectural integration issues.
             'integration_conflicts': [],
             'architectural_issues': [],
             'test_gaps': [],
+            'syntax_errors': [],  # NEW: Track syntax errors
             'failures': []
         }
         
@@ -944,7 +945,29 @@ Please address these architectural integration issues.
         python_files = [f for f in existing_files if f.endswith('.py')]
         for filepath in python_files:
             try:
-                pass
+                # CRITICAL: Check for syntax errors FIRST before any analysis
+                full_path = self.project_dir / filepath
+                try:
+                    import ast
+                    with open(full_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    ast.parse(content)
+                except SyntaxError as e:
+                    # Syntax error found - record it
+                    results['syntax_errors'].append({
+                        'file': filepath,
+                        'error': str(e),
+                        'line': e.lineno if hasattr(e, 'lineno') else 0,
+                        'offset': e.offset if hasattr(e, 'offset') else 0,
+                        'text': e.text if hasattr(e, 'text') else '',
+                        'recommendation': 'Fix syntax error before proceeding with other analysis'
+                    })
+                    # Skip other analysis for this file since it has syntax errors
+                    continue
+                except Exception as e:
+                    self.logger.warning(f"  Could not parse {filepath}: {e}")
+                    continue
+                
                 # Complexity analysis
                 complexity_result = self.complexity_analyzer.analyze(filepath)
                 for func in complexity_result.results:
@@ -985,6 +1008,8 @@ Please address these architectural integration issues.
         # Log summary
         total_issues = sum(len(v) for v in results.values())
         if total_issues > 0:
+            if results['syntax_errors']:
+                self.logger.warning(f"    - {len(results['syntax_errors'])} SYNTAX ERRORS (CRITICAL!)")
             if results['complexity_issues']:
                 self.logger.info(f"    - {len(results['complexity_issues'])} high complexity")
             if results['dead_code']:
@@ -996,6 +1021,11 @@ Please address these architectural integration issues.
                 high_conflicts = [c for c in results['integration_conflicts'] if c['severity'] == 'high']
                 if high_conflicts:
                     pass
+        
+        # CRITICAL: Create tasks for syntax errors immediately
+        if results['syntax_errors']:
+            self._create_syntax_fix_tasks(results['syntax_errors'])
+        
         return results
     def _update_tertiary_objectives(self, analysis_results: Dict):
         """Update TERTIARY_OBJECTIVES.md with highly specific implementation details"""
@@ -1791,6 +1821,57 @@ result = {gap['class'].lower()}.process(data)
                     'moved': len(diff.moved)
                 }
             )
+    
+    def _create_syntax_fix_tasks(self, syntax_errors: List[Dict]):
+        """
+        Create CRITICAL priority tasks to fix syntax errors.
+        
+        Syntax errors must be fixed before any other work can proceed.
+        These tasks are routed to the debugging phase.
+        
+        Args:
+            syntax_errors: List of syntax error dictionaries
+        """
+        from ..state.manager import TaskState, TaskStatus
+        from ..state.priority import TaskPriority
+        
+        state = self.state_manager.load()
+        
+        for error in syntax_errors:
+            task_id = f"fix_syntax_{error['file'].replace('/', '_').replace('.py', '')}"
+            
+            # Check if task already exists
+            if task_id in state.tasks:
+                continue
+            
+            # Create detailed description
+            description = f"Fix syntax error in {error['file']}"
+            if error.get('line'):
+                description += f" at line {error['line']}"
+            description += f": {error['error']}"
+            
+            task = TaskState(
+                task_id=task_id,
+                description=description,
+                target_file=error['file'],
+                priority=TaskPriority.CRITICAL,  # Highest priority!
+                status=TaskStatus.NEW,
+                metadata={
+                    'error_type': 'syntax_error',
+                    'error_message': error['error'],
+                    'line': error.get('line', 0),
+                    'offset': error.get('offset', 0),
+                    'text': error.get('text', ''),
+                    'phase_hint': 'debugging'  # Route to debugging phase
+                }
+            )
+            
+            state.add_task(task)
+            self.logger.warning(f"  🚨 Created CRITICAL task: {task_id}")
+        
+        # Save state with new tasks
+        self.state_manager.save(state)
+        self.logger.warning(f"  🚨 Created {len(syntax_errors)} syntax fix tasks (CRITICAL priority)")
     
     def _create_architecture_tasks(self, validation, diff):
         """
