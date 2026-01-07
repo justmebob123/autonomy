@@ -1860,6 +1860,27 @@ class PhaseCoordinator:
         # This ensures we have current task counts and completion percentage
         optimal_objective.update_progress(state)
         
+        # CRITICAL: Handle objectives with 0 tasks but high completion
+        # This happens when all tasks were completed and the objective is done
+        if len(optimal_objective.tasks) == 0 and optimal_objective.completion_percentage >= 80.0:
+            from .objective_manager import ObjectiveStatus
+            self.logger.info(f"Objective {optimal_objective.id} has 0 tasks but {optimal_objective.completion_percentage}% completion - marking as COMPLETED")
+            optimal_objective.status = ObjectiveStatus.COMPLETED
+            self.objective_manager.save_objective(optimal_objective, state)
+            
+            # Select next objective
+            next_objective = self.objective_manager.find_optimal_objective(state)
+            if next_objective:
+                next_objective.status = "active"
+                self.objective_manager.save_objective(next_objective, state)
+                optimal_objective = next_objective
+            else:
+                return {
+                    'phase': 'documentation',
+                    'reason': 'All objectives completed - final documentation',
+                    'objective': None
+                }
+        
         # Check if objective is complete (80%+ completion)
         # CRITICAL: Use .value to get the actual enum value, not the enum name
         status_str = optimal_objective.status.value.lower() if hasattr(optimal_objective.status, 'value') else str(optimal_objective.status).lower()
