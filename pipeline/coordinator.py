@@ -618,10 +618,7 @@ class PhaseCoordinator:
                     recent_history = phase_state.run_history[-10:] if len(phase_state.run_history) > 10 else phase_state.run_history
                     self.logger.debug(f"  - Recent history (last 10): {recent_history}")
                 
-                # CRITICAL: Lower threshold from 20 to 10 to prevent infinite loops
-                # 10 consecutive failures is more than enough to indicate a stuck phase
-                if consecutive_failures >= 10:
-                    self.logger.warning(f"⚠️  Phase {current_phase} has {consecutive_failures} consecutive failures - forcing transition")
+                if consecutive_failures >= 20:
                     return True
             
             # Check if oscillating - FORCE transition (unstable)
@@ -1503,27 +1500,6 @@ class PhaseCoordinator:
                 phase_start_time = time.time()
                 result = phase.run(**phase_kwargs)
                 phase_duration = time.time() - phase_start_time
-                
-                # CRITICAL: Check if the same task is failing repeatedly
-                if not result.success and task:
-                    task_failure_count = getattr(task, 'failure_count', 0)
-                    if task_failure_count >= 5:
-                        self.logger.error(f"❌ Task has failed {task_failure_count} times - marking as permanently failed")
-                        self.logger.error(f"   Task: {task.description[:80]}...")
-                        self.logger.error(f"   Target: {task.target_file}")
-                        
-                        # Mark task as permanently failed to prevent reactivation
-                        from .state.manager import TaskStatus
-                        task.status = TaskStatus.FAILED
-                        task.permanently_failed = True  # Add flag to prevent reactivation
-                        
-                        # Save state with permanently failed task
-                        state = self.state_manager.load()
-                        self.state_manager.save(state)
-                        
-                        # Force phase transition
-                        self.logger.warning("⚠️  Forcing phase transition due to repeatedly failing task")
-                        result.next_phase = self._select_next_phase_polytopic(state, phase_name)
                 
                 # WEEK 2 PHASE 2: Record phase execution for correlation analysis
                 if hasattr(self, 'phase_correlation') and self.phase_correlation:

@@ -359,38 +359,35 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         files_modified = handler.files_modified
         
         if not files_created and not files_modified:
-            # Check if only analysis/read tools were called (find_similar_files, validate_filename, read_file, etc.)
+            # Check if only analysis tools were called (find_similar_files, validate_filename, etc.)
             analysis_tools = ['find_similar_files', 'validate_filename', 'compare_files', 
-                            'find_all_conflicts', 'detect_naming_violations', 'read_file']
+                            'find_all_conflicts', 'detect_naming_violations']
             only_analysis = all(
                 call.get("function", {}).get("name") in analysis_tools 
                 for call in tool_calls
             )
             
             if only_analysis:
-                # Model called analysis/read tools but didn't create files
+                # Model called analysis tools but didn't create files
                 # This means it needs more context or is confused
-                tools_called = [call.get('function', {}).get('name') for call in tool_calls]
                 task.add_error(
                     "incomplete_action",
-                    f"You called {', '.join(tools_called)} but didn't create or modify any files. "
-                    "After analyzing or reading files, you must use create_python_file or full_file_rewrite to actually create the target file. "
-                    f"Your task target is: {task.target_file}",
+                    "You called analysis tools but didn't create or modify any files. "
+                    "After analyzing, you must use create_python_file or full_file_rewrite to actually create the file.",
                     phase="coding"
                 )
                 task.status = TaskStatus.FAILED
                 task.failure_count = getattr(task, 'failure_count', 0) + 1
                 
-                self.logger.error(f"  ❌ Analysis/read tools called but no files created")
-                self.logger.error(f"     Tools called: {tools_called}")
-                self.logger.error(f"     Target file: {task.target_file}")
+                self.logger.error(f"  ❌ Analysis tools called but no files created")
+                self.logger.error(f"     Tools called: {[call.get('function', {}).get('name') for call in tool_calls]}")
                 self.logger.error(f"     Next attempt: Must use file creation tools after analysis")
                 
                 return PhaseResult(
                     success=False,
                     phase=self.phase_name,
                     task_id=task.task_id,
-                    message=f"Analysis completed but target file '{task.target_file}' not created - must follow through with file creation"
+                    message="Analysis completed but no files created - must follow through with file creation"
                 )
             
             # Check for syntax errors in results
