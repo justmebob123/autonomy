@@ -1864,6 +1864,9 @@ class PhaseCoordinator:
         status_str = str(optimal_objective.status).lower() if hasattr(optimal_objective.status, 'value') else str(optimal_objective.status).lower()
         is_active = status_str in ["active", "in_progress", "approved"]
         
+        # DEBUG: Check why objective not being marked complete
+        self.logger.info(f"DEBUG: Objective {optimal_objective.id} completion={optimal_objective.completion_percentage}% status={optimal_objective.status} is_active={is_active}")
+        
         if optimal_objective.completion_percentage >= 80.0 and is_active:
             from .objective_manager import ObjectiveStatus
             optimal_objective.status = ObjectiveStatus.COMPLETED
