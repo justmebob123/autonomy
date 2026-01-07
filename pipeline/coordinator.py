@@ -1870,6 +1870,9 @@ class PhaseCoordinator:
             
             # Save completed objective
             self.objective_manager.save_objective(optimal_objective, state)
+            # CRITICAL: Reload objectives so PolytopicManager has updated status
+            objectives_by_level = self.objective_manager.load_objectives(state)
+            
             
             # Select next objective
             next_objective = self.objective_manager.find_optimal_objective(state)
