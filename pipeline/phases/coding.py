@@ -227,6 +227,15 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         self.logger.info(f"  Target: {task.target_file}")
         self.logger.info(f"  Attempt: {task.attempts + 1}")
         
+        # CRITICAL FIX: Clear conversation history on first attempt to prevent confusion
+        # The model was getting confused by previous task context in conversation history
+        if task.attempts == 0:
+            self.logger.info(f"  🔄 Clearing conversation history for new task")
+            self.conversation.thread.messages = []
+            # Re-add system prompt
+            system_prompt = self._get_system_prompt()
+            self.conversation.add_message("system", system_prompt)
+        
         # Update task status
         task.status = TaskStatus.IN_PROGRESS
         task.attempts += 1
@@ -876,10 +885,13 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
                     tertiary_objectives = tertiary_objectives[:2000] + "\n... (truncated)"
                 parts.append(f"## Specific Implementation Steps (from TERTIARY_OBJECTIVES.md)\n{tertiary_objectives}\n")
         
-        # Task description
-        parts.append(f"## Task Details\n")
-        parts.append(f"**Description:** {task.description}")
-        parts.append(f"**Target file:** {task.target_file}")
+        # Task description with strong emphasis
+        parts.append(f"\n{'='*70}\n")
+        parts.append(f"🎯 CURRENT TASK - FOCUS ON THIS FILE ONLY\n")
+        parts.append(f"{'='*70}\n")
+        parts.append(f"**TARGET FILE:** {task.target_file}")
+        parts.append(f"**DESCRIPTION:** {task.description}")
+        parts.append(f"{'='*70}\n")
         
         # CRITICAL FIX: Check if target file already exists
         if task.target_file:
