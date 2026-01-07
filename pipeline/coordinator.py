@@ -1861,7 +1861,8 @@ class PhaseCoordinator:
         optimal_objective.update_progress(state)
         
         # Check if objective is complete (80%+ completion)
-        status_str = str(optimal_objective.status).lower() if hasattr(optimal_objective.status, 'value') else str(optimal_objective.status).lower()
+        # CRITICAL: Use .value to get the actual enum value, not the enum name
+        status_str = optimal_objective.status.value.lower() if hasattr(optimal_objective.status, 'value') else str(optimal_objective.status).lower()
         is_active = status_str in ["active", "in_progress", "approved", "completing"]
         
         # DEBUG: Check why objective not being marked complete
