@@ -1923,11 +1923,11 @@ result = {gap['class'].lower()}.process(data)
             # Determine priority based on severity
             severity = conflicts[0].get('severity', 'medium')
             if severity == 'high':
-                priority = TaskPriority.HIGH
+                priority = TaskPriority.QA_FAILURE
             elif severity == 'critical':
-                priority = TaskPriority.CRITICAL
+                priority = TaskPriority.CRITICAL_BUG
             else:
-                priority = TaskPriority.MEDIUM
+                priority = TaskPriority.NEW_TASK
             
             task = TaskState(
                 task_id=task_id,
