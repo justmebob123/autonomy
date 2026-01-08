@@ -389,8 +389,13 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                     self.logger.info(f"     Tools called: {tools_called}")
                     self.logger.info(f"     Next iteration: Will proceed to STEP 3 (file creation) based on analysis")
                     
-                    # Mark that analysis is complete (store as attribute)
-                    task.analysis_completed = True
+                    # Store analysis results in task metadata
+                    task.metadata['analysis_completed'] = True
+                    task.metadata['analysis_results'] = {
+                        "tools_called": tools_called,
+                        "results": results,
+                        "iteration": task.attempts
+                    }
                     
                     # Task continues - not failed, not complete yet
                     task.status = TaskStatus.IN_PROGRESS
@@ -402,12 +407,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                         message="Analysis phase completed successfully - proceeding to file creation",
                         data={
                             "continue_task": True, 
-                            "phase_complete": False,
-                            "analysis_results": {
-                                "tools_called": tools_called,
-                                "results": results,
-                                "iteration": task.attempts
-                            }
+                            "phase_complete": False
                         }
                     )
                 
@@ -418,7 +418,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                     file_type = "markdown" if task.target_file.endswith('.md') else "Python"
                     file_ext = task.target_file.split('.')[-1] if '.' in task.target_file else 'unknown'
                     
-                    analysis_status = "already completed" if getattr(task, 'analysis_completed', False) else "repeated unnecessarily"
+                    analysis_status = "already completed" if task.metadata.get('analysis_completed', False) else "repeated unnecessarily"
                     
                     error_msg = f"""You called {', '.join(tools_called)} but didn't create the target file.
 

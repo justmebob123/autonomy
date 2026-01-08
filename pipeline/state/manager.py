@@ -81,6 +81,9 @@ class TaskState:
     # Failure tracking for specialized phase activation
     failure_count: int = 0  # Consecutive failures on this task
     
+    # Metadata for storing phase-specific context (e.g., analysis results, QA issues)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
     def __post_init__(self):
         if not self.created:
             self.created = datetime.now().isoformat()
