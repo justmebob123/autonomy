@@ -233,7 +233,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
             self.logger.info(f"  🔄 Clearing conversation history for new task")
             self.conversation.thread.messages = []
             # Re-add system prompt
-            system_prompt = self._get_system_prompt()
+            system_prompt = self._get_system_prompt(self.phase_name)
             self.conversation.add_message("system", system_prompt)
         
         # Update task status
