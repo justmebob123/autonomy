@@ -277,7 +277,8 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         if tool_calls:
             self.logger.info(f"🔧 Tool Calls: {len(tool_calls)}")
             for i, tc in enumerate(tool_calls, 1):
-                tool_name = tc.get("name", "unknown")
+                # Handle both formats: {"name": "..."} and {"function": {"name": "..."}}
+                tool_name = tc.get("function", {}).get("name") or tc.get("name", "unknown")
                 self.logger.info(f"   {i}. {tool_name}")
         else:
             self.logger.info("🔧 Tool Calls: None")

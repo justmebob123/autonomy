@@ -68,8 +68,13 @@ class LoopDetectionMixin:
         """Track tool calls for loop detection"""
         for tool_call, result in zip(tool_calls, results):
             pass
-            # FIX: Ensure tool name is never "unknown"
-            tool_name = tool_call.get('tool') or tool_call.get('name') or 'unspecified_tool'
+            # FIX: Handle both formats: {"name": "..."} and {"function": {"name": "..."}}
+            tool_name = (
+                tool_call.get('function', {}).get('name') or 
+                tool_call.get('tool') or 
+                tool_call.get('name') or 
+                'unspecified_tool'
+            )
             
             # Don't track if tool name is still unknown/unspecified
             # This prevents false positives from improperly tracked tools
@@ -77,7 +82,8 @@ class LoopDetectionMixin:
                 self.logger.debug(f"Skipping tracking of unknown tool: {tool_call}")
                 continue
             
-            args = tool_call.get('args', {})
+            # Extract arguments from both formats
+            args = tool_call.get('function', {}).get('arguments') or tool_call.get('args', {})
             
             # Extract file path if present
             file_path = None
