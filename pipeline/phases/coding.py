@@ -383,45 +383,40 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 # The system prompt says "STEP 1: DISCOVERY" then "STEP 2: VALIDATION" then "STEP 3: CREATION"
                 # We should allow analysis in first turn, then require creation in subsequent turns
                 
-                # Check if this is Step 2 (validation only)
-                step2_tools = ['validate_filename']
-                is_step2_only = all(call.get("function", {}).get("name") in step2_tools for call in tool_calls)
+                # ALLOW UNLIMITED ANALYSIS - Let the model analyze as many files as needed
+                # The model knows when it has enough information to proceed to file creation
+                # Don't artificially limit the number of analysis iterations
                 
-                if task.attempts == 1 or (task.attempts == 2 and is_step2_only and task.metadata.get('analysis_completed', False)):
-                    # First or second attempt - analysis/validation is expected per system prompt
-                    step_name = "STEP 2 (VALIDATION)" if is_step2_only else "STEP 1-2"
-                    self.logger.info(f"  ✅ {step_name} COMPLETE: Analysis phase completed")
-                    self.logger.info(f"     Tools called: {tools_called}")
-                    self.logger.info(f"     Next iteration: Will proceed to STEP 3 (file creation) based on analysis")
-                    
-                    # Store analysis results in task metadata
-                    task.metadata['analysis_completed'] = True
-                    if 'analysis_results' not in task.metadata:
-                        task.metadata['analysis_results'] = {}
-                    task.metadata['analysis_results'].update({
-                        "tools_called": tools_called,
-                        "results": results,
-                        "iteration": task.attempts
-                    })
-                    
-                    # Task continues - not failed, not complete yet
-                    task.status = TaskStatus.IN_PROGRESS
-                    
-                    return PhaseResult(
-                        success=True,  # Analysis succeeded
-                        phase=self.phase_name,
-                        task_id=task.task_id,
-                        message="Analysis phase completed successfully - proceeding to file creation",
-                        data={
-                            "continue_task": True, 
-                            "phase_complete": False
-                        }
-                    )
+                self.logger.info(f"  ✅ ANALYSIS ITERATION {task.attempts}: Analysis phase in progress")
+                self.logger.info(f"     Tools called: {tools_called}")
+                self.logger.info(f"     Continuing analysis or will proceed to file creation when ready")
                 
-                else:
-                    # Second+ attempt - model should proceed to file creation now
-                    # Model called analysis/read tools but didn't create files
-                    # Provide clear guidance based on file type
+                # Store analysis results in task metadata
+                if 'analysis_iterations' not in task.metadata:
+                    task.metadata['analysis_iterations'] = []
+                task.metadata['analysis_iterations'].append({
+                    "tools_called": tools_called,
+                    "results": results,
+                    "iteration": task.attempts
+                })
+                
+                # Task continues - not failed, not complete yet
+                task.status = TaskStatus.IN_PROGRESS
+                
+                return PhaseResult(
+                    success=True,  # Analysis succeeded
+                    phase=self.phase_name,
+                    task_id=task.task_id,
+                    message=f"Analysis iteration {task.attempts} completed - continuing analysis or proceeding to creation",
+                    data={
+                        "continue_task": True, 
+                        "phase_complete": False
+                    }
+                )
+                
+                # REMOVED: The else block that forced file creation after N attempts
+                # The model will create files when it's ready, not when we arbitrarily decide
+                if False:  # Placeholder to maintain structure
                     file_type = "markdown" if task.target_file.endswith('.md') else "Python"
                     file_ext = task.target_file.split('.')[-1] if '.' in task.target_file else 'unknown'
                     
