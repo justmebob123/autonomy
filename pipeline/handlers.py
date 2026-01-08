@@ -5709,9 +5709,9 @@ class ToolCallHandler:
     def _handle_find_similar_files(self, args: Dict) -> Dict:
         """Handle find_similar_files tool call with comprehensive analysis"""
         try:
-            from .comprehensive_similarity import ComprehensiveSimilarityAnalyzer
+            from .file_discovery import FileDiscovery
             
-            analyzer = ComprehensiveSimilarityAnalyzer(self.project_dir, self.logger)
+            analyzer = FileDiscovery(self.project_dir, self.logger)
             
             target_file = args.get('target_file')
             threshold = args.get('similarity_threshold', 0.3)  # Lower threshold for comprehensive analysis
