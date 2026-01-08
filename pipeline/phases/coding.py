@@ -389,15 +389,8 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                     self.logger.info(f"     Tools called: {tools_called}")
                     self.logger.info(f"     Next iteration: Will proceed to STEP 3 (file creation) based on analysis")
                     
-                    # Mark that analysis is complete
+                    # Mark that analysis is complete (store as attribute)
                     task.analysis_completed = True
-                    
-                    # Add analysis results to task context
-                    task.add_context("analysis_results", {
-                        "tools_called": tools_called,
-                        "results": results,
-                        "iteration": task.attempts
-                    })
                     
                     # Task continues - not failed, not complete yet
                     task.status = TaskStatus.IN_PROGRESS
@@ -407,7 +400,15 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                         phase=self.phase_name,
                         task_id=task.task_id,
                         message="Analysis phase completed successfully - proceeding to file creation",
-                        data={"continue_task": True, "phase_complete": False}
+                        data={
+                            "continue_task": True, 
+                            "phase_complete": False,
+                            "analysis_results": {
+                                "tools_called": tools_called,
+                                "results": results,
+                                "iteration": task.attempts
+                            }
+                        }
                     )
                 
                 else:
