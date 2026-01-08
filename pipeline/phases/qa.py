@@ -782,7 +782,12 @@ class QAPhase(BasePhase, LoopDetectionMixin):
         # ARCHITECTURE INTEGRATION: Read architecture for quality standards
         architecture = self._read_architecture()
         if architecture:
-            self.logger.info(f"  📐 Architecture loaded: {len(architecture.get('components', {}))} components defined")
+            components = architecture.get('components', {})
+            # Handle case where components is a string (raw markdown) instead of dict
+            if isinstance(components, str):
+                self.logger.info(f"  📐 Architecture loaded: components in text format")
+            else:
+                self.logger.info(f"  📐 Architecture loaded: {len(components)} components defined")
         
         # IPC INTEGRATION: Read objectives for quality criteria
         objectives = self._read_objectives()
@@ -1480,6 +1485,13 @@ The code has passed quality assurance review. No issues detected.
         """
         # Get components from architecture
         components = architecture.get('components', {})
+        
+        # Handle case where components is a string (raw markdown) instead of dict
+        if isinstance(components, str):
+            # Components section is just text, not structured data
+            # Skip validation since we can't parse it properly
+            return {'valid': True, 'reason': 'Architecture components not structured (text format)'}
+        
         if not components:
             return {'valid': True, 'reason': 'No architecture components defined'}
         
