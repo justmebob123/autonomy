@@ -377,21 +377,61 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
             )
             
             if only_analysis:
-                # Model called analysis/read tools but didn't create files
-                # Provide clear guidance based on file type
                 tools_called = [call.get('function', {}).get('name') for call in tool_calls]
-                file_type = "markdown" if task.target_file.endswith('.md') else "Python"
-                file_ext = task.target_file.split('.')[-1] if '.' in task.target_file else 'unknown'
                 
-                error_msg = f"""You called {', '.join(tools_called)} but didn't create the target file.
+                # CRITICAL FIX: Support multi-turn workflow as described in system prompt
+                # The system prompt says "STEP 1: DISCOVERY" then "STEP 2: VALIDATION" then "STEP 3: CREATION"
+                # We should allow analysis in first turn, then require creation in subsequent turns
+                
+                if task.attempts == 1:
+                    # First attempt - analysis is expected and encouraged per system prompt
+                    self.logger.info(f"  ✅ STEP 1-2 COMPLETE: Analysis phase completed")
+                    self.logger.info(f"     Tools called: {tools_called}")
+                    self.logger.info(f"     Next iteration: Will proceed to STEP 3 (file creation) based on analysis")
+                    
+                    # Mark that analysis is complete
+                    task.analysis_completed = True
+                    
+                    # Add analysis results to task context
+                    task.add_context("analysis_results", {
+                        "tools_called": tools_called,
+                        "results": results,
+                        "iteration": task.attempts
+                    })
+                    
+                    # Task continues - not failed, not complete yet
+                    task.status = TaskStatus.IN_PROGRESS
+                    
+                    return PhaseResult(
+                        success=True,  # Analysis succeeded
+                        phase=self.phase_name,
+                        task_id=task.task_id,
+                        message="Analysis phase completed successfully - proceeding to file creation",
+                        data={"continue_task": True, "phase_complete": False}
+                    )
+                
+                else:
+                    # Second+ attempt - model should proceed to file creation now
+                    # Model called analysis/read tools but didn't create files
+                    # Provide clear guidance based on file type
+                    file_type = "markdown" if task.target_file.endswith('.md') else "Python"
+                    file_ext = task.target_file.split('.')[-1] if '.' in task.target_file else 'unknown'
+                    
+                    analysis_status = "already completed" if getattr(task, 'analysis_completed', False) else "repeated unnecessarily"
+                    
+                    error_msg = f"""You called {', '.join(tools_called)} but didn't create the target file.
+
+ANALYSIS PHASE: {analysis_status.upper()}
 
 TARGET FILE: {task.target_file}
 FILE TYPE: {file_type} (.{file_ext})
 
-WHAT YOU MUST DO NEXT:
-1. Use create_file tool to create the {file_type} file
-2. Provide the complete content for the file
-3. Ensure the content matches the task description
+WHAT YOU MUST DO NOW (STEP 3):
+Based on your analysis, you must now CREATE or MODIFY the file.
+
+1. If modifying existing file: Use str_replace tool
+2. If creating new file: Use create_file tool
+3. Provide complete, valid {file_type} content
 
 EXAMPLE:
 {{
@@ -402,23 +442,24 @@ EXAMPLE:
   }}
 }}
 
-DO NOT just analyze - you must CREATE the file!"""
-                
-                task.add_error("incomplete_action", error_msg, phase="coding")
-                task.status = TaskStatus.FAILED
-                task.failure_count = getattr(task, 'failure_count', 0) + 1
-                
-                self.logger.error(f"  ❌ Analysis/read tools called but no files created")
-                self.logger.error(f"     Tools called: {tools_called}")
-                self.logger.error(f"     Target file: {task.target_file} ({file_type})")
-                self.logger.error(f"     Next attempt: Must use create_file to create the {file_type} file")
-                
-                return PhaseResult(
-                    success=False,
-                    phase=self.phase_name,
-                    task_id=task.task_id,
-                    message=f"Analysis completed but {file_type} file '{task.target_file}' not created - must use create_file tool"
-                )
+DO NOT analyze again - PROCEED TO FILE CREATION!"""
+                    
+                    task.add_error("incomplete_action", error_msg, phase="coding")
+                    task.status = TaskStatus.FAILED
+                    task.failure_count = getattr(task, 'failure_count', 0) + 1
+                    
+                    self.logger.error(f"  ❌ Analysis tools called again but no files created")
+                    self.logger.error(f"     Tools called: {tools_called}")
+                    self.logger.error(f"     Target file: {task.target_file} ({file_type})")
+                    self.logger.error(f"     Analysis status: {analysis_status}")
+                    self.logger.error(f"     Next attempt: Must proceed to STEP 3 (file creation)")
+                    
+                    return PhaseResult(
+                        success=False,
+                        phase=self.phase_name,
+                        task_id=task.task_id,
+                        message=f"Analysis {analysis_status} but {file_type} file '{task.target_file}' not created - must proceed to file creation"
+                    )
             
             # Check for syntax errors in results
             for result in results:
