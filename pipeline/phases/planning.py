@@ -1026,6 +1026,10 @@ Please address these architectural integration issues.
         if results['syntax_errors']:
             self._create_syntax_fix_tasks(results['syntax_errors'])
         
+        # CRITICAL: Create tasks for integration conflicts
+        if results['integration_conflicts']:
+            self._create_integration_fix_tasks(results['integration_conflicts'])
+        
         return results
     def _update_tertiary_objectives(self, analysis_results: Dict):
         """Update TERTIARY_OBJECTIVES.md with highly specific implementation details"""
@@ -1872,6 +1876,80 @@ result = {gap['class'].lower()}.process(data)
         # Save state with new tasks
         self.state_manager.save(state)
         self.logger.warning(f"  🚨 Created {len(syntax_errors)} syntax fix tasks (CRITICAL priority)")
+    
+    def _create_integration_fix_tasks(self, integration_conflicts: List[Dict]):
+        """
+        Create HIGH priority tasks to fix integration conflicts.
+        
+        Integration conflicts indicate missing imports, undefined references,
+        or other issues that prevent proper code integration.
+        
+        Args:
+            integration_conflicts: List of integration conflict dictionaries
+        """
+        from ..state.manager import TaskState, TaskStatus
+        from ..state.priority import TaskPriority
+        
+        state = self.state_manager.load()
+        
+        # Group conflicts by file to avoid duplicate tasks
+        conflicts_by_file = {}
+        for conflict in integration_conflicts:
+            file_path = conflict.get('file', conflict.get('source_file', 'unknown'))
+            if file_path not in conflicts_by_file:
+                conflicts_by_file[file_path] = []
+            conflicts_by_file[file_path].append(conflict)
+        
+        for file_path, conflicts in conflicts_by_file.items():
+            task_id = f"fix_integration_{file_path.replace('/', '_').replace('.py', '')}"
+            
+            # Check if task already exists
+            if task_id in state.tasks:
+                continue
+            
+            # Create detailed description
+            conflict_count = len(conflicts)
+            description = f"Fix {conflict_count} integration conflict(s) in {file_path}"
+            
+            # Add details about conflicts
+            conflict_details = []
+            for conflict in conflicts[:5]:  # Limit to first 5 for description
+                detail = conflict.get('description', conflict.get('message', 'Unknown conflict'))
+                conflict_details.append(detail)
+            
+            if conflict_details:
+                description += f": {'; '.join(conflict_details)}"
+            
+            # Determine priority based on severity
+            severity = conflicts[0].get('severity', 'medium')
+            if severity == 'high':
+                priority = TaskPriority.HIGH
+            elif severity == 'critical':
+                priority = TaskPriority.CRITICAL
+            else:
+                priority = TaskPriority.MEDIUM
+            
+            task = TaskState(
+                task_id=task_id,
+                description=description,
+                target_file=file_path,
+                priority=priority,
+                status=TaskStatus.NEW,
+                metadata={
+                    'error_type': 'integration_conflict',
+                    'conflict_count': conflict_count,
+                    'conflicts': conflicts,
+                    'severity': severity,
+                    'phase_hint': 'debugging'  # Route to debugging phase
+                }
+            )
+            
+            state.add_task(task)
+            self.logger.warning(f"  ⚠️  Created {priority.value} priority task: {task_id}")
+        
+        # Save state with new tasks
+        self.state_manager.save(state)
+        self.logger.warning(f"  ⚠️  Created {len(conflicts_by_file)} integration fix tasks")
     
     def _create_architecture_tasks(self, validation, diff):
         """
