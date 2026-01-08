@@ -5707,40 +5707,64 @@ class ToolCallHandler:
             }
     
     def _handle_find_similar_files(self, args: Dict) -> Dict:
-        """Handle find_similar_files tool call"""
+        """Handle find_similar_files tool call with comprehensive analysis"""
         try:
-            from .file_discovery import FileDiscovery
+            from .comprehensive_similarity import ComprehensiveSimilarityAnalyzer
             
-            discovery = FileDiscovery(self.project_dir, self.logger)
+            analyzer = ComprehensiveSimilarityAnalyzer(self.project_dir, self.logger)
             
             target_file = args.get('target_file')
-            threshold = args.get('similarity_threshold', 0.6)
+            threshold = args.get('similarity_threshold', 0.3)  # Lower threshold for comprehensive analysis
             
-            similar = discovery.find_similar_files(target_file, threshold)
+            similar = analyzer.find_similar_files(target_file, threshold)
             
             result = {
                 "tool": "find_similar_files",
                 "success": True,
                 "similar_files": similar,
-                "count": len(similar)
+                "count": len(similar),
+                "analysis_type": "comprehensive"
             }
             
-            # Add clear guidance message
+            # Add clear guidance message with detailed analysis
             if len(similar) == 0:
                 result["message"] = f"✅ No similar files found for '{target_file}'. Safe to proceed with file creation."
                 result["next_action"] = "You should now create the file using create_python_file tool."
+                result["analysis_summary"] = "Analyzed naming, structure, imports, patterns, and behavior. No conflicts detected."
             else:
-                result["message"] = f"⚠️ Found {len(similar)} similar file(s). Review them before deciding whether to create a new file or modify an existing one."
-                result["next_action"] = "Review the similar files and decide: create new file, modify existing, or use different name."
+                # Categorize similarities
+                high_similarity = [f for f in similar if f['similarity'] > 0.7]
+                medium_similarity = [f for f in similar if 0.4 <= f['similarity'] <= 0.7]
+                low_similarity = [f for f in similar if f['similarity'] < 0.4]
+                
+                result["message"] = f"⚠️ Found {len(similar)} similar file(s): {len(high_similarity)} high, {len(medium_similarity)} medium, {len(low_similarity)} low similarity."
+                result["next_action"] = "Review the similar files and their similarity breakdown before deciding."
+                result["analysis_summary"] = {
+                    "high_similarity_files": [f['path'] for f in high_similarity],
+                    "medium_similarity_files": [f['path'] for f in medium_similarity],
+                    "low_similarity_files": [f['path'] for f in low_similarity],
+                    "recommendation": self._generate_similarity_recommendation(high_similarity, medium_similarity, target_file)
+                }
             
             return result
         except Exception as e:
             self.logger.error(f"Find similar files failed: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
             return {
                 "tool": "find_similar_files",
                 "success": False,
                 "error": str(e)
             }
+    
+    def _generate_similarity_recommendation(self, high_sim: List, medium_sim: List, target_file: str) -> str:
+        """Generate recommendation based on similarity analysis."""
+        if len(high_sim) > 0:
+            return f"HIGH SIMILARITY DETECTED: Consider modifying '{high_sim[0]['path']}' instead of creating '{target_file}'. The files share similar classes, functions, and patterns."
+        elif len(medium_sim) > 0:
+            return f"MEDIUM SIMILARITY: '{medium_sim[0]['path']}' has some overlap with '{target_file}'. Review to avoid duplication."
+        else:
+            return f"LOW SIMILARITY: Safe to create '{target_file}' as a new file."
     
     def _handle_validate_filename(self, args: Dict) -> Dict:
         """Handle validate_filename tool call"""
