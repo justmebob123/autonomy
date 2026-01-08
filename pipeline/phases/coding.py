@@ -42,7 +42,7 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         # ARCHITECTURE CONFIG - Load project architecture configuration
         from ..architecture_parser import get_architecture_config
         self.architecture_config = get_architecture_config(self.project_dir)
-        self.logger.info(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
+        self.logger.debug(f"  📐 Architecture config loaded: {len(self.architecture_config.library_dirs)} library dirs")
         
         # CORE ANALYSIS CAPABILITIES - Direct integration
         from ..analysis.complexity import ComplexityAnalyzer
@@ -69,9 +69,9 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 MessageType.ISSUE_FOUND,
                 MessageType.PHASE_COMPLETED,
             ])
-            self.logger.info("  📡 Subscribed to 3 message types")
+            self.logger.debug("  📡 Subscribed to 3 message types")
         
-        self.logger.info("  💻 Coding phase initialized with analysis capabilities")
+        self.logger.debug("  💻 Coding phase initialized with analysis capabilities")
     
     def execute(self, state: PipelineState, 
                 task: TaskState = None, **kwargs) -> PhaseResult:
@@ -223,9 +223,16 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 next_phase="documentation"  # Documentation phase can format the findings
             )
         
-        self.logger.info(f"  Task: {task.description[:60]}...")
-        self.logger.info(f"  Target: {task.target_file}")
-        self.logger.info(f"  Attempt: {task.attempts + 1}")
+        # Clear task header
+        self.logger.info("")
+        self.logger.info("="*70)
+        self.logger.info(f"📝 CODING TASK")
+        self.logger.info("="*70)
+        self.logger.info(f"📋 Description: {task.description[:80]}...")
+        self.logger.info(f"🎯 Target File: {task.target_file}")
+        self.logger.info(f"🔄 Attempt: {task.attempts + 1}")
+        self.logger.info("="*70)
+        self.logger.info("")
         
         # CRITICAL FIX: Clear conversation history on first attempt to prevent confusion
         # The model was getting confused by previous task context in conversation history
@@ -251,12 +258,31 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
         tools = get_tools_for_phase("coding")
         
         # Call model with conversation history
-        self.logger.info(f"  Calling model with conversation history")
+        self.logger.info(f"  🤖 Calling AI model...")
         response = self.chat_with_history(user_message, tools)
         
         # Extract tool calls and content
         tool_calls = response.get("tool_calls", [])
         content = response.get("content", "")
+        
+        # Log AI response details
+        self.logger.info("")
+        self.logger.info("="*70)
+        self.logger.info("📥 AI RESPONSE")
+        self.logger.info("="*70)
+        if content:
+            # Show first 200 chars of content
+            content_preview = content[:200] + "..." if len(content) > 200 else content
+            self.logger.info(f"💬 Content: {content_preview}")
+        if tool_calls:
+            self.logger.info(f"🔧 Tool Calls: {len(tool_calls)}")
+            for i, tc in enumerate(tool_calls, 1):
+                tool_name = tc.get("name", "unknown")
+                self.logger.info(f"   {i}. {tool_name}")
+        else:
+            self.logger.info("🔧 Tool Calls: None")
+        self.logger.info("="*70)
+        self.logger.info("")
         
         if not tool_calls:
             pass
@@ -346,8 +372,25 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 }
             )
         
+        # Execute tool calls
+        self.logger.info("🔨 Executing tool calls...")
         handler = ToolCallHandler(self.project_dir, tool_registry=self.tool_registry)
         results = handler.process_tool_calls(tool_calls)
+        
+        # Log execution results
+        self.logger.info("")
+        self.logger.info("="*70)
+        self.logger.info("📤 TOOL EXECUTION RESULTS")
+        self.logger.info("="*70)
+        for i, (tc, result) in enumerate(zip(tool_calls, results), 1):
+            tool_name = tc.get("function", {}).get("name", "unknown")
+            success = result.get("success", False)
+            status = "✅" if success else "❌"
+            self.logger.info(f"{status} {i}. {tool_name}")
+            if not success and result.get("error"):
+                self.logger.info(f"      Error: {result['error'][:100]}")
+        self.logger.info("="*70)
+        self.logger.info("")
         
         # Track actions for loop detection
         self.track_tool_calls(tool_calls, results, agent="coding")
@@ -387,9 +430,15 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 # The model knows when it has enough information to proceed to file creation
                 # Don't artificially limit the number of analysis iterations
                 
-                self.logger.info(f"  ✅ ANALYSIS ITERATION {task.attempts}: Analysis phase in progress")
-                self.logger.info(f"     Tools called: {tools_called}")
-                self.logger.info(f"     Continuing analysis or will proceed to file creation when ready")
+                self.logger.info("")
+                self.logger.info("="*70)
+                self.logger.info(f"🔍 ANALYSIS PHASE - Iteration {task.attempts}")
+                self.logger.info("="*70)
+                self.logger.info(f"📋 Tools used: {', '.join(tools_called)}")
+                self.logger.info(f"📊 Status: Gathering information for {task.target_file}")
+                self.logger.info(f"⏭️  Next: AI will continue analysis or proceed to file creation")
+                self.logger.info("="*70)
+                self.logger.info("")
                 
                 # Store analysis results in task metadata
                 if 'analysis_iterations' not in task.metadata:

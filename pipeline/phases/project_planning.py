@@ -79,7 +79,7 @@ class ProjectPlanningPhase(LoopDetectionMixin, BasePhase):
         self.call_graph = CallGraphGenerator(str(self.project_dir), self.logger)
         self.file_updater = FileUpdateTools(str(self.project_dir), self.logger)
         
-        self.logger.info("  📋 Project Planning phase initialized with comprehensive analysis capabilities")
+        self.logger.debug("  📋 Project Planning phase initialized with comprehensive analysis capabilities")
         self.text_parser = TextToolParser()
         self.objective_generator = ObjectiveFileGenerator(self.project_dir)
     

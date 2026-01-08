@@ -57,12 +57,12 @@ class PhaseCoordinator:
         self.prompt_registry = PromptRegistry(self.project_dir)
         self.tool_registry = ToolRegistry(self.project_dir)
         self.role_registry = RoleRegistry(self.project_dir, self.client)
-        self.logger.info("📚 Shared registries initialized")
+        self.logger.debug("📚 Shared registries initialized")
         
         # Initialize message bus for phase-to-phase communication
         from .messaging import MessageBus, MessageType
         self.message_bus = MessageBus(state_manager=self.state_manager)
-        self.logger.info("📨 Message bus initialized")
+        self.logger.debug("📨 Message bus initialized")
         
         # Subscribe coordinator to critical events
         self.message_bus.subscribe("coordinator", [
@@ -136,7 +136,7 @@ class PhaseCoordinator:
         from .pattern_optimizer import PatternOptimizer
         self.pattern_optimizer = PatternOptimizer(self.project_dir)
         self.execution_count = 0  # Track executions for periodic optimization
-        self.logger.info("⚡ Pattern optimizer initialized")
+        self.logger.debug("⚡ Pattern optimizer initialized")
         
         # Initialize phases (lazy import to avoid circular deps)
         self.phases = self._init_phases()
@@ -182,7 +182,7 @@ class PhaseCoordinator:
         # INTEGRATION: Tool Creator
         from .tool_creator import ToolCreator
         self.tool_creator = ToolCreator(self.project_dir)
-        self.logger.info("🔨 Tool creator initialized")
+        self.logger.debug("🔨 Tool creator initialized")
         
         # INTEGRATION: Tool Validator
         from .tool_validator import ToolValidator
@@ -426,8 +426,8 @@ class PhaseCoordinator:
             'refactoring': ['coding', 'qa', 'planning']
         }
         
-        self.logger.info(f"Polytopic structure: {len(self.polytope['vertices'])} PRIMARY vertices, 7D")
-        self.logger.info("Specialized phases (tool/prompt/role design) available on-demand only")
+        self.logger.debug(f"Polytopic structure: {len(self.polytope['vertices'])} PRIMARY vertices, 7D")
+        self.logger.debug("Specialized phases (tool/prompt/role design) available on-demand only")
         self.logger.info("Refactoring phase integrated as 8th vertex with edges to planning/coding/qa/investigation/project_planning")
     
     def _update_phase_dimensions(self, phase_name: str, result, objective=None):

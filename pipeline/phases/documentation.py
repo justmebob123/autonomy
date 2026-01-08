@@ -64,7 +64,7 @@ class DocumentationPhase(LoopDetectionMixin, BasePhase):
             ])
             self.logger.info("  📡 Message bus subscriptions configured")
         
-        self.logger.info("  📝 Documentation phase initialized with IPC integration")
+        self.logger.debug("  📝 Documentation phase initialized with IPC integration")
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """Execute documentation phase"""

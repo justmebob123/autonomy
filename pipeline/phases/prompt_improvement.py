@@ -54,9 +54,9 @@ class PromptImprovementPhase(LoopDetectionMixin, BasePhase):
                 MessageType.TASK_FAILED,
                 MessageType.SYSTEM_ALERT,
             ])
-            self.logger.info("  📡 Subscribed to 3 message types")
+            self.logger.debug("  📡 Subscribed to 3 message types")
         
-        self.logger.info("  ✨ Prompt Improvement phase initialized with IPC integration")
+        self.logger.debug("  ✨ Prompt Improvement phase initialized with IPC integration")
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """

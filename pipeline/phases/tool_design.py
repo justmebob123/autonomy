@@ -67,9 +67,9 @@ class ToolDesignPhase(LoopDetectionMixin, BasePhase):
                 MessageType.TASK_FAILED,
                 MessageType.SYSTEM_ALERT,
             ])
-            self.logger.info("  📡 Subscribed to 3 message types")
+            self.logger.debug("  📡 Subscribed to 3 message types")
         
-        self.logger.info("Enhanced ToolDesignPhase initialized with ToolAnalyzer and IPC integration")
+        self.logger.debug("Enhanced ToolDesignPhase initialized with ToolAnalyzer and IPC integration")
     
     def execute(self, state: PipelineState, **kwargs) -> PhaseResult:
         """

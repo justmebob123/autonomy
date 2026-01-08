@@ -120,7 +120,7 @@ class RefactoringPhase(BasePhase, LoopDetectionMixin):
             ])
             self.logger.info("  📡 Message bus subscriptions configured")
         
-        self.logger.info("  🔧 Refactoring phase initialized with analysis capabilities")
+        self.logger.debug("  🔧 Refactoring phase initialized with analysis capabilities")
     
     def execute(self, state: PipelineState, 
                 refactoring_type: str = None,

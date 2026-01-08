@@ -78,7 +78,7 @@ class DebuggingPhase(LoopDetectionMixin, BasePhase):
         self.dead_code_detector = DeadCodeDetector(str(self.project_dir), self.logger, self.architecture_config)
         self.conflict_detector = IntegrationConflictDetector(str(self.project_dir), self.logger)
         
-        self.logger.info("  🔧 Debugging phase initialized with ALL analysis capabilities")
+        self.logger.debug("  🔧 Debugging phase initialized with ALL analysis capabilities")
         
         # MESSAGE BUS: Subscribe to relevant events
         if self.message_bus:
