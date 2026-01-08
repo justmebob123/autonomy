@@ -1,163 +1,153 @@
-# Root Cause Analysis - Infinite Loop Issue (DEEP ANALYSIS)
+# ROOT CAUSE ANALYSIS - AI Infinite Loop Issue
 
-## CRITICAL: Focusing on REAL Root Causes, Not Band-Aids
+## Problem Statement
+The AI was stuck in an infinite loop calling `find_similar_files` repeatedly without making progress on tasks, despite the system prompt explicitly saying "DO NOT call find_similar_files first".
 
-## The Actual Problem from Logs
+## Root Cause Identified
 
+### The Contradiction
+There was a **direct contradiction** between the system prompt and the user message:
+
+**System Prompt (pipeline/prompts.py line 157):**
 ```
-Task: Develop a plan to integrate identified components with existing architecture
-Target: architecture/integration_plan.md
-Phase: CODING
-Model Action: read_file("services/integration_gap_analysis.py")
-Result: ❌ File operation failed: (empty error message)
-Status: Task FAILED, gets reactivated, repeats 500+ times
+🚨 CRITICAL: CREATE FILES IMMEDIATELY 🚨
+When given a task to create a file:
+1. DO NOT call find_similar_files first
+2. DO NOT call validate_filename first
+3. DO NOT call any analysis tools first
+4. IMMEDIATELY call create_python_file or modify_python_file
 ```
 
-## Root Cause #1: WRONG PHASE FOR TASK TYPE
-
-### The Problem
-A **documentation task** (create markdown plan) is being handled by the **coding phase** (creates Python files).
-
-### Evidence
-- Target file: `architecture/integration_plan.md` (MARKDOWN)
-- Phase: coding (expects PYTHON files)
-- Task description: "Develop a plan..." (PLANNING/DOCUMENTATION task)
-
-### Why This Happens
-Looking at the task creation in planning phase:
-1. Planning phase creates tasks with various target files
-2. No validation that target file type matches phase capabilities
-3. Coding phase accepts ANY task with a target file
-4. No routing logic based on file extension
-
-### The Real Fix
-**Option A**: Documentation phase should handle `.md` files
-- Check: Does documentation phase exist and handle markdown?
-- Check: Is there routing logic for file extensions?
-
-**Option B**: Coding phase should reject non-Python targets
-- Add validation: if target ends with `.md`, reject or redirect
-- Return clear error: "This is a documentation task, not a coding task"
-
-**Option C**: Planning phase should route tasks correctly
-- When creating tasks, check target file extension
-- Route `.md` files to documentation phase
-- Route `.py` files to coding phase
-
-## Root Cause #2: MODEL DOESN'T UNDERSTAND WHAT TO CREATE
-
-### The Problem
-Model reads a Python file when it should create a markdown file.
-
-### Evidence
-- Reads: `services/integration_gap_analysis.py` (Python)
-- Should create: `architecture/integration_plan.md` (Markdown)
-- No logical connection between input and output
-
-### Why This Happens
-Looking at the coding phase prompt:
-1. Prompt says "create Python files"
-2. Task says "create architecture/integration_plan.md"
-3. Model is confused: Python or Markdown?
-4. Model defaults to reading related files
-5. Never actually creates the target file
-
-### The Real Fix
-**Fix the prompt to handle markdown files**:
+**User Message (pipeline/phases/coding.py line 917-946):**
 ```python
-if task.target_file.endswith('.md'):
-    prompt = "Create a markdown document at {target_file}. This is DOCUMENTATION, not code."
-else:
-    prompt = "Create Python code at {target_file}."
+# STEP 1: FILE DISCOVERY - Check for similar files
+similar_files = self.file_discovery.find_similar_files(task.target_file)
+
+if similar_files:
+    parts.append("## ⚠️ Similar Files Found\n")
+    parts.append("Before creating a new file, please review these existing files:\n")
+    # ... shows similar files ...
+    parts.append("## 🤔 Decision Required\n")
+    parts.append("Please decide:")
+    parts.append("1. **Modify existing file** - If one of the above files should be updated")
+    parts.append("2. **Create new file** - If this is genuinely new functionality")
+    parts.append("\nUse `read_file` to examine existing files before deciding.\n")
 ```
 
-OR **Reject markdown files entirely**:
+### Why This Caused an Infinite Loop
+
+1. **System prompt says:** "Don't call find_similar_files first"
+2. **User message shows:** Similar files and asks AI to "review these existing files"
+3. **User message suggests:** "Use `read_file` to examine existing files before deciding"
+4. **AI interprets this as:** "I need to review the files by calling find_similar_files"
+5. **AI calls:** `find_similar_files` to "review" the files
+6. **Tool returns:** Empty result (no similar files for cleanup_report.txt)
+7. **AI doesn't understand:** Empty result means "no conflicts, proceed with creation"
+8. **AI repeats:** Calls `find_similar_files` again, creating infinite loop
+
+### Why Loop Detection Didn't Catch It
+
+Loop detection wasn't working because of a separate bug in tool name extraction:
+- Loop detection was looking for `tool_call.get('tool')` or `tool_call.get('name')`
+- But actual structure is `tool_call.get('function', {}).get('name')`
+- So loop detection couldn't track which tools were being called
+- No intervention occurred to break the loop
+
+## Fixes Applied
+
+### Fix 1: Remove Contradictory User Message (Commit c3aa6bb)
+**File:** `pipeline/phases/coding.py` (lines 917-946)
+
+**Change:** Removed the automatic similar file discovery from `_build_user_message()`
+
+**Reason:** This was directly contradicting the system prompt and causing the AI to get stuck
+
+### Fix 2: Add Report Generation Guidance (Commit c3aa6bb)
+**File:** `pipeline/prompts.py` (lines 157-180)
+
+**Change:** Added explicit guidance for report generation tasks:
+```
+🚨 SPECIAL CASE: REPORT GENERATION TASKS 🚨
+If the task asks to create a REPORT or ANALYSIS file:
+1. Call the analysis tool FIRST (e.g., detect_dead_code)
+2. Get the results from the tool
+3. IMMEDIATELY call create_python_file with the results as content
+4. Format the results as a readable report
+
+DO NOT get stuck calling analysis tools repeatedly without creating the report file!
+```
+
+**Reason:** The task "Remove unused functions using detect_dead_code tool" with target "cleanup_report.txt" was confusing because it's a report generation task, not a code modification task.
+
+### Fix 3: Fix Loop Detection Tool Tracking (Commit f6c7c83)
+**File:** `pipeline/phases/loop_detection_mixin.py` (line 72)
+
+**Change:** Fixed tool name extraction to handle correct format:
 ```python
-if task.target_file.endswith('.md'):
-    return PhaseResult(
-        success=False,
-        message="Coding phase cannot create markdown files. Route to documentation phase."
-    )
+# OLD:
+tool_name = tool_call.get('tool') or tool_call.get('name') or 'unspecified_tool'
+
+# NEW:
+tool_name = (
+    tool_call.get('function', {}).get('name') or 
+    tool_call.get('tool') or 
+    tool_call.get('name') or 
+    'unspecified_tool'
+)
 ```
 
-## Root Cause #3: EMPTY ERROR MESSAGES
+**Reason:** Loop detection couldn't track tools because it was extracting names from the wrong location in the data structure.
 
-### The Problem
-When model calls `read_file` but doesn't create files, error message is empty.
+### Fix 4: Fix Tool Call Logging (Commit f6c7c83)
+**File:** `pipeline/phases/coding.py` (line 280)
 
-### Evidence
-```
-❌ File operation failed: 
-```
-(nothing after the colon)
+**Change:** Fixed tool name extraction in logging:
+```python
+# OLD:
+tool_name = tc.get("name", "unknown")
 
-### Why This Happens
-1. Model calls `read_file` successfully
-2. No files created or modified
-3. `handler.errors` is empty (no tool errors)
-4. `handler.get_error_summary()` returns empty string
-5. Error log shows empty message
-
-### The Real Fix (ALREADY PARTIALLY DONE)
-Commit f0b52df added `read_file` to analysis tools list, but we need to verify:
-1. Is the fix actually working?
-2. Is the error message now clear?
-3. Does it prevent the infinite loop?
-
-## Investigation Plan
-
-### Step 1: Check Task Routing
-```bash
-# Find where tasks are created
-grep -r "architecture/integration_plan.md" pipeline/
-
-# Find where phase is selected for tasks
-grep -r "def.*select.*phase" pipeline/
-
-# Check if there's file extension routing
-grep -r "\.md\|\.py" pipeline/phases/
+# NEW:
+tool_name = tc.get("function", {}).get("name") or tc.get("name", "unknown")
 ```
 
-### Step 2: Check Phase Capabilities
-```bash
-# What does coding phase accept?
-grep -r "def run" pipeline/phases/coding.py
+**Reason:** Tool calls were showing as "unknown" in logs, making debugging difficult.
 
-# What does documentation phase accept?
-grep -r "def run" pipeline/phases/documentation.py
+## Impact
 
-# Is there validation for file types?
-grep -r "target_file.*endswith\|file.*extension" pipeline/phases/
-```
+### Before Fixes:
+- ❌ AI stuck in infinite loop calling `find_similar_files`
+- ❌ Loop detection not working
+- ❌ Tool calls showing as "unknown" in logs
+- ❌ Tasks failing with "no files created"
+- ❌ System unable to make progress
 
-### Step 3: Check Model Prompts
-```bash
-# What does coding phase tell the model?
-grep -r "system.*prompt\|You are" pipeline/phases/coding.py
+### After Fixes:
+- ✅ AI should proceed directly to file creation
+- ✅ Loop detection should work and intervene if needed
+- ✅ Tool calls show correct names in logs
+- ✅ Report generation tasks have clear workflow
+- ✅ System should make progress on tasks
 
-# Does it mention markdown files?
-grep -r "markdown\|\.md" pipeline/phases/coding.py
-```
+## Lessons Learned
 
-## What We Should NOT Do
+1. **System prompts and user messages must be consistent** - Contradictions confuse the AI
+2. **Don't show information and then tell AI not to use it** - If you show similar files, AI will try to review them
+3. **Loop detection requires correct data extraction** - Tool tracking must use the right data structure
+4. **Different task types need different workflows** - Report generation is different from code implementation
+5. **Debugging requires good logging** - Tool names showing as "unknown" made root cause analysis harder
 
-❌ Add failure count limits (hides the problem)
-❌ Force phase transitions (masks the issue)  
-❌ Add artificial loop breaking (band-aid fix)
-❌ Reduce thresholds (doesn't fix root cause)
+## Testing Recommendations
 
-## What We SHOULD Do
+1. Run autonomy system on the web project
+2. Verify AI doesn't get stuck in loops
+3. Verify loop detection intervenes if needed
+4. Verify report generation tasks complete successfully
+5. Verify tool calls show correct names in logs
+6. Monitor for any remaining issues
 
-✅ Fix task routing based on file type
-✅ Add validation in coding phase for file types
-✅ Improve prompts to clarify task requirements
-✅ Ensure error messages are always actionable
-✅ Add logging to understand task flow
+## Related Issues
 
-## Next Steps
-
-1. Examine task creation in planning phase
-2. Check phase selection logic
-3. Verify file type handling in each phase
-4. Fix routing or add validation
-5. Test with the actual failing task
+- 541 integration conflicts are LEGITIMATE architectural issues (duplicate class/function names)
+- These are NOT related to the JSON encoding bug or the infinite loop issue
+- These should be addressed through refactoring, not automated fixes
+- The system is correctly detecting them and creating tasks to fix them
