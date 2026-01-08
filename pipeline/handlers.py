@@ -5718,12 +5718,22 @@ class ToolCallHandler:
             
             similar = discovery.find_similar_files(target_file, threshold)
             
-            return {
+            result = {
                 "tool": "find_similar_files",
                 "success": True,
                 "similar_files": similar,
                 "count": len(similar)
             }
+            
+            # Add clear guidance message
+            if len(similar) == 0:
+                result["message"] = f"✅ No similar files found for '{target_file}'. Safe to proceed with file creation."
+                result["next_action"] = "You should now create the file using create_python_file tool."
+            else:
+                result["message"] = f"⚠️ Found {len(similar)} similar file(s). Review them before deciding whether to create a new file or modify an existing one."
+                result["next_action"] = "Review the similar files and decide: create new file, modify existing, or use different name."
+            
+            return result
         except Exception as e:
             self.logger.error(f"Find similar files failed: {e}")
             return {
