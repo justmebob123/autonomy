@@ -1026,7 +1026,7 @@ class ResponseParser:
                     value = value.replace('\\n', '\n')
                     value = value.replace('\\t', '\t')
                     value = value.replace('\\r', '\r')
-                    value = value.replace(r'&quot;', '"')
+                    value = value.replace('\&quot;', '"')  # Use JSON escape, not HTML entity
                     value = value.replace("\\'", "'")
                     value = value.replace('\\\\', '\\')
                 
@@ -1053,13 +1053,10 @@ class ResponseParser:
         
         def replace_triple_quotes(match):
             content = match.group(1)
-            # Escape backslashes and quotes for JSON
-            content = content.replace('\\', '\\\\')
-            content = content.replace('"', r'&quot;')
-            content = content.replace('\n', '\\n')
-            content = content.replace('\r', '\\r')
-            content = content.replace('\t', '\\t')
-            return f'"{content}"'
+            # Use json.dumps to properly escape the content
+            # This handles all special characters correctly
+            import json
+            return json.dumps(content)
         
         # Match triple-quoted strings (both """ and ''')
         text = re.sub(r'"""([\s\S]*?)"""', replace_triple_quotes, text)
