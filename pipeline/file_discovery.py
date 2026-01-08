@@ -367,99 +367,127 @@ class FileDiscovery:
         return [node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)]
     
     def _extract_functions(self, tree: ast.AST) -> List[str]:
-        """Extract top-level function names."""
+        """Extract top-level function names (not methods)."""
         functions = []
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                # Only top-level functions (not methods)
-                if not any(isinstance(parent, ast.ClassDef) 
-                          for parent in ast.walk(tree) 
-                          if hasattr(parent, 'body') and node in parent.body):
+        # Only look at module-level nodes
+        if hasattr(tree, 'body'):
+            for node in tree.body:
+                if isinstance(node, ast.FunctionDef):
                     functions.append(node.name)
         return functions
     
     def _extract_methods(self, tree: ast.AST) -> List[str]:
         """Extract method names from classes."""
         methods = []
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ClassDef):
-                for item in node.body:
-                    if isinstance(item, ast.FunctionDef):
-                        methods.append(f"{node.name}.{item.name}")
+        try:
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    if hasattr(node, 'body') and isinstance(node.body, list):
+                        for item in node.body:
+                            if isinstance(item, ast.FunctionDef):
+                                methods.append(f"{node.name}.{item.name}")
+        except Exception as e:
+            self.logger.debug(f"Error extracting methods: {e}")
         return methods
     
     def _extract_imports(self, tree: ast.AST) -> List[str]:
         """Extract import statements."""
         imports = []
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                for alias in node.names:
-                    imports.append(alias.name)
-            elif isinstance(node, ast.ImportFrom):
-                if node.module:
-                    imports.append(node.module)
+        try:
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        imports.append(alias.name)
+                elif isinstance(node, ast.ImportFrom):
+                    if node.module:
+                        imports.append(node.module)
+        except Exception as e:
+            self.logger.debug(f"Error extracting imports: {e}")
         return imports
     
     def _extract_decorators(self, tree: ast.AST) -> List[str]:
         """Extract decorator names."""
         decorators = []
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
-                for dec in node.decorator_list:
-                    if isinstance(dec, ast.Name):
-                        decorators.append(dec.id)
-                    elif isinstance(dec, ast.Call) and isinstance(dec.func, ast.Name):
-                        decorators.append(dec.func.id)
+        try:
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.FunctionDef, ast.ClassDef)):
+                    if hasattr(node, 'decorator_list'):
+                        for dec in node.decorator_list:
+                            if isinstance(dec, ast.Name):
+                                decorators.append(dec.id)
+                            elif isinstance(dec, ast.Call) and isinstance(dec.func, ast.Name):
+                                decorators.append(dec.func.id)
+        except Exception as e:
+            self.logger.debug(f"Error extracting decorators: {e}")
         return decorators
     
     def _extract_base_classes(self, tree: ast.AST) -> List[str]:
         """Extract base classes."""
         bases = []
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ClassDef):
-                for base in node.bases:
-                    if isinstance(base, ast.Name):
-                        bases.append(base.id)
+        try:
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    if hasattr(node, 'bases'):
+                        for base in node.bases:
+                            if isinstance(base, ast.Name):
+                                bases.append(base.id)
+        except Exception as e:
+            self.logger.debug(f"Error extracting base classes: {e}")
         return bases
     
     def _extract_function_signatures(self, tree: ast.AST) -> List[str]:
         """Extract function signatures."""
         signatures = []
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                args = [arg.arg for arg in node.args.args]
-                signatures.append(f"{node.name}({', '.join(args)})")
+        try:
+            for node in ast.walk(tree):
+                if isinstance(node, ast.FunctionDef):
+                    if hasattr(node, 'args') and hasattr(node.args, 'args'):
+                        args = [arg.arg for arg in node.args.args]
+                        signatures.append(f"{node.name}({', '.join(args)})")
+        except Exception as e:
+            self.logger.debug(f"Error extracting function signatures: {e}")
         return signatures
     
     def _extract_called_functions(self, tree: ast.AST) -> List[str]:
         """Extract functions that are called."""
         calls = []
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Call):
-                if isinstance(node.func, ast.Name):
-                    calls.append(node.func.id)
-                elif isinstance(node.func, ast.Attribute):
-                    calls.append(node.func.attr)
+        try:
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Call):
+                    if isinstance(node.func, ast.Name):
+                        calls.append(node.func.id)
+                    elif isinstance(node.func, ast.Attribute):
+                        calls.append(node.func.attr)
+        except Exception as e:
+            self.logger.debug(f"Error extracting called functions: {e}")
         return calls
     
     def _extract_variables(self, tree: ast.AST) -> List[str]:
         """Extract variable names."""
         variables = []
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Assign):
-                for target in node.targets:
-                    if isinstance(target, ast.Name):
-                        variables.append(target.id)
+        try:
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Assign):
+                    if hasattr(node, 'targets'):
+                        for target in node.targets:
+                            if isinstance(target, ast.Name):
+                                variables.append(target.id)
+        except Exception as e:
+            self.logger.debug(f"Error extracting variables: {e}")
         return variables
     
     def _extract_constants(self, tree: ast.AST) -> List[str]:
         """Extract constant names (UPPER_CASE variables)."""
         constants = []
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Assign):
-                for target in node.targets:
-                    if isinstance(target, ast.Name) and target.id.isupper():
-                        constants.append(target.id)
+        try:
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Assign):
+                    if hasattr(node, 'targets'):
+                        for target in node.targets:
+                            if isinstance(target, ast.Name) and target.id.isupper():
+                                constants.append(target.id)
+        except Exception as e:
+            self.logger.debug(f"Error extracting constants: {e}")
         return constants
     
     def _detect_patterns(self, tree: ast.AST, content: str) -> List[str]:
@@ -489,11 +517,15 @@ class FileDiscovery:
     def _estimate_complexity(self, tree: ast.AST) -> int:
         """Estimate cyclomatic complexity."""
         complexity = 0
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.If, ast.While, ast.For, ast.ExceptHandler)):
-                complexity += 1
-            elif isinstance(node, ast.BoolOp):
-                complexity += len(node.values) - 1
+        try:
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.If, ast.While, ast.For, ast.ExceptHandler)):
+                    complexity += 1
+                elif isinstance(node, ast.BoolOp):
+                    if hasattr(node, 'values'):
+                        complexity += len(node.values) - 1
+        except Exception as e:
+            self.logger.debug(f"Error estimating complexity: {e}")
         return complexity
     
     def _describe_relationships(self, metadata: Dict) -> Dict[str, List[str]]:
