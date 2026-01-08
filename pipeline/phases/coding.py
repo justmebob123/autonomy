@@ -820,50 +820,22 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
         """
         parts = []
         
-        # STEP 1: FILE DISCOVERY - Check for similar files
-        if task.target_file:
-            similar_files = self.file_discovery.find_similar_files(task.target_file)
-            
-            if similar_files:
-                parts.append("## ⚠️ Similar Files Found\n")
-                parts.append("Before creating a new file, please review these existing files:\n")
-                
-                for i, file_info in enumerate(similar_files[:5], 1):
-                    parts.append(f"\n### {i}. {file_info['path']}")
-                    parts.append(f"- **Similarity:** {file_info['similarity']:.0%}")
-                    parts.append(f"- **Size:** {file_info['size']} bytes")
-                    parts.append(f"- **Purpose:** {file_info['purpose']}")
-                    
-                    if file_info['classes']:
-                        parts.append(f"- **Classes:** {', '.join(file_info['classes'][:3])}")
-                    
-                    if file_info['functions']:
-                        funcs = ', '.join(file_info['functions'][:5])
-                        if len(file_info['functions']) > 5:
-                            funcs += f" ... and {len(file_info['functions']) - 5} more"
-                        parts.append(f"- **Functions:** {funcs}")
-                
-                parts.append("\n## 🤔 Decision Required\n")
-                parts.append("Please decide:")
-                parts.append("1. **Modify existing file** - If one of the above files should be updated")
-                parts.append("2. **Create new file** - If this is genuinely new functionality")
-                parts.append("3. **Use different name** - If the name conflicts with conventions")
-                parts.append("\nUse `read_file` to examine existing files before deciding.\n")
+        # CRITICAL FIX: DO NOT check for similar files in user message
+        # This was causing the model to call find_similar_files instead of creating files
+        # The system prompt now explicitly tells the model to create files immediately
+        # 
+        # STEP 1: FILE DISCOVERY - DISABLED
+        # Similar file checking is now optional and should only be done AFTER file creation
+        # if task.target_file:
+        #     similar_files = self.file_discovery.find_similar_files(task.target_file)
+        #     ... (code commented out to prevent analysis-first behavior)
         
-        # STEP 2: NAMING CONVENTIONS - Validate filename
-        if task.target_file:
-            validation = self.naming_conventions.validate_filename(task.target_file)
-            
-            if not validation['valid']:
-                parts.append("## ⚠️ Naming Convention Issues\n")
-                for issue in validation['issues']:
-                    parts.append(f"- {issue}")
-                
-                if validation['suggestions']:
-                    parts.append("\n**Suggestions:**")
-                    for suggestion in validation['suggestions']:
-                        parts.append(f"- {suggestion}")
-                parts.append("")
+        # STEP 2: NAMING CONVENTIONS - DISABLED
+        # This was also causing the model to call validate_filename instead of creating files
+        # Naming validation should be done AFTER file creation, not before
+        # if task.target_file:
+        #     validation = self.naming_conventions.validate_filename(task.target_file)
+        #     ... (code commented out to prevent analysis-first behavior)
         
         # Add strategic context from objectives documents
         strategic_docs = self.read_strategic_docs()
