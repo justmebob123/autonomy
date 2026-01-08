@@ -1854,23 +1854,25 @@ result = {gap['class'].lower()}.process(data)
                 description += f" at line {error['line']}"
             description += f": {error['error']}"
             
-            task = TaskState(
-                task_id=task_id,
+            # Add task using state.add_task() method
+            task = state.add_task(
                 description=description,
                 target_file=error['file'],
-                priority=TaskPriority.CRITICAL,  # Highest priority!
-                status=TaskStatus.NEW,
-                metadata={
-                    'error_type': 'syntax_error',
-                    'error_message': error['error'],
-                    'line': error.get('line', 0),
-                    'offset': error.get('offset', 0),
-                    'text': error.get('text', ''),
-                    'phase_hint': 'debugging'  # Route to debugging phase
-                }
+                priority=TaskPriority.CRITICAL_BUG,  # Highest priority!
+                dependencies=[],
+                objective_id=None,
+                objective_level=None
             )
             
-            state.add_task(task)
+            # Update task metadata
+            task.metadata.update({
+                'error_type': 'syntax_error',
+                'error_message': error['error'],
+                'line': error.get('line', 0),
+                'offset': error.get('offset', 0),
+                'text': error.get('text', ''),
+                'phase_hint': 'debugging'  # Route to debugging phase
+            })
             self.logger.warning(f"  🚨 Created CRITICAL task: {task_id}")
         
         # Save state with new tasks
@@ -1929,22 +1931,24 @@ result = {gap['class'].lower()}.process(data)
             else:
                 priority = TaskPriority.NEW_TASK
             
-            task = TaskState(
-                task_id=task_id,
+            # Add task using state.add_task() method
+            task = state.add_task(
                 description=description,
                 target_file=file_path,
                 priority=priority,
-                status=TaskStatus.NEW,
-                metadata={
-                    'error_type': 'integration_conflict',
-                    'conflict_count': conflict_count,
-                    'conflicts': conflicts,
-                    'severity': severity,
-                    'phase_hint': 'debugging'  # Route to debugging phase
-                }
+                dependencies=[],
+                objective_id=None,
+                objective_level=None
             )
             
-            state.add_task(task)
+            # Update task metadata
+            task.metadata.update({
+                'error_type': 'integration_conflict',
+                'conflict_count': conflict_count,
+                'conflicts': conflicts,
+                'severity': severity,
+                'phase_hint': 'debugging'  # Route to debugging phase
+            })
             self.logger.warning(f"  ⚠️  Created {priority.value} priority task: {task_id}")
         
         # Save state with new tasks
@@ -1980,7 +1984,7 @@ result = {gap['class'].lower()}.process(data)
                 description=f"Create missing component: {component}",
                 target_file=f"{component.replace('.', '/')}.py",
                 status=TaskStatus.NEW,
-                priority=TaskPriority.CRITICAL,
+                priority=TaskPriority.CRITICAL_BUG,
                 created_at=datetime.now().isoformat()
             )
             tasks.append(task)
@@ -1992,7 +1996,7 @@ result = {gap['class'].lower()}.process(data)
                 description=f"Move {issue.component} to correct location: {issue.expected_location}",
                 target_file=issue.current_location,
                 status=TaskStatus.NEW,
-                priority=TaskPriority.HIGH,
+                priority=TaskPriority.QA_FAILURE,
                 created_at=datetime.now().isoformat()
             )
             tasks.append(task)

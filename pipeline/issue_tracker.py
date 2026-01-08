@@ -427,13 +427,13 @@ class IssueTracker:
         
         # Determine priority based on severity
         priority_map = {
-            IssueSeverity.CRITICAL: TaskPriority.CRITICAL_FIX,
-            IssueSeverity.HIGH: TaskPriority.HIGH_FIX,
-            IssueSeverity.MEDIUM: TaskPriority.MEDIUM_FIX,
-            IssueSeverity.LOW: TaskPriority.MEDIUM_FIX
+            IssueSeverity.CRITICAL: TaskPriority.CRITICAL_BUG,
+            IssueSeverity.HIGH: TaskPriority.QA_FAILURE,
+            IssueSeverity.MEDIUM: TaskPriority.NEW_TASK,
+            IssueSeverity.LOW: TaskPriority.LOW
         }
         
-        priority = priority_map.get(issue.severity, TaskPriority.MEDIUM_FIX)
+        priority = priority_map.get(issue.severity, TaskPriority.NEW_TASK)
         
         # Create task
         task = state.add_task(
