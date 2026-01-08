@@ -383,19 +383,26 @@ class CodingPhase(BasePhase, LoopDetectionMixin):
                 # The system prompt says "STEP 1: DISCOVERY" then "STEP 2: VALIDATION" then "STEP 3: CREATION"
                 # We should allow analysis in first turn, then require creation in subsequent turns
                 
-                if task.attempts == 1:
-                    # First attempt - analysis is expected and encouraged per system prompt
-                    self.logger.info(f"  ✅ STEP 1-2 COMPLETE: Analysis phase completed")
+                # Check if this is Step 2 (validation only)
+                step2_tools = ['validate_filename']
+                is_step2_only = all(call.get("function", {}).get("name") in step2_tools for call in tool_calls)
+                
+                if task.attempts == 1 or (task.attempts == 2 and is_step2_only and task.metadata.get('analysis_completed', False)):
+                    # First or second attempt - analysis/validation is expected per system prompt
+                    step_name = "STEP 2 (VALIDATION)" if is_step2_only else "STEP 1-2"
+                    self.logger.info(f"  ✅ {step_name} COMPLETE: Analysis phase completed")
                     self.logger.info(f"     Tools called: {tools_called}")
                     self.logger.info(f"     Next iteration: Will proceed to STEP 3 (file creation) based on analysis")
                     
                     # Store analysis results in task metadata
                     task.metadata['analysis_completed'] = True
-                    task.metadata['analysis_results'] = {
+                    if 'analysis_results' not in task.metadata:
+                        task.metadata['analysis_results'] = {}
+                    task.metadata['analysis_results'].update({
                         "tools_called": tools_called,
                         "results": results,
                         "iteration": task.attempts
-                    }
+                    })
                     
                     # Task continues - not failed, not complete yet
                     task.status = TaskStatus.IN_PROGRESS
