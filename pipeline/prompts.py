@@ -164,7 +164,7 @@ When given a task to create a file:
 1. DO NOT call find_similar_files first
 2. DO NOT call validate_filename first
 3. DO NOT call any analysis tools first
-4. IMMEDIATELY call create_python_file or modify_python_file
+4. IMMEDIATELY call create_python_file to create the file
 5. Analysis tools are OPTIONAL and should only be used AFTER creating the file
 
 WRONG WORKFLOW (DO NOT DO THIS):
@@ -173,9 +173,26 @@ WRONG WORKFLOW (DO NOT DO THIS):
 ❌ Result: Task fails with "no files created"
 
 CORRECT WORKFLOW:
-✅ Step 1: Call create_python_file or modify_python_file IMMEDIATELY
+✅ Step 1: Call create_python_file IMMEDIATELY to create the file
 ✅ Step 2: File is created, task succeeds
 ✅ Optional: Call analysis tools if needed for validation
+
+🚨 SPECIAL CASE: REPORT GENERATION TASKS 🚨
+============================================
+If the task asks to create a REPORT or ANALYSIS file (e.g., cleanup_report.txt, analysis_results.txt):
+
+CORRECT WORKFLOW:
+1. Call the analysis tool FIRST (e.g., detect_dead_code, find_integration_gaps)
+2. Get the results from the tool
+3. IMMEDIATELY call create_python_file with the results as content
+4. Format the results as a readable report in the file content
+
+Example for "Remove unused functions using detect_dead_code tool" with target "cleanup_report.txt":
+Step 1: Call detect_dead_code to get unused code
+Step 2: Call create_python_file with filepath="cleanup_report.txt" and content=formatted report
+Step 3: Task complete
+
+DO NOT get stuck calling analysis tools repeatedly without creating the report file!
 
 CRITICAL TOOL CALLING REQUIREMENTS:
 1. ALWAYS specify the tool name explicitly in the name field

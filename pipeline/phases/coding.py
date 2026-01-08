@@ -914,35 +914,10 @@ DO NOT use modify_file again - use full_file_rewrite with the entire file conten
         """
         parts = []
         
-        # STEP 1: FILE DISCOVERY - Check for similar files
-        if task.target_file:
-            similar_files = self.file_discovery.find_similar_files(task.target_file)
-            
-            if similar_files:
-                parts.append("## ⚠️ Similar Files Found\n")
-                parts.append("Before creating a new file, please review these existing files:\n")
-                
-                for i, file_info in enumerate(similar_files[:5], 1):
-                    parts.append(f"\n### {i}. {file_info['path']}")
-                    parts.append(f"- **Similarity:** {file_info['similarity']:.0%}")
-                    parts.append(f"- **Size:** {file_info['size']} bytes")
-                    parts.append(f"- **Purpose:** {file_info['purpose']}")
-                    
-                    if file_info['classes']:
-                        parts.append(f"- **Classes:** {', '.join(file_info['classes'][:3])}")
-                    
-                    if file_info['functions']:
-                        funcs = ', '.join(file_info['functions'][:5])
-                        if len(file_info['functions']) > 5:
-                            funcs += f" ... and {len(file_info['functions']) - 5} more"
-                        parts.append(f"- **Functions:** {funcs}")
-                
-                parts.append("\n## 🤔 Decision Required\n")
-                parts.append("Please decide:")
-                parts.append("1. **Modify existing file** - If one of the above files should be updated")
-                parts.append("2. **Create new file** - If this is genuinely new functionality")
-                parts.append("3. **Use different name** - If the name conflicts with conventions")
-                parts.append("\nUse `read_file` to examine existing files before deciding.\n")
+        # REMOVED: Automatic similar file discovery - this was causing the AI to get stuck
+        # calling find_similar_files repeatedly. The system prompt says "DO NOT call 
+        # find_similar_files first" but this code was contradicting that by showing
+        # similar files and asking the AI to review them.
         
         # STEP 2: NAMING CONVENTIONS - Validate filename
         if task.target_file:
